@@ -270,10 +270,10 @@ public:
 	//	std::cout << "forbidden ctor " << std::string(t) << std::endl;
 	//}
 
-	template<typename T, typename = std::enable_if_t< integral > >
-	Matrix(const int& i, const T & s = ""
+	template<bool b = integral, typename = std::enable_if_t<b> >
+	Matrix(const int& i, const std::string & s = ""
 	) : NamedObject<Matrix>(s) {
-		static_assert(std::is_convertible_v<T, std::string>, "error ctor");
+		//static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
 		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(i) + ";");
@@ -281,10 +281,10 @@ public:
 		released = true;
 	}
 
-	template<typename T, typename = std::enable_if_t< isFP<type>::value > >
-	Matrix(const double & d, const std::string & s = ""
+	template<bool b = isFP<type>::value, typename = std::enable_if_t<b> >
+	Matrix(const double & d, const std::string  & s = ""
 	) : NamedObject<Matrix>(s) {
-		static_assert(std::is_convertible_v<T, std::string>, "error ctor");
+		//static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
 		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(d) + ";");
@@ -314,7 +314,7 @@ public:
 		release(vs...);
 	}
 
-	template<typename = std::enable_if_t< isbool > > operator bool() const { 
+	template<bool b = isbool, typename = std::enable_if_t< b > > operator bool() const {
 		return false;
 	}
 
