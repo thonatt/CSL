@@ -121,7 +121,7 @@ protected:
 	}
 
 	std::vector<Line> & getLines();
-	
+public:
 	void ignoreNextCmds(int n) { ignoreCounter += n; }
 
 public:

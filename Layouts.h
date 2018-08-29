@@ -126,6 +126,8 @@ template<typename Param, typename T, typename L = Layout<> > struct Qualifier : 
 		Ctx().removeCmd();
 		release(t);
 	}
+
+	static const std::string typeStr() { return TypeStr<Qualifier>::str(); }
 };
 
 struct InParam {};

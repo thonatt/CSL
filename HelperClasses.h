@@ -77,9 +77,13 @@ template<> struct isBool<numberType::BOOL> {
 	static const bool value = true;
 };
 
-template<numberType type> struct notBool {
+template<numberType type> struct notBoolT {
 	static const bool value = isInt<type>::value || isFP<type>::value;
 };
+
+template<numberType type> constexpr bool notBool = notBoolT<type>::value;
+
+template<bool A, bool B> constexpr bool CT_XOR = (A && B) || (!A && !B);
 
 //template<numberType tA, numberType tB> struct HigherType {
 //	static const numberType type = tA;

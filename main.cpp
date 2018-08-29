@@ -39,9 +39,8 @@ int main()
 		Uniform<vec3> lightPos("lightPos");
 		Out<vec4> outColor("outColor");
 		Uniform<Tri> triangle("triangle");
-		//Uniform<MegaTri, Layout<Location<3>, Binding<0> >> megatron;
-		MegaTron k;
-		
+		Uniform<MegaTri, Layout<Location<3>, Binding<0> >> megatron;
+
 		auto foo = makeF("proj", [](In<mat4> proj, In<vec3> point) { return proj * vec4(point, 1.0); }, "proj", "point");
 		auto goo = makeF("goo", [](vec3 a, vec3 b) { return determinant(mat3(a,b,a)); } );
 
@@ -49,10 +48,13 @@ int main()
 			
 			//vec3 rotatedCenter = triangle.center * triangle.angle << "rotated";
 			vec3 L = normalize(lightPos - position) << "L";
-			vec3 diff = color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] << "diff";
+			vec3 diff = L[x]* color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] *L[x] << "diff";
 			//diff = dot(diff, triangle.center)*diff;
 			
-			GL_FOR(Int a = 0; a < 5; ++a) {
+			Int n("n"),m("m");
+			n = m++;
+
+			GL_FOR(Int a(0,"a"); a < 5; a++) {
 				Bool myb;
 				GL_IF(myb) {
 					diff[x] = goo(L, diff);

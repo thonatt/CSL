@@ -25,7 +25,7 @@ const Scalar<type> determinant(const Matrix<type, Nrows, Ncols> & m) {
 //template<unsigned int N> Vec<numberType::BOOL, N> Not(const Vec<numberType::BOOL, N> & v) { return Vec<numberType::BOOL, N>(); }
 
 #define GLSL_BVEC_BINARY_OPERATOR_NO_BOOL(op)														\
-template<numberType type, unsigned int N, typename = std::enable_if_t< notBool<type>::value > >		\
+template<numberType type, unsigned int N, typename = std::enable_if_t< notBool<type> > >		\
 const Vec<numberType::BOOL, N> op(const Vec<type, N> & v1, const Vec<type, N> & v2) {				\
 	release(v1, v2);																				\
 	return createDummy<Vec<numberType::BOOL, N>>(std::string(#op) + "(" + strFromObj(v1, v2) + ")");		\

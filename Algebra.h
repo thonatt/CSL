@@ -209,7 +209,7 @@ protected:
 protected:
 	static constexpr bool scalar = isScalar<Matrix>;
 	static constexpr bool integral = scalar && (type == numberType::INT || type == numberType::UINT);
-	static constexpr bool isbool = scalar && !notBool<type>::value;
+	static constexpr bool isbool = scalar && !notBool<type>;
 
 public:
 	using NamedObject<Matrix>::name;
@@ -217,7 +217,7 @@ public:
 
 public:
 	static const std::string typeStr() { return TypeStr<Matrix>::str(); }
-	static const int numMembers() { return 1; } 
+	static const int numMembers() { return 0; } 
 
 	~Matrix() {
 		//ctx.flow.dtor(this);
@@ -320,13 +320,13 @@ public:
 	//}
 
 	//// operators +
-	template<typename = std::enable_if_t<notBool<type>::value /* && !scalar */ > >
+	template<typename = std::enable_if_t<notBool<type> /* && !scalar */ > >
 	const Matrix operator+(const Scalar & f) const {
 		release(*this,f);
 		return createDummy<Matrix>(name + " + " + f.name);
 	}
 
-	template<typename = std::enable_if_t<notBool<type>::value> >
+	template<typename = std::enable_if_t<notBool<type> > >
 	Matrix & operator+=(const Scalar & f) { 
 		release(f);
 		Ctx().addCmd(name + " += " + f.name + ";");
@@ -334,33 +334,33 @@ public:
 	}
 
 	template<unsigned int otherNrows, unsigned int otherNcols, typename =
-		std::enable_if_t<notBool<type>::value && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
+		std::enable_if_t<notBool<type> && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
 	const Matrix operator+(const Matrix<type, otherNrows, otherNcols> & other) const { 
 		release(*this,other);
 		return createDummy<Matrix>(name + " + " + other.name); 
 	}
 
 	template<unsigned int otherNrows, unsigned int otherNcols, typename =
-		std::enable_if_t<notBool<type>::value && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
+		std::enable_if_t<notBool<type> && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
 	Matrix & operator+=(const Matrix<type, otherNrows, otherNcols> & other) {
 		Ctx().addCmd(name + " += " + other.name + ";");
 		return *this; 
 	}
 
 	//MxS
-	template<typename = std::enable_if_t<notBool<type>::value > >
-	const Matrix operator*(const Scalar & f) const {
-		release(*this, f);
-		return createDummy<Matrix>(name + "*" + f.name);
-	}
+	//template<typename = std::enable_if_t<notBool<type> > >
+	//const Matrix operator*(const Scalar & f) const {
+	//	release(*this, f);
+	//	return createDummy<Matrix>(name + "*" + f.name);
+	//}
 
-	template<unsigned int otherNrows, unsigned int otherNcols, typename =
-		std::enable_if_t< notBool<type>::value && scalar && !isScalar<Matrix<type, otherNrows, otherNcols> > > 
-	>
-	const Matrix<type, otherNrows, otherNcols> operator*(const Matrix<type, otherNrows, otherNcols> & other) const {
-		release(*this,other);
-		return createDummy<Matrix<type, otherNrows, otherNcols>>(name + "*" + other.name);
-	}
+	//template<unsigned int otherNrows, unsigned int otherNcols, typename =
+	//	std::enable_if_t< notBool<type> && scalar && !isScalar<Matrix<type, otherNrows, otherNcols> > >
+	//>
+	//const Matrix<type, otherNrows, otherNcols> operator*(const Matrix<type, otherNrows, otherNcols> & other) const {
+	//	release(*this,other);
+	//	return createDummy<Matrix<type, otherNrows, otherNcols>>(name + "*" + other.name);
+	//}
 
 
 	////MxM
@@ -418,26 +418,23 @@ public:
 	
 	*/
 	//// operators ++ and --
-	template<typename = std::enable_if_t<!isBool<type>::value > > const Matrix operator++(int) const { 
-		return Matrix(); 
+	template<typename = std::enable_if_t< notBool<type> > > const Matrix operator++(int) const { 
+		Ctx().ignoreNextCmds(1);
+		Matrix m(name + "++");
+		m.released = false;
+		return m;
 	}
-	template<typename = std::enable_if_t<!isBool<type>::value > > Matrix & operator++() {
+	template<typename = std::enable_if_t< notBool<type> > > Matrix & operator++() {
 		Ctx().addCmd("++" + name + ";");
 		return *this; 
 	}
 
-	template<typename = std::enable_if_t<!isBool<type>::value > > const Matrix operator--(int) const { return Matrix(); }
-	template<typename = std::enable_if_t<!isBool<type>::value > > Matrix & operator--() { return *this; }
+	//template<typename = std::enable_if_t<!isBool<type>::value > > const Matrix operator--(int) const { return Matrix(); }
+	//template<typename = std::enable_if_t<!isBool<type>::value > > Matrix & operator--() { return *this; }
 
 	
 
-	//// operators <, <=, > and >=
-	template<typename = std::enable_if_t<!isBool<type>::value && scalar > > const Bool operator<(const Scalar & s) const {
-		return createDummy<Bool>(name + "<" + s.name);
-	}
-	template<typename = std::enable_if_t<!isBool<type>::value && scalar > > const Bool operator<(int i) const {
-		return createDummy<Bool>(name + "<" + std::to_string(i));
-	}
+
 
 
 	//template<typename = std::enable_if_t<!isBool<type>::value && scalar > > const Bool operator<=(const Scalar & s) const { return Bool(); }
@@ -595,48 +592,79 @@ public:
 	}
 };
 
-//template<> class Matrix<numberType::INT, 1, 1> : public NamedObject {
-//
-//public:
-//	explicit Matrix(const std::string & s = "") : NamedObject(s) {}
-//
-//	Matrix(const int& i, const std::string & s  = ""
-//	) : NamedObject(s) {
-//		ctx.addCmd( "bool " + name + " = " + std::to_string(i) + ";");
-//		//ctx.flow.ctor(this);
-//		released = true;
-//	}
-//
-//	//// operators <, <=, > and >=
-//	const Bool operator<(const Matrix & s) const { Bool b; b.name = (name + "<" + s.name);  return b; }
-//	const Bool operator<(int i) const { Bool b;  b.name = (name + "<" + std::to_string(i));  return b; }
-//
-//	Matrix & operator++() {
-//		ctx.addCmd("++" + name + ";");
-//		return *this;
-//	}
-//
-//};
+
+//special init naming operator 
 
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 const InitMatrix<type, Nrows, Ncols> operator<<(
 	const Matrix<type, Nrows, Ncols> & m,
 	const std::string & s) {
 	release(m);
-	return InitMatrix<type, Nrows, Ncols>(s,m.name);
+	return InitMatrix<type, Nrows, Ncols>(s, m.name);
 }
 
-template<numberType type, unsigned int Nrows, unsigned int Ncols> 
+// glsl matrix operators
+
+
+// multiplication operators
+
+// M x M
+template<numberType type, unsigned int NrowsA, unsigned int NcolsA, unsigned int NcolsB, 
+	typename = std::enable_if_t< notBool<type> && CT_XOR<NrowsA == 1 && NcolsA == 1, NcolsA == 1 && NcolsB == 1> > >
+const Matrix<type, NrowsA, NcolsB> operator* (const Matrix<type, NrowsA, NcolsA> & matA, const Matrix<type, NcolsA, NcolsB> & matB) {
+	release(matA, matB);
+	return createDummy<Matrix<type, NrowsA, NcolsB>>(matA.name + "*" + matB.name);
+}
+
+// M x S
+template<numberType type, unsigned int Nrows, unsigned int Ncols, 
+	typename = std::enable_if_t< notBool<type> && !(Nrows == 1 && Ncols == 1) > >
+const Matrix<type, Nrows, Ncols> operator* (const Matrix<type, Nrows, Ncols> & mat, const Scalar<type> & s) {
+	release(mat, s);
+	return createDummy<Matrix<type, Nrows, Ncols>>(mat.name + "*" + s.name);
+}
+
+// S x M
+template<numberType type, unsigned int Nrows, unsigned int Ncols,
+	typename = std::enable_if_t< notBool<type> && !(Nrows == 1 && Ncols == 1) > >
+const Matrix<type, Nrows, Ncols> operator* (const Scalar<type> & s, const Matrix<type, Nrows, Ncols> & mat) {
+	release(mat, s);
+	return createDummy<Matrix<type, Nrows, Ncols>>(s.name + "*" + mat.name);
+}
+
+// M + M
+template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type> > >
+const Matrix<type, Nrows, Ncols> operator+ (
+	Matrix<type, Nrows, Ncols> & m1, const Matrix<type, Nrows, Ncols> & m2) {
+	return createDummy<Matrix<type, Nrows, Ncols>>(m1.name + " + " + m2.name);
+}
+
+// M - M
+template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type> > >
 const Matrix<type, Nrows, Ncols> operator- (
-	Matrix<type, Nrows, Ncols> & m1,
-	const Matrix<type, Nrows, Ncols> & m2 
-	) {
+	Matrix<type, Nrows, Ncols> & m1, const Matrix<type, Nrows, Ncols> & m2  ) {
 	return createDummy<Matrix<type, Nrows, Ncols>>(m1.name + " - " + m2.name);
 }
 
-template<numberType type, unsigned int NrowsA, unsigned int NcolsA, unsigned int NcolsB, typename = std::enable_if_t< notBool<type>::value> >
-const Matrix<type, NrowsA, NcolsB> operator* (const Matrix<type, NrowsA, NcolsA> & matA, const Matrix<type, NcolsA, NcolsB> & matB) {
-	return createDummy<Matrix<type, NrowsA, NcolsB>>(matA.name + "*" + matB.name);
+// comparison oeprators
+template<numberType type, typename = std::enable_if_t< notBool<type> > >
+const Bool operator<(const Scalar<type> & s1, const Scalar<type> & s2) {
+	return createDummy<Bool>(s1.name + "<" + s2.name);
+}
+
+template<numberType type, typename = std::enable_if_t< notBool<type> > >
+const Bool operator<(const Scalar<type> & s, int i) {
+	return createDummy<Bool>(s.name + "<" + std::to_string(i));
+}
+
+template<numberType type, typename = std::enable_if_t< notBool<type> > >
+const Bool operator>(const Scalar<type> & s1, const Scalar<type> & s2) {
+	return createDummy<Bool>(s1.name + ">" + s2.name);
+}
+
+template<numberType type, typename = std::enable_if_t< notBool<type> > >
+const Bool operator>(int i, const Scalar<type> & s ) {
+	return createDummy<Bool>( std::to_string(i) + "<" + s.name);
 }
 
 //template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type>::value > >
@@ -706,42 +734,6 @@ template<numberType type, unsigned int N, unsigned int M> struct TypeStr< Matrix
 	}
 };
 
-//template<typename ...Ts> struct GetStr {
-//	static const std::string typeStr() { return "evoid"; }
-//
-//	static const std::string strArg() {
-//		return "evvoid";
-//	}
-//
-//	static const std::string declStr() {
-//		return "";
-//	}
-//};
-//
-//template<> struct GetStr<void> {
-//	static const std::string typeStr() { return "void"; }
-//
-//	static const std::string strArg() {
-//		return "vvoid";
-//	}
-//
-//	static const std::string declStr() {
-//		return "vv void";
-//	}
-//};
-//
-//template<typename T> struct GetStr<T> {
-//	static const std::string typeStr() { return TypeStr<T>::str(); }
-//
-//	static const std::string strArg(const T & v) {
-//		return v.name;
-//	}
-//
-//	static const std::string declStr(const T & v) {
-//		return TypeStr<T>::str() + " " + v.name;
-//	}
-//};
-
 template<typename T> const std::string strFromType() { return T::typeStr(); }
 template<typename T> const std::string strFromType(const T &) { return T::typeStr(); }
 
@@ -779,53 +771,6 @@ template<typename ...Ts> const std::string strFromDecl(const std::tuple<Ts...> &
 	std::function<const std::string(Ts...)> f = StrFromDecl<Ts...>::get;
 	return call_from_tuple(f, vs);
 }
-
-
-//template<typename T, typename ... Ts> struct GetStr<T, Ts...>
-//{
-//	static const std::string typeStr() {
-//		return GetStr<T>::str();
-//	}
-//
-//	static const std::string strArg(const T & v, const Ts & ... vs) {
-//		return v.name +  (SizeOf<Ts...> ==  0 ?  "" :  ", " + GetStr<Ts...>::strArg(vs...) );
-//	}
-//
-//	static const std::string declStr(const T & v, const Ts & ... vs) {
-//		return  GetStr<T>::declStr(v) + (SizeOf<Ts...> == 0 ? "" : ", " + GetStr<Ts...>::declStr(vs...));
-//	}
-//};
-//
-//template<typename ...Ts> std::string getStr(const Ts & ... vs) {
-//	return GetStr<Ts...>::strArg(vs...);
-//}
-//
-//template<typename ...Ts> std::string getDeclStr(const Ts & ... vs) {
-//	return GetStr<Ts...>::declStr(vs...);
-//}
-//
-//template<typename ...Ts> std::string getDeclStr(const std::tuple<Ts...> & vs) {
-//	std::function<std::string(Ts...)> f = GetStr<Ts...>::declStr;
-//	return call_from_tuple(f, vs);
-//}
-//
-//template<typename ... Ts> std::string strOf(const Ts & ...);
-//
-//template<typename T> std::string strOf(const T & o) {
-//	return o.name;
-//};
-//
-//template<> std::string strOf() {
-//	return "";
-//};
-//
-//template<> std::string strOf(const double & d) {
-//	return std::to_string(d);
-//}
-//
-//template<typename T1, typename T2, typename ... Ts> std::string strOf(const T1 & t1, const T2 & t2, const Ts & ... ts) {
-//	return strOf(t1) + ", " + strOf(t2, ts...);
-//}
 
 
 #define INT(a) Int a( #a )
