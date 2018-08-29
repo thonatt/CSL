@@ -2,6 +2,7 @@
 
 #include "Context.h"
 #include "HelperClasses.h"
+#include <type_traits>
 
 enum class SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 
@@ -269,9 +270,10 @@ public:
 	//	std::cout << "forbidden ctor " << std::string(t) << std::endl;
 	//}
 
-	template<typename = std::enable_if_t< integral > >
-	Matrix(const int& i, const std::string & s = ""
+	template<typename T, typename = std::enable_if_t< integral > >
+	Matrix(const int& i, const T & s = ""
 	) : NamedObject<Matrix>(s) {
+		static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
 		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(i) + ";");
@@ -279,9 +281,10 @@ public:
 		released = true;
 	}
 
-	template<typename = std::enable_if_t< isFP<type>::value > >
+	template<typename T, typename = std::enable_if_t< isFP<type>::value > >
 	Matrix(const double & d, const std::string & s = ""
 	) : NamedObject<Matrix>(s) {
+		static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
 		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(d) + ";");
