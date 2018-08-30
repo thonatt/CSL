@@ -46,7 +46,7 @@ int main()
 
 		shader.main([&] {
 			
-			//vec3 rotatedCenter = triangle.center * triangle.angle << "rotated";
+			vec3 rotatedCenter = triangle.center * triangle.angle << "rotated";
 			vec3 L = normalize(lightPos - position) << "L";
 			vec3 diff = L[x]* color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] *L[x] << "diff";
 			//diff = dot(diff, triangle.center)*diff;
@@ -54,9 +54,11 @@ int main()
 			Int n("n"),m("m");
 			n = m++;
 
+			diff = diff + diff[x] * diff + megatron.triB.proju[0][x,y,z];
+
 			GL_FOR(Int a(0,"a"); a < 5; a++) {
 				Bool myb;
-				GL_IF(myb) {
+				GL_IF( (!myb && myb)|| ( False && True ) ) {
 					diff[x] = goo(L, diff);
 				} GL_ELSE_IF(True) {
 					vec4 t = vec4(L,1.0) << "t";

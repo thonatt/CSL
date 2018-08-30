@@ -49,37 +49,65 @@ template<typename T> struct Releaser<T> {
 	}
 };
 
-template<typename T> struct NameAccessor {
-	static std::string & getName(const T & t) {
+template<typename T> struct BaseNameAccessor {
+	static std::string & getBaseName(T & t) {
 		return t.name;
 	}
 };
 
-template<typename T> std::string & getName(const T & t) {
+template<typename T> std::string & getBaseName(T & t) {
+	return BaseNameAccessor<T>::getBaseName(t);
+};
+
+class NamedObjectBase;
+
+
+template<typename T> struct NameAccessor {
+	static const std::string getName(const T & t) {
+		return t.myName();
+	}
+};
+
+template<typename T> const std::string getName(const T & t) {
 	return NameAccessor<T>::getName(t);
+};
+
+struct ParentAccessor {
+	static NamedObjectBase * & getParent(NamedObjectBase & o);
+};
+
+class NamedObjectBase {
+protected:
+	friend struct ParentAccessor;
+	NamedObjectBase(const std::string & _name = "") : name(_name) { }
+
+	static const std::string typeStr() { return "dummyT"; }
+	std::string name;
+	NamedObjectBase * parent = nullptr;
+
+public:
+	const std::string myName() const { return (parent ? parent->myName() + "." : "") + name; }
+};
+
+NamedObjectBase * & ParentAccessor::getParent(NamedObjectBase & o) {
+	return o.parent;
 }
 
-//class NamedObjectBase {
-//protected:
-//	
-//	NamedObjectBase(const std::string & _name = "") : name(_name) { }
-//
-//	static const std::string typeStr() { return "dummyT"; }
-//public:
-//	
-//};
+template<typename T> NamedObjectBase * & getParent(T & t) {
+	return ParentAccessor::getParent(t);
+}
 
 template<typename T>
-class NamedObject  /*: public NamedObjectBase */ {
+class NamedObject : public NamedObjectBase {
 public:
 	friend struct Releaser<NamedObject<T>>;
-	friend struct NameAccessor<NamedObject<T>>;
+	friend struct BaseNameAccessor<NamedObject<T>>;
 
 	static const std::string typeStr() { return "dummyNameObjT"; }
 
 protected:
 	
-	NamedObject(const std::string & _name = "") : name(_name) {
+	NamedObject(const std::string & _name = "") : NamedObjectBase(_name) {
 		if (name == "") {
 			name = T::typeStr() + "_" + std::to_string(counter);
 			++counter;
@@ -89,10 +117,8 @@ protected:
 	static int counter;
 
 public:
-	
 
 protected:
-	mutable std::string name;
 	mutable bool released = true;
 };
 template<typename T> int NamedObject<T>::counter = 0;

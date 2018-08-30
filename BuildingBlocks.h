@@ -210,10 +210,10 @@ struct StructTypename : public NamedObject<StructTypename> {	\
 	static const std::string structDeclaration() { return "struct " + typeStr() + \
 		" { \n" + BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER_STR, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) + "} \n"; } \
 }; \
-Ctx().addStruct( StructTypename::structDeclaration());	\
+Ctx().addStruct( StructTypename::structDeclaration())	\
 
 
 #define DECLARE_MEMBER(r, data, i, elem) PAIR(elem); //static_assert(std::is_base_of_v<NamedObject<decltype(STRIP(elem))>, decltype(STRIP(elem))>, "non GL type"); 
 #define DECLARE_MEMBER_STR(r, data, i, elem) "   " + strFromType<BOOST_PP_SEQ_HEAD(elem)>() + " " + std::string(BOOST_PP_STRINGIZE(STRIP(elem))) + "; \n" +  
 
-#define INIT_MEMBER_PARENT(r, data, i, elem)  getName(STRIP(elem)) =  name + "." + BOOST_PP_STRINGIZE(STRIP(elem)); 
+#define INIT_MEMBER_PARENT(r, data, i, elem) getParent(STRIP(elem)) = this;  getBaseName(STRIP(elem)) = BOOST_PP_STRINGIZE(STRIP(elem)); 
