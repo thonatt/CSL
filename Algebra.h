@@ -654,15 +654,14 @@ const Matrix<type, Nrows, Ncols> operator+(const Scalar<type> & f, const Matrix<
 
 // M - M
 template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type> > >
-const Matrix<type, Nrows, Ncols> operator- (
-	Matrix<type, Nrows, Ncols> & m1, const Matrix<type, Nrows, Ncols> & m2  ) {
+const Matrix<type, Nrows, Ncols> operator- ( const Matrix<type, Nrows, Ncols> & m1, const Matrix<type, Nrows, Ncols> & m2  ) {
 	release(m1, m2);
 	return createDummy<Matrix<type, Nrows, Ncols>>(getName(m1) + " - " + getName(m2));
 }
 
 // M / S
 template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type> > >
-const Matrix<type, Nrows, Ncols> operator/ ( Matrix<type, Nrows, Ncols> & m, const Scalar<type> & s) {
+const Matrix<type, Nrows, Ncols> operator/ ( const Matrix<type, Nrows, Ncols> & m, const Scalar<type> & s) {
 	release(m, s);
 	return createDummy<Matrix<type, Nrows, Ncols>>(getName(m) + "/" + getName(s));
 }
