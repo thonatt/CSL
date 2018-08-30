@@ -660,6 +660,13 @@ const Matrix<type, Nrows, Ncols> operator- (
 	return createDummy<Matrix<type, Nrows, Ncols>>(getName(m1) + " - " + getName(m2));
 }
 
+// M / S
+template<numberType type, unsigned int Nrows, unsigned int Ncols, typename = std::enable_if_t< notBool<type> > >
+const Matrix<type, Nrows, Ncols> operator/ ( Matrix<type, Nrows, Ncols> & m, const Scalar<type> & s) {
+	release(m, s);
+	return createDummy<Matrix<type, Nrows, Ncols>>(getName(m) + "/" + getName(s));
+}
+
 // Bool operators
 const Bool operator&&(const Bool & b1, const Bool & b2) {
 	release(b1, b2);

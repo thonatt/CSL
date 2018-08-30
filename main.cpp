@@ -12,8 +12,10 @@ int main()
 	//testFuns();
 	//testBlocks();
 
-	using namespace fs;
+	
 	{
+		using namespace fs;
+
 		FragmentShader shader;
 
 		GL_STRUCT(Tri,
@@ -72,9 +74,26 @@ int main()
 		});
 
 		std::cout << shader.getStr() << std::endl;
+
+		
 	}
 
-	
+	using namespace vs; {
+		VertexShader shader;
+
+		GL_STRUCT(MyStruct,
+			(Float) f,
+			(Bool) b
+		);
+
+		Uniform<MyStruct, Layout<Binding<3>> > structor("structor");
+
+		shader.main([&]{
+			gl_Position[x,y,z] = vec3(structor.f,1.0, structor.f)/gl_Position[z];
+		});
+
+		std::cout << shader.getStr() << std::endl;
+	}
 
 	
 
