@@ -323,7 +323,7 @@ public:
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> >
 	Matrix & operator+=(const Scalar & f) {
 		release(f);
-		Ctx().addCmd(myName() + " += " + getName(f) + ";");
+		Ctx().addCmd(name + " += " + getName(f) + ";");
 		return *this;
 	}
 
@@ -331,20 +331,20 @@ public:
 		std::enable_if_t<notBool<type> && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
 		Matrix & operator+=(const Matrix<type, otherNrows, otherNcols> & other) {
 		release(other);
-		Ctx().addCmd(myName() + " += " + getName(other) + ";");
+		Ctx().addCmd(name + " += " + getName(other) + ";");
 		return *this;
 	}
 
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> > const Matrix operator++(int) const {
 		Ctx().ignoreNextCmds(1);
-		Matrix m(myName() + "++");
+		Matrix m(name + "++");
 		m.released = false;
 		return m;
 	}
 
 	// unary - operators
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> > Matrix & operator++() {
-		Ctx().addCmd("++" + myName() + ";");
+		Ctx().addCmd("++" + name + ";");
 		return *this;
 	}
 
@@ -352,7 +352,7 @@ public:
 	template<bool b = isbool, typename = std::enable_if_t<b> >
 	const Bool operator!() const {
 		release(*this);
-		return createDummy<Bool>("!" + myName());
+		return createDummy<Bool>("!" + name);
 	}
 
 	// swizzles accessors
@@ -360,28 +360,28 @@ public:
 		typename = std::enable_if_t<Ncols == 1 && Nrows != 1 && Set != SwizzleSet::MIXED_SET && Dim <= Nrows && Size <= Nrows > >
 		const Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, true> & a) const {
 		release(*this);
-		return createDummy<Vec<type, Size>>(myName() + "." + a.s, true);
+		return createDummy<Vec<type, Size>>(name + "." + a.s, true);
 	}
 
 	template<unsigned int Dim, unsigned int Size, SwizzleSet Set, unsigned int Bytes,
 		typename = std::enable_if_t<Ncols == 1 && Nrows != 1 && Set != SwizzleSet::MIXED_SET && Dim <= Nrows && Size <= Nrows > >
 		Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, false> & a) {
 		release(*this);
-		return createDummy<Vec<type, Size> >(myName() + "." + a.s, true);
+		return createDummy<Vec<type, Size> >(name + "." + a.s, true);
 	}
 
 	template<unsigned int Dim, unsigned int Size, SwizzleSet Set, unsigned int Bytes, bool Repeated,
 		typename = std::enable_if_t<Ncols == 1 /* && Nrows != 1 */ && Set != SwizzleSet::MIXED_SET && Dim <= Nrows /* && Size <= Nrows */ > >
 		const Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, Repeated> & a) const {
 		release(*this);
-		return createDummy<Vec<type, Size> >(myName() + "." + a.s, true);
+		return createDummy<Vec<type, Size> >(name + "." + a.s, true);
 	}
 
 	// array subscript accessors
 	template<bool b = !scalar, typename = std::enable_if_t<b> >
 	typename std::conditional_t< Ncols == 1, Vec<type, 1>, Vec<type, Nrows> > operator[](unsigned int i) const {
 		release(*this);
-		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(myName() + "[" + std::to_string(i) + "]");
+		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(name + "[" + std::to_string(i) + "]");
 	}
 
 	/*
@@ -640,7 +640,7 @@ const Matrix<type, Nrows, Ncols> operator+ (
 template<numberType type, unsigned int Nrows, unsigned int Ncols,
 	typename = std::enable_if_t< notBool<type> && !(Nrows == 1 && Ncols == 1) > >
 const Matrix<type, Nrows, Ncols> operator+(const Matrix<type, Nrows, Ncols> & m, const Scalar<type> & f) {
-	release(*this, f);
+	release(m, f);
 	return createDummy<Matrix>(getName(m) + " + " + getName(f));
 }
 
@@ -648,7 +648,7 @@ const Matrix<type, Nrows, Ncols> operator+(const Matrix<type, Nrows, Ncols> & m,
 template<numberType type, unsigned int Nrows, unsigned int Ncols, 
 	typename = std::enable_if_t< notBool<type> && !(Nrows == 1 && Ncols == 1) > >
 const Matrix<type, Nrows, Ncols> operator+(const Scalar<type> & f, const Matrix<type, Nrows, Ncols> & m) {
-	release(*this, f);
+	release(m, f);
 	return createDummy<Matrix>(getName(f) + " + " + getName(m) );
 }
 
