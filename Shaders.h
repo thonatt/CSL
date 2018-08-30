@@ -83,7 +83,7 @@ namespace vs {
 	};
 
 	GLSL_BUILT_IN(gl_Position, In, vec4);
-	GLSL_BUILT_IN(gl_VertexId, In, Int);
+	GLSL_BUILT_IN(gl_VertexID, In, Int);
 
 }
 

@@ -252,6 +252,8 @@ struct IfBlock : virtual BlockBase {
 
 
 // We need to include these as they are declared in Algebra and BuildingBlocks and g++ won't find them there.
+template<typename TA, typename TB, typename ... Ts>
+const std::string strFromObj(const TA & ta, const TB & tb, const Ts & ... ts);
 template<typename T> const std::string strFromDecl(const T & o);
 template<typename ...Ts> const std::string strFromDecl(const Ts & ... ts) ;
 template<typename ...Ts> const std::string strFromDecl(const std::tuple<Ts...> & vs);
