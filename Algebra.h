@@ -227,12 +227,12 @@ public:
 		}
 		if (!released) {
 			//std::cout << "not released " << name << std::endl;
-			Ctx().addCmd(name + ";");
+			Ctx().addCmd(getName(*this) + ";");
 		}
 	}
 
 	Matrix(const InitMatrix < type, Nrows, Ncols> & other) : NamedObject<Matrix>(other.name) {
-		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + other.expr + ";");
+		Ctx().addCmd(TypeStr<Matrix>::str() + " " + getName(*this) + " = " + other.expr + ";");
 	}
 
 	Matrix & operator=(const InitMatrix < type, Nrows, Ncols> & other) = delete;
@@ -242,7 +242,7 @@ public:
 		if (s != "") {
 			released = true;
 		}  
-		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + "; ");
+		Ctx().addCmd(TypeStr<Matrix>::str() + " " + getName(*this) + "; ");
 	}
 
 	//Matrix(const Matrix & other, const std::string & s) : NamedObject<Matrix>(s) {
@@ -260,7 +260,7 @@ public:
 		//std::cout << " = operator " << name << " " << other.name << std::endl;
 		release(*this, other);
 	
-		Ctx().addCmd(name + " = " + getName(other) + ";");
+		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
 		return *this;
 	}
 
@@ -276,7 +276,7 @@ public:
 		//static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
-		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(i) + ";");
+		Ctx().addCmd(TypeStr<Matrix>::str() + " " + getName(*this) + " = " + std::to_string(i) + ";");
 		//ctx.flow.ctor(this);
 		released = true;
 	}
@@ -287,7 +287,7 @@ public:
 		//static_assert(std::is_convertible_v<T, std::string>, "error ctor");
 		//static_assert(Ncols == 1 && Nrows == 1, "contructor from integer only for Int");
 		//std::cout << " ctor i str " << s << std::endl;
-		Ctx().addCmd(TypeStr<Matrix>::str() + " " + name + " = " + std::to_string(d) + ";");
+		Ctx().addCmd(TypeStr<Matrix>::str() + " " + getName(*this) + " = " + std::to_string(d) + ";");
 		//ctx.flow.ctor(this);
 		released = true;
 	}
@@ -323,7 +323,7 @@ public:
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> >
 	Matrix & operator+=(const Scalar & f) {
 		release(f);
-		Ctx().addCmd(name + " += " + getName(f) + ";");
+		Ctx().addCmd(getName(*this) + " += " + getName(f) + ";");
 		return *this;
 	}
 
@@ -331,20 +331,20 @@ public:
 		std::enable_if_t<notBool<type> && otherNrows == Nrows && otherNcols == Ncols && !scalar > >
 		Matrix & operator+=(const Matrix<type, otherNrows, otherNcols> & other) {
 		release(other);
-		Ctx().addCmd(name + " += " + getName(other) + ";");
+		Ctx().addCmd(getName(*this) + " += " + getName(other) + ";");
 		return *this;
 	}
 
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> > const Matrix operator++(int) const {
 		Ctx().ignoreNextCmds(1);
-		Matrix m(name + "++");
+		Matrix m(getName(*this) + "++");
 		m.released = false;
 		return m;
 	}
 
 	// unary - operators
 	template<bool b = notBool<type>, typename = std::enable_if_t<b> > Matrix & operator++() {
-		Ctx().addCmd("++" + name + ";");
+		Ctx().addCmd("++" + getName(*this) + ";");
 		return *this;
 	}
 
@@ -352,7 +352,7 @@ public:
 	template<bool b = isbool, typename = std::enable_if_t<b> >
 	const Bool operator!() const {
 		release(*this);
-		return createDummy<Bool>("!" + name);
+		return createDummy<Bool>("!" + getName(*this));
 	}
 
 	// swizzles accessors
@@ -360,28 +360,28 @@ public:
 		typename = std::enable_if_t<Ncols == 1 && Nrows != 1 && Set != SwizzleSet::MIXED_SET && Dim <= Nrows && Size <= Nrows > >
 		const Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, true> & a) const {
 		release(*this);
-		return createDummy<Vec<type, Size>>(name + "." + a.s, true);
+		return createDummy<Vec<type, Size>>(getName(*this) + "." + a.s, true);
 	}
 
 	template<unsigned int Dim, unsigned int Size, SwizzleSet Set, unsigned int Bytes,
 		typename = std::enable_if_t<Ncols == 1 && Nrows != 1 && Set != SwizzleSet::MIXED_SET && Dim <= Nrows && Size <= Nrows > >
 		Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, false> & a) {
 		release(*this);
-		return createDummy<Vec<type, Size> >(name + "." + a.s, true);
+		return createDummy<Vec<type, Size> >(getName(*this) + "." + a.s, true);
 	}
 
 	template<unsigned int Dim, unsigned int Size, SwizzleSet Set, unsigned int Bytes, bool Repeated,
 		typename = std::enable_if_t<Ncols == 1 /* && Nrows != 1 */ && Set != SwizzleSet::MIXED_SET && Dim <= Nrows /* && Size <= Nrows */ > >
 		const Vec<type, Size> operator[](const SwizzlePack<Dim, Size, Set, Bytes, Repeated> & a) const {
 		release(*this);
-		return createDummy<Vec<type, Size> >(name + "." + a.s, true);
+		return createDummy<Vec<type, Size> >(getName(*this) + "." + a.s, true);
 	}
 
 	// array subscript accessors
 	template<bool b = !scalar, typename = std::enable_if_t<b> >
 	typename std::conditional_t< Ncols == 1, Vec<type, 1>, Vec<type, Nrows> > operator[](unsigned int i) const {
 		release(*this);
-		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(name + "[" + std::to_string(i) + "]");
+		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(getName(*this) + "[" + std::to_string(i) + "]");
 	}
 
 	/*
