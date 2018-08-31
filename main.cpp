@@ -9,19 +9,55 @@
 
 void srt1();
 void srt2();
+void firstTest();
 
 int main()
 {
+	firstTest();
 	//testFuns();
 	//testBlocks();
 	//srt1();
 	//srt2();
 	//return 0;
 	
+
 	{
 		using namespace fs;
 
 		FragmentShader shader;
+
+		//auto test = makeF("fun", [](Float f, Float g) {
+		//	return f + g;
+		//}, "f", "g");
+		//
+		//Float f, g;
+		//auto test2 = makeF("fun", [](Float f, Float g) {
+		//	Float a = Float(1) << "a";
+		//	return Float(f + g);
+		//}, "f", "g");
+
+		//std::cout << shader.getStr() << std::endl;
+	}
+	
+
+	return 0;
+}
+
+void firstTest() {
+	{
+		using namespace fs;
+
+		FragmentShader shader;
+
+		auto test = makeF("fun", [](Float f, Float g) {
+			return Float(f + g);
+		}, "f", "g");
+
+
+		auto test2 = makeF("fun", [](Float f, Float g) {
+			return f + g;
+		}, "f", "g");
+
 
 		GL_STRUCT(Tri,
 			(Float) angle,
@@ -41,7 +77,7 @@ int main()
 			(Tri) triC
 		);
 
-		
+
 		In<vec3> normal("normal"), position("position"), color("color");
 		Uniform<vec3> lightPos("lightPos");
 		Out<vec4> outColor("outColor");
@@ -49,41 +85,42 @@ int main()
 		Uniform<MegaTri, Layout<Location<3>, Binding<0> >> megatron;
 
 		auto foo = makeF("proj", [](In<mat4> proj, In<vec3> point) { return proj * vec4(point, 1.0); }, "proj", "point");
-		auto goo = makeF("goo", [](vec3 a, vec3 b) { return determinant(mat3(a,b,a)); } );
+		auto goo = makeF("goo", [](vec3 a, vec3 b) { return determinant(mat3(a, b, a)); });
 
 		shader.main([&] {
-			
+
 			vec3 rotatedCenter = triangle.center * triangle.angle << "rotated";
 			vec3 L = normalize(lightPos - position) << "L";
-			vec3 diff = L[x]* color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] *L[x] << "diff";
+			vec3 diff = L[x] * color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] * L[x] << "diff";
 			//diff = dot(diff, triangle.center)*diff;
-			
-			Int n("n"),m("m");
+
+			Int n("n"), m("m");
 			n = m++;
+			n = ++m;
+			diff = diff + diff[x] * diff + megatron.triB.proju[0][x, y, z];
 
-			diff = diff + diff[x] * diff + megatron.triB.proju[0][x,y,z];
-
-			GL_FOR(Int a(0,"a"); a < 5; a++) {
+			GL_FOR(Int a(0, "a"); a < 5; a++) {
 				Bool myb;
-				GL_IF( (!myb && myb)|| ( False && True ) ) {
+				GL_IF((!myb && myb) || (False && True)) {
 					diff[x] = goo(L, diff);
 				} GL_ELSE_IF(True) {
-					vec4 t = vec4(L,1.0) << "t";
+					vec4 t = vec4(L, 1.0) << "t";
 					diff[x] = goo(L, foo(mat4(t, t, t, t), diff)[r, b, g])[x];
 				}
-				
+
 			}
-			
+
 			outColor = vec4(color[x, z], color[x, y]);
 
 		});
 
 		std::cout << shader.getStr() << std::endl;
 
-		
+
 	}
 
-	using namespace vs; {
+	{
+		using namespace vs;
 		VertexShader shader;
 
 		GL_STRUCT(MyStruct,
@@ -93,16 +130,12 @@ int main()
 
 		Uniform<MyStruct, Layout<Binding<3>> > structor("structor");
 
-		shader.main([&]{
-			gl_Position[x,y,z] = vec3(structor.f,1.0, structor.f)/gl_Position[z];
+		shader.main([&] {
+			gl_Position[x, y, z] = vec3(structor.f, 1.0, structor.f) / gl_Position[z];
 		});
 
 		std::cout << shader.getStr() << std::endl;
 	}
-
-	
-
-	return 0;
 }
 
 void testFuns() {
@@ -261,7 +294,7 @@ void srt2(){
 	
 	#define SAMPLES_COUNT 16
 	#define M_PI 3.14159265358979323846
-	
+
 	auto intersects = makeF("intersects", [](vec3 rayOrigin, vec3 rayDir, Float radius, Out<vec2> roots){
 		
 		Float aa = dot(rayDir,rayDir) << "a";
@@ -274,7 +307,7 @@ void srt2(){
 		 }*/
 		Float dsqrt = sqrt(delta) << "";
 		// The unary - doesn't work :(
-		roots = Float(-1.0) * vec2(bb,bb) + dsqrt * vec2(-1.0, 1.0);
+		roots = -Float(1.0) * vec2(bb,bb) + dsqrt * vec2(-1.0, 1.0);
 		GL_RETURN Bool(delta > Float(0.0));
 	});
 	
@@ -282,10 +315,10 @@ void srt2(){
 	auto rayleighPhase = makeF("rayleighPhase", [](Float cosAngle){
 		const Float k = Float(1.0/(4.0*M_PI)) << "k";
 		return k * Float(3.0/4.0) * (Float(1.0) + cosAngle*cosAngle);
-	});
+	}, "cosAngle");
 	
 	auto miePhase = makeF("miePhase", [gMie](Float cosAngle){
-		const Float k = 1.0/(4.0*M_PI);
+		const Float k = Float(1.0)/Float(4.0*M_PI);
 		Float g2 = gMie*gMie << "g2";
 		return k * Float(3.0) * (Float(1.0)-g2) / (Float(2.0) * (Float(2.0) + g2)) * (Float(1.0) + cosAngle*cosAngle) / pow(Float(1.0) + g2 - Float(2.0) * gMie * cosAngle, Float(3.0/2.0));
 	});
@@ -317,12 +350,12 @@ void srt2(){
 				currHeight = 0.0;
 			}
 			// Had to wrap - -> -1.0 -> Float(-1.0)
-			Float rayleighStep = exp(Float(-1.0)*currHeight/heightRayleigh) * stepSize << "rayleighStep";
+			Float rayleighStep = exp(-Float(1.0)*currHeight/heightRayleigh) * stepSize << "rayleighStep";
 			Float mieStep = exp(Float(-1.0)*currHeight/heightMie) * stepSize << "mieStep";
 			rayleighDist += rayleighStep;
 			mieDist += mieStep;
 			// Couldn't mix Float and vec3: kMie*mieDist + kRayleigh*rayleighDist
-			vec3 directAttenuation = exp(Float(-1.0)*(kRayleigh * rayleighDist)) << "directAttenuation";
+			vec3 directAttenuation = exp(-Float(1.0)*(kRayleigh * rayleighDist)) << "directAttenuation";
 			// Missing parenthesis in the generated code.
 			Float relativeHeight = (length(currPos) - groundRadius) / (topRadius - groundRadius) << "relativeHeight";
 			Float relativeCosAngle = Float(-0.5)*sunDir[y]+Float(0.5) << "relativeCosAngle";

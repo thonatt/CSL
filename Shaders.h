@@ -12,6 +12,7 @@ public:
 	ShaderBase(GLSLversion _version = _450) {
 		Ctx().setShader(this);
 		version = _version;
+		mainFun = [] {};
 	}
 
 	void main(const std::function<void(void)> & _main) {		
