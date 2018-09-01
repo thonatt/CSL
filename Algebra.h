@@ -32,6 +32,43 @@ public:
 	const std::string s;
 };
 
+template<typename T> const std::string strFromType() { return T::typeStr(); }
+template<typename T> const std::string strFromType(const T &) { return T::typeStr(); }
+
+template<typename ... Ts> const std::string strFromObj(const Ts & ... o);
+
+template<typename T> const std::string strFromObj(const T & o) { return getName(o); }
+template<> const std::string strFromObj(const double & d) { return std::to_string(d); }
+
+template<typename TA, typename TB, typename ... Ts>
+const std::string strFromObj(const TA & ta, const TB & tb, const Ts & ... ts) {
+	return strFromObj(ta) + ", " + strFromObj(tb, ts...);
+}
+
+template<typename ...Ts> struct StrFromDecl;
+template<> struct StrFromDecl<> {
+	static const std::string get() { return ""; }
+};
+template<typename T> struct StrFromDecl<T> {
+	static const std::string get(const T & o) { return strFromType(o) + " " + strFromObj(o); }
+};
+template<typename TA, typename TB, typename ... Ts> struct StrFromDecl<TA,TB,Ts...> {
+	static const std::string get(const TA & ta, const TB & tb, const Ts & ... ts) {
+		return StrFromDecl<TA>::get(ta) + ", " + StrFromDecl<TB,Ts...>::get(tb, ts...);
+	}
+};
+
+
+template<typename T> const std::string strFromDecl(const T & o) { return strFromType<T>(o) + " " + strFromObj<T>(o); }
+
+template<typename ...Ts> const std::string strFromDecl(const Ts & ... ts) {
+	return StrFromDecl<Ts...>::get(ts...);
+}
+
+template<typename ...Ts> const std::string strFromDecl(const std::tuple<Ts...> & vs) {
+	std::function<const std::string(Ts...)> f = StrFromDecl<Ts...>::get;
+	return call_from_tuple(f, vs);
+}
 
 const SwizzlePack<1, 1, SwizzleSet::RGBA, 1, false> r("r");
 const SwizzlePack<2, 1, SwizzleSet::RGBA, 2, false> g("g");
@@ -366,7 +403,7 @@ public:
 		release(vs...);
 	}
 
-	template<typename T, typename = std::enable_if_t< !std::is_same_v<T,Matrix> && NotBool<T> && IsScalar<T> > >
+	template<typename T, typename = std::enable_if_t< !std::is_same<T,Matrix>::value && NotBool<T> && IsScalar<T> > >
 	explicit Matrix(const T & t)  {
 		release(t);
 		name = getName(t);
@@ -723,43 +760,7 @@ template<numberType type, unsigned int N, unsigned int M> struct TypeStr< Matrix
 	}
 };
 
-template<typename T> const std::string strFromType() { return T::typeStr(); }
-template<typename T> const std::string strFromType(const T &) { return T::typeStr(); }
 
-template<typename ... Ts> const std::string strFromObj(const Ts & ... o);
-
-template<typename T> const std::string strFromObj(const T & o) { return getName(o); }
-template<> const std::string strFromObj(const double & d) { return std::to_string(d); }
-
-template<typename TA, typename TB, typename ... Ts>
-const std::string strFromObj(const TA & ta, const TB & tb, const Ts & ... ts) {
-	return strFromObj(ta) + ", " + strFromObj(tb, ts...);
-}
-
-template<typename ...Ts> struct StrFromDecl;
-template<> struct StrFromDecl<> {
-	static const std::string get() { return ""; }
-};
-template<typename T> struct StrFromDecl<T> {
-	static const std::string get(const T & o) { return strFromType(o) + " " + strFromObj(o); }
-};
-template<typename TA, typename TB, typename ... Ts> struct StrFromDecl<TA,TB,Ts...> {
-	static const std::string get(const TA & ta, const TB & tb, const Ts & ... ts) {
-		return StrFromDecl<TA>::get(ta) + ", " + StrFromDecl<TB,Ts...>::get(tb, ts...);
-	}
-};
-
-
-template<typename T> const std::string strFromDecl(const T & o) { return strFromType<T>(o) + " " + strFromObj<T>(o); }
-
-template<typename ...Ts> const std::string strFromDecl(const Ts & ... ts) {
-	return StrFromDecl<Ts...>::get(ts...);
-}
-
-template<typename ...Ts> const std::string strFromDecl(const std::tuple<Ts...> & vs) {
-	std::function<const std::string(Ts...)> f = StrFromDecl<Ts...>::get;
-	return call_from_tuple(f, vs);
-}
 
 
 #define INT(a) Int a( #a )
