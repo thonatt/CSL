@@ -195,6 +195,58 @@ template<> struct getVecSizeT<double> {
 	static const unsigned int value = 1;
 };
 
+//// utilities struct
+
+template<typename T> struct Infos {
+	static const unsigned int rows = 0;
+	static const unsigned int cols = 0;
+	static const numberType scalar_type = numberType::ERROR;
+};
+
+template<numberType type, unsigned int Nrows, unsigned int Ncols>
+struct Infos<Matrix<type, Nrows, Ncols>> {
+	static const unsigned int rows = Nrows;
+	static const unsigned int cols = Ncols;
+	static const numberType scalar_type = type;
+};
+
+template<> struct Infos<double> {
+	static const unsigned int rows = 1;
+	static const unsigned int cols = 1;
+	static const numberType scalar_type = numberType::DOUBLE;
+};
+
+template<> struct Infos<int> {
+	static const unsigned int rows = 1;
+	static const unsigned int cols = 1;
+	static const numberType scalar_type = numberType::INT;
+};
+
+template<typename A, typename B> constexpr bool SameType = Infos<A>::scalar_type == Infos<B>::scalar_type;
+
+template<numberType A, numberType B> constexpr numberType MinNumberType = (A > B ? B : A);
+
+template<typename A, typename B> constexpr numberType MinType =
+MinNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
+
+template<unsigned int A, unsigned int B> constexpr unsigned int MaxUINT = A > B ? A : B;
+
+template<typename A, typename B> constexpr unsigned int MaxRow = MaxUINT<Infos<A>::rows, Infos<B>::rows>;
+template<typename A, typename B> constexpr unsigned int MaxCol = MaxUINT<Infos<A>::cols, Infos<B>::cols>;
+
+template<typename A, typename B> constexpr bool EqualDim =  (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
+template<typename A, typename B> constexpr bool EquaMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A,B>;
+
+template<typename A> constexpr bool NotBool = Infos<A>::scalar_type > 0;
+template<typename A, typename B> constexpr bool NoBools = NotBool<A> && NotBool<B>;
+
+template<typename A> constexpr bool IsScalar = Infos<A>::cols == 1 && Infos<A>::rows == 1;
+
+template<typename A, typename B> using ArithmeticBinaryReturnType = Matrix< MinType<A,B>, MaxRow<A,B>, MaxCol<A,B> >;
+
+
+/// matrix class
+
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 class Matrix : public NamedObject<Matrix<type, Nrows, Ncols>> {
 protected:
@@ -407,54 +459,7 @@ const InitMatrix<type, Nrows, Ncols> operator<<
 	return InitMatrix<type, Nrows, Ncols>(s, getName(m));
 }
 
-//// utilities struct
-
-template<typename T> struct Infos {
-	static const unsigned int rows = 0; 
-	static const unsigned int cols = 0;
-	static const numberType scalar_type = numberType::ERROR;
-};
-
-template<numberType type, unsigned int Nrows, unsigned int Ncols>
-struct Infos<Matrix<type, Nrows, Ncols>> {
-	static const unsigned int rows = Nrows;
-	static const unsigned int cols = Ncols;
-	static const numberType scalar_type = type;
-};
-
-template<> struct Infos<double> {
-	static const unsigned int rows = 1;
-	static const unsigned int cols = 1;
-	static const numberType scalar_type = numberType::DOUBLE;
-};
-
-template<> struct Infos<int> {
-	static const unsigned int rows = 1;
-	static const unsigned int cols = 1;
-	static const numberType scalar_type = numberType::INT;
-};
-
-template<typename A, typename B> constexpr bool SameType = Infos<A>::scalar_type == Infos<B>::scalar_type;
-
-template<numberType A, numberType B> constexpr numberType MinNumberType = (A > B ? B : A);
-
-template<typename A, typename B> constexpr numberType MinType =
-MinNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
-
-template<unsigned int A, unsigned int B> constexpr unsigned int MaxUINT = A > B ? A : B;
-
-template<typename A, typename B> constexpr unsigned int MaxRow = MaxUINT<Infos<A>::rows, Infos<B>::rows>; 
-template<typename A, typename B> constexpr unsigned int MaxCol = MaxUINT<Infos<A>::cols, Infos<B>::cols>;
-
-template<typename A, typename B> constexpr bool EqualDim =  (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
-template<typename A, typename B> constexpr bool EquaMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A,B>;
-
-template<typename A> constexpr bool NotBool = Infos<A>::scalar_type > 0;
-template<typename A, typename B> constexpr bool NoBools = NotBool<A> && NotBool<B>;
-
-template<typename A> constexpr bool IsScalar = Infos<A>::cols == 1 && Infos<A>::rows == 1;
-
-template<typename A, typename B> using ArithmeticBinaryReturnType = Matrix< MinType<A,B>, MaxRow<A,B>, MaxCol<A,B> >;
+	
 
 
 ////// glsl matrix operators
