@@ -28,8 +28,18 @@ template<> struct TypeStr<void> {
 
 template<typename ... Ts> struct Releaser;
 
+template<typename T> struct Releaser<T> {
+	static void release(const T & t) {
+		t.released = true;
+	}
+};
+
 template<> struct Releaser<double> {
 	static void release(const double & d) {}
+};
+
+template<> struct Releaser<int> {
+	static void release(const int & d) {}
 };
 
 template<typename TA, typename TB, typename ... Ts> struct Releaser<TA, TB, Ts...> {
@@ -43,11 +53,7 @@ template<typename ... Ts> void release(const Ts & ...ts) {
 	Releaser<Ts...>::release(ts...);
 }
 
-template<typename T> struct Releaser<T> {
-	static void release(const T & t) {
-		t.released = true;
-	}
-};
+
 
 template<typename T> struct BaseNameAccessor {
 	static std::string & getBaseName(T & t) {
@@ -65,6 +71,18 @@ class NamedObjectBase;
 template<typename T> struct NameAccessor {
 	static const std::string getName(const T & t) {
 		return t.myName();
+	}
+};
+
+template<> struct NameAccessor<double> {
+	static const std::string getName(const double & d) {
+		return std::to_string(d);
+	}
+};
+
+template<> struct NameAccessor<int> {
+	static const std::string getName(const int & d) {
+		return std::to_string(d);
 	}
 };
 

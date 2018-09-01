@@ -147,6 +147,13 @@ template<typename Param, typename L, numberType type, unsigned int N> struct get
 	static const unsigned int value = N;
 };
 
+template<typename Param, typename T, typename L> struct Infos<Qualifier<Param,T,L>> {
+	static const unsigned int rows = Infos<T>::rows;
+	static const unsigned int cols = Infos<T>::cols;
+	static const numberType scalar_type = Infos<T>::scalar_type;
+};
+
+
 template<typename T, typename L = Layout<> > using In = Qualifier<InParam, T, L>;
 template<typename T, typename L = Layout<> > using Out = Qualifier<OutParam, T, L>;
 template<typename T, typename L = Layout<> > using Uniform = Qualifier<UniformParam, T, L>;

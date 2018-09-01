@@ -11,34 +11,21 @@ void srt1();
 void srt2();
 void firstTest();
 
+template<typename A, typename B, typename = std::enable_if_t< 
+	NoBools<A, B> && ( EquaMat<A,B> || IsScalar<A> || IsScalar<B> )
+> > 
+ArithmeticBinaryReturnType<A,B> testAdd(const A& a, const B& b) {
+
+}
+
 int main()
 {
-	firstTest();
+
+	//firstTest();
 	//testFuns();
 	//testBlocks();
 	//srt1();
-	//srt2();
-	//return 0;
-	
-
-	{
-		using namespace fs;
-
-		FragmentShader shader;
-
-		//auto test = makeF("fun", [](Float f, Float g) {
-		//	return f + g;
-		//}, "f", "g");
-		//
-		//Float f, g;
-		//auto test2 = makeF("fun", [](Float f, Float g) {
-		//	Float a = Float(1) << "a";
-		//	return Float(f + g);
-		//}, "f", "g");
-
-		//std::cout << shader.getStr() << std::endl;
-	}
-	
+	srt2();
 
 	return 0;
 }
@@ -89,10 +76,13 @@ void firstTest() {
 
 		shader.main([&] {
 
-			vec3 rotatedCenter = triangle.center * triangle.angle << "rotated";
+			vec3 rotatedCenter = ( 0.4 + triangle.center * triangle.angle *std::sin(1.0) ) / 9.2 << "rotated";
 			vec3 L = normalize(lightPos - position) << "L";
 			vec3 diff = L[x] * color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] * L[x] << "diff";
 			//diff = dot(diff, triangle.center)*diff;
+
+			mat4 mm = mat4(lightPos[x]) << "";
+			mat4 mmm = mat4(1.0) << "";
 
 			Int n("n"), m("m");
 			n = m++;
@@ -307,8 +297,8 @@ void srt2(){
 		 }*/
 		Float dsqrt = sqrt(delta) << "";
 		// The unary - doesn't work :(
-		roots = -Float(1.0) * vec2(bb,bb) + dsqrt * vec2(-1.0, 1.0);
-		GL_RETURN Bool(delta > Float(0.0));
+		roots = -1.0 * vec2(bb,bb) + dsqrt * vec2(-1.0, 1.0);
+		GL_RETURN Bool(delta > 0.0);
 	});
 	
 	
@@ -318,7 +308,7 @@ void srt2(){
 	}, "cosAngle");
 	
 	auto miePhase = makeF("miePhase", [gMie](Float cosAngle){
-		const Float k = Float(1.0)/Float(4.0*M_PI);
+		const Float k = 1.0/(4.0*M_PI);
 		Float g2 = gMie*gMie << "g2";
 		return k * Float(3.0) * (Float(1.0)-g2) / (Float(2.0) * (Float(2.0) + g2)) * (Float(1.0) + cosAngle*cosAngle) / pow(Float(1.0) + g2 - Float(2.0) * gMie * cosAngle, Float(3.0/2.0));
 	});
@@ -344,37 +334,34 @@ void srt2(){
 		vec3 transmittance = vec3(0.0) << "transmittance";
 		
 		GL_FOR(Int i(0,"i"); i < SAMPLES_COUNT; ++i){
-			vec3 currPos = rayOrigin + (Float(i)+Float(0.5)) * stepSize * rayDir << "currPos";
+			vec3 currPos = rayOrigin + (Float(i) + 0.5) * stepSize * rayDir << "currPos";
 			Float currHeight = length(currPos) - groundRadius << "currHeight";
-			GL_IF(i == Int(SAMPLES_COUNT-1) && currHeight < Float(0.0)){
+			GL_IF(i == SAMPLES_COUNT-1 && currHeight < 0.0){
 				currHeight = 0.0;
 			}
 			// Had to wrap - -> -1.0 -> Float(-1.0)
-			Float rayleighStep = exp(-Float(1.0)*currHeight/heightRayleigh) * stepSize << "rayleighStep";
-			Float mieStep = exp(Float(-1.0)*currHeight/heightMie) * stepSize << "mieStep";
+			Float rayleighStep = exp(-1.0*currHeight/heightRayleigh) * stepSize << "rayleighStep";
+			Float mieStep = exp(-1.0*currHeight/heightMie) * stepSize << "mieStep";
 			rayleighDist += rayleighStep;
 			mieDist += mieStep;
-			// Couldn't mix Float and vec3: kMie*mieDist + kRayleigh*rayleighDist
-			vec3 directAttenuation = exp(-Float(1.0)*(kRayleigh * rayleighDist)) << "directAttenuation";
+			// Couldn't mix Float and vec3: kRayleigh*rayleighDist
+			vec3 directAttenuation = exp(-1.0*(kMie*mieDist + kRayleigh * rayleighDist)) << "directAttenuation";
 			// Missing parenthesis in the generated code.
 			Float relativeHeight = (length(currPos) - groundRadius) / (topRadius - groundRadius) << "relativeHeight";
-			Float relativeCosAngle = Float(-0.5)*sunDir[y]+Float(0.5) << "relativeCosAngle";
+			Float relativeCosAngle = -0.5*sunDir[y]+0.5 << "relativeCosAngle";
 			// same thing, can't mix float and vec2 when creating in-expression vec2.
 			vec2 attenuationUVs = vec2(relativeHeight, relativeCosAngle) << "attenuationUVs";
 			// attenuationUVs *= Float(1.0-1.0/512.0);
 			attenuationUVs += Float(0.5/512.0);
 			// vec3 secondaryAttenuation = texture(screenTexture, attenuationUVs).rgb;
 			vec3 secondaryAttenuation = attenuationUVs[x,y,x];
-			// vec3 attenuation = directAttenuation * secondaryAttenuation << "attenuation";
-			vec3 attenuation = directAttenuation << "attenuation";
+			vec3 attenuation = directAttenuation * secondaryAttenuation << "attenuation";
 			rayleighScatt += rayleighStep * attenuation;
 			mieScatt += mieStep * attenuation;
 			transmittance += directAttenuation;
 		}
 		
-		// Should be: vec3 rayleighParticipation = kRayleigh * rayleighPhase(cosViewSun) * rayleighScatt;
-		// but error on vec3*vec3
-		vec3 rayleighParticipation = rayleighPhase(cosViewSun) *  rayleighScatt << "rayleighParticipation";
+		vec3 rayleighParticipation = kRayleigh * rayleighPhase(cosViewSun) *  rayleighScatt << "rayleighParticipation";
 		vec3 mieParticipation = kMie * miePhase(cosViewSun) * mieScatt << "mieParticipation";
 		
 		vec3 sunRadiance = vec3(0.0) << "sunRadiance";
@@ -390,7 +377,7 @@ void srt2(){
 	shader1.main([&]{
 		// This one causes an error on createDummy.
 		//vec4 clipVertex = vec4(Float(-1.0)+Float(2.0)*Inuv, 0.0, 1.0);
-		vec4 clipVertex = vec4(vec2(-1.0)+Float(2.0)*Inuv, 0.0, 1.0) << "clipVertex";
+		vec4 clipVertex = vec4(-1.0+2.0*Inuv, 0.0, 1.0) << "clipVertex";
 		vec3 viewRay = normalize((clipToWorld * clipVertex)[x,y,z]) << "viewRay";
 		vec3 planetSpaceViewPos = viewPos + vec3(0.0, 6371e3, 0.0) + vec3(0.0,1.0,0.0) << "planetSpaceViewPos";
 		vec3 atmosphereColor = computeRadiance(planetSpaceViewPos, viewRay, lightDirection) << "atmosphereColor";

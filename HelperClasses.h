@@ -43,7 +43,7 @@ template<unsigned int index, unsigned char c, unsigned char ... rest> struct Exc
 };
 
 
-enum class numberType { BOOL, INT, UINT, FLOAT, DOUBLE };
+enum numberType { BOOL, UINT, INT, FLOAT, DOUBLE, ERROR};
 
 template<numberType type> struct isFP {
 	static const bool value = false;

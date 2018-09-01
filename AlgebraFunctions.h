@@ -144,7 +144,7 @@ GLSL_VEC_FP_VEC_SCALAR_BINARY_OPERATOR(max);
 
 #define GLSL_VEC_FP_VEC_RSCALAR_BINARY_OPERATOR(op)												\
 template<numberType type, unsigned int N, typename = std::enable_if_t<isFP<type>::value> >		\
-const Vec<type,N> op(const Vec<type,N> & v1, const double & s) {							\
+const Vec<type,N> op(const Vec<type,N> & v1, const double & s) {								\
 	release(v1);																				\
 	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1) + "," + std::to_string(s) + ")");	\
 }			
