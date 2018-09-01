@@ -366,8 +366,8 @@ public:
 		release(vs...);
 	}
 
-	template<typename T, typename = std::enable_if_t<NotBool<T> && IsScalar<T> > >
-	Matrix(const T & t)  {
+	template<typename T, typename = std::enable_if_t< !std::is_same_v<T,Matrix> && NotBool<T> && IsScalar<T> > >
+	explicit Matrix(const T & t)  {
 		release(t);
 		name = getName(t);
 		//Ctx().addCmd(TypeStr<Matrix>::str() + "(" + getName(t) + ")");

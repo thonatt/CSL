@@ -22,7 +22,6 @@ ArithmeticBinaryReturnType<A,B> testAdd(const A& a, const B& b) {
 
 int main()
 {
-
 	//firstTest();
 	//testFuns();
 	//testBlocks();
@@ -231,7 +230,7 @@ void srt1(){
 		gl_Position[x,y] = 2.0 * temp - 1.0;
 		// Below: shouldn't work.
 		// Only gl_Position[z,w] = vec2(1.0); should work.
-		gl_Position[z,w] = 1.0;
+		gl_Position[z,w] = vec2(1.0);
 		
 	});
 	
@@ -515,12 +514,12 @@ void srt3(){
 		// Could test vec2 and vec4 and mat4 the same...
 		
 		// Operations that should fail.
-		/*tv1 = tm3 * tv1;
-		tv9 = tm0 * tv1;
-		tv9 = tm0 * tv4;
-		tv1 = tv10 + tv9;
-		...
-		 */
+		//tv1 = tm3 * tv1;
+		//tv9 = tm0 * tv1;
+		//tv9 = tm0 * tv4;
+		//tv1 = tv10 + tv9;
+		//...
+		// */
 		
 		// Various component tests.
 		vec2 obj = vec2(0.0) << "obj";
@@ -547,6 +546,7 @@ void srt3(){
 		vec3 oo = vec3(1.0,0.0,0.0)  << "oo";
 		//vec2 tr = vec2(oo) << "tr";
 		vec2 tr("tr");
+		vec3 tt;
 		tr[1] = 3.0 * tr[0];
 		tr[x,y][1] = 3.0 * tr[x,x][0];
 		oo = tr[x,y,y];
@@ -561,28 +561,28 @@ void srt3(){
 		t4[x,y,z][x] = 2.0;
 		
 		// All the lines below should fail.
-		/*
+		
 		vec2 cha(0.0); // Currently doesn't fail.
-		obj[y,y][x] = 2.0;
-		obj = 2.0; // Currently doesn't fail.
-		obj[x,x] = vec2(0.0,1.0);
-		obj[y,y] = obj[x,x];
-		obj[y,y] = 20.0;
-		obj[x,y] = 2.0; // Currently doesn't fail.
-		obj[y,y][x,y][x,y] = vec2(1.0);
-		obj[x,y][x,x] = obj[y,x][x,x];
-		obj[x,y][x,x][x,y] = obj[y,x][x,x];
-		tt = oo;
-		obj[y,y][y,y] = vec2(1.0);
-		obj[y,y][y,y] = 1.0;
-		tt[y,y][1] = 3.0 * tt[y,x][0];
-		tt[x,x,x] = vec3(1.0);
-		t1[x,x][x,y] = vec2(1.0);
-		t2[z,z] = 2.0;
-		t2[z,z] = t1[x,y];
-		t4[x,y,z,y][x] = 2.0;
-		t4 = vec3(1.0);
-		*/
+		//obj[y,y][x] = 2.0;
+		//obj = 2.0;
+		//obj[x,x] = vec2(0.0,1.0);
+		//obj[y,y] = obj[x,x];
+		//obj[y,y] = 20.0;
+		//obj[x,y] = 2.0;
+		//obj[y,y][x,y][x,y] = vec2(1.0);
+		//obj[x,y][x,x] = obj[y,x][x,x];
+		//obj[x,y][x,x][x,y] = obj[y,x][x,x];
+		//tt = oo;
+		//obj[y,y][y,y] = vec2(1.0);
+		//obj[y,y][y,y] = 1.0;
+		//tt[y,y][1] = 3.0 * tt[y,x][0];
+		//tt[x,x,x] = vec3(1.0);
+		//t1[x,x][x,y] = vec2(1.0);
+		//t2[z,z] = 2.0;
+		//t2[z,z] = t1[x,y];
+		//t4[x,y,z,y][x] = 2.0;
+		//t4 = vec3(1.0);
+		
 	});
 	
 	std::cout << shader1.getStr() << std::endl;
