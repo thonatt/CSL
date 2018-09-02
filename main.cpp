@@ -13,13 +13,6 @@ void srt2();
 void srt3();
 void firstTest();
 
-template<typename A, typename B, typename = std::enable_if_t< 
-	NoBools<A, B> && ( EquaMat<A,B> || IsScalar<A> || IsScalar<B> )
-> > 
-ArithmeticBinaryReturnType<A,B> testAdd(const A& a, const B& b) {
-
-}
-
 int main()
 {
 	//firstTest();

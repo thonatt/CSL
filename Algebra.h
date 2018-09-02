@@ -235,6 +235,7 @@ template<> struct getVecSizeT<double> {
 //// utilities struct
 
 template<typename T> struct Infos {
+	static const bool numeric_type = false;
 	static const unsigned int rows = 0;
 	static const unsigned int cols = 0;
 	static const numberType scalar_type = numberType::ERROR;
@@ -242,18 +243,21 @@ template<typename T> struct Infos {
 
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 struct Infos<Matrix<type, Nrows, Ncols>> {
+	static const bool numeric_type = true;
 	static const unsigned int rows = Nrows;
 	static const unsigned int cols = Ncols;
 	static const numberType scalar_type = type;
 };
 
 template<> struct Infos<double> {
+	static const bool numeric_type = true;
 	static const unsigned int rows = 1;
 	static const unsigned int cols = 1;
 	static const numberType scalar_type = numberType::DOUBLE;
 };
 
 template<> struct Infos<int> {
+	static const bool numeric_type = true;
 	static const unsigned int rows = 1;
 	static const unsigned int cols = 1;
 	static const numberType scalar_type = numberType::INT;
@@ -274,7 +278,7 @@ template<typename A, typename B> constexpr unsigned int MaxCol = MaxUINT<Infos<A
 template<typename A, typename B> constexpr bool EqualDim =  (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
 template<typename A, typename B> constexpr bool EquaMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A,B>;
 
-template<typename A> constexpr bool NotBool = Infos<A>::scalar_type > 0;
+template<typename A> constexpr bool NotBool = Infos<A>::numeric_type && Infos<A>::scalar_type > 0;
 template<typename A, typename B> constexpr bool NoBools = NotBool<A> && NotBool<B>;
 
 template<typename A> constexpr bool IsScalar = Infos<A>::cols == 1 && Infos<A>::rows == 1;
@@ -334,7 +338,7 @@ public:
 		release(m);
 		//std::cout << " M &&" << getName(m) << std::endl;
 	}
-	explicit Matrix(const std::string & s = "") : NamedObject<Matrix>(s) {
+	Matrix(const std::string & s = "") : NamedObject<Matrix>(s) {
 		//std::cout << " ctor str " << s << std::endl;
 		if (s != "") {
 			released = true;
@@ -403,7 +407,7 @@ public:
 		release(vs...);
 	}
 
-	template<typename T, typename = std::enable_if_t< !std::is_same<T,Matrix>::value && NotBool<T> && IsScalar<T> > >
+	template<typename T, typename = std::enable_if_t< NotBool<T> && IsScalar<T> > >
 	explicit Matrix(const T & t)  {
 		release(t);
 		name = getName(t);

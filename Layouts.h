@@ -148,6 +148,7 @@ template<typename Param, typename L, numberType type, unsigned int N> struct get
 };
 
 template<typename Param, typename T, typename L> struct Infos<Qualifier<Param,T,L>> {
+	static const bool numeric_type = Infos<T>::numeric_type;
 	static const unsigned int rows = Infos<T>::rows;
 	static const unsigned int cols = Infos<T>::cols;
 	static const numberType scalar_type = Infos<T>::scalar_type;
