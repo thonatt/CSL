@@ -24,6 +24,8 @@ const Scalar<type> determinant(const Matrix<type, Nrows, Ncols> & m) {
 
 //template<unsigned int N> Vec<numberType::BOOL, N> Not(const Vec<numberType::BOOL, N> & v) { return Vec<numberType::BOOL, N>(); }
 
+template<unsigned int N> using VecF = Vec<numberType::FLOAT, N>;
+
 #define GLSL_BVEC_BINARY_OPERATOR_NO_BOOL(op)														\
 template<numberType type, unsigned int N, typename = std::enable_if_t< notBool<type> > >		\
 const Vec<numberType::BOOL, N> op(const Vec<type, N> & v1, const Vec<type, N> & v2) {				\
@@ -86,10 +88,10 @@ GLSL_VEC_UNARY_OPERATOR(exp2);
 GLSL_VEC_UNARY_OPERATOR(log2);
 
 #define GLSL_VEC_BINARY_OPERATOR(op)												\
-template<unsigned int N>															\
-const VecF<N> op(const VecF<N> & v1, const VecF<N> & v2) {							\
+template<typename A, typename B, typename = std::enable_if_t< NoBools<A,B> && IsVector<A> && IsVector<B> && EqualTypeLoose<A,B> > >															\
+const MatrixType<A> op(const A & v1, const B & v2) {							\
 	release(v1,v2);																	\
-	return createDummy<VecF<N>>(std::string(#op) + "(" + strFromObj(v1,v2) + ")");		\
+	return createDummy<MatrixType<A>>(std::string(#op) + "(" + strFromObj(v1,v2) + ")");		\
 }		
 
 GLSL_VEC_BINARY_OPERATOR(atan);
@@ -124,34 +126,52 @@ const Scalar<type> op(const Vec<type,N> & v1, const Vec<type,N> & v2) {							\
 GLSL_FP_FP_VEC_BINARY_OPERATOR(dot);
 
 #define GLSL_VEC_FP_VEC_BINARY_OPERATOR(op)														\
-template<numberType type, unsigned int N,														\
-typename = std::enable_if_t< N!=1 && isFP<type>::value> >										\
-const Vec<type,N> op(const Vec<type,N> & v1, const Vec<type,N> & v2) {							\
+template<typename A, typename B, typename = std::enable_if_t<									\
+	NoBools<A, B> && IsVector<A> && EqualTypeLoose<A, B> && (EqualDim<A, B> || IsScalar<B>)		\
+> >																								\
+const MatrixType<A> op(const A & v1, const B & v2) {											\
 	release(v1, v2);																			\
-	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1,v2) + ")");				\
-}			
+	return createDummy<MatrixType<A>>(std::string(#op) + "(" + strFromObj(v1, v2) + ")");		\
+}
 
-GLSL_FP_FP_VEC_BINARY_OPERATOR(max);
+GLSL_VEC_FP_VEC_BINARY_OPERATOR(max);
+GLSL_VEC_FP_VEC_BINARY_OPERATOR(min);
 
-#define GLSL_VEC_FP_VEC_SCALAR_BINARY_OPERATOR(op)												\
-template<numberType type, unsigned int N, typename = std::enable_if_t<isFP<type>::value> >		\
-const Vec<type,N> op(const Vec<type,N> & v1, const Scalar<type> & s) {							\
-	release(v1, s);																				\
-	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1,s) + ")");				\
-}			
-
-GLSL_VEC_FP_VEC_SCALAR_BINARY_OPERATOR(max);
-
-#define GLSL_VEC_FP_VEC_RSCALAR_BINARY_OPERATOR(op)												\
-template<numberType type, unsigned int N, typename = std::enable_if_t<isFP<type>::value> >		\
-const Vec<type,N> op(const Vec<type,N> & v1, const double & s) {								\
-	release(v1);																				\
-	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1) + "," + std::to_string(s) + ")");	\
-}			
-
-GLSL_VEC_FP_VEC_RSCALAR_BINARY_OPERATOR(max);
-
-
+//template<numberType type, unsigned int N,														\
+//typename = std::enable_if_t< N!=1 && isFP<type>::value> >										\
+//const Vec<type,N> op(const Vec<type,N> & v1, const Vec<type,N> & v2) {							\
+//	release(v1, v2);																			\
+//	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1,v2) + ")");				\
+//}			
+//
+//GLSL_FP_FP_VEC_BINARY_OPERATOR(max);
+//
+//#define GLSL_VEC_FP_VEC_SCALAR_BINARY_OPERATOR(op)												\
+//template<numberType type, unsigned int N, typename = std::enable_if_t<isFP<type>::value> >		\
+//const Vec<type,N> op(const Vec<type,N> & v1, const Scalar<type> & s) {							\
+//	release(v1, s);																				\
+//	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1,s) + ")");				\
+//}			
+//
+//GLSL_VEC_FP_VEC_SCALAR_BINARY_OPERATOR(max);
+//
+//#define GLSL_VEC_FP_VEC_RSCALAR_BINARY_OPERATOR(op)												\
+//template<numberType type, unsigned int N, typename = std::enable_if_t<isFP<type>::value> >		\
+//const Vec<type,N> op(const Vec<type,N> & v1, const double & s) {								\
+//	release(v1);																				\
+//	return createDummy<Vec<type,N>>(std::string(#op) + "(" + strFromObj(v1) + "," + std::to_string(s) + ")");	\
+//}			
+//
+//GLSL_VEC_FP_VEC_RSCALAR_BINARY_OPERATOR(max);
+//
+//
+//template<typename A, typename B, typename = std::enable_if_t<  
+//	NoBools<A,B> && IsVector<A> && EqualTypeLoose<A,B> && ( EqualDim<A,B> || IsScalar<B> )
+//> >		
+//const MatrixType<A> min(const A & v1, const B & v2) {
+//		release(v1, v2);				
+//		return createDummy<MatrixType<A>>(std::string(#op) + "(" + strFromObj(v1, v2) + ")");
+//}
 
 #undef GLSL_BVEC_BINARY_OPERATOR_NO_BOOL
 #undef GLSL_BVEC_BINARY_OPERATOR_WITH_BOOL

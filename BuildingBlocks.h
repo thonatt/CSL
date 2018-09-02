@@ -163,6 +163,12 @@ struct BeginELSE {
 
 #define GL_ELSE_IF(condition) else if(true){} begin_else_if(condition); if(false) {} else if(BeginIF obj = BeginIF())
 
+template<typename A, typename B, typename = std::enable_if_t<EqualDim<A,B>> > 
+MatrixType<A> ternary(const Bool &b, const A& expa, const B& expb) {
+	return createDummy<MatrixType<A>>("( " + getName(b) + " ? " + getName(expa) + " : " + getName(expb) + " )");
+}
+
+#define GL_TERNARY(a,b,c) ternary(a,b,c)
 
 //void begin_switch() { std::cout << " switch( ) {" << std::endl; }
 //void begin_switch(int i) = delete;

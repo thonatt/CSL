@@ -15,11 +15,12 @@ void firstTest();
 
 int main()
 {
+
 	//firstTest();
 	//testFuns();
 	//testBlocks();
 	//srt1();
-	//srt2();
+	srt2();
 	srt3();
 	return 0;
 }
@@ -304,7 +305,7 @@ void srt2(){
 		const Float k = 1.0/(4.0*M_PI);
 		Float g2 = gMie*gMie << "g2";
 		// That's a minor issue, but could pow(Float, float) be valid? I guess it's always the same "templated so no conversion tested" issue.
-		return k * 3.0 * (1.0-g2) / (2.0* (2.0 + g2)) * (1.0 + cosAngle*cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, Float(3.0/2.0));
+		return k * 3.0 * (1.0-g2) / (2.0* (2.0 + g2)) * (1.0 + cosAngle*cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, 3.0/2.0);
 	});
 	
 	auto computeRadiance = makeF("computeRadiance", [&](vec3 rayOrigin, vec3 rayDir, vec3 sunDir){
@@ -314,11 +315,14 @@ void srt2(){
 		Bool didHitGround = intersects(rayOrigin, rayDir, groundRadius, interGround) << "didHitGround";
 		// Missing min() et ternary.
 		Float distanceToInter("distanceToInter");
-		GL_IF(didHitGround){
-			distanceToInter = interGround[x];
-		} GL_ELSE {
-			distanceToInter = 0.0;
-		}
+		distanceToInter = GL_TERNARY(didHitGround, interGround[x], 0.0);
+
+		//GL_IF(didHitGround){
+		//	distanceToInter = interGround[x];
+		//} GL_ELSE {
+		//	distanceToInter = 0.0;
+		//}
+
 		Float stepSize = (distanceToInter - interTop[x])/Float(SAMPLES_COUNT) << "stepSize";
 		Float cosViewSun = dot(rayDir, sunDir) << "cosViewSun";
 		Float rayleighDist = Float(0.0) << "rayleighDist";
