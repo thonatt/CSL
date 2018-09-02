@@ -408,7 +408,7 @@ public:
 	}
 
 	template<typename T, typename = std::enable_if_t< NotBool<T> && IsScalar<T> > >
-	explicit Matrix(const T & t)  {
+	/* explicit */ Matrix(const T & t)  {
 		release(t);
 		name = getName(t);
 		//Ctx().addCmd(TypeStr<Matrix>::str() + "(" + getName(t) + ")");

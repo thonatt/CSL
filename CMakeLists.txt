@@ -5,8 +5,8 @@ project(CSL)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
-include_directories($())
+include_directories($(.))
 
 file(GLOB headers "*.h" "main.cpp" )
 
-add_executable(CLS_test ${headers} )
+add_executable(CSL_test ${headers} )
