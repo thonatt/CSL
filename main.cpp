@@ -577,7 +577,7 @@ void srt3(){
 		t4[x,y,z][x] = 2.0;
 		t4[x, y, z][x] = 1;
 		ivec3 ii;
-		ii[x, y, z][x] = 1.0;
+		//ii[x, y, z][x] = 1.0;
 
 		// All the lines below should fail.
 		vec2 cha(0.0); // Currently doesn't fail.

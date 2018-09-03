@@ -346,14 +346,15 @@ public:
 		return *this;
 	}
 
-	template<bool b = scalar && ( isFP<type>::value || isInt<type>::value), typename = std::enable_if_t<b> >
+	template<bool b = scalar && (isInt<type>::value || isFP<type>::value), typename = std::enable_if_t<b> >
 	Matrix & operator=(const double & other) {
+		static_assert(isFP<type>::value, " cant do int a = 0.1; ");
 		release(*this, other);
 		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
 		return *this;
 	}
 
-	template<bool b = scalar && isInt<type>::value, typename = std::enable_if_t<b> >
+	template<bool b = scalar && (isInt<type>::value || isFP<type>::value), typename = std::enable_if_t<b> >
 	Matrix & operator=(const int & other) {
 		release(*this, other);
 		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
@@ -407,8 +408,8 @@ public:
 		release(vs...);
 	}
 
-	template<typename T, typename = std::enable_if_t< NotBool<T> && ( IsScalar<T>  || EqualType<Matrix,T> ) > >
-	/* explicit */ Matrix(const T & t)  {
+	template<typename T, typename = std::enable_if_t< NotBool<T> && (  IsScalar<T> || EqualType<Matrix,T> ) > >
+	/*  explicit */ Matrix(const T & t)  {
 		release(t);
 		name = TypeStr<Matrix>::str() + "(" + getName(t) + ")";
 		//Ctx().addCmd(TypeStr<Matrix>::str() + "(" + getName(t) + ")");
@@ -521,6 +522,9 @@ public:
 		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(getName(*this) + "[" + std::to_string(i) + "]");
 	}
 };
+
+// disabling int a = 1.0;
+template<> template<> Int & Int::operator=<true, void>(const double & other) = delete;
 
 //special init naming operator 
 
