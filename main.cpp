@@ -317,7 +317,6 @@ void srt2(){
 	auto miePhase = makeF("miePhase", [gMie](Float cosAngle){
 		const Float k = 1.0/(4.0*M_PI);
 		Float g2 = gMie*gMie << "g2";
-		// That's a minor issue, but could pow(Float, float) be valid? I guess it's always the same "templated so no conversion tested" issue.
 		return k * 3.0 * (1.0-g2) / (2.0* (2.0 + g2)) * (1.0 + cosAngle*cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, 3.0/2.0);
 	});
 	
@@ -325,10 +324,12 @@ void srt2(){
 		vec2 interTop("interTop"), interGround("interGround");
 		Bool didHitTop = intersects(rayOrigin, rayDir, topRadius, interTop) << "didHitTop";
 		// Here there is an early return usually.
+		/*GL_IF(!didHitTop){
+			GL_RETURN vec3(0.0);
+		}*/
 		Bool didHitGround = intersects(rayOrigin, rayDir, groundRadius, interGround) << "didHitGround";
-		// Missing min() et ternary.
 		Float distanceToInter("distanceToInter");
-		distanceToInter = GL_TERNARY(didHitGround, interGround[x], 0.0);
+		distanceToInter = GL_TERNARY(didHitGround, interGround[x], min(interTop[y], interGround[y]));
 
 		//GL_IF(didHitGround){
 		//	distanceToInter = interGround[x];
@@ -359,8 +360,7 @@ void srt2(){
 			Float relativeHeight = (length(currPos) - groundRadius) / (topRadius - groundRadius) << "relativeHeight";
 			Float relativeCosAngle = -0.5*sunDir[y]+0.5 << "relativeCosAngle";
 			vec2 attenuationUVs = (1.0-1.0/512.0)*vec2(relativeHeight, relativeCosAngle)+0.5/512.0 << "attenuationUVs";
-			// Missing vec2 *= Float.
-			//attenuationUVs *= 1.0-1.0/512.0;
+			attenuationUVs *= 1.0-1.0/512.0;
 			attenuationUVs += 1.5/512.0;
 			// vec3 secondaryAttenuation = texture(screenTexture, attenuationUVs).rgb;
 			vec3 secondaryAttenuation = attenuationUVs[x,y,x];
@@ -433,9 +433,9 @@ void srt3(){
 		vec3 r3 = tv0 - tf3 << "";
 		vec3 r4 = tv0 / tf2 << "";
 		tv0 += tf2;
-		//tv0 -= tf3;
-		//tv0 *= tf3;
-		//tv0 /= tf2;
+		tv0 -= tf3;
+		tv0 *= tf3;
+		tv0 /= tf2;
 		
 		// float x vec
 		vec3 r5 = tf0 + tv0 << "";
@@ -443,52 +443,56 @@ void srt3(){
 		vec3 r7 = tf0 - tv0 << "";
 		vec3 r8 = tf0 / tv0 << "";
 		// The four below should fail.
-		// tf2 += tv0;
-		// tf3 -= tv0;
-		// tf3 *= tv0;
-		// tf2 /= tv0;
-		
+#ifdef TEST_SHOULD_ERROR
+		tf2 += tv0;
+		tf3 -= tv0;
+		tf3 *= tv0;
+		tf2 /= tv0;
+#endif		
 		// vec x vec
 		vec3 r9 = tv8 + tf0 << "";
 		vec3 r10 = tv0 * tv8 << "";
 		vec3 r11 = tv0 - tv8 << "";
 		vec3 r12 = tv8 / tv0 << "";
 		tv8 += tv9;
-		//tv8 -= tv9;
-		//tv8 *= tv9;
-		//tv8 /= tv9;
+		tv8 -= tv9;
+		tv8 *= tv9;
+		tv8 /= tv9;
 		
 		// mat x vec
 		vec3 r14 = tm3 * tv0 << "";
 		// The seven below should fail.
-		// vec3 r13 = tm2 + tv0 << "";
-		// vec3 r15 = tm3 - tv0 << "";
-		// vec3 r16 = tm3 / tv0 << "";
-		// tm3 += tv0;
-		// tm3 -= tv0;
-		// tm3 *= tv0;
-		// tm3 /= tv0;
-		
+#ifdef TEST_SHOULD_ERROR
+		vec3 r13 = tm2 + tv0 << "";
+		vec3 r15 = tm3 - tv0 << "";
+		vec3 r16 = tm3 / tv0 << "";
+		tm3 += tv0;
+		tm3 -= tv0;
+		tm3 *= tv0;
+		tm3 /= tv0;
+#endif	
 		// vec x mat
 		// vec3 r18 = tv0 * tm3 << "";
 		// tv0 *= tm3; // check spec, not sure.
+
 		// The six below should fail.
-		// vec3 r17 = tv0 + tm3 << "";
-		// vec3 r19 = tv0 - tm3 << "";
-		// vec3 r20 = tv0 / tm3 << "";
-		// tv0 += tm3;
-		// tv0 -= tm3;
-		// tv0 /= tm3;
-		
+#ifdef TEST_SHOULD_ERROR
+		vec3 r17 = tv0 + tm3 << "";
+		vec3 r19 = tv0 - tm3 << "";
+		vec3 r20 = tv0 / tm3 << "";
+		tv0 += tm3;
+		tv0 -= tm3;
+		tv0 /= tm3;
+#endif	
 		// mat x float
 		mat3 r21 = tm2 + tf0 << "";
 		mat3 r22 = tm2 * tf2 << "";
 		mat3 r23 = tm2 - tf3 << "";
 		mat3 r24 = tm2 / tf2 << "";
 		tm2 += tf2;
-		//tm2 -= tf3;
-		//tm2 *= tf3;
-		//tm2 /= tf2;
+		tm2 -= tf3;
+		tm2 *= tf3;
+		tm2 /= tf2;
 		
 		// float x mat
 		mat3 r25 = tf0 + tm3 << "";
@@ -496,40 +500,42 @@ void srt3(){
 		mat3 r27 = tf0 - tm3 << "";
 		mat3 r28 = tf0 / tm3 << "";
 		// The four below should fail.
-		//tf2 += tm3;
-		//tf3 -= tm3;
-		//tf3 *= tm3;
-		//tf2 /= tm3;
-		
+#ifdef TEST_SHOULD_ERROR
+		tf2 += tm3;
+		tf3 -= tm3;
+		tf3 *= tm3;
+		tf2 /= tm3;
+#endif		
 		// mat x mat
 		mat3 r29 = tm2 + tm3 << "";
 		mat3 r30 = tm2 * tm3 << "";
 		mat3 r31 = tm2 - tm3 << "";
 		mat3 r32 = tm2 / tm3 << "";
 		tm3 += tm2;
-		//tm3 -= tm2;
-		//tm3 *= tm2;
-		//tm3 /= tm2;
+		tm3 -= tm2;
+		tm3 *= tm2;
+		tm3 /= tm2;
 		
 		// vec x int
-		// vec3 r33 = tv0 + 1 << "";
-		// vec3 r34 = tv0 * 3 << "";
-		// vec3 r35 = tv0 - 4 << "";
-		// vec3 r36 = tv0 / 5 << "";
-		// tv0 += 4;
-		// tv0 -= 2;
-		// tv0 *= 1;
-		// tv0 /= 8;
+		//vec3 r33 = tv0 + 1 << "";
+		//vec3 r34 = tv0 * 3 << "";
+		//vec3 r35 = tv0 - 4 << "";
+		//vec3 r36 = tv0 / 5 << "";
+		tv0 += 4;
+		tv0 -= 2;
+		tv0 *= 1;
+		tv0 /= 8;
 		
 		// Could test vec2 and vec4 and mat4 the same...
 		
 		// Operations that should fail.
+#ifdef TEST_SHOULD_ERROR
 		//tv1 = tm3 * tv1;
 		//tv9 = tm0 * tv1;
 		//tv9 = tm0 * tv4;
 		//tv1 = tv10 + tv9;
 		//...
-		// */
+#endif
 		
 		// Various component tests.
 		vec2 obj = vec2(0.0) << "obj";
@@ -542,9 +548,9 @@ void srt3(){
 		obj = obj1/obj;
 		obj1 = obj1 / 2.0;
 		obj += 2.0;
-		//obj *= obj1;
+		obj *= obj1;
 		obj++;
-		//--obj;
+		--obj;
 		obj[x,y] = vec2(obj[x,x]);
 		obj[x,y] += 2.0;
 		obj[x,y][t,s] = vec2(1.0,2.0);
@@ -552,7 +558,7 @@ void srt3(){
 		obj[x,y][y] = obj[y,y][x,y][x];
 		obj = (obj[x,y] + obj[x,x] + obj[y,y] + obj[x,y][x,x]) * obj[x,y][x,y];
 		obj[x,y] = obj[x,x][x,y];
-		//obj[x,y] *= obj[y,y] * 3.0;
+		obj[x,y] *= obj[y,y] * 3.0;
 		vec3 oo = vec3(1.0,0.0,0.0)  << "oo";
 		//vec2 tr = vec2(oo) << "tr";
 		vec2 tr("tr");
@@ -569,30 +575,29 @@ void srt3(){
 		vec2 t3 = t1[x,x,y][b,g] + 2.0 << "t3";
 		vec4 t4 = vec4(1.0,0.0,0.0,0.0) << "t4";
 		t4[x,y,z][x] = 2.0;
-		
+
 		// All the lines below should fail.
-		
 		vec2 cha(0.0); // Currently doesn't fail.
-		//obj[y,y][x] = 2.0;
-		//obj = 2.0;
-		//obj[x,x] = vec2(0.0,1.0);
-		//obj[y,y] = obj[x,x];
-		//obj[y,y] = 20.0;
-		//obj[x,y] = 2.0;
-		//obj[y,y][x,y][x,y] = vec2(1.0);
-		//obj[x,y][x,x] = obj[y,x][x,x];
-		//obj[x,y][x,x][x,y] = obj[y,x][x,x];
-		//tt = oo;
-		//obj[y,y][y,y] = vec2(1.0);
-		//obj[y,y][y,y] = 1.0;
-		//tt[y,y][1] = 3.0 * tt[y,x][0];
-		//tt[x,x,x] = vec3(1.0);
-		//t1[x,x][x,y] = vec2(1.0);
-		//t2[z,z] = 2.0;
-		//t2[z,z] = t1[x,y];
-		//t4[x,y,z,y][x] = 2.0;
-		//t4 = vec3(1.0);
-		
+		obj = 2.0; // Currently doesn't fail.
+		obj[x, y] = 2.0; // Currently doesn't fail.
+		tt[y, y][1] = 3.0 * tt[y, x][0]; // Currently doesn't fail.
+#ifdef TEST_SHOULD_ERROR
+		obj[y,y][x] = 2.0;
+		obj[x,x] = vec2(0.0,1.0);
+		obj[y,y] = obj[x,x];
+		obj[y,y] = 20.0;
+		obj[y,y][x,y][x,y] = vec2(1.0);
+		obj[x,y][x,x] = obj[y,x][x,x];
+		obj[x,y][x,x][x,y] = obj[y,x][x,x];
+		obj[y,y][y,y] = vec2(1.0);
+		obj[y,y][y,y] = 1.0;
+		tt[x,x,x] = vec3(1.0);
+		t1[x,x][x,y] = vec2(1.0);
+		t2[z,z] = 2.0;
+		t2[z,z] = t1[x,y];
+		t4[x,y,z,y][x] = 2.0;
+		t4 = vec3(1.0);
+#endif		
 	});
 	
 	std::cout << shader1.getStr() << std::endl;
