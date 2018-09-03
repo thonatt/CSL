@@ -15,6 +15,19 @@ void firstTest();
 
 int main()
 {
+	ivec3 a, b;
+	uvec3 c;
+	uvec2 d;
+	Uint e;
+	a << b;
+
+	a % b;
+	a % e;
+	e % a;
+
+	a | b;
+	a ^ e;
+	e & b;
 
 	//firstTest();
 	//testFuns();
