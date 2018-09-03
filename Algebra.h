@@ -331,6 +331,13 @@ public:
 	//}
 	//Matrix(Matrix && other) = default;
 
+	//template<typename U, typename = std::enable_if_t<EqualMat<Matrix,U> > >
+	//Matrix & operator=(const U & other) {
+	//	release(*this, other);
+	//	Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
+	//	return *this;
+	//}
+
 	Matrix & operator=(const Matrix & other) {
 		//std::cout << " = operator " << name << " " << other.name << std::endl;
 		release(*this, other);
@@ -338,6 +345,27 @@ public:
 		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
 		return *this;
 	}
+
+	template<bool b = scalar && ( isFP<type>::value || isInt<type>::value), typename = std::enable_if_t<b> >
+	Matrix & operator=(const double & other) {
+		release(*this, other);
+		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
+		return *this;
+	}
+
+	template<bool b = scalar && isInt<type>::value, typename = std::enable_if_t<b> >
+	Matrix & operator=(const int & other) {
+		release(*this, other);
+		Ctx().addCmd(getName(*this) + " = " + getName(other) + ";");
+		return *this;
+	}
+
+	//template<bool b = scalar && isFP<type>::value, typename = std::enable_if_t<b> >
+	//Matrix & operator=(const int & other) = delete;
+
+	//template<bool b = scalar && isInt<type>::value, typename = std::enable_if_t<b> >
+	//Matrix & operator=(const double & other) = delete;
+
 
 	template<bool b = integral, typename = std::enable_if_t<b> >
 	Matrix(const int& i, const std::string & s = ""
@@ -379,10 +407,10 @@ public:
 		release(vs...);
 	}
 
-	template<typename T, typename = std::enable_if_t< NotBool<T> && IsScalar<T> > >
+	template<typename T, typename = std::enable_if_t< NotBool<T> && ( IsScalar<T>  || EqualType<Matrix,T> ) > >
 	/* explicit */ Matrix(const T & t)  {
 		release(t);
-		name = getName(t);
+		name = TypeStr<Matrix>::str() + "(" + getName(t) + ")";
 		//Ctx().addCmd(TypeStr<Matrix>::str() + "(" + getName(t) + ")");
 	}
 
@@ -482,11 +510,16 @@ public:
 
 	// array subscript accessors
 	template<bool b = !scalar, typename = std::enable_if_t<b> >
-	typename std::conditional_t< Ncols == 1, Vec<type, 1>, Vec<type, Nrows> > operator[](unsigned int i) const {
+	const typename std::conditional_t< Ncols == 1, Vec<type, 1>, Vec<type, Nrows> > operator[](unsigned int i) const {
+		release(*this);
+		return createDummy<const std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(getName(*this) + "[" + std::to_string(i) + "]");
+	}
+
+	template<bool b = !scalar, typename = std::enable_if_t<b> >
+	typename std::conditional_t< Ncols == 1, Vec<type, 1>, Vec<type, Nrows> > operator[](unsigned int i) {
 		release(*this);
 		return createDummy<std::conditional_t< Ncols >= 2, Vec<type, Nrows>, Vec<type, 1> > >(getName(*this) + "[" + std::to_string(i) + "]");
 	}
-
 };
 
 //special init naming operator 

@@ -575,14 +575,20 @@ void srt3(){
 		vec2 t3 = t1[x,x,y][b,g] + 2.0 << "t3";
 		vec4 t4 = vec4(1.0,0.0,0.0,0.0) << "t4";
 		t4[x,y,z][x] = 2.0;
+		t4[x, y, z][x] = 1;
+		ivec3 ii;
+		ii[x, y, z][x] = 1.0;
 
 		// All the lines below should fail.
 		vec2 cha(0.0); // Currently doesn't fail.
-		obj = 2.0; // Currently doesn't fail.
-		obj[x, y] = 2.0; // Currently doesn't fail.
-		tt[y, y][1] = 3.0 * tt[y, x][0]; // Currently doesn't fail.
+		//obj = 2.0; // Currently doesn't fail.
+		//obj[x, y] = 2.0; // Currently doesn't fail.
+		
+		
 #ifdef TEST_SHOULD_ERROR
-		obj[y,y][x] = 2.0;
+		
+		tt[y, y][1] = 3.0 * tt[y, x][0];
+		obj[y, y][x] = 2.0;
 		obj[x,x] = vec2(0.0,1.0);
 		obj[y,y] = obj[x,x];
 		obj[y,y] = 20.0;
