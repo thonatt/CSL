@@ -134,24 +134,6 @@ struct Exp {
 	std::vector<Ex> args;
 };
 
-
-template<typename Operator, typename ... Args> Ex createExp(const std::shared_ptr<Operator> &op, const Args &... args) {
-	return std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...});
-}
-
-template<typename T, OperatorDisplayRule  dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS,
-	typename ... Args> Ex createInit(const std::string & name, const Args &... args) {
-	auto tor = std::make_shared<Ctor<T,dRule,pRule>>(name, ( sizeof...(args) != 0 ) );
-	Ex expr = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(tor), std::vector<Ex>{args...});
-	InitManager::initManager.ctor(tor);
-	Manager::man.add(expr);
-	return expr;
-}
-
-template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
-	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
-}
-
 void isNotInit(const Ex & expr) {
 	if (auto ctor = std::dynamic_pointer_cast<CtorBase>(expr->op)) {
 		ctor->isInit = false;
@@ -181,6 +163,24 @@ struct Manager {
 Manager Manager::man = Manager();
 
 template<typename T> Ex getExp(const T & t) { return Ex(); }
+
+template<typename Operator, typename ... Args>
+Ex createExp(const std::shared_ptr<Operator> &op, const Args &... args) {
+	return std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...});
+}
+
+template<typename T, OperatorDisplayRule  dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, typename ... Args>
+Ex createInit(const std::string & name, const Args &... args) {
+	auto tor = std::make_shared<Ctor<T, dRule, pRule>>(name, (sizeof...(args) != 0));
+	Ex expr = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(tor), std::vector<Ex>{args...});
+	InitManager::initManager.ctor(tor);
+	Manager::man.add(expr);
+	return expr;
+}
+
+template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
+	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
+}
 
 template<> Ex getExp(const int & i) {
 	return createExp(std::make_shared<Litteral<int>>(i));
