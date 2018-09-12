@@ -1,219 +1,240 @@
 #include <iostream>
 #include <cmath>
 
+
+
 #include "AlgebraFunctions.h"
 #include "Layouts.h"
 #include "Samplers.h"
 #include "BuildingBlocks.h"
 #include "Shaders.h"
+#include "ExpressionsTest.h"
 
+//void srt1();
+//void srt2();
+//void srt3();
+//void firstTest();
 
-void srt1();
-void srt2();
-void srt3();
-void firstTest();
 
 int main()
 {
-	ivec3 a, b;
-	uvec3 c;
-	uvec2 d;
-	Uint e;
-	a << b;
+	//correct and well translated
+	T a = T(0) << "a";
+	T c("plop");
 
-	a % b;
-	a % e;
-	e % a;
+	//wrong but well translated to T xxx = T(0);
+	T b(0);
 
-	a | b;
-	a ^ e;
-	e & b;
+	//copy elision works fine
+	T el = T(T(T(1, 2, 3))); 
+	T el2 = T(T(T(1, 2, 3))) << "el";
+
+	//works fine
+	a = T(1);
+	T d = T(a, T(2,c), T(a,3.0)) << "d";
+	a = 1;
+	a = fun(b, c);
+	T f = fun(a*a + b, fun(d, a) + fun(a, d));
+
+	//will not compile, operator<< only for initialisation
+	//a = fun(b, c) << "blah"
+
+	//will not compile, only one init for ctor;
+	//T e = T(fun(a, b) << "ab", fun(b,a) << "ba");
+
+	//works, but names are useless
+	T e = T(T(fun(a, b) << "ab"), T(T(fun(b, a) << "ba")));
+
+
+	Manager::man.cout();
+
+	std::cout << " end " << std::endl;
 
 	//firstTest();
 	//testFuns();
 	//testBlocks();
 	//srt1();
-	srt2();
-	srt3();
+	//srt2();
+	//srt3();
 	return 0;
 }
 
-void firstTest() {
-	{
-		using namespace fs;
-
-		FragmentShader shader;
-
-		auto test = makeF("fun", [](Float f, Float g) {
-			return Float(f + g);
-		}, "f", "g");
-
-
-		auto test2 = makeF("fun", [](Float f, Float g) {
-			return f + g;
-		}, "f", "g");
-
-
-		GL_STRUCT(Tri,
-			(Float) angle,
-			(vec3) center,
-			(mat4x4) proju
-		);
-
-		GL_STRUCT(MegaTri,
-			(Tri) triA,
-			(Tri) triB,
-			(Tri) triC
-		);
-
-		GL_STRUCT(MegaTron,
-			(Tri) triA,
-			(MegaTri) mega,
-			(Tri) triC
-		);
-
-
-		In<vec3> normal("normal"), position("position"), color("color");
-		Uniform<vec3> lightPos("lightPos");
-		Out<vec4> outColor("outColor");
-		Uniform<Tri> triangle("triangle");
-		Uniform<MegaTri, Layout<Location<3>, Binding<0> >> megatron;
-
-		auto foo = makeF("proj", [](In<mat4> proj, In<vec3> point) { return proj * vec4(point, 1.0); }, "proj", "point");
-		auto goo = makeF("goo", [](vec3 a, vec3 b) { return determinant(mat3(a, b, a)); });
-
-		shader.main([&] {
-
-			vec3 rotatedCenter = ( 0.4 + triangle.center * triangle.angle * std::sin(1.0) ) / 9.2 << "rotated";
-			vec3 L = normalize(lightPos - position) << "L";
-			vec3 diff = L[x] * color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] * L[x] << "diff";
-			//diff = dot(diff, triangle.center)*diff;
-
-			mat4 mm = mat4(lightPos[x]) << "";
-			mat4 mmm = mat4(1.0) << "";
-
-			Int n("n"), m("m");
-			n = m++;
-			n = ++m;
-			diff = diff + diff[x] * diff + megatron.triB.proju[0][x, y, z];
-
-			GL_FOR(Int a(0, "a"); a < 5; a++) {
-				Bool myb;
-				GL_IF((!myb && myb) || (False && True)) {
-					diff[x] = goo(L, diff);
-				} GL_ELSE_IF(True) {
-					vec4 t = vec4(L, 1.0) << "t";
-					diff[x] = goo(L, foo(mat4(t, t, t, t), diff)[r, b, g])[x];
-				}
-
-			}
-
-			outColor = vec4(color[x, z], color[x, y]);
-
-		});
-
-		std::cout << shader.getStr() << std::endl;
-
-
-	}
-
-	{
-		using namespace vs;
-		VertexShader shader;
-
-		GL_STRUCT(MyStruct,
-			(Float) f,
-			(Bool) b
-		);
-
-		Uniform<MyStruct, Layout<Binding<3>> > structor("structor");
-
-		shader.main([&] {
-			gl_Position[x, y, z] = vec3(structor.f, 1.0, structor.f) / gl_Position[z];
-		});
-
-		std::cout << shader.getStr() << std::endl;
-	}
-}
-
-void testFuns() {
-	auto funct1 = makeF("mul1", [](vec2 a, Float b) { vec2 c; c = b * a; return c; });
-	auto funct2 = makeF("mul2", [](vec2 a, Float b) { return b * a; });
-	auto funct3 = makeF("mul3", [](vec2 a, Float b) { vec2 c; c = b * a; });
-	auto funct4 = makeF("mul4", [](vec2 a, Float b) { vec2 c("c"); c = b * a; }, "bkah", "bloh");
-	auto funct5 = makeF("mul5", [](vec2 a, Float b) { GL_RETURN b * a; }, "bkah", "bloh");
-
-	vec2 vv("v2");
-	Float ff("ff");
-	vv = funct1(vv, ff);
-	vv = funct2(vv, ff);
-	funct3(vv, ff);
-	funct4(vv, ff);
-	vv = vec2(funct5(vv, ff)[y], funct5(vv, ff)[x]);
-}
-
-void testBlocks() {
-	std::cout << std::endl << "begin loop tests" << std::endl << std::endl;
-
-	GL_FOR(Int a("a"); a < 5; ++a) {
-		Int c("c");
-		Continue();
-		GL_FOR(Int b(0, "b"); b < a; ++b) {
-			++c;
-		}
-		Int e("e");
-	}
-	//vec4(0);
-	vec3 v1("v1");
-	vec3 v2("v2");
-	GL_IF(all(lessThanEqual(v1, v2))) {
-		Int c("c");
-		//c < c;
-
-		ivec3 v2("v");
-
-		v2[x, z] = ivec2(c, c);
-
-		ivec4 v4("v4");
-
-		v4 = ivec4(ivec2(c, c), ivec2(c, c));
-
-		(v4[x, y, z]) = (v4[b, b, g]);
-
-		++c;
-
-		//v4 = ivec4(ivec2(), ivec2());
-
-		v4;
-		//v4 = vec4();
-		//vec4 vv = vec4(0 );
-
-
-	} GL_ELSE_IF(all(greaterThanEqual(v2, v1))) {
-		GL_IF(any(lessThan(v2, v1))) {
-		}
-		vec3 c("c");
-		Float f = c[z] + length(c) << "f";
-
-	} GL_ELSE{
-		vec3 c("c");
-	c[x] = length(c);
-	c[x] = inversesqrt(c[x]) + sqrt(c[y]) + c[x] * c[x];
-	c[z, x] += vec2(exp(c[x]), log(c[y]));
-	c[x, y] = cos(c[z, z] + c[y, y] * c[z] + c[x] * c[x, x]);
-	mat3 m, j;
-	mat3 & mm = m;
-	mm = j;
-
-	j = c[z] * transpose(m);
-	//c[x] = ( ( c[x] + c[y] ) + c[x] );
-	//c[x] += c[y];
-	//c[x, y] += c[x, x];
-	//ivec2 ii;
-	}
-
-}
-
+//void firstTest() {
+//	{
+//		using namespace fs;
+//
+//		FragmentShader shader;
+//
+//		auto test = makeF("fun", [](Float f, Float g) {
+//			return Float(f + g);
+//		}, "f", "g");
+//
+//
+//		auto test2 = makeF("fun", [](Float f, Float g) {
+//			return f + g;
+//		}, "f", "g");
+//
+//
+//		GL_STRUCT(Tri,
+//			(Float) angle,
+//			(vec3) center,
+//			(mat4x4) proju
+//		);
+//
+//		GL_STRUCT(MegaTri,
+//			(Tri) triA,
+//			(Tri) triB,
+//			(Tri) triC
+//		);
+//
+//		GL_STRUCT(MegaTron,
+//			(Tri) triA,
+//			(MegaTri) mega,
+//			(Tri) triC
+//		);
+//
+//
+//		In<vec3> normal("normal"), position("position"), color("color");
+//		Uniform<vec3> lightPos("lightPos");
+//		Out<vec4> outColor("outColor");
+//		Uniform<Tri> triangle("triangle");
+//		Uniform<MegaTri, Layout<Location<3>, Binding<0> >> megatron;
+//
+//		auto foo = makeF("proj", [](In<mat4> proj, In<vec3> point) { return proj * vec4(point, 1.0); }, "proj", "point");
+//		auto goo = makeF("goo", [](vec3 a, vec3 b) { return determinant(mat3(a, b, a)); });
+//
+//		shader.main([&] {
+//
+//			vec3 rotatedCenter = ( 0.4 + triangle.center * triangle.angle * std::sin(1.0) ) / 9.2 << "rotated";
+//			vec3 L = normalize(lightPos - position) << "L";
+//			vec3 diff = L[x] * color * max(dot(normal, L), 0.0) + gl_FragCoord[x, y, z] * L[x] << "diff";
+//			//diff = dot(diff, triangle.center)*diff;
+//
+//			mat4 mm = mat4(lightPos[x]) << "";
+//			mat4 mmm = mat4(1.0) << "";
+//
+//			Int n("n"), m("m");
+//			n = m++;
+//			n = ++m;
+//			diff = diff + diff[x] * diff + megatron.triB.proju[0][x, y, z];
+//
+//			GL_FOR(Int a(0, "a"); a < 5; a++) {
+//				Bool myb;
+//				GL_IF((!myb && myb) || (False && True)) {
+//					diff[x] = goo(L, diff);
+//				} GL_ELSE_IF(True) {
+//					vec4 t = vec4(L, 1.0) << "t";
+//					diff[x] = goo(L, foo(mat4(t, t, t, t), diff)[r, b, g])[x];
+//				}
+//
+//			}
+//
+//			outColor = vec4(color[x, z], color[x, y]);
+//
+//		});
+//
+//		std::cout << shader.getStr() << std::endl;
+//
+//
+//	}
+//
+//	{
+//		using namespace vs;
+//		VertexShader shader;
+//
+//		GL_STRUCT(MyStruct,
+//			(Float) f,
+//			(Bool) b
+//		);
+//
+//		Uniform<MyStruct, Layout<Binding<3>> > structor("structor");
+//
+//		shader.main([&] {
+//			gl_Position[x, y, z] = vec3(structor.f, 1.0, structor.f) / gl_Position[z];
+//		});
+//
+//		std::cout << shader.getStr() << std::endl;
+//	}
+//}
+//
+//void testFuns() {
+//	auto funct1 = makeF("mul1", [](vec2 a, Float b) { vec2 c; c = b * a; return c; });
+//	auto funct2 = makeF("mul2", [](vec2 a, Float b) { return b * a; });
+//	auto funct3 = makeF("mul3", [](vec2 a, Float b) { vec2 c; c = b * a; });
+//	auto funct4 = makeF("mul4", [](vec2 a, Float b) { vec2 c("c"); c = b * a; }, "bkah", "bloh");
+//	auto funct5 = makeF("mul5", [](vec2 a, Float b) { GL_RETURN b * a; }, "bkah", "bloh");
+//
+//	vec2 vv("v2");
+//	Float ff("ff");
+//	vv = funct1(vv, ff);
+//	vv = funct2(vv, ff);
+//	funct3(vv, ff);
+//	funct4(vv, ff);
+//	vv = vec2(funct5(vv, ff)[y], funct5(vv, ff)[x]);
+//}
+//
+//void testBlocks() {
+//	std::cout << std::endl << "begin loop tests" << std::endl << std::endl;
+//
+//	GL_FOR(Int a("a"); a < 5; ++a) {
+//		Int c("c");
+//		Continue();
+//		GL_FOR(Int b(0, "b"); b < a; ++b) {
+//			++c;
+//		}
+//		Int e("e");
+//	}
+//	//vec4(0);
+//	vec3 v1("v1");
+//	vec3 v2("v2");
+//	GL_IF(all(lessThanEqual(v1, v2))) {
+//		Int c("c");
+//		//c < c;
+//
+//		ivec3 v2("v");
+//
+//		v2[x, z] = ivec2(c, c);
+//
+//		ivec4 v4("v4");
+//
+//		v4 = ivec4(ivec2(c, c), ivec2(c, c));
+//
+//		(v4[x, y, z]) = (v4[b, b, g]);
+//
+//		++c;
+//
+//		//v4 = ivec4(ivec2(), ivec2());
+//
+//		v4;
+//		//v4 = vec4();
+//		//vec4 vv = vec4(0 );
+//
+//
+//	} GL_ELSE_IF(all(greaterThanEqual(v2, v1))) {
+//		GL_IF(any(lessThan(v2, v1))) {
+//		}
+//		vec3 c("c");
+//		Float f = c[z] + length(c) << "f";
+//
+//	} GL_ELSE{
+//		vec3 c("c");
+//	c[x] = length(c);
+//	c[x] = inversesqrt(c[x]) + sqrt(c[y]) + c[x] * c[x];
+//	c[z, x] += vec2(exp(c[x]), log(c[y]));
+//	c[x, y] = cos(c[z, z] + c[y, y] * c[z] + c[x] * c[x, x]);
+//	mat3 m, j;
+//	mat3 & mm = m;
+//	mm = j;
+//
+//	j = c[z] * transpose(m);
+//	//c[x] = ( ( c[x] + c[y] ) + c[x] );
+//	//c[x] += c[y];
+//	//c[x, y] += c[x, x];
+//	//ivec2 ii;
+//	}
+//
+//}
+//
 
 
 
@@ -416,6 +437,8 @@ void srt3(){
 		vec4 tv10 = vec4(vec3(1.0), 1.0) << "tv10";
 		vec4 tv11 = vec4(1.0, vec3(1.0)) << "tv11";
 		vec4 tv12 = vec4(vec2(1.0), vec2(1.0)) << "tv12";
+		vec4 tv13 = vec4(vec2(1.0), vec2(1.0));
+		std::cout << getName(tv13) << std::endl;
 		mat4 tm0 = mat4(1.0) << "tm0";
 		mat4 tm1 = mat4(tv10, tv11, tv12, tv10) << "tm1";
 		mat3 tm2 = mat3(1.0) << "tm2";
@@ -578,6 +601,7 @@ void srt3(){
 		t4[x, y, z][x] = 1;
 		ivec3 ii;
 		//ii[x, y, z][x] = 1.0;
+		vec2 ff = 2.0;
 
 		// All the lines below should fail.
 		vec2 cha(0.0); // Currently doesn't fail.
