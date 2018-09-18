@@ -196,6 +196,7 @@ template<> struct getVecSizeT<double> {
 
 template<typename T> struct Infos {
 	static const bool numeric_type = false;
+	static const bool glsl_type = false;
 	static const unsigned int rows = 0;
 	static const unsigned int cols = 0;
 	static const numberType scalar_type = numberType::ERROR;
@@ -204,6 +205,7 @@ template<typename T> struct Infos {
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 struct Infos<Matrix<type, Nrows, Ncols>> {
 	static const bool numeric_type = true;
+	static const bool glsl_type = true; 
 	static const unsigned int rows = Nrows;
 	static const unsigned int cols = Ncols;
 	static const numberType scalar_type = type;
@@ -211,6 +213,7 @@ struct Infos<Matrix<type, Nrows, Ncols>> {
 
 template<> struct Infos<double> {
 	static const bool numeric_type = true;
+	static const bool glsl_type = false;
 	static const unsigned int rows = 1;
 	static const unsigned int cols = 1;
 	static const numberType scalar_type = numberType::FLOAT;
@@ -218,6 +221,7 @@ template<> struct Infos<double> {
 
 template<> struct Infos<int> {
 	static const bool numeric_type = true;
+	static const bool glsl_type = false;
 	static const unsigned int rows = 1;
 	static const unsigned int cols = 1;
 	static const numberType scalar_type = numberType::INT;
@@ -228,14 +232,12 @@ template<typename A, typename B> constexpr bool EqualDim = (Infos<A>::rows == In
 template<typename A, typename B> constexpr bool EqualMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A, B>;
 template<numberType A, numberType B> constexpr numberType MinNumberType = (A > B ? B : A);
 
-template<typename A, typename B> constexpr numberType MinType =
-MinNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
+template<typename A, typename B> constexpr numberType MinType = MinNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
 
 template<unsigned int A, unsigned int B> constexpr unsigned int MaxUINT = A > B ? A : B;
 
 template<typename A, typename B> constexpr unsigned int MaxRow = MaxUINT<Infos<A>::rows, Infos<B>::rows>;
 template<typename A, typename B> constexpr unsigned int MaxCol = MaxUINT<Infos<A>::cols, Infos<B>::cols>;
-
 
 template<typename A> constexpr bool NotBool = Infos<A>::numeric_type && Infos<A>::scalar_type > 0;
 template<typename A, typename B> constexpr bool NoBools = NotBool<A> && NotBool<B>;
@@ -257,6 +259,18 @@ template<typename A, typename B> constexpr bool AreFPLoose = IsFPLoose<A> && IsF
 
 template<typename A, typename B> constexpr bool EqualTypeLoose = EqualType<A, B> || AreFPLoose<A, B> || AreIntLoose<A, B>;
 
+template<typename A> constexpr unsigned int NumElements = Infos<A>::rows*Infos<A>::cols;
+
+template<typename ...Ts> struct AreValidT;
+template<typename ...Ts> constexpr bool AreValid = AreValidT<Ts...>::value;
+
+template<> struct AreValidT<> {
+	static const bool value = true;
+};
+
+template<typename T, typename ...Ts> struct AreValidT<T, Ts...> {
+	static const bool value = Infos<T>::numeric_type && AreValidT<Ts...>::value;
+};
 
 /// matrix class
 

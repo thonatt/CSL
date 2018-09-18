@@ -49,7 +49,7 @@ template<typename TA, typename TB, typename ... Ts> struct Releaser<TA, TB, Ts..
 	}
 };
 
-template<typename ... Ts> void release(const Ts & ...ts) {
+template<typename ... Ts> void release(const Ts & ... ts) {
 	Releaser<Ts...>::release(ts...);
 }
 

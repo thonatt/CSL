@@ -196,7 +196,7 @@ MatrixType<A> ternary(const Bool &b, const A& expa, const B& expb) {
 #define REM(...) __VA_ARGS__
 #define EAT(...)
 // Strip off the type
-#define STRIP(x) EAT x
+#define STRIP(x) EAT x		
 // Show the type without parenthesis
 #define PAIR(x) REM x
 
