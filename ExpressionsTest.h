@@ -476,7 +476,7 @@ MainListener MainListener::overmind = MainListener();
 MainListener & listen() { return MainListener::overmind; }
 
 
-template<typename T, OperatorDisplayRule  dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, typename ... Args>
+template<typename T, OperatorDisplayRule  dRule, ParenthesisRule pRule, typename ... Args>
 Ex createInit(const std::string & name, const Args &... args) 
 {
 	auto tor = std::make_shared<Ctor<T, dRule, pRule>>(name, (sizeof...(args) != 0));
