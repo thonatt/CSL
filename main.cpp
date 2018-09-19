@@ -53,9 +53,13 @@ int main()
 
 
 	FloatT f = 1.0;
-	//f = 0;
+	f = 0;
 	//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
 	f = FloatT(3);
+
+	//FloatT f = true;
+
+	BoolT bb = true;
 
 	FloatT g(0.0, "blah");
 	vec2T ff = vec2T(1, 2);

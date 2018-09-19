@@ -37,6 +37,12 @@ struct Litteral : OpBase {
 	T i;
 };
 
+template<> struct Litteral<bool> : OpBase {
+	Litteral(const bool & _b) : OpBase(NONE, NO_PARENTHESIS), b(_b) {}
+	virtual std::string str() const { return b ? "true" : "false"; }
+	bool b;
+};
+
 struct CtorBase : OpBase {
 	CtorBase(const std::string & s, bool args) : 
 		OpBase(args ? IN_FRONT : NONE, args ? USE_PARENTHESIS : NO_PARENTHESIS, args), name(s),  n(counter++) {}
@@ -197,6 +203,11 @@ Ex createInit(const std::string & name, const Args &... args);
 template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
 	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
 }
+
+template<> Ex getExp(const bool & b) {
+	return createExp(std::make_shared<Litteral<bool>>(b));
+}
+
 
 template<> Ex getExp(const int & i) {
 	return createExp(std::make_shared<Litteral<int>>(i));

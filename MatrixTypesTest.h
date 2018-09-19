@@ -72,6 +72,9 @@ public:
 	using NamedObjectBaseT::exp;
 	using NamedObjectBaseT::name;
 
+protected:
+	static const bool isBool = (type == numberType::BOOL);
+
 public:
 	~MatrixT() {
 		if (auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op)) {
@@ -90,15 +93,14 @@ public:
 		exp = createInit<MatrixT>(name);
 	}
 
-
-	template<typename U, typename = std::enable_if_t<(NR == 1 && NC == 1) && AreValid<U> && !Infos<U>::glsl_type > >
+	template<typename U, typename = std::enable_if_t<!isBool && (NR == 1 && NC == 1) && AreValid<U> && !Infos<U>::glsl_type > >
 	MatrixT(const U & u, const std::string & s) : NamedObjectT<MatrixT>(s) {
 		exp = createInit<MatrixT,NONE, NO_PARENTHESIS>(name, getExp(u));
 	}
 
 	//matX from matY
 	template<numberType otype, unsigned int oNR, unsigned int oNC, typename = std::enable_if_t < 
-		(NC == 1 && NR == 1 ) || (NC != 1 && NR != 1 && oNR != 1 && oNC != 1 )
+		!isBool && ( (NC == 1 && NR == 1 ) || (NC != 1 && NR != 1 && oNR != 1 && oNC != 1 ) )
 	> >
 	explicit MatrixT(const MatrixT<otype, oNR, oNC>& m) : NamedObjectT<MatrixT>() {
 		exp = createInit<MatrixT>(name, getExp(m));
@@ -114,8 +116,9 @@ public:
 	//	}
 	//}
 
-	template<bool b = (NC == 1 && NR == 1 && type >= numberType::INT), typename = std::enable_if_t <b> >
-	explicit MatrixT(int i) : NamedObjectT<MatrixT>() {
+	template<bool b = !isBool && type >= numberType::INT, typename = std::enable_if_t <b> >
+	//explicit
+	MatrixT(const int & i) : NamedObjectT<MatrixT>() {
 		if (type == numberType::INT) {
 			exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(i));
 		} else {
@@ -123,8 +126,9 @@ public:
 		}
 	}
 
-	//template<bool b = (NC == 1 && NR == 1), typename = std::enable_if_t <b> >
-	MatrixT(double d) : NamedObjectT<MatrixT>() {
+	template<bool b = !isBool &&  type >= numberType::FLOAT, typename = std::enable_if_t <b> >
+	//explicit 
+	MatrixT(const double & d) : NamedObjectT<MatrixT>() {
 		if (type == numberType::FLOAT) {
 			exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(d));
 		} else {
@@ -132,6 +136,15 @@ public:
 		}
 	}
 
+	template<bool b = isBool && NR == 1 && NC == 1, typename = std::enable_if_t <b> >
+	MatrixT(const bool & bo) : NamedObjectT<MatrixT>() {
+		if (type == numberType::BOOL) {
+			exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(bo));
+		} else {
+			exp = createInit<MatrixT>(name, getExp(bo));
+		}
+
+	}
 	MatrixT & operator=(const MatrixT& other) {
 		//std::cout << " op = " << std::endl;
 		isNotInit(other.exp);
