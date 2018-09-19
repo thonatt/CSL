@@ -272,6 +272,16 @@ template<typename T, typename ...Ts> struct AreValidT<T, Ts...> {
 	static const bool value = Infos<T>::numeric_type && AreValidT<Ts...>::value;
 };
 
+template<typename ...Ts> struct SameScalarTypeT;
+template<typename ...Ts> constexpr bool SameScalarType = SameScalarTypeT<Ts...>::value;
+
+template<typename T> struct SameScalarTypeT<T> {
+	static const bool value = true;
+};
+
+template<typename T, typename U, typename ...Ts> struct SameScalarTypeT<T, U, Ts...> {
+	static const bool value = Infos<T>::scalar_type == Infos<U>::scalar_type && SameScalarType<U,Ts...>;
+};
 /// matrix class
 
 template<numberType type, unsigned int Nrows, unsigned int Ncols>

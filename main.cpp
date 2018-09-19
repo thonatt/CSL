@@ -52,11 +52,28 @@ int main()
 	//Manager::man.cout();
 
 
-	FloatT f = 0;
+	FloatT f = 1.0;
+	//f = 0;
+	//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
+	f = FloatT(3);
+
 	FloatT g(0.0, "blah");
 	vec2T ff = vec2T(1, 2);
 	vec4T vv = vec4T(f, vec2T(f,f) ,g) << "myVec4";
-	mat4T mm = mat4T(vv, vv, vv, f, g, ff);
+	mat4T mm = mat4T(vv, vv, vv, f, g, ff) << "mm";
+
+	mat4T mmm = mat4T(mat2T(), vec4T(0,0.0,0.0,1), vv, mat2T()) << "mmm";
+
+	FloatT gg = FloatT(mm); //yes, this is legal
+
+	mat4T ma = mat4T(0);
+	ma = mmm;
+	//ma = 0; //not compiling
+	//ma = vec3T(); //not compiling
+
+
+	mat3T m3 = mat3T(mat4T(0));
+	//mat3T m3 = mat4T(0); // not compiling
 
 	listen().cout();
 	

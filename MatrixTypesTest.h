@@ -81,12 +81,12 @@ public:
 		}
 	}
 
-	MatrixT(const std::string & s = "") : NamedObjectT<MatrixT>(s) {
+	explicit MatrixT(const std::string & s = "") : NamedObjectT<MatrixT>(s) {
 		exp = createInit<MatrixT>(name);
 	}
 
 	template <std::size_t N>
-	MatrixT(const char(&s)[N]) : NamedObjectT<MatrixT>(s) {
+	explicit MatrixT(const char(&s)[N]) : NamedObjectT<MatrixT>(s) {
 		exp = createInit<MatrixT>(name);
 	}
 
@@ -96,17 +96,76 @@ public:
 		exp = createInit<MatrixT,NONE, NO_PARENTHESIS>(name, getExp(u));
 	}
 
-	template<typename U, typename ...Us, typename = std::enable_if_t<AreValid<U, Us...> && MatElements<U,Us...> ==  NR*NC> >
-	MatrixT(const U & u, const Us & ...us) : NamedObjectT<MatrixT>() {
-		//std::cout << "multictor " << std::endl; 
-		if (sizeof...(us) == 0 && !Infos<U>::glsl_type ) {
-			exp = createInit<MatrixT,NONE,NO_PARENTHESIS>(name, getExp(u), getExp(us)...);
-		} else {
-			exp = createInit<MatrixT>(name, getExp(u), getExp(us)...);
-		}
-		
+	//matX from matY
+	template<numberType otype, unsigned int oNR, unsigned int oNC, typename = std::enable_if_t < 
+		(NC == 1 && NR == 1 ) || (NC != 1 && NR != 1 && oNR != 1 && oNC != 1 )
+	> >
+	explicit MatrixT(const MatrixT<otype, oNR, oNC>& m) : NamedObjectT<MatrixT>() {
+		exp = createInit<MatrixT>(name, getExp(m));
 	}
 
+	//template<typename U, typename = std::enable_if_t < AreValid<U> && MatElements<U> == 1 > >
+	//explicit MatrixT(const U & u) : NamedObjectT<MatrixT>() {
+	//	//std::cout << "multictor " << std::endl; 
+	//	if (NC == 1 && NR == 1 && Infos<U>::scalar_type < type) {
+	//		exp = createInit<MatrixT,NONE,NO_PARENTHESIS>(name, getExp(u));
+	//	} else {
+	//		exp = createInit<MatrixT>(name, getExp(u));
+	//	}
+	//}
+
+	template<bool b = (NC == 1 && NR == 1 && type >= numberType::INT), typename = std::enable_if_t <b> >
+	explicit MatrixT(int i) : NamedObjectT<MatrixT>() {
+		if (type == numberType::INT) {
+			exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(i));
+		} else {
+			exp = createInit<MatrixT>(name, getExp(i));
+		}
+	}
+
+	//template<bool b = (NC == 1 && NR == 1), typename = std::enable_if_t <b> >
+	MatrixT(double d) : NamedObjectT<MatrixT>() {
+		if (type == numberType::FLOAT) {
+			exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(d));
+		} else {
+			exp = createInit<MatrixT>(name, getExp(d));
+		}
+	}
+
+	MatrixT & operator=(const MatrixT& other) {
+		//std::cout << " op = " << std::endl;
+		isNotInit(other.exp);
+		listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), other.exp));
+		return *this;
+	}
+
+	//template<typename U, typename = std::enable_if_t <
+	//	EqualDim<MatrixT, U> && (Infos<U>::scalar_type <= type)
+	//> >
+	//MatrixT & operator=(const std::conditional_t< EqualDim<MatrixT, U> && (Infos<U>::scalar_type < type), U,int>  & u) {
+	//	std::cout << "here " << std::endl;
+	//	listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), getExp(u)));
+	//	return *this;
+	//}
+
+	template<typename U, typename = std::enable_if_t < 
+		!EqualDim<MatrixT,U> ||
+		(Infos<U>::scalar_type > type)
+	> >
+	MatrixT & operator=(const  U & u) = delete;
+
+	template<typename U, typename V, typename ...Us, typename = std::enable_if_t < 
+		AreValid<U, V, Us...> && MatElements<U, V, Us...> == NR * NC /*&& SameScalarType<MatrixT,U,V,Us...> */ > >
+	explicit MatrixT(const U & u, const V & v, const Us & ...us) : NamedObjectT<MatrixT>() {
+		//std::cout << "multictor " << std::endl; 
+		exp = createInit<MatrixT>(name, getExp(u), getExp(v), getExp(us)...);
+	}
+
+	//
+	//if (sizeof...(us) == 0 && !Infos<U>::glsl_type) {
+	//	exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, getExp(u));
+	//} else {
+	//
 	//////
 
 
@@ -117,6 +176,9 @@ public:
 	MatrixT(const TinitT<type,NR,NC> & t) : NamedObjectT<MatrixT>(t.name) {
 		exp = createInit<MatrixT, NONE, NO_PARENTHESIS>(name, t.exp);
 	}
+
+	MatrixT & operator=(const TinitT < type, NR, NC> & other) = delete;
+
 };
 
 template<numberType type, unsigned int NR, unsigned int NC>
