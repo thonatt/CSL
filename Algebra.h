@@ -227,6 +227,14 @@ template<> struct Infos<int> {
 	static const numberType scalar_type = numberType::INT;
 };
 
+template<> struct Infos<bool> {
+	static const bool numeric_type = true;
+	static const bool glsl_type = false;
+	static const unsigned int rows = 1;
+	static const unsigned int cols = 1;
+	static const numberType scalar_type = numberType::BOOL;
+};
+
 template<typename A, typename B> constexpr bool EqualType = Infos<A>::scalar_type == Infos<B>::scalar_type;
 template<typename A, typename B> constexpr bool EqualDim = (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
 template<typename A, typename B> constexpr bool EqualMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A, B>;

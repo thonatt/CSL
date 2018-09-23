@@ -20,6 +20,9 @@
 
 int main()
 {
+
+	//testRef();
+
 	////correct and well translated
 	//T a = T(0) << "a";
 	//T c("plop");
@@ -51,35 +54,64 @@ int main()
 
 	//Manager::man.cout();
 
-
-	FloatT f = 1.0;
-	f = 0;
-	//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
-	f = FloatT(3);
-
-	//FloatT f = true;
-
-	BoolT bb = true;
-
-	FloatT g(0.0, "blah");
-	vec2T ff = vec2T(1, 2);
-	vec4T vv = vec4T(f, vec2T(f,f) ,g) << "myVec4";
-	mat4T mm = mat4T(vv, vv, vv, f, g, ff) << "mm";
-
-	mat4T mmm = mat4T(mat2T(), vec4T(0,0.0,0.0,1), vv, mat2T()) << "mmm";
-
-	FloatT gg = FloatT(mm); //yes, this is legal
-
-	mat4T ma = mat4T(0);
-	ma = mmm;
-	//ma = 0; //not compiling
-	//ma = vec3T(); //not compiling
+	{
 
 
-	mat3T m3 = mat3T(mat4T(0));
-	//mat3T m3 = mat4T(0); // not compiling
+		//vec2T vv = vec2T(3, 4) << "vv";	
+		//vv += vv;
+		//vv = vec2T(0);
 
-	listen().cout();
+		//BoolT bb;
+		//bb = bb && bb;
+		//BoolT bbbb = (bb && true &&  false && bb && false) << "bb";
+
+		//listen().explore();
+
+	}
+	{
+		FloatT f = 1.0;
+		f = 0;
+		//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
+		f = FloatT(3);
+		IntT ii = 1;
+		IntT jj = IntT(1.0);
+		IntT jjj = 1.0;
+		//jj = 1.0; //not compiling
+
+		FloatT fff = true;
+
+		BoolT bb = true;
+		BoolT bbb = BoolT(f);
+		BoolT bbbb = BoolT(FloatT(1.0));
+		IntT iii = IntT(bb);
+		IntT ttt = bb;
+		bb = false;
+		ttt = false;
+
+		FloatT g(0.0, "blah");
+		vec2T ff = vec2T(1, 2);
+		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";
+		mat4T mm = mat4T(vv, vv, vv, f, g, ff) << "mm";
+
+		mat4T mmm = mat4T(mat2T(ff, ff), vec4T(0, 0.0, 0.0, 1), vv, mat2T(ff, ff)) << "mmm";
+
+		FloatT gg = FloatT(mm); //yes, this is legal
+
+		mat4T ma = mat4T(0) << "m";
+		ma = mm;
+		ma = (++ma)++; //issue here, does not reckon ++ma as temporary
+		mat4T mb = (++ma)++;
+		ma += mat4T(0);
+		//ma = 0; //not compiling
+		//ma = vec3T(); //not compiling
+
+
+		mat3T m3 = mat3T(mat4T(0));
+		//mat3T m3 = mat4T(0); // not compiling
+
+		listen().cout();
+
+	}
 	
 	//firstTest();
 	//testFuns();
@@ -87,6 +119,7 @@ int main()
 	//srt1();
 	//srt2();
 	//srt3();
+
 
 	std::cout << " end " << std::endl;
 
