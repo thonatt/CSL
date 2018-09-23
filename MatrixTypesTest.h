@@ -99,17 +99,17 @@ public:
 	}
 
 	//matX from matY
-	template<numberType otype, unsigned int oNR, unsigned int oNC, typename = std::enable_if_t < 
+	template<numberType otype, unsigned int oNR, unsigned int oNC, typename O_MatrixT = MatrixT<otype, oNR, oNC>, typename = std::enable_if_t <
 		(NC == 1 && NR == 1) || (!isBool && NC != 1 && NR != 1 && oNR != 1 && oNC != 1)
 	> >
-		explicit MatrixT(MatrixT<otype, oNR, oNC>&& m) : NamedObjectT<MatrixT>() {
-		checkForTemp< MatrixT<otype, oNR, oNC> >(m);
+		explicit MatrixT(O_MatrixT && m) : NamedObjectT<MatrixT>() {
+		checkForTemp< O_MatrixT >(m);
 		exp = createInit<MatrixT>(name, getExp(m));
 	}
 
 	template<typename T, typename = std::enable_if_t< AreValid<T> && !Infos<T>::glsl_type > >
 	MatrixT(const T & x) : NamedObjectT<MatrixT>() {
-		if (type == Infos<T>::scalar_type ) {
+		if ( EqualMat<MatrixT,T> ) {
 			exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(name, getExp(x));
 		} else {
 			exp = createInit<MatrixT, DISPLAY>(name, getExp(x));
@@ -165,11 +165,22 @@ public:
 	///////////////////
 
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
-	MatrixT operator++() {
+	MatrixT operator++() const & {
 		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT,NO_PARENTHESIS>>(" ++"), exp));
 	}
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
-	MatrixT operator++(int) {
+	MatrixT operator++() const && {
+		areNotInit(*this);
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>(" ++"), exp));
+	}
+
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator++(int) const &  {
+		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("++ "), exp));
+	}
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator++(int) const && {
+		areNotInit(*this);
 		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("++ "), exp));
 	}
 
