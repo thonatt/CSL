@@ -98,18 +98,14 @@ public:
 		exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(name, getExp(u));
 	}
 
-	//matXY from matWZ
-	template<numberType otype, unsigned int oNR, unsigned int oNC, typename O_MatrixT = MatrixT<otype, oNR, oNC>, typename = std::enable_if_t <
-		(NC == 1 && NR == 1) || (!isBool && NC != 1 && NR != 1 && oNR != 1 && oNC != 1)
-	> >
-		explicit MatrixT(O_MatrixT && m) : NamedObjectT<MatrixT>() {
-		checkForTemp< O_MatrixT >(m);
-		exp = createInit<MatrixT>(name, getExp(m));
-	}
-
-	template<typename R_T, typename T = CleanType<R_T>, typename = std::enable_if_t< AreValid<T> && !Infos<T>::glsl_type > >
+	// matXY(int/float) and matXY(matWZ)
+	template<typename R_T, typename T = CleanType<R_T>, typename = std::enable_if_t< 
+		AreValid<T> && (
+			!Infos<T>::glsl_type  || //matXY(int/float)
+		(!isBool && NC != 1 && NR != 1 && Infos<T>::cols != 1 && Infos<T>::rows != 1) //matXY(matWZ)
+			) > >
 	MatrixT( R_T && x) : NamedObjectT<MatrixT>() {
-		checkForTemp<T>(x);
+		checkForTemp<R_T>(x);
 		if ( EqualMat<MatrixT,T> ) {
 			exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(name, getExp(x));
 		} else {
@@ -126,13 +122,13 @@ public:
 	}
 
 	MatrixT & operator=(const MatrixT& other) {
-		//std::cout << " = const&" << std::endl;
+		//std::cout << " = const&" << other.name << std::endl;
 		checkForTemp<MatrixT>(other);
 		listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), getExp(other)));
 		return *this;
 	}
 	MatrixT & operator=( MatrixT&& other) {
-		//std::cout << " = && " << std::endl;
+		//std::cout << " = && " << other.name << std::endl;
 		checkForTemp<MatrixT>(other);
 		listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), getExp(other)));
 		return *this;
@@ -233,6 +229,7 @@ public:
 
 };
 
+template<typename A, typename B> using ArithmeticBinaryReturnTypeT = MatrixT< MinType<A, B>, MaxRow<A, B>, MaxCol<A, B> >;
 
 template<numberType type, unsigned int N, unsigned int M>
 Ex getExp(const MatrixT<type, N, M> & m) {
@@ -269,6 +266,13 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 BoolT operator<(R_A && a, R_B && b) {
 	checkForTemp<R_A, R_B>(a, b);
 	return BoolT(createExp(std::make_shared<FunctionOp<IN_BETWEEN, NO_PARENTHESIS>>("<"), getExp(a), getExp(b)));
+}
+
+template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>, 
+	typename = std::enable_if_t< NoBools<A, B> && (EqualMat<A, B> || /* EqualType<A,B> && */ ( IsScalar<A> || IsScalar<B> ) ) > >
+ArithmeticBinaryReturnTypeT<A, B> operator+(R_A && a, R_B && b) {
+	checkForTemp<R_A, R_B>(a, b);
+	return ArithmeticBinaryReturnTypeT<A, B>(createExp(std::make_shared<FunctionOp<IN_BETWEEN,NO_PARENTHESIS>>("+"), getExp(a), getExp(b)));
 }
 
 template<> struct TypeStrT<void> {

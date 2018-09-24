@@ -79,9 +79,9 @@ int main()
 		//jj = 1.0; //not compiling
 
 		FloatT fff = true;
-
 		BoolT bb = true;
 		BoolT bbb = BoolT(f);
+		
 		BoolT bbbb = BoolT(FloatT(BoolT(FloatT(1))));
 		IntT iii = IntT(bb);
 		IntT ttt = bb;
@@ -89,6 +89,8 @@ int main()
 		ttt = false || bb && true || bb && false;
 
 		FloatT g(0.0, "blah");
+
+		 g = FloatT(1) + g + 0.1 + g  + 1;
 
 		vec2T ff = vec2T(1, 2);
 		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";
@@ -100,7 +102,10 @@ int main()
 		bb = g < gg;
 
 		mat4T ma = mat4T(0) << "m";
+		mat2x3T m23;
 		ma = mm;
+		ma = mat4T(m23);
+
 		ma = (++ma)++;
 		mat4T mb = (++ma)++;
 		ma += - - - -mat4T(0);

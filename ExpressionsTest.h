@@ -211,6 +211,7 @@ void areNotInit(const A & a, const Args &... args) {
 	areNotInit(args...);
 }
 template<typename A> void areNotInit(const A & a) {
+	//std::cout << "not init " << a.name << std::endl;
 	isNotInit(a.exp);
 }
 template<> void areNotInit() {}
@@ -220,14 +221,16 @@ template<> void areNotInit<double>(const double &) {}
 
 template<typename T> using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 
-template<typename T, bool temp> struct CheckForTempT;
-template<typename T> struct CheckForTempT<T,true> {
+template<bool temp> struct CheckForTempT;
+template<> struct CheckForTempT<true> {	
+	template<typename T>
 	static void check(const T &t) { 
 		areNotInit(t);
 		//std::cout << "temp " << std::endl; 
 	}
 };
-template<typename T> struct CheckForTempT<T, false> {
+template<> struct CheckForTempT<false> {
+	template<typename T>
 	static void check(const T &t) { 
 		//std::cout << "not temp " << std::endl; 
 	}
@@ -235,7 +238,7 @@ template<typename T> struct CheckForTempT<T, false> {
 
 template<typename ... Ts> void checkForTemp(const Ts &... ts);
 template<typename T, typename ... Ts> void checkForTemp(const T &t, const Ts &... ts) {
-	CheckForTempT<T, !std::is_lvalue_reference<T>::value>::check(t);
+	CheckForTempT<!std::is_lvalue_reference<T>::value>::check(t);
 	checkForTemp<Ts...>(ts...);
 }
 template<> void checkForTemp<>() { }
