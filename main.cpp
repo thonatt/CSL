@@ -82,13 +82,14 @@ int main()
 
 		BoolT bb = true;
 		BoolT bbb = BoolT(f);
-		BoolT bbbb = BoolT(FloatT(1.0));
+		BoolT bbbb = BoolT(FloatT(BoolT(FloatT(1))));
 		IntT iii = IntT(bb);
 		IntT ttt = bb;
 		bb = false;
-		ttt = false;
+		ttt = false || bb && true || bb && false;
 
 		FloatT g(0.0, "blah");
+
 		vec2T ff = vec2T(1, 2);
 		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";
 		mat4T mm = mat4T(vv, vv, vv, f, g, ff) << "mm";
@@ -96,12 +97,13 @@ int main()
 		mat4T mmm = mat4T(mat2T(vec2T(FloatT(1.0), FloatT(2)),ff), vec4T(0, 0.0, 0.0, 1), vv, mat2T(ff, ff)) << "mmm";
 
 		FloatT gg = FloatT(mm); //yes, this is legal
+		bb = g < gg;
 
 		mat4T ma = mat4T(0) << "m";
 		ma = mm;
 		ma = (++ma)++;
 		mat4T mb = (++ma)++;
-		ma += mat4T(0);
+		ma += - - - -mat4T(0);
 		//ma = 0; //not compiling
 		//ma = vec3T(); //not compiling
 

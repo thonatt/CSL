@@ -76,13 +76,13 @@ protected:
 	static const bool isBool = (type == numberType::BOOL);
 
 public:
-	~MatrixT() {
-		if (auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op)) {
-			MainListener::overmind.addEvent(createExp(std::make_shared<DtorBase>(), exp));
-		} else {
-			std::cout << " !!!!  " << std::endl;
-		}
-	}
+	//~MatrixT() {
+	//	if (auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op)) {
+	//		MainListener::overmind.addEvent(createExp(std::make_shared<DtorBase>(), exp));
+	//	} else {
+	//		std::cout << " !!!!  " << std::endl;
+	//	}
+	//}
 
 	explicit MatrixT(const std::string & s = "") : NamedObjectT<MatrixT>(s) {
 		exp = createInit<MatrixT>(name);
@@ -98,7 +98,7 @@ public:
 		exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(name, getExp(u));
 	}
 
-	//matX from matY
+	//matXY from matWZ
 	template<numberType otype, unsigned int oNR, unsigned int oNC, typename O_MatrixT = MatrixT<otype, oNR, oNC>, typename = std::enable_if_t <
 		(NC == 1 && NR == 1) || (!isBool && NC != 1 && NR != 1 && oNR != 1 && oNC != 1)
 	> >
@@ -107,8 +107,9 @@ public:
 		exp = createInit<MatrixT>(name, getExp(m));
 	}
 
-	template<typename T, typename = std::enable_if_t< AreValid<T> && !Infos<T>::glsl_type > >
-	MatrixT(const T & x) : NamedObjectT<MatrixT>() {
+	template<typename R_T, typename T = CleanType<R_T>, typename = std::enable_if_t< AreValid<T> && !Infos<T>::glsl_type > >
+	MatrixT( R_T && x) : NamedObjectT<MatrixT>() {
+		checkForTemp<T>(x);
 		if ( EqualMat<MatrixT,T> ) {
 			exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(name, getExp(x));
 		} else {
@@ -117,13 +118,16 @@ public:
 	}
 
 
+	MatrixT(MatrixT&& other) {
+		std::cout << " CTOR &&" << std::endl;
+	}
 	MatrixT (const MatrixT& other) {
 		std::cout << " CTOR const&" << std::endl;
 	}
 
 	MatrixT & operator=(const MatrixT& other) {
 		//std::cout << " = const&" << std::endl;
-		//checkForTemp<MatrixT>(other);
+		checkForTemp<MatrixT>(other);
 		listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), getExp(other)));
 		return *this;
 	}
@@ -184,6 +188,37 @@ public:
 		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("++ "), exp));
 	}
 
+
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator--() const & {
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>(" --"), exp));
+	}
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator--() const && {
+		areNotInit(*this);
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>(" --"), exp));
+	}
+
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator--(int) const & {
+		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("-- "), exp));
+	}
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator--(int) const && {
+		areNotInit(*this);
+		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("-- "), exp));
+	}
+
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator-() const & {
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>("-"), exp));
+	}
+	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	MatrixT operator-() const && {
+		areNotInit(*this);
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>("-"), exp));
+
+	}
 	template<typename R_A, typename A = CleanType<R_A>,
 		typename = std::enable_if_t< NotBool<A> && (EqualMat<MatrixT, A> || IsScalar<A>)  >  >
 	void operator+=(R_A&& a) {
@@ -206,6 +241,7 @@ Ex getExp(const MatrixT<type, N, M> & m) {
 
 template<numberType type, unsigned int NR, unsigned int NC>
 TinitT<type,NR,NC> operator<<(const MatrixT<type,NR,NC> & m, const std::string & s) {
+	areNotInit(m);
 	return TinitT<type,NR,NC>(m, s);
 }
 
@@ -216,14 +252,24 @@ TinitT<type, NR, NC>::TinitT(const MatrixT<type, NR, NC> & m, const std::string 
 // Bool operators
 template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
 	typename = std::enable_if_t< EqualMat<A, BoolT> &&  EqualMat<B, BoolT>  > >
-const BoolT operator&&(R_A && b1, R_B && b2) {
+BoolT operator&&(R_A && b1, R_B && b2) {
 	checkForTemp<R_A, R_B>(b1, b2);
-	//checkForTemp<R_A>(b1);
-	//checkForTemp<R_B>(b2);
 	return BoolT(createExp(std::make_shared<FunctionOp<IN_BETWEEN>>("&&"), getExp(b1), getExp(b2)));
 }
 
+template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
+	typename = std::enable_if_t< EqualMat<A, BoolT> &&  EqualMat<B, BoolT>  > >
+	BoolT operator||(R_A && b1, R_B && b2) {
+	checkForTemp<R_A, R_B>(b1, b2);
+	return BoolT(createExp(std::make_shared<FunctionOp<IN_BETWEEN>>("||"), getExp(b1), getExp(b2)));
+}
 
+template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>, 
+	typename = std::enable_if_t< NoBools<A, B> && IsScalar<A> && IsScalar<B> > >
+BoolT operator<(R_A && a, R_B && b) {
+	checkForTemp<R_A, R_B>(a, b);
+	return BoolT(createExp(std::make_shared<FunctionOp<IN_BETWEEN, NO_PARENTHESIS>>("<"), getExp(a), getExp(b)));
+}
 
 template<> struct TypeStrT<void> {
 	static const std::string str() { return "void"; }
