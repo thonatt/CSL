@@ -239,8 +239,11 @@ template<typename A, typename B> constexpr bool EqualType = Infos<A>::scalar_typ
 template<typename A, typename B> constexpr bool EqualDim = (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
 template<typename A, typename B> constexpr bool EqualMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A, B>;
 template<numberType A, numberType B> constexpr numberType MinNumberType = (A > B ? B : A);
+template<numberType A, numberType B> constexpr numberType MaxNumberType = (A > B ? A : B);
+
 
 template<typename A, typename B> constexpr numberType MinType = MinNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
+template<typename A, typename B> constexpr numberType MaxType = MaxNumberType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
 
 template<unsigned int A, unsigned int B> constexpr unsigned int MaxUINT = A > B ? A : B;
 

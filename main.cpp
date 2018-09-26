@@ -69,6 +69,26 @@ int main()
 
 	}
 	{
+
+		GL_STRUCT_T(MyType,
+			(FloatT) a,
+			(IntT) b
+		);
+
+		MyType myType;
+
+		GL_STRUCT_T(MyBigType,
+			(MyType) v_a,
+			(IntT) v_b,
+			(FloatT) v_c
+		);
+
+		MyBigType myBigType("myBugType");
+
+		//std::cout << myType.a.myName() << " " << myType.a.a.myName() << std::endl;
+
+		//std::cout << myType.a.exp->str() << " " << myType.a.a.exp->str() << std::endl;
+
 		FloatT f = 1.0;
 		f = 0;
 		//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
@@ -90,7 +110,9 @@ int main()
 
 		FloatT g(0.0, "blah");
 
-		 g = FloatT(1) + g + 0.1 + g  + 1;
+		g = FloatT(1) + g + 0.1 + g + 1 + myType.a + myBigType.v_a.a;
+
+		FloatT ffff = FloatT(1) + IntT(1);
 
 		vec2T ff = vec2T(1, 2);
 		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";

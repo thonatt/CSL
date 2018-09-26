@@ -11,6 +11,7 @@
 
 #include "Context.h"
 #include "Algebra.h"
+#include "MatrixTypesTest.h"
 
 // Functions
 
@@ -218,8 +219,34 @@ struct StructTypename : public NamedObject<StructTypename> {	\
 }; \
 Ctx().addStruct( StructTypename::structDeclaration())	\
 
-
 #define DECLARE_MEMBER(r, data, i, elem) PAIR(elem); //static_assert(std::is_base_of_v<NamedObject<decltype(STRIP(elem))>, decltype(STRIP(elem))>, "non GL type"); 
 #define DECLARE_MEMBER_STR(r, data, i, elem) "   " + strFromType<BOOST_PP_SEQ_HEAD(elem)>() + " " + std::string(BOOST_PP_STRINGIZE(STRIP(elem))) + "; \n" +  
 
 #define INIT_MEMBER_PARENT(r, data, i, elem) getParent(STRIP(elem)) = this;  getBaseName(STRIP(elem)) = BOOST_PP_STRINGIZE(STRIP(elem)); 
+
+template<typename ... Args> struct GG {};
+
+#define GL_STRUCT_T(StructTypename,...)  \
+struct StructTypename : public NamedObjectT<StructTypename> {	\
+	BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
+	\
+	StructTypename(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr ) : NamedObjectT<StructTypename>(_name, _parent) \
+		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
+	{  \
+		if(!_parent) { exp = createInit<StructTypename>(name); }\
+	} \
+	static const std::string typeStr() { return std::string(#StructTypename); } \
+}; \
+listen().add_struct<true BOOST_PP_SEQ_FOR_EACH_I(MEMBER_TYPE_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) >(std::string(#StructTypename) \
+BOOST_PP_SEQ_FOR_EACH_I(MEMBER_STR_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))) \
+
+#define INIT_MEMBER_PARENT_T(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), this) 
+#define MEMBER_TYPE_T(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)
+#define MEMBER_STR_T(r, data, i, elem) , std::string(BOOST_PP_STRINGIZE(STRIP(elem)))
+
+//static const int numMembers() { return BOOST_PP_VARIADIC_SIZE(__VA_ARGS__); } \
+//static const std::string typeStr() { return std::string(#StructTypename); } \
+//static const std::string structDeclaration() {
+//	return "struct " + typeStr() + \
+//		" { \n" + BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER_STR, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) + "} \n";
+//} \

@@ -84,8 +84,15 @@ public:
 	//	}
 	//}
 
-	explicit MatrixT(const std::string & s = "") : NamedObjectT<MatrixT>(s) {
-		exp = createInit<MatrixT>(name);
+
+	static const std::string typeStr() { return TypeStrT<MatrixT>::str(); }
+
+	explicit MatrixT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : NamedObjectT<MatrixT>(_name,_parent) {
+		exp = createInit<MatrixT>(NamedObjectBaseT::myName());
+		if (_parent) {
+			std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
+			areNotInit(*this);
+		}
 	}
 
 	template <std::size_t N>
@@ -229,7 +236,7 @@ public:
 
 };
 
-template<typename A, typename B> using ArithmeticBinaryReturnTypeT = MatrixT< MinType<A, B>, MaxRow<A, B>, MaxCol<A, B> >;
+template<typename A, typename B> using ArithmeticBinaryReturnTypeT = MatrixT< MaxType<A, B>, MaxRow<A, B>, MaxCol<A, B> >;
 
 template<numberType type, unsigned int N, unsigned int M>
 Ex getExp(const MatrixT<type, N, M> & m) {

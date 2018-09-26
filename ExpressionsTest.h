@@ -73,7 +73,7 @@ struct DtorBase : OpBase {
 using CtorBasePtr = std::shared_ptr<CtorBase>;
 
 template<typename T> struct TypeStrT {
-	static const std::string str() { return "dummyT"; }
+	static const std::string str() { return T::typeStr(); }
 };
 
 template<typename T> std::string  getTypeStrTest() {
@@ -82,7 +82,7 @@ template<typename T> std::string  getTypeStrTest() {
 
 template<typename T, OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, CtorTypeDisplay tRule = DISPLAY>
 struct Ctor : CtorBase {
-	Ctor(const std::string & s, bool hasArgs)
+	Ctor(const std::string & s, bool hasArgs = false)
 		: CtorBase(s, hasArgs)
 	{
 		displayRule = dRule;
@@ -438,6 +438,38 @@ struct IfInstruction : InstructionBase {
 	std::vector<Statement::Ptr> conditions;
 };
 
+template<int N, typename ... Ts> struct DisplayDeclaration;
+
+template<int N, typename T, typename ... Ts> struct DisplayDeclaration<N,T,Ts...> {
+	static const std::string str(const std::vector<std::string> & v) {
+		return "   " + T::typeStr() + " " + v[v.size() - N] + ";\n" + DisplayDeclaration<N - 1, Ts...>::str(v);
+	}
+};
+
+template<typename ... T> struct DisplayDeclaration<0,T...> {
+	static const std::string str(const std::vector<std::string> & v) { return ""; }
+};
+
+template<typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v) {
+	return DisplayDeclaration<sizeof...(Ts), Ts...>::str(v);
+}
+
+template<typename ... Args>
+struct StructDeclaration : InstructionBase {
+	
+	template<typename ... Strings>
+	StructDeclaration(const std::string & _name, const Strings &... _names) : 
+		name(_name), member_names{ _names... } {}
+
+	virtual void cout() {
+		std::cout << "struct " << name << " { " << std::endl;
+		std::cout << memberDeclarations<Args...>(member_names);
+		std::cout << "}" << std::endl;
+	}
+
+	std::vector<std::string> member_names;
+	std::string name;
+};
 
 struct ControllerBase {
 
@@ -516,7 +548,6 @@ struct MainController : virtual ForController, virtual WhileController {
 	}
 };
 
-
 struct TShader : MainController {
 
 	TShader() {
@@ -529,12 +560,23 @@ struct TShader : MainController {
 
 	Block::Ptr declarations;
 	std::vector<Block::Ptr> functions;
-	
+	std::vector<InstructionBase::Ptr> structs;
+
 	void cout() {
+		for (const auto & struc : structs) {
+			struc->cout();
+			std::cout << "\n";
+		}
 		declarations->cout();
 	}
 	void explore() {
 		declarations->explore();
+	}
+
+	template<bool dummy, typename ...Args, typename ... Strings> 
+	void add_struct(const std::string & name, const Strings & ... names) {
+		auto struct_declaration = std::make_shared < StructDeclaration<Args...> >(name, names...);
+		structs.push_back(std::static_pointer_cast<InstructionBase>(struct_declaration));
 	}
 
 	int version;
@@ -562,6 +604,13 @@ struct MainListener {
 	void end_for() {
 		if (currentShader) {
 			currentShader->end_for();
+		}
+	}
+
+	template<bool dummy, typename ...Args, typename ... Strings>
+	void add_struct(const std::string & name, const Strings & ... names) {
+		if (currentShader) {
+			currentShader->add_struct<dummy, Args...>(name, names...);
 		}
 	}
 
@@ -617,8 +666,8 @@ for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
 
 
 class NamedObjectBaseT {
-protected:
-	NamedObjectBaseT(const std::string & _name = "") : name(_name) { 
+public:
+	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : name(_name), parent(_parent) {
 		//std::cout << " end check" << std::endl;
 	}
 
@@ -642,7 +691,7 @@ public:
 	static const std::string typeStr() { return "dummyNameObjT"; }
 
 protected:
-	NamedObjectT(const std::string & _name = "") : NamedObjectBaseT(_name) {
+	NamedObjectT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : NamedObjectBaseT(_name, _parent) {
 		if (name == "") {
 			name = getTypeStrTest<T>() + "_" + std::to_string(counter);
 			++counter;
@@ -727,6 +776,8 @@ struct T {
 		addExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), otherExp);
 		return *this;
 	}
+
+	static const std::string typeStr() { return "dummyMatT"; }
 
 	T & operator=(const Tinit & other) = delete;
 
