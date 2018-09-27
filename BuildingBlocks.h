@@ -227,6 +227,10 @@ Ctx().addStruct( StructTypename::structDeclaration())	\
 template<typename ... Args> struct GG {};
 
 #define GL_STRUCT_T(StructTypename,...)  \
+\
+listen().add_struct<true BOOST_PP_SEQ_FOR_EACH_I(MEMBER_TYPE_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) >(std::string(#StructTypename) \
+			BOOST_PP_SEQ_FOR_EACH_I(MEMBER_STR_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))); \
+\
 struct StructTypename : public NamedObjectT<StructTypename> {	\
 	BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	\
@@ -236,9 +240,7 @@ struct StructTypename : public NamedObjectT<StructTypename> {	\
 		if(!_parent) { exp = createInit<StructTypename>(name); }\
 	} \
 	static const std::string typeStr() { return std::string(#StructTypename); } \
-}; \
-listen().add_struct<true BOOST_PP_SEQ_FOR_EACH_I(MEMBER_TYPE_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) >(std::string(#StructTypename) \
-BOOST_PP_SEQ_FOR_EACH_I(MEMBER_STR_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))) \
+} \
 
 #define INIT_MEMBER_PARENT_T(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), this) 
 #define MEMBER_TYPE_T(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)

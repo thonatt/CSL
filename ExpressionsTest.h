@@ -438,37 +438,63 @@ struct IfInstruction : InstructionBase {
 	std::vector<Statement::Ptr> conditions;
 };
 
-template<int N, typename ... Ts> struct DisplayDeclaration;
+enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
 
-template<int N, typename T, typename ... Ts> struct DisplayDeclaration<N,T,Ts...> {
-	static const std::string str(const std::vector<std::string> & v) {
-		return "   " + T::typeStr() + " " + v[v.size() - N] + ";\n" + DisplayDeclaration<N - 1, Ts...>::str(v);
+template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclaration;
+
+template<SeparatorRule s, int N, typename T, typename ... Ts> struct DisplayDeclaration<s, N, T, Ts...> {
+	static const std::string str(const std::vector<std::string> & v, const std::string & separator) {
+		return /*"   " +*/ T::typeStr() + " " + v[v.size() - N] + 
+			 ( (s==SEP_AFTER_ALL || ( s==SEP_IN_BETWEEN && N!=1) ) ? separator : "" ) + 
+			DisplayDeclaration<s, N - 1, Ts...>::str(v, separator);
 	}
 };
 
-template<typename ... T> struct DisplayDeclaration<0,T...> {
-	static const std::string str(const std::vector<std::string> & v) { return ""; }
+template<SeparatorRule s, typename ... T> struct DisplayDeclaration<s, 0,T...> {
+	static const std::string str(const std::vector<std::string> & v, const std::string & separator) { return ""; }
 };
 
-template<typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v) {
-	return DisplayDeclaration<sizeof...(Ts), Ts...>::str(v);
+template<SeparatorRule s, typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v, const std::string & separator) {
+	return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, separator);
 }
 
 template<typename ... Args>
 struct StructDeclaration : InstructionBase {
-	
 	template<typename ... Strings>
 	StructDeclaration(const std::string & _name, const Strings &... _names) : 
 		name(_name), member_names{ _names... } {}
 
 	virtual void cout() {
 		std::cout << "struct " << name << " { " << std::endl;
-		std::cout << memberDeclarations<Args...>(member_names);
+		std::cout << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, ";\n");
 		std::cout << "}" << std::endl;
 	}
 
 	std::vector<std::string> member_names;
 	std::string name;
+};
+
+struct FunctionDeclarationBase : InstructionBase {
+	FunctionDeclarationBase() {
+		body = std::make_shared<Block>();
+	}
+	Block::Ptr body;
+};
+
+template<typename ReturnT, typename ... Args>
+struct FunctionDeclaration : FunctionDeclarationBase {
+	template<typename ... Strings>
+	FunctionDeclaration(const std::string & _name, const Strings &... _names) :
+		name(_name), args_names{ _names... } {}
+
+	virtual void cout() {
+		std::cout << ReturnT::typeStr() << " " << name << "(" << memberDeclarations<SEP_IN_BETWEEN, Args...>(args_names, ", ") << ") \n{" << std::endl;
+		body->cout();
+		std::cout << "}" << std::endl;
+	}
+
+	std::string name;
+	std::vector<std::string> args_names;
 };
 
 struct ControllerBase {
@@ -549,6 +575,7 @@ struct MainController : virtual ForController, virtual WhileController {
 };
 
 struct TShader : MainController {
+	using Ptr = std::shared_ptr<TShader>;
 
 	TShader() {
 		declarations = std::make_shared<Block>();
@@ -559,18 +586,27 @@ struct TShader : MainController {
 	}
 
 	Block::Ptr declarations;
-	std::vector<Block::Ptr> functions;
-	std::vector<InstructionBase::Ptr> structs;
+	std::vector<InstructionBase::Ptr> structs; 
+	std::vector<InstructionBase::Ptr> functions;
+	
+	int version;
 
 	void cout() {
 		for (const auto & struc : structs) {
 			struc->cout();
 			std::cout << "\n";
 		}
+		for (const auto & fun : functions) {
+			fun->cout();
+			std::cout << "\n";
+		}
 		declarations->cout();
 	}
 	void explore() {
 		declarations->explore();
+		for (const auto & struc : structs) {
+			struc->cout();
+		}
 	}
 
 	template<bool dummy, typename ...Args, typename ... Strings> 
@@ -579,14 +615,24 @@ struct TShader : MainController {
 		structs.push_back(std::static_pointer_cast<InstructionBase>(struct_declaration));
 	}
 
-	int version;
+	template<typename ReturnT, typename ...Args, typename ... Strings>
+	void begin_function(const std::string & name, const Strings & ... names) {
+		auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT,Args...> >(name, names...);
+		functions.push_back(std::static_pointer_cast<InstructionBase>(function_declaration));
+		function_declaration->body->parent = currentBlock;
+		currentBlock = function_declaration->body;
+	}
+	void end_function() {
+		currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->body->parent;
+	}
 };
 
 
 struct MainListener {
 	
 	MainListener() {
-		currentShader = &shader;
+		shader = std::make_shared<TShader>();
+		currentShader = shader.get();
 	}
 
 	void addEvent(const Ex & ex) {
@@ -614,6 +660,18 @@ struct MainListener {
 		}
 	}
 
+	template<typename ReturnT, typename ...Args, typename ... Strings>
+	void begin_function(const std::string & name, const Strings & ... names) {
+		if (currentShader) {
+			currentShader->begin_function<ReturnT, Args...>(name, names...);
+		}
+	}
+	void end_function() {
+		if (currentShader) {
+			currentShader->end_function();
+		}
+	}
+
 	void cout() {
 		if (currentShader) {
 			currentShader->cout();
@@ -629,7 +687,7 @@ struct MainListener {
 
 	bool & active() { return isListening; }
 
-	TShader shader;
+	TShader::Ptr shader;
 	TShader * currentShader;
 	bool isListening = true;
 	static MainListener overmind;
