@@ -22,11 +22,26 @@ template<typename T> struct FunctionReturnType {
 template<typename ReturnType, typename Fun, typename... Args>
 struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
 	using type = std::function<ReturnType(Args...)>;
+	using RType = ReturnType;
 };
+
 
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type
 functionFromLambda(const Lambda &func) { 
 	return func;
+}
+
+template<typename R, typename F> struct PlugType {
+	using type = void;
+};
+template<typename R, typename ReturnType, typename Fun, typename... Args>
+struct PlugType<R, ReturnType(Fun::*)(Args...) const> {
+	using type = std::function<R(Args...)>;
+};
+
+template<typename R, typename Lambda>
+typename PlugType<R, decltype(&Lambda::operator())>::type plugType(const Lambda & f) {
+	return {};
 }
 
 template<typename R, template<typename...> class Params, typename... Args, std::size_t... I>

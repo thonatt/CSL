@@ -84,6 +84,10 @@ public:
 	//	}
 	//}
 
+	MatrixT(Matrix_Track track, const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
+		exp = createInit<MatrixT>(NamedObjectBaseT::myName());
+		areNotInit(*this);
+	}
 
 	static const std::string typeStr() { return TypeStrT<MatrixT>::str(); }
 
@@ -120,13 +124,24 @@ public:
 		}
 	}
 
+	/////////////////////////////////////////////////////
+	// Used for tuples, need to figure out why
+	/////////////////////////////////////////////////////
 
-	MatrixT(MatrixT&& other) {
+	MatrixT(MatrixT&& other) : NamedObjectT<MatrixT>(other) {
+		//parent = other.parent;
+		//exp = other.exp;
+		std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
 		std::cout << " CTOR &&" << std::endl;
 	}
-	MatrixT (const MatrixT& other) {
+
+	MatrixT (const MatrixT& other) : NamedObjectT<MatrixT>(other) {
+		//parent = other.parent;
+		//exp = other.exp;
+		std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
 		std::cout << " CTOR const&" << std::endl;
 	}
+	/////////////////////////////////////////////////////
 
 	MatrixT & operator=(const MatrixT& other) {
 		//std::cout << " = const&" << other.name << std::endl;
@@ -235,6 +250,9 @@ public:
 
 
 };
+
+
+
 
 template<typename A, typename B> using ArithmeticBinaryReturnTypeT = MatrixT< MaxType<A, B>, MaxRow<A, B>, MaxCol<A, B> >;
 

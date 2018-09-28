@@ -74,28 +74,28 @@ int main()
 	{
 
 		GL_STRUCT_T(MyType,
-			(FloatT)a,
-			(IntT)b
+			(FloatT) a,
+			(IntT) b
 		);
 
 		MyType myType;
 
 		GL_STRUCT_T(MyBigType,
-			(MyType)v_a,
-			(IntT)v_b,
-			(FloatT)v_c
+			(MyType) v_a,
+			(IntT) v_b,
+			(FloatT) v_c
 		) myBigType("myBugType");
 
-		listen().begin_function<BoolT, FloatT, mat4>("myFun", "myFloat", "myMat");
-		{
-			FloatT dd(1, "lolilol");
-			dd = dd + dd;
-		}
-		listen().end_function();
+		makeFunT<FloatT>("test@", [](FloatT f, IntT i, FloatT g) {
+			GL_RETURN_T(FloatT(i + IntT(f + g)));
+		}, "arg1", "arg2");
 
-		//std::cout << myType.a.myName() << " " << myType.a.a.myName() << std::endl;
+		makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
+			GL_RETURN_T();
 
-		//std::cout << myType.a.exp->str() << " " << myType.a.a.exp->str() << std::endl;
+			GL_RETURN_T(FloatT(i + IntT(f + g)));
+		}, "arg1", "arg2", "arg3");
+
 
 		FloatT f = 1.0;
 		f = 0;

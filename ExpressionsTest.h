@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <array>
 
 struct MainListener;
 MainListener & listen();
@@ -385,20 +386,26 @@ struct InstructionBase {
 
 struct Block {
 	using Ptr = std::shared_ptr<Block>;
-	Block(const Block::Ptr _parent = {}) : parent(_parent) {}
+	Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
 
-	void cout() {
+	virtual void cout() {
 		for (const auto & inst : instructions) {
 			inst->cout();
 		}
 	}
-	void explore() {
+	virtual void explore() {
 		for (const auto & inst : instructions) {
 			inst->explore();
 		}
 	}
 	std::vector<InstructionBase::Ptr> instructions;
 	Block::Ptr parent;
+};
+
+struct ReturnBlock : Block {
+	ReturnBlock(const Block::Ptr & _parent = {} ) : Block(_parent) {}
+
+	bool hasReturnStatement = false;
 };
 
 struct Statement : InstructionBase {
@@ -414,6 +421,17 @@ struct Statement : InstructionBase {
 		ex->explore();
 	}
 	Ex ex;
+};
+
+struct ReturnStatement : Statement {
+	using Ptr = std::shared_ptr<ReturnStatement>;
+	ReturnStatement(const Ex & e) : Statement(e) {}
+	virtual void cout() {
+		std::cout << "return " << ex->str() << ";" << std::endl;
+	}
+	void explore() {
+		ex->explore();
+	}
 };
 
 InstructionBase::Ptr toInstruction(const Ex & e) {
@@ -458,6 +476,21 @@ template<SeparatorRule s, typename ... Ts> std::string memberDeclarations(const 
 	return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, separator);
 }
 
+template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclarationTuple {
+	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
+		return /*"   " +*/ std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + std::get<sizeof...(Ts) - N>(v).myName() +
+			((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
+			DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, separator);
+	}
+};
+template<SeparatorRule s, typename ... Ts> struct DisplayDeclarationTuple<s, 0, Ts...> {
+	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) { return ""; }
+};
+
+template<SeparatorRule s, typename ... Ts> std::string memberDeclarationsTuple(const std::tuple<Ts...> & v, const std::string & separator) {
+	return DisplayDeclarationTuple<s, sizeof...(Ts), Ts...>::str(v, separator);
+}
+
 template<typename ... Args>
 struct StructDeclaration : InstructionBase {
 	template<typename ... Strings>
@@ -474,27 +507,64 @@ struct StructDeclaration : InstructionBase {
 	std::string name;
 };
 
+template<int N, typename ... Strings>
+std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
+	return std::array<std::string, N>{_argnames...};
+}
+
+template <typename ReturnType, typename... Args, typename ... Strings>
+void init_function_declaration(const std::string & fname, const std::function<ReturnType(Args...)>& f, const Strings & ... args_name);
+
+template<typename ReturnT, typename Lambda> struct LambdaReturnType;
+template<typename ReturnT, typename ...Args> struct LambdaReturnType<ReturnT, std::function<void(Args...)>> {
+	using type = std::function<ReturnT(Args...)>;
+};
+
+template<typename ReturnType, typename F_Type>
+struct Fun_T {
+	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
+
+	template<typename ... Strings>
+	Fun_T(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : f(_f) {
+		init_function_declaration<ReturnType>(_name, functionFromLambda(_f), _argnames...);
+	}
+
+	//template<typename ...Args> const typename std::result_of_t<F_Type(Args...)> operator()(const Args &  ... args) {
+	//	using ReturnType = typename std::result_of_t<F_Type(Args...)>;
+	//	std::string s = name + "(" + strFromObj(args...) + ")";
+	//	return createDummy<ReturnType>(s);
+	//}
+
+	F_Type f;
+};
+
+template<typename ReturnType,typename F_Type, typename ... Strings >
+Fun_T<ReturnType,F_Type> makeFunT(const std::string & name, const F_Type & f, const Strings & ...argnames) {
+	return Fun_T<ReturnType,F_Type>(name, f, argnames...);
+}
+
 struct FunctionDeclarationBase : InstructionBase {
 	FunctionDeclarationBase() {
-		body = std::make_shared<Block>();
+		body = std::make_shared<ReturnBlock>();
 	}
-	Block::Ptr body;
+	ReturnBlock::Ptr body;
 };
 
 template<typename ReturnT, typename ... Args>
 struct FunctionDeclaration : FunctionDeclarationBase {
+	
 	template<typename ... Strings>
-	FunctionDeclaration(const std::string & _name, const Strings &... _names) :
-		name(_name), args_names{ _names... } {}
+	FunctionDeclaration(const std::string & _name, const std::tuple<Args...> & _args ) :
+		name(_name), args(_args) {}
 
 	virtual void cout() {
-		std::cout << ReturnT::typeStr() << " " << name << "(" << memberDeclarations<SEP_IN_BETWEEN, Args...>(args_names, ", ") << ") \n{" << std::endl;
+		std::cout << ReturnT::typeStr() << " " << name << "(" << memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(args, ", ") << ") \n{" << std::endl;
 		body->cout();
 		std::cout << "}" << std::endl;
 	}
 
 	std::string name;
-	std::vector<std::string> args_names;
+	std::tuple<Args...> args;
 };
 
 struct ControllerBase {
@@ -615,15 +685,33 @@ struct TShader : MainController {
 		structs.push_back(std::static_pointer_cast<InstructionBase>(struct_declaration));
 	}
 
-	template<typename ReturnT, typename ...Args, typename ... Strings>
-	void begin_function(const std::string & name, const Strings & ... names) {
-		auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT,Args...> >(name, names...);
+	template<typename ReturnT, typename ...Args>
+	void begin_function(const std::string & name, const std::tuple<Args...> & args) {
+		auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT,Args...> >(name, args );
 		functions.push_back(std::static_pointer_cast<InstructionBase>(function_declaration));
 		function_declaration->body->parent = currentBlock;
-		currentBlock = function_declaration->body;
+		currentBlock = std::static_pointer_cast<Block>(function_declaration->body);
 	}
 	void end_function() {
 		currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->body->parent;
+	}
+	void add_return_statement(const Ex & ex) {
+		Block::Ptr cBlock = currentBlock;
+		while (true) {
+			if (auto testblock = std::dynamic_pointer_cast<ReturnBlock>(cBlock)) {
+				break;
+			} else if (cBlock->parent) {
+				cBlock = cBlock->parent;
+			} else {
+				return;
+			}
+		}
+		auto return_block = std::dynamic_pointer_cast<ReturnBlock>(cBlock);
+		if (!return_block->hasReturnStatement) {
+			currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<ReturnStatement>(ex)));
+			return_block->hasReturnStatement = true;
+		}
+
 	}
 };
 
@@ -638,6 +726,12 @@ struct MainListener {
 	void addEvent(const Ex & ex) {
 		if (currentShader && isListening) {
 			currentShader->handleEvent(ex);
+		}
+	}
+
+	void add_return_statement(const Ex & ex) {
+		if (currentShader) {
+			currentShader->add_return_statement(ex);
 		}
 	}
 
@@ -660,10 +754,10 @@ struct MainListener {
 		}
 	}
 
-	template<typename ReturnT, typename ...Args, typename ... Strings>
-	void begin_function(const std::string & name, const Strings & ... names) {
+	template<typename ReturnT, typename ...Args>
+	void begin_function(const std::string & name, const std::tuple<Args...> & args) {
 		if (currentShader) {
-			currentShader->begin_function<ReturnT, Args...>(name, names...);
+			currentShader->begin_function<ReturnT, Args...>(name, args);
 		}
 	}
 	void end_function() {
@@ -706,6 +800,74 @@ Ex createInit(const std::string & name, const Args &... args)
 	return expr;
 }
 
+
+enum class Matrix_Track { UNTRACKED };
+
+
+template<unsigned int S, typename... Args> struct TupleBuilder;
+
+template<unsigned int S, typename... Args> std::tuple<Args...> getTuple(std::array<std::string, S> & names) {
+	return TupleBuilder<S, Args...>::tup(names);
+}
+template<unsigned int S> struct TupleBuilder<S> {
+	static std::tuple<> tup(std::array < std::string, S> & names) {
+		return std::tuple<>();
+	}
+};
+
+template<unsigned int S, typename Arg, typename... Args>
+struct TupleBuilder<S, Arg, Args...> {
+	static std::tuple<Arg, Args...> tup(std::array<std::string, S> & names) {
+		return std::tuple_cat(
+			std::tuple<Arg>({ Matrix_Track::UNTRACKED, names[S - sizeof...(Args) - 1] }),
+			getTuple<S, Args...>(names)
+		);
+	}
+};
+
+
+template <typename ReturnType, typename... Args, typename ... Strings>
+void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name)
+{
+	static_assert(sizeof...(Strings) <= sizeof...(Args), "too many arguments string for function declaration");
+	
+	std::array<std::string, sizeof...(Args)> args_names_array{args_name...};
+	
+	std::tuple<Args...> args = getTuple<sizeof...(Args),Args...>(args_names_array);
+
+	listen().begin_function<ReturnType, Args...>(fname, args);
+	call_from_tuple(f, args);
+
+	//std::cout << r.myName() << std::endl;
+	//std::cout << r.exp->args[0]->str() << std::endl;
+	//std::cout << r.exp->args.size() << std::endl;
+	//r.exp->args[0]->op->explore();
+	//areNotInit(r);
+	
+	listen().end_function();
+}
+
+template<typename ...Ts> struct ReturnStT;
+
+template<typename T> struct ReturnStT<T> {
+	static void return_statement(T && t) {
+		checkForTemp<T>(t);
+		listen().add_return_statement(getExp(t));
+	}
+};
+
+template<> struct ReturnStT<> {
+	static void return_statement() {
+		std::cout << "return void" << std::endl;
+	}
+};
+
+template<typename ...Ts>
+void return_statement(Ts && ... ts) {
+	ReturnStT<Ts...>::return_statement(std::forward<Ts>(ts)...);
+}
+
+#define GL_RETURN_T(...) return_statement( __VA_ARGS__ )
 
 ForController::EndFor::~EndFor() {
 	listen().end_for();
