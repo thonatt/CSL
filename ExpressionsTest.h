@@ -520,6 +520,9 @@ template<typename ReturnT, typename ...Args> struct LambdaReturnType<ReturnT, st
 	using type = std::function<ReturnT(Args...)>;
 };
 
+template<typename T> struct FunctionReturnType;
+template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
+
 template<typename ReturnType, typename F_Type>
 struct Fun_T {
 	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
