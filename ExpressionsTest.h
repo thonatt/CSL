@@ -515,30 +515,55 @@ std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
 template <typename ReturnType, typename... Args, typename ... Strings>
 void init_function_declaration(const std::string & fname, const std::function<ReturnType(Args...)>& f, const Strings & ... args_name);
 
-template<typename ReturnT, typename Lambda> struct LambdaReturnType;
-template<typename ReturnT, typename ...Args> struct LambdaReturnType<ReturnT, std::function<void(Args...)>> {
-	using type = std::function<ReturnT(Args...)>;
-};
-
 template<typename T> struct FunctionReturnType;
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
+
+template<typename ...Args> struct ArgTypeList {};
+template<typename Arg, typename Arg2, typename ...Args> struct ArgTypeList<Arg,Arg2,Args...> {
+	using first = ArgTypeList<Arg>;
+	using rest = ArgTypeList<Arg2,Args...>;
+};
+
+template <typename ...Ts> constexpr bool SameTypeList = false;
+
+template <typename Input, typename Target>
+constexpr bool SameTypeList<ArgTypeList<Input>, ArgTypeList<Target> > = ConvertibleTo<Input, Target>; //EqualMat<Arg, ArgM>;
+
+template <typename LA, typename LB>
+constexpr bool SameTypeList<LA, LB> =
+SameTypeList<LA::first,LB::first> && SameTypeList<LA::rest, LB::rest>;
+
+template <typename List, typename ... Args>
+void checkArgsType(const std::function<void(Args...)>& f){
+	static_assert(SameTypeList < List, ArgTypeList<Args...> >, "arg types do not match function signature, or no implicit conversion available");
+}
+
+//template<typename Lambda>
 
 template<typename ReturnType, typename F_Type>
 struct Fun_T {
 	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
 
 	template<typename ... Strings>
-	Fun_T(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : f(_f) {
+	Fun_T(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : name(_name), f(_f) {
 		init_function_declaration<ReturnType>(_name, functionFromLambda(_f), _argnames...);
 	}
 
-	//template<typename ...Args> const typename std::result_of_t<F_Type(Args...)> operator()(const Args &  ... args) {
-	//	using ReturnType = typename std::result_of_t<F_Type(Args...)>;
-	//	std::string s = name + "(" + strFromObj(args...) + ")";
-	//	return createDummy<ReturnType>(s);
-	//}
+	//more type checking
+	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
+	ReturnType operator()(R_Args &&  ... args) {
+		//, std::enable_if_t< std::is_same_v<void, std::result_of_t<F_Type(CleanType<R_Args>...)> > >
+		//using RT = typename std::result_of_t<F_Type(R_Args...)>;
+		//std::cout << typeid(RT).name() << std::endl;
+		
+		checkArgsType<ArgTypeList<R_Args...> >(functionFromLambda(f));
+		checkForTemp<R_Args...>(args...);
+
+		return ReturnType(createExp(std::make_shared<FunctionOp<>>(name), getExp(args)... ));
+	}
 
 	F_Type f;
+	std::string name;
 };
 
 template<typename ReturnType,typename F_Type, typename ... Strings >

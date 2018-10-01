@@ -236,8 +236,11 @@ template<> struct Infos<bool> {
 };
 
 template<typename A, typename B> constexpr bool EqualType = Infos<A>::scalar_type == Infos<B>::scalar_type;
+template<typename A, typename B> constexpr bool SuperiorType = Infos<B>::scalar_type >= Infos<A>::scalar_type;
 template<typename A, typename B> constexpr bool EqualDim = (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
-template<typename A, typename B> constexpr bool EqualMat = (Infos<A>::scalar_type == Infos<B>::scalar_type) && EqualDim<A, B>;
+template<typename A, typename B> constexpr bool EqualMat = EqualType<A, B> && EqualDim<A, B>;
+template<typename A, typename B> constexpr bool ConvertibleTo = EqualDim<A, B> && ( (EqualType<A,bool> && EqualType<B,bool>) || SuperiorType<A, B> );
+
 template<numberType A, numberType B> constexpr numberType MinNumberType = (A > B ? B : A);
 template<numberType A, numberType B> constexpr numberType MaxNumberType = (A > B ? A : B);
 

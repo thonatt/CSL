@@ -132,14 +132,14 @@ public:
 		//parent = other.parent;
 		//exp = other.exp;
 		std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
-		std::cout << " CTOR &&" << std::endl;
+		//std::cout << " CTOR &&" << std::endl;
 	}
 
 	MatrixT (const MatrixT& other) : NamedObjectT<MatrixT>(other) {
 		//parent = other.parent;
 		//exp = other.exp;
 		std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
-		std::cout << " CTOR const&" << std::endl;
+		//std::cout << " CTOR const&" << std::endl;
 	}
 	/////////////////////////////////////////////////////
 

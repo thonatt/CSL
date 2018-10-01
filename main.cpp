@@ -90,12 +90,13 @@ int main()
 			GL_RETURN_T(FloatT(i + IntT(f + g)));
 		}, "arg1", "arg2");
 
-		makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
-			GL_RETURN_T();
-
-			GL_RETURN_T(FloatT(i + IntT(f + g)));
+		auto fun = makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
+			FloatT gg = f + i + g;
+			GL_RETURN_T(gg + g);
+			//GL_RETURN_T();
 		}, "arg1", "arg2", "arg3");
 
+		FloatT result_fun = fun(FloatT(1.0), 1, fun(1.0, 1, 1.0));
 
 		FloatT f = 1.0;
 		f = 0;
