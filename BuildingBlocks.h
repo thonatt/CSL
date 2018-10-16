@@ -252,7 +252,7 @@ struct StructTypename : public NamedObjectT<StructTypename> {	\
 	StructTypename(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr ) : NamedObjectT<StructTypename>(_name, _parent) \
 		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	{  \
-		if(!_parent) { exp = createInit<StructTypename>(name); }\
+		if(!_parent) { exp = createDeclaration<StructTypename>(myNamePtr()); }\
 	} \
 	static const std::string typeStr() { return std::string(#StructTypename); } \
 } \

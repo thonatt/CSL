@@ -92,12 +92,14 @@ int main()
 
 		auto fun = makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
 			FloatT gg = f + i + g;
+			++g;
 			GL_RETURN_T(gg + g);
 			//GL_RETURN_T();
 		}, "arg1", "arg2", "arg3");
 
 		FloatT result_fun = fun(FloatT(1.0), 1, fun(1.0, 1, 1.0));
 
+		FloatT gggggg;
 		FloatT f = 1.0;
 		f = 0;
 		//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
@@ -119,9 +121,9 @@ int main()
 
 		FloatT g(0.0, "blah");
 
-		g = FloatT(1) + g + 0.1 + g + 1 + myType.a + myBigType.v_a.a;
+		g = FloatT(1) + g + 0.1 + g + 1 + myType.a + myBigType.v_a.a + myType.a;
 
-		FloatT ffff = FloatT(1) + IntT(1);
+		FloatT ffff = FloatT(1) + g;
 
 		vec2T ff = vec2T(1, 2);
 		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";
@@ -133,13 +135,14 @@ int main()
 		bb = g < gg;
 
 		mat4T ma = mat4T(0) << "m";
+		mat4T maa = ma << "maa";
 		mat2x3T m23;
 		ma = mm;
 		ma = mat4T(m23);
 
 		ma = (++ma)++;
 		mat4T mb = (++ma)++;
-		ma += ----mat4T(0);
+		ma += - -- -mat4T(0);
 		//ma = 0; //not compiling
 		//ma = vec3T(); //not compiling
 

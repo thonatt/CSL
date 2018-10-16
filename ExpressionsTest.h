@@ -8,6 +8,7 @@
 struct MainListener;
 MainListener & listen();
 
+using stringPtr = std::shared_ptr<std::string>;
 
 struct Exp;
 using Ex = std::shared_ptr<Exp>;
@@ -15,6 +16,7 @@ using Ex = std::shared_ptr<Exp>;
 enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, BEHIND };
 enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
+enum CtorStatus { DECLARATION, INITIALISATION, TEMP };
 
 struct OpBase {
 	OpBase(OperatorDisplayRule rule = NONE, ParenthesisRule useParenthesis = USE_PARENTHESIS, bool args = true)
@@ -32,110 +34,6 @@ struct OpBase {
 };
 
 using OpB = std::shared_ptr<OpBase>;
-
-struct Op : OpBase {};
-
-template<typename T>
-struct Litteral : OpBase {
-	Litteral(const T & _i) : OpBase(IN_FRONT, NO_PARENTHESIS), i(_i) {}
-	virtual std::string str() const { return std::to_string(i); }
-	virtual void explore() { std::cout << "Litteral T " << i << " "; OpBase::explore(); }
-	T i;
-};
-
-template<> struct Litteral<bool> : OpBase {
-	Litteral(const bool & _b) : OpBase(IN_FRONT, NO_PARENTHESIS), b(_b) {}
-	virtual std::string str() const { return b ? "true" : "false"; }
-	virtual void explore() { std::cout << "Litteral Bool " << b << " "; OpBase::explore(); }
-	bool b;
-};
-
-struct CtorBase : OpBase {
-	CtorBase(const std::string & s, bool args) : 
-		OpBase(args ? IN_FRONT : NONE, args ? USE_PARENTHESIS : NO_PARENTHESIS, args), name(s),  n(counter++) {}
-
-	std::string name;
-	int n;
-	bool isInit = true;
-	mutable bool firstStr = true;
-
-	virtual void explore() { std::cout << "CtorBase " << name << ", id " << n << ", init? " << isInit << ", firstStr? "<< firstStr; OpBase::explore(); }
-
-	static int counter;
-};
-int CtorBase::counter = 0;
-
-struct DtorBase : OpBase {
-	DtorBase() { disabled = true;  }
-	virtual std::string str() const { return "dtorOp"; }
-	virtual void explore() { std::cout << "DTOR "; OpBase::explore(); }
-};
-
-using CtorBasePtr = std::shared_ptr<CtorBase>;
-
-template<typename T> struct TypeStrT {
-	static const std::string str() { return T::typeStr(); }
-};
-
-template<typename T> std::string  getTypeStrTest() {
-	return TypeStrT<T>::str();
-}
-
-template<typename T, OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, CtorTypeDisplay tRule = DISPLAY>
-struct Ctor : CtorBase {
-	Ctor(const std::string & s, bool hasArgs = false)
-		: CtorBase(s, hasArgs)
-	{
-		displayRule = dRule;
-		parRule = pRule;
-	}
-
-	virtual std::string str() const { 
-		if (firstStr) {
-			firstStr = false;
-			if (isInit) {
-				if (hasArgs) {
-					return getTypeStrTest<T>() + " " + name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string("") );
-				} else {
-					return getTypeStrTest<T>() + " " + name;
-				}
-			} else {
-				return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
-			}
-		} else {
-			hasArgs = false;
-			return name;
-		}
-		
-	}
-};
-
-struct Alias : OpBase {
-	Alias(const std::string & s) : OpBase(IN_FRONT,NO_PARENTHESIS), name(s) {}
-	virtual std::string str() const { return name; }
-	virtual void explore() { std::cout << "Alias " << name << " "; OpBase::explore(); }
-	std::string name;
-};
-
-//struct Assignment : OpBase {
-//	Assignment() : {}
-//	virtual std::string str(int m) const { return  "assign"; }
-//};
-
-template<char c, ParenthesisRule p = USE_PARENTHESIS>
-struct SingleCharBinaryOp : OpBase {
-	SingleCharBinaryOp() : OpBase(IN_BETWEEN, p) {}
-	virtual std::string str() const { return std::string(1, c); }
-	virtual void explore() { std::cout << "OP " << c << " "; OpBase::explore(); }
-};
-
-template<OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS>
-struct FunctionOp : OpBase {
-	FunctionOp(const std::string & s) : OpBase(dRule,pRule), name(s) {}
-	virtual std::string str() const { return name; }
-	virtual void explore() { std::cout << "OP " << name << " "; OpBase::explore(); }
-	const std::string name;
-};
 
 struct Exp {
 	Exp(const OpB & _op, const std::vector<Ex> & _args = {}) : op(_op), args(_args) {
@@ -170,7 +68,7 @@ struct Exp {
 		if (op->displayRule == BEHIND) {
 			out += op->str();
 		}
-		
+
 
 
 		return out;
@@ -182,25 +80,139 @@ struct Exp {
 		for (const auto & a : args) {
 			for (int i = 0; i < k; ++i) {
 				std::cout << "   ";
-			}	
+			}
 			std::cout << " count " << a.use_count() << ", ";
-			a->explore(k+1);
+			a->explore(k + 1);
 		}
 	}
 	OpB op;
 	std::vector<Ex> args;
+
+};
+struct Op : OpBase {};
+
+template<typename T>
+struct Litteral : OpBase {
+	Litteral(const T & _i) : OpBase(IN_FRONT, NO_PARENTHESIS), i(_i) {}
+	virtual std::string str() const { return std::to_string(i); }
+	virtual void explore() { std::cout << "Litteral T " << i << " "; OpBase::explore(); }
+	T i;
+};
+
+template<> struct Litteral<bool> : OpBase {
+	Litteral(const bool & _b) : OpBase(IN_FRONT, NO_PARENTHESIS), b(_b) {}
+	virtual std::string str() const { return b ? "true" : "false"; }
+	virtual void explore() { std::cout << "Litteral Bool " << b << " "; OpBase::explore(); }
+	bool b;
+};
+
+struct CtorBase : OpBase {
+	CtorBase(const stringPtr & s, bool args, CtorStatus _status = INITIALISATION) :
+		OpBase(args ? IN_FRONT : NONE, args ? USE_PARENTHESIS : NO_PARENTHESIS, args), name(s),  n(counter++), status(_status) {}
+
+	stringPtr name;
+	int n;
+	//bool isInit = true;
+	mutable CtorStatus status;
+
+	virtual void explore() { std::cout << "CtorBase " << *name << ", id " /* << n << ", init? " << isInit */; OpBase::explore(); }
+
+	static int counter;
+};
+int CtorBase::counter = 0;
+
+struct DtorBase : OpBase {
+	DtorBase() { disabled = true;  }
+	virtual std::string str() const { return "dtorOp"; }
+	virtual void explore() { std::cout << "DTOR "; OpBase::explore(); }
+};
+
+using CtorBasePtr = std::shared_ptr<CtorBase>;
+
+template<typename T> struct TypeStrT {
+	static const std::string str() { return T::typeStr(); }
+};
+
+template<typename T> std::string  getTypeStrTest() {
+	return TypeStrT<T>::str();
+}
+
+template<typename T, OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, CtorTypeDisplay tRule = DISPLAY>
+struct Ctor : CtorBase {
+	Ctor(const stringPtr & s, bool hasArgs, CtorStatus _status)
+		: CtorBase(s, hasArgs, _status)
+	{
+		displayRule = dRule;
+		parRule = pRule;
+	}
+
+	//virtual std::string str() const { 
+	//	if (firstStr) {
+	//		firstStr = false;
+	//		if (isInit) {
+	//			if (hasArgs) {
+	//				return getTypeStrTest<T>() + " " + name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string("") );
+	//			} else {
+	//				return getTypeStrTest<T>() + " " + name;
+	//			}
+	//		} else {
+	//			return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
+	//		}
+	//	} else {
+	//		hasArgs = false;
+	//		return name;
+	//	}	
+	//}
+
+	virtual std::string str() const {
+		if (status == INITIALISATION) {
+			return getTypeStrTest<T>() + " " + *name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
+		} else if (status == DECLARATION) {
+			return getTypeStrTest<T>() + " " + *name;
+		} else {
+			return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
+		}
+	}
+};
+
+struct Alias : OpBase {
+	Alias(std::shared_ptr<std::string> s) : OpBase(IN_FRONT,NO_PARENTHESIS), namePtr(s) {}
+	virtual std::string str() const { return *namePtr; }
+	virtual void explore() { std::cout << "Alias " << str() << " "; OpBase::explore(); }
+	std::shared_ptr<std::string> namePtr;
+};
+
+//struct Assignment : OpBase {
+//	Assignment() : {}
+//	virtual std::string str(int m) const { return  "assign"; }
+//};
+
+template<char c, ParenthesisRule p = USE_PARENTHESIS>
+struct SingleCharBinaryOp : OpBase {
+	SingleCharBinaryOp() : OpBase(IN_BETWEEN, p) {}
+	virtual std::string str() const { return std::string(1, c); }
+	virtual void explore() { std::cout << "OP " << c << " "; OpBase::explore(); }
+};
+
+template<OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS>
+struct FunctionOp : OpBase {
+	FunctionOp(const std::string & s) : OpBase(dRule,pRule), name(s) {}
+	virtual std::string str() const { return name; }
+	virtual void explore() { std::cout << "OP " << name << " "; OpBase::explore(); }
+	const std::string name;
 };
 
 void isNotInit(const Ex & expr) {
 	if (auto ctor = std::dynamic_pointer_cast<CtorBase>(expr->op)) {
-		ctor->isInit = false;
+		//ctor->isInit = false;
 		ctor->disabled = true;
+		ctor->status = TEMP;
 	}
 }
 
 void isTest(const Ex & expr) {
 	if (auto ctor = std::dynamic_pointer_cast<CtorBase>(expr->op)) {
-		ctor->isInit = false; 
+		//ctor->isInit = false; 
 		//ctor->disabled = true;
 	}
 }
@@ -239,8 +251,8 @@ template<> struct CheckForTempT<false> {
 
 template<typename ... Ts> void checkForTemp(const Ts &... ts);
 template<typename T, typename ... Ts> void checkForTemp(const T &t, const Ts &... ts) {
-	CheckForTempT<!std::is_lvalue_reference<T>::value>::check(t);
-	checkForTemp<Ts...>(ts...);
+	//CheckForTempT<!std::is_lvalue_reference<T>::value>::check(t);
+	//checkForTemp<Ts...>(ts...);
 }
 template<> void checkForTemp<>() { }
 
@@ -273,31 +285,45 @@ struct Manager {
 };
 Manager Manager::man = Manager();
 
-template<typename T> Ex getExp(const T & t); // { return Ex(); }
 
 template<typename Operator, typename ... Args>
 Ex createExp(const std::shared_ptr<Operator> &op, const Args &... args) {
 	return std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...});
 }
 
-template<typename T, CtorTypeDisplay tRule = DISPLAY, OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, typename ... Args>
-Ex createInit(const std::string & name, const Args &... args);
+template<typename T, bool temp = !std::is_lvalue_reference<T>::value> Ex getExp(const T & t) {
+	//std::cout << t.exp.use_count() << std::endl;
+	if(temp) {
+		areNotInit(t);
+		std::cout << " get exp temp " << t.myName() << std::endl;
+		return t.exp;
+	}/* else if (t.exp.use_count() == 1 && !t.parent) {
+		std::cout << " first use " << t.myName() << std::endl;
+		return t.exp;
+	}*/ else {
+		std::cout << " ref use " << t.myName() << std::endl;
+		return createExp(std::make_shared<Alias>(t.myNamePtr()));
+	}
+}
+
+template<typename T, CtorTypeDisplay tRule = DISPLAY, OperatorDisplayRule dRule = IN_FRONT, 
+	ParenthesisRule pRule = USE_PARENTHESIS, CtorStatus status = INITIALISATION, typename ... Args>
+Ex createInit(const stringPtr & name, const Args &... args);
 
 
 template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
 	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
 }
 
-template<> Ex getExp(const bool & b) {
+template<> Ex getExp<bool>(const bool & b) {
 	return createExp(std::make_shared<Litteral<bool>>(b));
 }
 
-
-template<> Ex getExp(const int & i) {
+template<> Ex getExp<int>(const int & i) {
 	return createExp(std::make_shared<Litteral<int>>(i));
 }
 
-template<> Ex getExp(const double & d) {
+template<> Ex getExp<double>(const double & d) {
 	return createExp(std::make_shared<Litteral<double>>(d));
 }
 
@@ -338,7 +364,7 @@ template <>  struct NotInits<Tinit> {
 //}
 
 void InitManager::ctor(const CtorBasePtr & tor) {
-	//std::cout << " manager ctor " << tor->n << std::endl;
+	std::cout << " manager ctor " << tor->n << std::endl;
 	currentUp = tor->n;
 	decls[currentUp] = tor;
 }
@@ -353,12 +379,12 @@ void InitManager::dtor(const CtorBasePtr & tor) {
 		if (decls.count(tor->n) == 0) {
 			std::cout << "~~~" << std::endl;
 		}
-		decls[tor->n]->isInit = false;
+		//decls[tor->n]->isInit = false;
 		decls[tor->n]->disabled = true;
 	} else {
 		do {
 			--currentUp;
-		} while (currentUp >= 0 && (decls.count(currentUp) == 0 || !decls[currentUp]->isInit));
+		} while (currentUp >= 0 && (decls.count(currentUp) == 0  /*|| !decls[currentUp]->isInit */ ) );
 	}
 }
 
@@ -531,7 +557,7 @@ constexpr bool SameTypeList<ArgTypeList<Input>, ArgTypeList<Target> > = Converti
 
 template <typename LA, typename LB>
 constexpr bool SameTypeList<LA, LB> =
-SameTypeList<LA::first,LB::first> && SameTypeList<LA::rest, LB::rest>;
+SameTypeList<typename LA::first,typename LB::first> && SameTypeList<typename LA::rest, typename LB::rest>;
 
 template <typename List, typename ... Args>
 void checkArgsType(const std::function<void(Args...)>& f){
@@ -663,7 +689,7 @@ struct MainController : virtual ForController, virtual WhileController {
 
 
 	void handleEvent(const Ex & e) {
-		init_manager.handle(e);
+		//init_manager.handle(e);
 		
 		if (for_status != NONE) {
 			feed_for(e);
@@ -707,7 +733,7 @@ struct TShader : MainController {
 		}
 	}
 
-	template<bool dummy, typename ...Args, typename ... Strings> 
+	template<typename ...Args, typename ... Strings> 
 	void add_struct(const std::string & name, const Strings & ... names) {
 		auto struct_declaration = std::make_shared < StructDeclaration<Args...> >(name, names...);
 		structs.push_back(std::static_pointer_cast<InstructionBase>(struct_declaration));
@@ -778,7 +804,7 @@ struct MainListener {
 	template<bool dummy, typename ...Args, typename ... Strings>
 	void add_struct(const std::string & name, const Strings & ... names) {
 		if (currentShader) {
-			currentShader->add_struct<dummy, Args...>(name, names...);
+			currentShader->add_struct<Args...>(name, names...);
 		}
 	}
 
@@ -819,15 +845,20 @@ MainListener MainListener::overmind = MainListener();
 
 MainListener & listen() { return MainListener::overmind; }
 
-template<typename T, CtorTypeDisplay tRule, OperatorDisplayRule  dRule, ParenthesisRule pRule, typename ... Args>
-Ex createInit(const std::string & name, const Args &... args) 
+template<typename T, CtorTypeDisplay tRule, OperatorDisplayRule  dRule, ParenthesisRule pRule, CtorStatus status, typename ... Args>
+Ex createInit(const stringPtr & name, const Args &... args)
 {
-	auto tor = std::make_shared<Ctor<T, dRule, pRule, tRule>>(name, (sizeof...(args) != 0));
-	Ex expr = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(tor), std::vector<Ex>{args...});
+	auto ctor = std::make_shared<Ctor<T, dRule, pRule, tRule>>(name, (sizeof...(args) != 0), status);
+	Ex expr = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(ctor), std::vector<Ex>{args...});
 	listen().addEvent(expr);
 	return expr;
 }
 
+template<typename T, typename ... Args>
+Ex createDeclaration(const stringPtr & name, const Args &... args)
+{
+	return createInit<T, DISPLAY, IN_FRONT, USE_PARENTHESIS, DECLARATION, Args...>(name, args...);
+}
 
 enum class Matrix_Track { UNTRACKED };
 
@@ -915,21 +946,23 @@ for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
 
 class NamedObjectBaseT {
 public:
-	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : name(_name), parent(_parent) {
+	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : parent(_parent) {
+		namePtr = std::make_shared<std::string>(_name);
 		//std::cout << " end check" << std::endl;
 	}
 
 	static const std::string typeStr() { return "dummyT"; }
-	std::string name;
+	std::shared_ptr<std::string> namePtr;
 	NamedObjectBaseT * parent = nullptr;
 public:
 	Ex exp;
 
 public:
-	const std::string myName() const { return (parent ? parent->myName() + "." : "") + name; }
+	const stringPtr myNamePtr() const { return (parent ? std::make_shared<std::string>(parent->myName() + "." + *namePtr) : namePtr); }
+	const std::string myName() const { return *myNamePtr(); }
 };
 
-template<> Ex getExp(const NamedObjectBaseT & obj) { return obj.exp; }
+//template<> Ex getExp(const NamedObjectBaseT & obj) { return obj.exp; }
 
 
 template<typename T>
@@ -940,8 +973,8 @@ public:
 
 protected:
 	NamedObjectT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : NamedObjectBaseT(_name, _parent) {
-		if (name == "") {
-			name = getTypeStrTest<T>() + "_" + std::to_string(counter);
+		if (_name == "") {
+			namePtr = std::make_shared<std::string>(getTypeStrTest<T>() + "_" + std::to_string(counter));
 			++counter;
 		}
 	}
@@ -952,109 +985,4 @@ public:
 
 };
 template<typename T> int NamedObjectT<T>::counter = 0;
-
-
-
-
-struct T {
-
-	~T() {
-		//std::cout << name << " : " << expr << " rel ? " << b << std::endl;
-		//std::cout << "dor" << n << std::endl;
-		if (auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op)) {
-
-			MainListener::overmind.addEvent(createExp(std::make_shared<DtorBase>(), exp));
-
-			InitManager::initManager.dtor(ctor);
-		} else {
-			std::cout << " !!!!  " << std::endl;
-		}
-
-	}
-
-	T() : name("myname_" + std::to_string(counter)), n(counter++) {
-		//	exp = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(std::make_shared<Ctor>(name)),true);
-		//std::cout << "ctor" << n << std::endl;
-		exp = createInit<T>(name);
-	}
-
-	T(const std::string & s) : name(s), n(counter++) {
-		//std::cout << " str ctor " << std::endl;
-		exp = createInit<T>(name);
-	}
-
-	template <std::size_t N>
-	T(const char(&s)[N]) : name(s), n(counter++) {
-		//std::cout << " char ctor " << std::endl;
-		exp = createInit<T>(name);
-	}
-
-	template<typename U, typename ...Us, typename = std::enable_if_t<NotInits<U, Us...>::value> >
-	T(const U & u, const Us & ...us) : name("myname_" + std::to_string(counter)), n(counter++) {
-		//std::cout << "multictor " << std::endl; 
-		exp = createInit<T>(name, getExp(u), getExp(us)...);
-	}
-
-	//////
-
-	template<CtorTypeDisplay display = DISPLAY>
-	T(const Ex & _exp) : name("myname_" + std::to_string(counter)), n(counter++) {
-		exp = createInit<T, display, NONE, NO_PARENTHESIS>(name, _exp);
-	}
-
-	T(const Tinit & t) : name(t.name) {
-		exp = createInit<T, DISPLAY, NONE, NO_PARENTHESIS>(name, t.exp);
-	}
-
-	///////
-
-
-	T & operator=(const T& other) {
-		//std::cout << " op = " << std::endl;
-		isNotInit(other.exp);
-		addExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), other.exp);
-		return *this;
-	}
-
-	template<typename U, typename = std::enable_if_t<NotChars<U>::value> >
-	T & operator=(const U& other) {
-		//std::cout << " op = " << std::endl;
-		auto otherExp = getExp(other);
-		isNotInit(otherExp);
-		addExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(), createExp(std::make_shared<Alias>(name)), otherExp);
-		return *this;
-	}
-
-	static const std::string typeStr() { return "dummyMatT"; }
-
-	T & operator=(const Tinit & other) = delete;
-
-	Ex exp;
-	std::string name;
-	int n;
-	static int counter;
-};
-int T::counter = 0;
-
-template<> Ex getExp<T>(const T & t) {
-	return t.exp;
-}
-
-const T operator+(const T&a, const T&b) {
-	return T(createExp(std::make_shared<SingleCharBinaryOp<'+'>>(), getExp(a), getExp(b)));
-}
-
-const T operator*(const T&a, const T&b) {
-	return T(createExp(std::make_shared<SingleCharBinaryOp<'*', NO_PARENTHESIS>>(), getExp(a), getExp(b)));
-
-}
-const T fun(const T &a, const T &b) {
-	return T(createExp(std::make_shared<FunctionOp<>>("fun"), a.exp, b.exp));
-}
-
-Tinit::Tinit(const T & u, const std::string & s) : name(s), exp(u.exp) { }
-
-Tinit operator<<(const T & t, const std::string & s) {
-	return Tinit(t, s);
-}
 
