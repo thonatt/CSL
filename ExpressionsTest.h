@@ -540,7 +540,7 @@ std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
 }
 
 template <typename ReturnType, typename... Args, typename ... Strings>
-void init_function_declaration(const std::string & fname, const std::function<ReturnType(Args...)>& f, const Strings & ... args_name);
+void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
 
 template<typename T> struct FunctionReturnType;
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
