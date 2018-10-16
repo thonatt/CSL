@@ -59,7 +59,6 @@ template<typename T, typename ...Ts> struct MatElementsT<T,Ts...> {
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 struct TinitT {
 	TinitT(const MatrixT<type,Nrows,Ncols> & m, const std::string & s);
-	TinitT(MatrixT<type, Nrows, Ncols> && m, const std::string & s);
 
 	std::string name;
 	Ex exp;
@@ -72,6 +71,7 @@ class MatrixT : public NamedObjectT<MatrixT<type, NR, NC>> {
 public:
 	using NamedObjectBaseT::exp;
 	using NamedObjectBaseT::namePtr;
+	using NamedObjectBaseT::isUsed;
 
 protected:
 	static const bool isBool = (type == numberType::BOOL);
@@ -88,11 +88,16 @@ public:
 	MatrixT(Matrix_Track track, const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
 		areNotInit(*this);
+		isUsed = true;
 	}
 
 	static const std::string typeStr() { return TypeStrT<MatrixT>::str(); }
 
-	explicit MatrixT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr) : NamedObjectT<MatrixT>(_name,_parent) {
+	explicit MatrixT(const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
+		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
+	}
+
+	explicit MatrixT(const std::string & _name, NamedObjectBaseT * _parent, bool _isUsed = false) : NamedObjectT<MatrixT>(_name,_parent, _isUsed) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
 		if (_parent) {
 			//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
@@ -190,12 +195,11 @@ public:
 
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
 	MatrixT operator++() const & {
-		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT,NO_PARENTHESIS>>(" ++"), getExp<MatrixT,false>(*this)));
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT,NO_PARENTHESIS>>("++"), getExp<MatrixT,false>(*this)));
 	}
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
 	MatrixT operator++() const && {
-		//areNotInit(*this);
-		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>(" ++"), getExp<MatrixT, true>(*this)));
+		return MatrixT(createExp(std::make_shared<FunctionOp<IN_FRONT, NO_PARENTHESIS>>("++"), getExp<MatrixT, true>(*this)));
 	}
 
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
@@ -204,7 +208,6 @@ public:
 	}
 	template<bool b = !isBool, typename = std::enable_if_t<b> >
 	MatrixT operator++(int) const && {
-		//areNotInit(*this);
 		return MatrixT(createExp(std::make_shared<FunctionOp<BEHIND>>("++ "), getExp<MatrixT, true>(*this)));
 	}
 
@@ -291,21 +294,21 @@ TinitT<type,NR,NC> operator<<(const MatrixT<type,NR,NC> & m, const std::string &
 	return TinitT<type,NR,NC>(m, s);
 }
 
-template<numberType type, unsigned int NR, unsigned int NC>
-TinitT<type, NR, NC> operator<<(MatrixT<type, NR, NC> && m, const std::string & s) {
-	//areNotInit(m);
-	return TinitT<type, NR, NC>(std::forward< MatrixT<type, NR, NC>>(m), s);
-}
+//template<numberType type, unsigned int NR, unsigned int NC>
+//TinitT<type, NR, NC> operator<<(MatrixT<type, NR, NC> && m, const std::string & s) {
+//	//areNotInit(m);
+//	return TinitT<type, NR, NC>(std::forward< MatrixT<type, NR, NC>>(m), s);
+//}
 
 template<numberType type, unsigned int NR, unsigned int NC>
 TinitT<type, NR, NC>::TinitT(const MatrixT<type, NR, NC> & m, const std::string & s) : name(s), exp(getExp< const MatrixT<type, NR, NC> & >(m)) { 
-	std::cout << "TINIT" << std::endl; 
+	//std::cout << "TINIT" << std::endl; 
 }
-
-template<numberType type, unsigned int NR, unsigned int NC>
-TinitT<type, NR, NC>::TinitT(MatrixT<type, NR, NC> && m, const std::string & s) : name(s), exp(getExp<MatrixT<type, NR, NC> &&>(m)) {
-	std::cout << "TINIT &&" << std::endl;
-}
+//
+//template<numberType type, unsigned int NR, unsigned int NC>
+//TinitT<type, NR, NC>::TinitT(MatrixT<type, NR, NC> && m, const std::string & s) : name(s), exp(getExp<MatrixT<type, NR, NC> &&>(m)) {
+//	std::cout << "TINIT &&" << std::endl;
+//}
 
 
 // Bool operators

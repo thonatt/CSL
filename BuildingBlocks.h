@@ -16,12 +16,20 @@
 // Functions
 
 template<typename T> struct FunctionReturnType {
-	using type = void;
+	struct DummyType {};
+	static_assert(std::is_same<DummyType,T>::value, "should not be here" );
+	//using type = void;
 };
 
 template<typename ReturnType, typename Fun, typename... Args>
 struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
 	using type = std::function<ReturnType(Args...)>;
+	using RType = ReturnType;
+};
+
+template<typename ReturnType, typename Fun>
+struct FunctionReturnType< ReturnType(Fun::*)() const> {
+	using type = std::function<ReturnType()>;
 	using RType = ReturnType;
 };
 
@@ -249,7 +257,7 @@ listen().add_struct<true BOOST_PP_SEQ_FOR_EACH_I(MEMBER_TYPE_T, , BOOST_PP_VARIA
 struct StructTypename : public NamedObjectT<StructTypename> {	\
 	BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	\
-	StructTypename(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr ) : NamedObjectT<StructTypename>(_name, _parent) \
+	StructTypename(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = false ) : NamedObjectT<StructTypename>(_name, _parent, _isUsed) \
 		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT_T, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	{  \
 		if(!_parent) { exp = createDeclaration<StructTypename>(myNamePtr()); }\
@@ -257,7 +265,7 @@ struct StructTypename : public NamedObjectT<StructTypename> {	\
 	static const std::string typeStr() { return std::string(#StructTypename); } \
 } \
 
-#define INIT_MEMBER_PARENT_T(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), this) 
+#define INIT_MEMBER_PARENT_T(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), this, true) 
 #define MEMBER_TYPE_T(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)
 #define MEMBER_STR_T(r, data, i, elem) , std::string(BOOST_PP_STRINGIZE(STRIP(elem)))
 

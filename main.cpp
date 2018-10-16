@@ -86,9 +86,10 @@ int main()
 			(FloatT) v_c
 		) myBigType("myBugType");
 
-		makeFunT<FloatT>("test@", [](FloatT f, IntT i, FloatT g) {
-			GL_RETURN_T(FloatT(i + IntT(f + g)));
-		}, "arg1", "arg2");
+		//does not compile on gcc with empty arg list
+		makeFunT<FloatT>("test@", []() {
+			GL_RETURN_T(FloatT(42));
+		});
 
 		auto fun = makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
 			FloatT gg = f + i + g;
@@ -97,7 +98,15 @@ int main()
 			//GL_RETURN_T();
 		}, "arg1", "arg2", "arg3");
 
+
+		auto fun_void = makeFunT<void>("void_fun", [](FloatT f) {
+			FloatT g;
+			++g;
+		});
+
 		FloatT result_fun = fun(FloatT(1.0), 1, fun(1.0, 1, 1.0));
+
+		fun(1, 1, 1);
 
 		FloatT gggggg;
 		FloatT f = 1.0;
