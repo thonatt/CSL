@@ -103,19 +103,34 @@ int main()
 						++b;
 					} GL_ELSE_IF_T(bb) {
 						++b;
+						GL_FOR_T(IntT c(22, "b"); c < 24; ++c) {
+							GL_IF_T(a < 4) {
+								++b;
+							}
+						}
+						GL_IF_T(a < 4) {
+							++b;
+						} GL_ELSE_IF_T(a < 12) {
+							++b;
+						} GL_ELSE_IF_T(bb) {
+							++b;
+						} 
+						GL_IF_T(bb){
+							GL_IF_T(bb && bb) {
+								GL_IF_T(bb && bb && bb) {
+									++b;
+								}
+							} GL_ELSE_IF_T(bb) {
+								//nothing
+							}
+						}
 					} GL_ELSE_T {
 						++b;
 					}
-					++a;
-					GL_IF_T(a < 4) {
-						++b;
-					} GL_ELSE_IF_T(a < 12) {
-						++b;
-					} GL_ELSE_IF_T(bb) {
-						++b;
-					} GL_ELSE_T {
+					GL_IF_T(a < 0) {
 						++b;
 					}
+
 					++a;
 				}
 			}

@@ -453,6 +453,11 @@ struct ReturnBlock : Block {
 	bool hasReturnStatement = false;
 };
 
+//struct IfBlockT : Block {
+//	using Ptr = std::shared_ptr<IfBlockT>;
+//	using Block::Block;
+//};
+
 struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
 	Statement(const Ex & e) : ex(e) {}
@@ -519,6 +524,8 @@ struct IfInstruction : InstructionBase {
 		Statement::Ptr condition;
 	};
 
+	IfInstruction(std::shared_ptr<IfInstruction> _parent = {}) : parent_if(_parent) {}
+
 	virtual void cout(int & trailing, uint opts) {
 		const int numBodies = (int)bodies.size();
 		for (int i = 0; i < numBodies; ++i) {
@@ -542,6 +549,8 @@ struct IfInstruction : InstructionBase {
 	}
 
 	std::vector<IfBody> bodies;
+	IfInstruction::Ptr parent_if;
+	bool waiting_for_else = false;
 };
 
 enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
@@ -768,7 +777,7 @@ struct ForController : virtual ControllerBase {
 		return true;
 	}
 
-	void end_for() {
+	virtual void end_for() {
 		for_status = NONE;
 		currentBlock = currentBlock->parent;
 	}
@@ -791,11 +800,16 @@ struct IfController : virtual ControllerBase {
 	};
 
 	void begin_if(const Ex & ex) {
-		current_if = std::make_shared<IfInstruction>();
+		if (current_if) {
+			std::cout << " nested if" << std::endl;
+			current_if = std::make_shared<IfInstruction>(current_if);
+		} else {
+			std::cout << " non nested if" << std::endl;
+			current_if = std::make_shared<IfInstruction>();
+		}
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
 		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
 		currentBlock = current_if->bodies.back().body;
-		waiting_for_else = false;
 	}
 
 	void begin_else() {
@@ -807,25 +821,40 @@ struct IfController : virtual ControllerBase {
 	void begin_else_if(const Ex & ex) {
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), std::make_shared<Statement>(ex) });
 		currentBlock = current_if->bodies.back().body;
-		waiting_for_else = false;
 	}
 
-
 	void end_if_sub_block() {
-		waiting_for_else = true;
+		if (current_if->waiting_for_else) {
+			end_if();
+			end_if_sub_block();
+		} else {
+			current_if->waiting_for_else = true;
+		}
+		
 	}
 	void end_if() {
 		std::cout << " end if " << std::endl;
+		current_if = current_if->parent_if;
 		currentBlock = currentBlock->parent;
-		current_if = {};
-		
 	}
 	void delay_end_if() {
-		waiting_for_else = false;
+		if (current_if) {
+			current_if->waiting_for_else = false;
+		}
+	}
+	void check_begin_if() {
+		if (current_if && current_if->waiting_for_else) {
+			end_if();
+		}
+	}
+	void check_end_if() {
+		if (current_if  && current_if->waiting_for_else) {
+			end_if();
+		}
 	}
 
 	IfInstruction::Ptr current_if;
-	bool waiting_for_else = false;
+	
 };
 
 struct WhileController : virtual ControllerBase {
@@ -836,6 +865,10 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	using Ptr = std::shared_ptr<MainController>;
 	InitManager init_manager;
 
+	virtual void end_for() {
+		check_end_if();
+		ForController::end_for();
+	}
 
 	void handleEvent(const Ex & e) {
 		//init_manager.handle(e);
@@ -845,9 +878,8 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 				return;
 			}
 		} 
-		if (current_if && waiting_for_else ) {
-			end_if();
-		}
+		check_end_if();
+
 		queueEvent(e);
 	}
 };
@@ -977,6 +1009,16 @@ struct MainListener {
 	void end_if_sub_block() {
 		if (currentShader) {
 			currentShader->end_if_sub_block();
+		}
+	}
+	void end_if() {
+		if (currentShader) {
+			currentShader->end_if();
+		}
+	}
+	void check_begin_if() {
+		if (currentShader) {
+			currentShader->check_begin_if();
 		}
 	}
 	void delay_end_if() {
@@ -1139,10 +1181,10 @@ IfController::BeginIf::~BeginIf() {
 	listen().end_if_sub_block();
 }
 IfController::BeginElse::~BeginElse() {
-	listen().end_if_sub_block();
+	listen().end_if();
 }
 
-#define GL_IF_T(condition) listen().delay_end_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
+#define GL_IF_T(condition) listen().check_begin_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
 
 #define GL_ELSE_T else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
 
