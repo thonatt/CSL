@@ -146,6 +146,7 @@ struct Ctor : CtorBase {
 	Ctor(const stringPtr & s, bool hasArgs, CtorStatus _status)
 		: CtorBase(s, hasArgs, _status)
 	{
+		//std::cout << " ctor " << *s << " " << _status << std::endl;
 		displayRule = dRule;
 		parRule = pRule;
 	}
@@ -172,6 +173,7 @@ struct Ctor : CtorBase {
 		if (status == INITIALISATION) {
 			return getTypeStrTest<T>() + " " + *name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
 		} else if (status == DECLARATION) {
+			//std::cout << " decalration " << getTypeStrTest<T>() << "  / "  << *name << std::endl;
 			return getTypeStrTest<T>() + " " + *name;
 		} else {
 			return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
@@ -523,15 +525,10 @@ struct IfInstruction : InstructionBase {
 			if (i == 0) {
 				std::cout << instruction_begin(trailing) << "if( ";
 				bodies[0].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
-
-				auto & bo = bodies[0].condition->ex;
-				auto ctor = std::dynamic_pointer_cast<CtorBase>(bo->op);
-				//std::cout << bo->str() << " " << ctor->status << " " << ctor->disabled << std::endl;
-
 				std::cout << " ) {\n";
 			} else if(bodies[i].condition) {
 				std::cout << "else if( ";
-				bodies[i].condition->cout(trailing, NOTHING);
+				bodies[i].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
 				std::cout << " ) {\n";
 			} else {
 				std::cout << "else {\n";
@@ -793,23 +790,37 @@ struct IfController : virtual ControllerBase {
 		~BeginElse();
 	};
 
-	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>,BoolT>::value> >
-	void begin_if(R_B && b);
+	void begin_if(const Ex & ex) {
+		current_if = std::make_shared<IfInstruction>();
+		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
+		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
+		currentBlock = current_if->bodies.back().body;
+		waiting_for_else = false;
+	}
 
 	void begin_else() {
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), {} });
 		currentBlock = current_if->bodies.back().body;
+		delay_end_if();
+	}
+
+	void begin_else_if(const Ex & ex) {
+		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), std::make_shared<Statement>(ex) });
+		currentBlock = current_if->bodies.back().body;
 		waiting_for_else = false;
 	}
-	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
-	void begin_else_if(R_B && b);
+
 
 	void end_if_sub_block() {
 		waiting_for_else = true;
 	}
 	void end_if() {
+		std::cout << " end if " << std::endl;
 		currentBlock = currentBlock->parent;
 		current_if = {};
+		
+	}
+	void delay_end_if() {
 		waiting_for_else = false;
 	}
 
@@ -949,7 +960,7 @@ struct MainListener {
 	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
 	void begin_if(R_B && b) {
 		if (currentShader) {
-			currentShader->begin_if(std::forward<R_B>(b));
+			currentShader->begin_if(getExp<R_B>(b));
 		}
 	}
 	void begin_else() {
@@ -960,7 +971,7 @@ struct MainListener {
 	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
 	void begin_else_if(R_B && b) {
 		if (currentShader) {
-			currentShader->begin_else_if(std::forward<R_B>(b));
+			currentShader->begin_else_if(getExp<R_B>(b));
 		}
 	}
 	void end_if_sub_block() {
@@ -968,7 +979,11 @@ struct MainListener {
 			currentShader->end_if_sub_block();
 		}
 	}
-
+	void delay_end_if() {
+		if (currentShader) {
+			currentShader->delay_end_if();
+		}
+	}
 	template<bool dummy, typename ...Args, typename ... Strings>
 	void add_struct(const std::string & name, const Strings & ... names) {
 		if (currentShader) {
@@ -1127,11 +1142,11 @@ IfController::BeginElse::~BeginElse() {
 	listen().end_if_sub_block();
 }
 
-#define GL_IF_T(condition) listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
+#define GL_IF_T(condition) listen().delay_end_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
 
 #define GL_ELSE_T else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
 
-#define GL_ELSE_IF_T(condition) else if(true){} listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
+#define GL_ELSE_IF_T(condition) else if(true){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
 
 //////////////////////////////////////
 
@@ -1155,6 +1170,7 @@ public:
 		//should check inside scope
 		if (!isUsed && exp) {
 			auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
+			//std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
 			ctor->status = TEMP;
 		}
 	}

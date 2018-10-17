@@ -95,7 +95,6 @@ int main()
 			FloatT gg = f + i + g;
 			++g;
 			BoolT bb("myBool");
-
 			GL_FOR_T(IntT a(0,"a"); a < 5; ++a) {
 				++g;
 				GL_FOR_T(IntT b(2,"b"); b < 10; ++b) {
@@ -108,9 +107,9 @@ int main()
 						++b;
 					}
 					++a;
-					GL_IF_T(a < 3) {
+					GL_IF_T(a < 4) {
 						++b;
-					} GL_ELSE_IF_T(bb) {
+					} GL_ELSE_IF_T(a < 12) {
 						++b;
 					} GL_ELSE_IF_T(bb) {
 						++b;

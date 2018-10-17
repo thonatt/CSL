@@ -63,6 +63,7 @@ public:
 
 	explicit MatrixT(const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
+		isUsed = true;
 	}
 
 	explicit MatrixT(const std::string & _name, NamedObjectBaseT * _parent, bool _isUsed = false) : NamedObjectT<MatrixT>(_name,_parent, _isUsed) {
@@ -75,7 +76,8 @@ public:
 
 	template <std::size_t N>
 	explicit MatrixT(const char(&s)[N]) : NamedObjectT<MatrixT>(s) {
-		exp = createInit<MatrixT>(namePtr);
+		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
+		isUsed = true;
 	}
 
 	template<typename U, typename = std::enable_if_t<!isBool && (NR == 1 && NC == 1) && AreValid<U> && !Infos<U>::glsl_type > >
@@ -231,21 +233,21 @@ public:
 
 };
 
-template<typename R_B, typename>
-void IfController::begin_if(R_B && b) {
-	current_if = std::make_shared<IfInstruction>();
-	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(getExp<R_B>(b)) });
-	currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
-	currentBlock = current_if->bodies.back().body;
-	waiting_for_else = false;
-}
+//template<typename R_B, typename>
+//void IfController::begin_if(R_B && b) {
+//	current_if = std::make_shared<IfInstruction>();
+//	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(getExp<R_B>(b)) });
+//	currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
+//	currentBlock = current_if->bodies.back().body;
+//	waiting_for_else = false;
+//}
 
-template<typename R_B, typename>
-void IfController::begin_else_if(R_B && b) {
-	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), std::make_shared<Statement>(getExp<R_B>(b)) });
-	currentBlock = current_if->bodies.back().body;
-	waiting_for_else = false;
-}
+//template<typename R_B, typename>
+//void IfController::begin_else_if(R_B && b) {
+//	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), std::make_shared<Statement>(getExp<R_B>(b)) });
+//	currentBlock = current_if->bodies.back().body;
+//	waiting_for_else = false;
+//}
 
 
 
