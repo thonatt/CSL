@@ -5,10 +5,13 @@
 #include <memory>
 #include <array>
 
+#include "HelperClasses.h"
+
 struct MainListener;
 MainListener & listen();
 
 using stringPtr = std::shared_ptr<std::string>;
+using uint = unsigned int;
 
 struct Exp;
 using Ex = std::shared_ptr<Exp>;
@@ -17,6 +20,7 @@ enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, BEHIND };
 enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
 enum CtorStatus { DECLARATION, INITIALISATION, TEMP };
+enum StatementOptions { SEMICOLON = 1 << 0, COMMA = 1 << 1, NOTHING = 1 << 2, NEW_LINE = 1 << 3, IGNORE_DISABLE = 1 << 4, DEFAULT = SEMICOLON | NEW_LINE };
 
 struct OpBase {
 	OpBase(OperatorDisplayRule rule = NONE, ParenthesisRule useParenthesis = USE_PARENTHESIS, bool args = true)
@@ -28,7 +32,7 @@ struct OpBase {
 	mutable bool hasArgs = true;
 
 	virtual std::string str() const { return "dummyOpBase"; }
-	virtual void explore() { 
+	virtual void explore() {
 		std::cout << ", dRule : " << displayRule << ", pRule : " << parRule << ", disabled : " << disabled << ", hasArgs : " << hasArgs << std::endl;
 	}
 };
@@ -407,7 +411,19 @@ void Manager::cout() {
 
 struct InstructionBase {
 	using Ptr = std::shared_ptr<InstructionBase>;
-	virtual void cout() {}
+
+	static std::string instruction_begin(int trailing) {
+		std::string out;
+		for (int t = 0; t < trailing; ++t) {
+			out += "   ";
+		}
+		return out;
+	}
+	static std::string instruction_end(uint opts) {
+		return std::string(opts & SEMICOLON ? ";" : opts & COMMA ? "," : "") + (opts & NEW_LINE ? "\n" : "");
+	}
+
+	virtual void cout(int & trailing, uint otps = DEFAULT) {}
 	virtual void explore() {}
 };
 
@@ -415,9 +431,9 @@ struct Block {
 	using Ptr = std::shared_ptr<Block>;
 	Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
 
-	virtual void cout() {
+	virtual void cout(int & trailing, uint opts = DEFAULT) {
 		for (const auto & inst : instructions) {
-			inst->cout();
+			inst->cout(trailing);
 		}
 	}
 	virtual void explore() {
@@ -438,11 +454,11 @@ struct ReturnBlock : Block {
 struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
 	Statement(const Ex & e) : ex(e) {}
-	virtual void cout() {
-		if (!ex->op->disabled) {
-			std::cout << ex->str() << ";" << std::endl;
+	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		if ( (opts & IGNORE_DISABLE) || !ex->op->disabled) {
+			std::cout << ( opts & NEW_LINE ? instruction_begin(trailing) : "" ) << ex->str() << instruction_end(opts);
 		}
-		
+
 	}
 	void explore() {
 		ex->explore();
@@ -453,8 +469,8 @@ struct Statement : InstructionBase {
 struct ReturnStatement : Statement {
 	using Ptr = std::shared_ptr<ReturnStatement>;
 	ReturnStatement(const Ex & e) : Statement(e) {}
-	virtual void cout() {
-		std::cout << "return " << ex->str() << ";" << std::endl;
+	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		std::cout << instruction_begin(trailing) << "return " << ex->str() << instruction_end(opts);
 	}
 	void explore() {
 		ex->explore();
@@ -468,19 +484,67 @@ InstructionBase::Ptr toInstruction(const Ex & e) {
 
 struct ForInstruction : InstructionBase {
 	using Ptr = std::shared_ptr<ForInstruction>;
+	
+	virtual void cout(int & trailing, uint opts) {
+		std::cout << instruction_begin(trailing) << "for( ";
+		init->cout(trailing, SEMICOLON); 
+		std::cout << " ";
+		condition->cout(trailing, SEMICOLON);
+		std::cout << " ";
+		loop->cout(trailing, NOTHING);
+		std::cout << " ){\n";
+		++trailing;
+		body->cout(trailing, opts);
+		--trailing;
+		std::cout << instruction_begin(trailing) << "}\n";
+	}
 
 	Statement::Ptr init, condition, loop;
 	Block::Ptr body;
 };
 
 struct WhileInstruction : InstructionBase {
+
 	Block::Ptr body;
 	Statement::Ptr condition;
 };
 
 struct IfInstruction : InstructionBase {
-	std::vector<Block::Ptr> bodys;
-	std::vector<Statement::Ptr> conditions;
+	using Ptr = std::shared_ptr<IfInstruction>;
+
+	struct IfBody {
+		Block::Ptr body;
+		Statement::Ptr condition;
+	};
+
+	virtual void cout(int & trailing, uint opts) {
+		const int numBodies = (int)bodies.size();
+		for (int i = 0; i < numBodies; ++i) {
+			if (i == 0) {
+				std::cout << instruction_begin(trailing) << "if( ";
+				bodies[0].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
+
+				auto & bo = bodies[0].condition->ex;
+				auto ctor = std::dynamic_pointer_cast<CtorBase>(bo->op);
+				//std::cout << bo->str() << " " << ctor->status << " " << ctor->disabled << std::endl;
+
+				std::cout << " ) {\n";
+			} else if(bodies[i].condition) {
+				std::cout << "else if( ";
+				bodies[i].condition->cout(trailing, NOTHING);
+				std::cout << " ) {\n";
+			} else {
+				std::cout << "else {\n";
+			}
+
+			++trailing;
+			bodies[i].body->cout(trailing);
+			--trailing;
+			std::cout << instruction_begin(trailing) << "}" << (i == numBodies - 1 ? "\n" : " ");
+		}
+	}
+
+	std::vector<IfBody> bodies;
 };
 
 enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
@@ -488,34 +552,34 @@ enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
 template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclaration;
 
 template<SeparatorRule s, int N, typename T, typename ... Ts> struct DisplayDeclaration<s, N, T, Ts...> {
-	static const std::string str(const std::vector<std::string> & v, const std::string & separator) {
-		return /*"   " +*/ T::typeStr() + " " + v[v.size() - N] + 
+	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+		return InstructionBase::instruction_begin(trailing) + T::typeStr() + " " + v[v.size() - N] + 
 			 ( (s==SEP_AFTER_ALL || ( s==SEP_IN_BETWEEN && N!=1) ) ? separator : "" ) + 
-			DisplayDeclaration<s, N - 1, Ts...>::str(v, separator);
+			DisplayDeclaration<s, N - 1, Ts...>::str(v, trailing, separator);
 	}
 };
 
 template<SeparatorRule s, typename ... T> struct DisplayDeclaration<s, 0,T...> {
-	static const std::string str(const std::vector<std::string> & v, const std::string & separator) { return ""; }
+	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) { return ""; }
 };
 
-template<SeparatorRule s, typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v, const std::string & separator) {
-	return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, separator);
+template<SeparatorRule s, typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+	return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 }
 
 template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclarationTuple {
-	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
-		return /*"   " +*/ std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + std::get<sizeof...(Ts) - N>(v).myName() +
+	static const std::string str(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) {
+		return InstructionBase::instruction_begin(trailing) + std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + std::get<sizeof...(Ts) - N>(v).myName() +
 			((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
-			DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, separator);
+			DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, trailing, separator);
 	}
 };
 template<SeparatorRule s, typename ... Ts> struct DisplayDeclarationTuple<s, 0, Ts...> {
-	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) { return ""; }
+	static const std::string str(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) { return ""; }
 };
 
-template<SeparatorRule s, typename ... Ts> std::string memberDeclarationsTuple(const std::tuple<Ts...> & v, const std::string & separator) {
-	return DisplayDeclarationTuple<s, sizeof...(Ts), Ts...>::str(v, separator);
+template<SeparatorRule s, typename ... Ts> std::string memberDeclarationsTuple(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) {
+	return DisplayDeclarationTuple<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 }
 
 template<typename ... Args>
@@ -524,10 +588,12 @@ struct StructDeclaration : InstructionBase {
 	StructDeclaration(const std::string & _name, const Strings &... _names) : 
 		name(_name), member_names{ _names... } {}
 
-	virtual void cout() {
-		std::cout << "struct " << name << " { " << std::endl;
-		std::cout << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, ";\n");
-		std::cout << "}" << std::endl;
+	virtual void cout(int & trailing, uint opts) {
+		std::cout << instruction_begin(trailing) << "struct " << name << " { " << std::endl;
+		++trailing;
+		std::cout << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, trailing, ";\n");
+		--trailing;
+		std::cout << instruction_begin(trailing) << "}" << std::endl;
 	}
 
 	std::vector<std::string> member_names;
@@ -625,11 +691,13 @@ struct FunctionDeclaration : FunctionDeclarationArgs<Args...> {
 
 	using FunctionDeclarationArgs<Args...>::FunctionDeclarationArgs;
 
-	virtual void cout() {
-		std::cout << ReturnT::typeStr() << " " << FunctionDeclarationArgs<Args...>::name << "(" <<
-			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, ", ") << ") \n{" << std::endl;
-		FunctionDeclarationBase::body->cout();
-		std::cout << "}" << std::endl;
+	virtual void cout(int & trailing, uint opts) {
+		std::cout << InstructionBase::instruction_begin(trailing) << ReturnT::typeStr() << " " << FunctionDeclarationArgs<Args...>::name << "(" <<
+			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, trailing, ", ") << ") \n{" << std::endl;
+		++trailing;
+		FunctionDeclarationBase::body->cout(trailing);
+		--trailing;
+		std::cout << InstructionBase::instruction_begin(trailing) << "}" << std::endl;
 	}
 };
 
@@ -639,11 +707,13 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<Args...> {
 
 	using FunctionDeclarationArgs<Args...>::FunctionDeclarationArgs;
 
-	virtual void cout() {
-		std::cout << "void " << FunctionDeclarationArgs<Args...>::name << "(" <<
-			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, ", ") << ") \n{" << std::endl;
-		FunctionDeclarationBase::body->cout();
-		std::cout << "}" << std::endl;
+	virtual void cout(int & trailing, uint opts) {
+		std::cout << InstructionBase::instruction_begin(trailing) << "void " << FunctionDeclarationArgs<Args...>::name << "(" <<
+			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, trailing, ", ") << ") \n{" << std::endl;
+		++trailing;
+		FunctionDeclarationBase::body->cout(trailing);
+		--trailing;
+		std::cout << InstructionBase::instruction_begin(trailing)  << "}" << std::endl;
 	}
 };
 
@@ -681,19 +751,24 @@ struct ForController : virtual ControllerBase {
 		for_status = INIT;	
 	}
 
-	void feed_for(const Ex & e) {
+	bool feed_for(const Ex & e) {
 		if (for_status == BODY) {
-			return;
+			//queueEvent(e);
+			return false;
 		} else if (!current_for->init) {
 			current_for->init = std::make_shared<Statement>(e);
+			//std::cout << "init : " << e->str() << std::endl;
 		} else if (!current_for->condition) {
 			current_for->condition = std::make_shared<Statement>(e);
-		} else {
+			//std::cout << "condition : " << e->str() << std::endl;
+		} else if (!current_for->loop) {
 			current_for->loop = std::make_shared<Statement>(e);
 			current_for->body = std::make_shared<Block>(currentBlock);
+			//std::cout << "loop : " << e->str() << std::endl;
 			currentBlock = current_for->body;
 			for_status = BODY;
 		} 
+		return true;
 	}
 
 	void end_for() {
@@ -705,11 +780,48 @@ struct ForController : virtual ControllerBase {
 	ForStatus for_status = NONE;
 };
 
+
+struct IfController : virtual ControllerBase {
+
+	struct BeginIf {
+		operator bool() const { return true; }
+		~BeginIf();
+	};
+
+	struct BeginElse {
+		operator bool() const { return false; }
+		~BeginElse();
+	};
+
+	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>,BoolT>::value> >
+	void begin_if(R_B && b);
+
+	void begin_else() {
+		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), {} });
+		currentBlock = current_if->bodies.back().body;
+		waiting_for_else = false;
+	}
+	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	void begin_else_if(R_B && b);
+
+	void end_if_sub_block() {
+		waiting_for_else = true;
+	}
+	void end_if() {
+		currentBlock = currentBlock->parent;
+		current_if = {};
+		waiting_for_else = false;
+	}
+
+	IfInstruction::Ptr current_if;
+	bool waiting_for_else = false;
+};
+
 struct WhileController : virtual ControllerBase {
 
 };
 
-struct MainController : virtual ForController, virtual WhileController {
+struct MainController : virtual ForController, virtual WhileController, virtual IfController {
 	using Ptr = std::shared_ptr<MainController>;
 	InitManager init_manager;
 
@@ -718,8 +830,13 @@ struct MainController : virtual ForController, virtual WhileController {
 		//init_manager.handle(e);
 		
 		if (for_status != NONE) {
-			feed_for(e);
+			if (feed_for(e)) {
+				return;
+			}
 		} 
+		if (current_if && waiting_for_else ) {
+			end_if();
+		}
 		queueEvent(e);
 	}
 };
@@ -742,20 +859,21 @@ struct TShader : MainController {
 	int version;
 
 	void cout() {
+		int trailing = 0;
 		for (const auto & struc : structs) {
-			struc->cout();
+			struc->cout(trailing);
 			std::cout << "\n";
 		}
 		for (const auto & fun : functions) {
-			fun->cout();
+			fun->cout(trailing);
 			std::cout << "\n";
 		}
-		declarations->cout();
+		declarations->cout(trailing);
 	}
 	void explore() {
 		declarations->explore();
 		for (const auto & struc : structs) {
-			struc->cout();
+			//struc->cout();
 		}
 	}
 
@@ -788,6 +906,7 @@ struct TShader : MainController {
 		}
 		auto return_block = std::dynamic_pointer_cast<ReturnBlock>(cBlock);
 		if (!return_block->hasReturnStatement) {
+			//std::cout << "return statement " << ex->str() << std::endl;
 			currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<ReturnStatement>(ex)));
 			return_block->hasReturnStatement = true;
 		}
@@ -824,6 +943,29 @@ struct MainListener {
 	void end_for() {
 		if (currentShader) {
 			currentShader->end_for();
+		}
+	}
+
+	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	void begin_if(R_B && b) {
+		if (currentShader) {
+			currentShader->begin_if(std::forward<R_B>(b));
+		}
+	}
+	void begin_else() {
+		if (currentShader) {
+			currentShader->begin_else();
+		}
+	}
+	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	void begin_else_if(R_B && b) {
+		if (currentShader) {
+			currentShader->begin_else_if(std::forward<R_B>(b));
+		}
+	}
+	void end_if_sub_block() {
+		if (currentShader) {
+			currentShader->end_if_sub_block();
 		}
 	}
 
@@ -978,8 +1120,18 @@ listen().begin_for(); __VA_ARGS__;  \
 for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
 
 
+IfController::BeginIf::~BeginIf() {
+	listen().end_if_sub_block();
+}
+IfController::BeginElse::~BeginElse() {
+	listen().end_if_sub_block();
+}
 
+#define GL_IF_T(condition) listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
 
+#define GL_ELSE_T else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
+
+#define GL_ELSE_IF_T(condition) else if(true){} listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
 
 //////////////////////////////////////
 

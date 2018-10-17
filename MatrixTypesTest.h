@@ -3,38 +3,6 @@
 #include "Algebra.h"
 #include "ExpressionsTest.h"
 
-
-template<numberType type, unsigned int Nrows, unsigned int Ncols>
-class MatrixT;
-
-template<numberType type, unsigned int N> using VecT = MatrixT<type, N, 1>;
-
-template<numberType type> using ScalarT = VecT<type, 1>;
-
-using DoubleT = ScalarT<numberType::DOUBLE>;
-using FloatT = ScalarT<numberType::FLOAT>;
-using BoolT = ScalarT<numberType::BOOL>;
-using UintT = ScalarT<numberType::UINT>;
-using IntT = ScalarT<numberType::INT>;
-
-using vec2T = VecT<numberType::FLOAT, 2>;
-using vec3T = VecT<numberType::FLOAT, 3>;
-using vec4T = VecT<numberType::FLOAT, 4>;
-
-using mat2x2T = MatrixT<numberType::FLOAT, 2, 2>;
-using mat2x3T = MatrixT<numberType::FLOAT, 2, 3>;
-using mat2x4T = MatrixT<numberType::FLOAT, 2, 4>;
-using mat3x2T = MatrixT<numberType::FLOAT, 2, 2>;
-using mat3x3T = MatrixT<numberType::FLOAT, 3, 3>;
-using mat3x4T = MatrixT<numberType::FLOAT, 3, 4>;
-using mat4x2T = MatrixT<numberType::FLOAT, 4, 2>;
-using mat4x3T = MatrixT<numberType::FLOAT, 4, 3>;
-using mat4x4T = MatrixT<numberType::FLOAT, 4, 4>;
-
-using mat2T = mat2x2T;
-using mat3T = mat3x3T;
-using mat4T = mat4x4T;
-
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 struct Infos<MatrixT<type, Nrows, Ncols>> {
 	static const bool numeric_type = true;
@@ -254,11 +222,30 @@ public:
 		typename = std::enable_if_t< NotBool<A> && (EqualMat<MatrixT, A> || IsScalar<A>)  >  >
 		void operator+=(R_A&& a) const && = delete;
 
+	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	operator bool() const {
+		return false;
+	}
 
 
 
 };
 
+template<typename R_B, typename>
+void IfController::begin_if(R_B && b) {
+	current_if = std::make_shared<IfInstruction>();
+	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(getExp<R_B>(b)) });
+	currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
+	currentBlock = current_if->bodies.back().body;
+	waiting_for_else = false;
+}
+
+template<typename R_B, typename>
+void IfController::begin_else_if(R_B && b) {
+	current_if->bodies.push_back({ std::make_shared<Block>(currentBlock->parent), std::make_shared<Statement>(getExp<R_B>(b)) });
+	currentBlock = current_if->bodies.back().body;
+	waiting_for_else = false;
+}
 
 
 

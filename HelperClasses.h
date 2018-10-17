@@ -45,6 +45,38 @@ template<unsigned int index, unsigned char c, unsigned char ... rest> struct Exc
 
 enum numberType { BOOL, UINT, INT, FLOAT, DOUBLE, ERROR};
 
+template<numberType type, unsigned int Nrows, unsigned int Ncols>
+class MatrixT;
+
+template<numberType type, unsigned int N> using VecT = MatrixT<type, N, 1>;
+
+template<numberType type> using ScalarT = VecT<type, 1>;
+
+using DoubleT = ScalarT<numberType::DOUBLE>;
+using FloatT = ScalarT<numberType::FLOAT>;
+using BoolT = ScalarT<numberType::BOOL>;
+using UintT = ScalarT<numberType::UINT>;
+using IntT = ScalarT<numberType::INT>;
+
+using vec2T = VecT<numberType::FLOAT, 2>;
+using vec3T = VecT<numberType::FLOAT, 3>;
+using vec4T = VecT<numberType::FLOAT, 4>;
+
+using mat2x2T = MatrixT<numberType::FLOAT, 2, 2>;
+using mat2x3T = MatrixT<numberType::FLOAT, 2, 3>;
+using mat2x4T = MatrixT<numberType::FLOAT, 2, 4>;
+using mat3x2T = MatrixT<numberType::FLOAT, 2, 2>;
+using mat3x3T = MatrixT<numberType::FLOAT, 3, 3>;
+using mat3x4T = MatrixT<numberType::FLOAT, 3, 4>;
+using mat4x2T = MatrixT<numberType::FLOAT, 4, 2>;
+using mat4x3T = MatrixT<numberType::FLOAT, 4, 3>;
+using mat4x4T = MatrixT<numberType::FLOAT, 4, 4>;
+
+using mat2T = mat2x2T;
+using mat3T = mat3x3T;
+using mat4T = mat4x4T;
+
+
 template<numberType type> struct isFP {
 	static const bool value = false;
 };
