@@ -511,9 +511,25 @@ struct ForInstruction : InstructionBase {
 };
 
 struct WhileInstruction : InstructionBase {
+	using Ptr = std::shared_ptr<WhileInstruction>;
 
-	Block::Ptr body;
+	WhileInstruction(const Ex & ex, const Block::Ptr & parent ) {
+		condition = std::make_shared<Statement>(ex);
+		body = std::make_shared<Block>(parent);
+	}
+	virtual void cout(int & trailing, uint opts) {
+		std::cout << instruction_begin(trailing) << "while( ";
+		condition->cout(trailing, NOTHING | IGNORE_DISABLE);
+		std::cout << " ){\n";
+		++trailing;
+		body->cout(trailing, opts);
+		--trailing;
+		std::cout << instruction_begin(trailing) << "}\n";
+	}
+
 	Statement::Ptr condition;
+	Block::Ptr body;
+	
 };
 
 struct IfInstruction : InstructionBase {
@@ -859,6 +875,30 @@ struct IfController : virtual ControllerBase {
 
 struct WhileController : virtual ControllerBase {
 
+	struct BeginWhile {
+		operator bool() const { 
+			std::cout << " BeginWhile operator bool() const " << first << std::endl;
+			if (first) {
+				first = false;
+				return true;
+			}
+			return false;
+		}
+		mutable bool first = true;
+		~BeginWhile();
+	};
+
+	void begin_while(const Ex & ex) {
+		std::cout << " begin while " << std::endl;
+		auto while_instruction = std::make_shared<WhileInstruction>(ex, currentBlock);
+		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(while_instruction));
+		currentBlock = while_instruction->body;
+	}
+
+	virtual void end_while() {
+		std::cout << " end while " << std::endl;
+		currentBlock = currentBlock->parent;
+	}
 };
 
 struct MainController : virtual ForController, virtual WhileController, virtual IfController {
@@ -868,6 +908,11 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	virtual void end_for() {
 		check_end_if();
 		ForController::end_for();
+	}
+
+	virtual void end_while() {
+		check_end_if();
+		WhileController::end_while();
 	}
 
 	void handleEvent(const Ex & e) {
@@ -965,17 +1010,23 @@ struct MainListener {
 		currentShader = shader.get();
 	}
 
+	/////////////////////////////////////////////////
+
 	void addEvent(const Ex & ex) {
 		if (currentShader && isListening) {
 			currentShader->handleEvent(ex);
 		}
 	}
+	
+	/////////////////////////////////////////////////
 
 	void add_return_statement(const Ex & ex) {
 		if (currentShader) {
 			currentShader->add_return_statement(ex);
 		}
 	}
+
+	/////////////////////////////////////////////////
 
 	void begin_for() {
 		if (currentShader) {
@@ -989,6 +1040,9 @@ struct MainListener {
 		}
 	}
 
+	/////////////////////////////////////////////////
+
+	//to be changed to EqualMat<CleanType<R_B>, BoolT> when moved outside of Algebra.h
 	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
 	void begin_if(R_B && b) {
 		if (currentShader) {
@@ -1026,12 +1080,32 @@ struct MainListener {
 			currentShader->delay_end_if();
 		}
 	}
+
+	/////////////////////////////////////////////////
+
+	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	void begin_while(R_B && b) {
+		if (currentShader) {
+			currentShader->begin_while(getExp<R_B>(b));
+		}
+	}
+
+	void end_while() {
+		if (currentShader) {
+			currentShader->end_while();
+		}
+	}
+
+	/////////////////////////////////////////////////
+
 	template<bool dummy, typename ...Args, typename ... Strings>
 	void add_struct(const std::string & name, const Strings & ... names) {
 		if (currentShader) {
 			currentShader->add_struct<Args...>(name, names...);
 		}
 	}
+
+	/////////////////////////////////////////////////
 
 	template<typename ReturnT, typename ...Args>
 	void begin_function(const std::string & name, const std::tuple<Args...> & args) {
@@ -1044,6 +1118,8 @@ struct MainListener {
 			currentShader->end_function();
 		}
 	}
+
+	/////////////////////////////////////////////////
 
 	void cout() {
 		if (currentShader) {
@@ -1177,6 +1253,7 @@ listen().begin_for(); __VA_ARGS__;  \
 for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
 
 
+
 IfController::BeginIf::~BeginIf() {
 	listen().end_if_sub_block();
 }
@@ -1189,6 +1266,13 @@ IfController::BeginElse::~BeginElse() {
 #define GL_ELSE_T else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
 
 #define GL_ELSE_IF_T(condition) else if(true){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
+
+
+WhileController::BeginWhile::~BeginWhile() {
+	listen().end_while();
+}
+
+#define GL_WHILE_T(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
 
 //////////////////////////////////////
 

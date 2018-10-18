@@ -111,7 +111,13 @@ int main()
 						GL_IF_T(a < 4) {
 							++b;
 						} GL_ELSE_IF_T(a < 12) {
-							++b;
+							GL_WHILE_T(a < 0) {
+								GL_WHILE_T(a < 0) {
+									GL_WHILE_T(a < 0) {
+									}
+									++b;
+								}
+							}
 						} GL_ELSE_IF_T(bb) {
 							++b;
 						} 
