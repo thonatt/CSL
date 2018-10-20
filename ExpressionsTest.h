@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
-#include <map>
-#include <memory>
-#include <array>
 
-#include "HelperClasses.h"
+#include <vector>
+#include <array>
+#include <memory>
+
+#include "StringHelpers.h"
+#include "FunctionHelpers.h"
 
 struct MainListener;
 MainListener & listen();
@@ -20,7 +21,13 @@ enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, BEHIND };
 enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
 enum CtorStatus { DECLARATION, INITIALISATION, TEMP };
-enum StatementOptions { SEMICOLON = 1 << 0, COMMA = 1 << 1, NOTHING = 1 << 2, NEW_LINE = 1 << 3, IGNORE_DISABLE = 1 << 4, DEFAULT = SEMICOLON | NEW_LINE };
+enum StatementOptions {
+	SEMICOLON = 1 << 0,
+	COMMA = 1 << 1,
+	NOTHING = 1 << 2,
+	NEW_LINE = 1 << 3,
+	IGNORE_DISABLE = 1 << 4,
+	DEFAULT = SEMICOLON | NEW_LINE };
 
 struct OpBase {
 	OpBase(OperatorDisplayRule rule = NONE, ParenthesisRule useParenthesis = USE_PARENTHESIS, bool args = true)
@@ -31,7 +38,7 @@ struct OpBase {
 	bool disabled = false;
 	mutable bool hasArgs = true;
 
-	virtual std::string str() const { return "dummyOpBase"; }
+	virtual const std::string str() const { return "dummyOpBase"; }
 	virtual void explore() {
 		std::cout << ", dRule : " << displayRule << ", pRule : " << parRule << ", disabled : " << disabled << ", hasArgs : " << hasArgs << std::endl;
 	}
@@ -43,7 +50,7 @@ struct Exp {
 	Exp(const OpB & _op, const std::vector<Ex> & _args = {}) : op(_op), args(_args) {
 		//std::cout << "Exp ctor " << n << std::endl;
 	}
-	std::string str() const {
+	const std::string str() const {
 		//std::cout << " str " << std::flush;
 		//std::cout << op->str() << std::endl;
 
@@ -98,14 +105,14 @@ struct Op : OpBase {};
 template<typename T>
 struct Litteral : OpBase {
 	Litteral(const T & _i) : OpBase(IN_FRONT, NO_PARENTHESIS), i(_i) {}
-	virtual std::string str() const { return std::to_string(i); }
+	virtual const std::string str() const { return std::to_string(i); }
 	virtual void explore() { std::cout << "Litteral T " << i << " "; OpBase::explore(); }
 	T i;
 };
 
 template<> struct Litteral<bool> : OpBase {
 	Litteral(const bool & _b) : OpBase(IN_FRONT, NO_PARENTHESIS), b(_b) {}
-	virtual std::string str() const { return b ? "true" : "false"; }
+	virtual const std::string str() const { return b ? "true" : "false"; }
 	virtual void explore() { std::cout << "Litteral Bool " << b << " "; OpBase::explore(); }
 	bool b;
 };
@@ -127,19 +134,11 @@ int CtorBase::counter = 0;
 
 struct DtorBase : OpBase {
 	DtorBase() { disabled = true;  }
-	virtual std::string str() const { return "dtorOp"; }
+	virtual const std::string str() const { return "dtorOp"; }
 	virtual void explore() { std::cout << "DTOR "; OpBase::explore(); }
 };
 
 using CtorBasePtr = std::shared_ptr<CtorBase>;
-
-template<typename T> struct TypeStrT {
-	static const std::string str() { return T::typeStr(); }
-};
-
-template<typename T> std::string  getTypeStrTest() {
-	return TypeStrT<T>::str();
-}
 
 template<typename T, OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS, CtorTypeDisplay tRule = DISPLAY>
 struct Ctor : CtorBase {
@@ -151,59 +150,36 @@ struct Ctor : CtorBase {
 		parRule = pRule;
 	}
 
-	//virtual std::string str() const { 
-	//	if (firstStr) {
-	//		firstStr = false;
-	//		if (isInit) {
-	//			if (hasArgs) {
-	//				return getTypeStrTest<T>() + " " + name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string("") );
-	//			} else {
-	//				return getTypeStrTest<T>() + " " + name;
-	//			}
-	//		} else {
-	//			return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
-	//		}
-	//	} else {
-	//		hasArgs = false;
-	//		return name;
-	//	}	
-	//}
-
-	virtual std::string str() const {
+	virtual const std::string str() const {
 		if (status == INITIALISATION) {
-			return getTypeStrTest<T>() + " " + *name + " = " + (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
+			return getTypeStr<T>() + " " + *name + " = " + (tRule == DISPLAY ? getTypeStr<T>() : std::string(""));
 		} else if (status == DECLARATION) {
 			//std::cout << " decalration " << getTypeStrTest<T>() << "  / "  << *name << std::endl;
-			return getTypeStrTest<T>() + " " + *name;
+			return getTypeStr<T>() + " " + *name;
 		} else {
-			return (tRule == DISPLAY ? getTypeStrTest<T>() : std::string(""));
+			return (tRule == DISPLAY ? getTypeStr<T>() : std::string(""));
 		}
 	}
 };
 
 struct Alias : OpBase {
 	Alias(std::shared_ptr<std::string> s) : OpBase(IN_FRONT,NO_PARENTHESIS), namePtr(s) {}
-	virtual std::string str() const { return *namePtr; }
+	virtual const std::string str() const { return *namePtr; }
 	virtual void explore() { std::cout << "Alias " << str() << " "; OpBase::explore(); }
 	std::shared_ptr<std::string> namePtr;
 };
 
-//struct Assignment : OpBase {
-//	Assignment() : {}
-//	virtual std::string str(int m) const { return  "assign"; }
-//};
-
 template<char c, ParenthesisRule p = USE_PARENTHESIS>
 struct SingleCharBinaryOp : OpBase {
 	SingleCharBinaryOp() : OpBase(IN_BETWEEN, p) {}
-	virtual std::string str() const { return std::string(1, c); }
+	virtual const std::string str() const { return std::string(1, c); }
 	virtual void explore() { std::cout << "OP " << c << " "; OpBase::explore(); }
 };
 
 template<OperatorDisplayRule dRule = IN_FRONT, ParenthesisRule pRule = USE_PARENTHESIS>
 struct FunctionOp : OpBase {
 	FunctionOp(const std::string & s) : OpBase(dRule,pRule), name(s) {}
-	virtual std::string str() const { return name; }
+	virtual const std::string str() const { return name; }
 	virtual void explore() { std::cout << "OP " << name << " "; OpBase::explore(); }
 	const std::string name;
 };
@@ -238,59 +214,27 @@ template<> void areNotInit<bool>(const bool &) {}
 template<> void areNotInit<int>(const int &) {}
 template<> void areNotInit<double>(const double &) {}
 
-template<typename T> using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
-
-template<bool temp> struct CheckForTempT;
-template<> struct CheckForTempT<true> {	
-	template<typename T>
-	static void check(const T &t) { 
-		areNotInit(t);
-		//std::cout << "temp " << std::endl; 
-	}
-};
-template<> struct CheckForTempT<false> {
-	template<typename T>
-	static void check(const T &t) { 
-		//std::cout << "not temp " << std::endl; 
-	}
-};
-
-template<typename ... Ts> void checkForTemp(const Ts &... ts);
-template<typename T, typename ... Ts> void checkForTemp(const T &t, const Ts &... ts) {
-	//CheckForTempT<!std::is_lvalue_reference<T>::value>::check(t);
-	//checkForTemp<Ts...>(ts...);
-}
-template<> void checkForTemp<>() { }
-
-struct InitManager {
-	void handle(const Ex & ex) {
-		if (auto op = std::dynamic_pointer_cast<CtorBase>(ex->op)) {
-			ctor(op);
-		} else if (auto op = std::dynamic_pointer_cast<DtorBase>(ex->op)) {
-			dtor(std::dynamic_pointer_cast<CtorBase>(ex->args[0]->op));
-		}
-	}
-
-	void ctor(const CtorBasePtr & t);
-	void dtor(const CtorBasePtr & t);
-
-	std::map<int, CtorBasePtr> decls;
-	int currentUp = -1;
-
-	static InitManager initManager;
-};
-InitManager InitManager::initManager = InitManager();
-
-struct Manager {
-	void add(const Ex &t);
-
-	void cout();
-	
-	std::vector<Ex> exps;
-	static Manager man;
-};
-Manager Manager::man = Manager();
-
+//template<bool temp> struct CheckForTemp;
+//template<> struct CheckForTemp<true> {	
+//	template<typename T>
+//	static void check(const T &t) { 
+//		areNotInit(t);
+//		//std::cout << "temp " << std::endl; 
+//	}
+//};
+//template<> struct CheckForTemp<false> {
+//	template<typename T>
+//	static void check(const T &t) { 
+//		//std::cout << "not temp " << std::endl; 
+//	}
+//};
+//
+//template<typename ... Ts> void checkForTemp(const Ts &... ts);
+//template<typename T, typename ... Ts> void checkForTemp(const T &t, const Ts &... ts) {
+//	//CheckForTempT<!std::is_lvalue_reference<T>::value>::check(t);
+//	//checkForTemp<Ts...>(ts...);
+//}
+//template<> void checkForTemp<>() { }
 
 template<typename Operator, typename ... Args>
 Ex createExp(const std::shared_ptr<Operator> &op, const Args &... args) {
@@ -318,9 +262,9 @@ template<typename T, CtorTypeDisplay tRule = DISPLAY, OperatorDisplayRule dRule 
 Ex createInit(const stringPtr & name, const Args &... args);
 
 
-template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
-	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
-}
+//template<typename Operator, typename ... Args> void addExp(const std::shared_ptr<Operator> &op, const Args &... args) {
+//	Manager::man.add(std::make_shared<Exp>(std::static_pointer_cast<OpBase>(op), std::vector<Ex>{args...}));
+//}
 
 template<> Ex getExp<bool>(const bool & b) {
 	return createExp(std::make_shared<Litteral<bool>>(b));
@@ -334,94 +278,44 @@ template<> Ex getExp<double>(const double & d) {
 	return createExp(std::make_shared<Litteral<double>>(d));
 }
 
-struct T;
-
-struct Tinit {
-	Tinit(const T & u, const std::string & s);
-
-	std::string name;
-	Ex exp;
-};
-
-
-template<typename ...Us> struct NotChars;
-template<typename U> struct NotChars<U> {
-	static const bool value = true;
-};
-template<typename U, typename ...Us> struct NotChars<U, Us...> {
-	static const bool value = NotChars<U>::value && NotChars<Us...>::value;
-};
-template <std::size_t N>  struct NotChars<const char(&)[N]> {
-	static const bool value = false;
-};
-
-template<typename ...Us> struct NotInits;
-template<typename U> struct NotInits<U> {
-	static const bool value = true;
-};
-template<typename U, typename ...Us> struct NotInits<U, Us...> {
-	static const bool value = NotInits<U>::value && NotInits<Us...>::value;
-};
-template <>  struct NotInits<Tinit> {
-	static const bool value = false;
-};
+//template<typename ...Us> struct NotChars;
+//template<typename U> struct NotChars<U> {
+//	static const bool value = true;
+//};
+//template<typename U, typename ...Us> struct NotChars<U, Us...> {
+//	static const bool value = NotChars<U>::value && NotChars<Us...>::value;
+//};
+//template <std::size_t N>  struct NotChars<const char(&)[N]> {
+//	static const bool value = false;
+//};
+//
+//template<typename ...Us> struct NotInits;
+//template<typename U> struct NotInits<U> {
+//	static const bool value = true;
+//};
+//template<typename U, typename ...Us> struct NotInits<U, Us...> {
+//	static const bool value = NotInits<U>::value && NotInits<Us...>::value;
+//};
+//template <>  struct NotInits<Tinit> {
+//	static const bool value = false;
+//};
 
 //Tinit operator<<(const T & t, const char * s) {
 //	return Tinit(t, s);
 //}
 
-void InitManager::ctor(const CtorBasePtr & tor) {
-	std::cout << " manager ctor " << tor->n << std::endl;
-	currentUp = tor->n;
-	decls[currentUp] = tor;
-}
-
-
-void InitManager::dtor(const CtorBasePtr & tor) {
-	//std::cout << " manager dtor " << tor->n << std::endl;
-	//std::cout << " dtor cnt " << tor.use_count() << std::endl;
-
-	if (tor->n < currentUp) {
-		//std::cout << "temp" << std::endl;
-		if (decls.count(tor->n) == 0) {
-			std::cout << "~~~" << std::endl;
-		}
-		//decls[tor->n]->isInit = false;
-		decls[tor->n]->disabled = true;
-	} else {
-		do {
-			--currentUp;
-		} while (currentUp >= 0 && (decls.count(currentUp) == 0  /*|| !decls[currentUp]->isInit */ ) );
-	}
-}
-
-void Manager::add(const Ex & e) {
-	//std::cout << " manager add " << std::endl;
-	exps.push_back(e);
-}
-
-void Manager::cout() {
-
-	for (const auto & ex : exps) {
-		if (ex->op->disabled) {
-			continue;
-		}
-		std::cout << ex->str() << ";" << std::endl;
-	}
-}
-
 
 struct InstructionBase {
 	using Ptr = std::shared_ptr<InstructionBase>;
 
-	static std::string instruction_begin(int trailing) {
+	static const std::string instruction_begin(int trailing) {
 		std::string out;
 		for (int t = 0; t < trailing; ++t) {
 			out += "   ";
 		}
 		return out;
 	}
-	static std::string instruction_end(uint opts) {
+	static const std::string instruction_end(uint opts) {
 		return std::string(opts & SEMICOLON ? ";" : opts & COMMA ? "," : "") + (opts & NEW_LINE ? "\n" : "");
 	}
 
@@ -573,7 +467,8 @@ enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
 
 template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclaration;
 
-template<SeparatorRule s, int N, typename T, typename ... Ts> struct DisplayDeclaration<s, N, T, Ts...> {
+template<SeparatorRule s, int N, typename T, typename ... Ts>
+struct DisplayDeclaration<s, N, T, Ts...> {
 	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
 		return InstructionBase::instruction_begin(trailing) + T::typeStr() + " " + v[v.size() - N] + 
 			 ( (s==SEP_AFTER_ALL || ( s==SEP_IN_BETWEEN && N!=1) ) ? separator : "" ) + 
@@ -581,26 +476,33 @@ template<SeparatorRule s, int N, typename T, typename ... Ts> struct DisplayDecl
 	}
 };
 
-template<SeparatorRule s, typename ... T> struct DisplayDeclaration<s, 0,T...> {
+template<SeparatorRule s, typename ... T>
+struct DisplayDeclaration<s, 0,T...> {
 	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) { return ""; }
 };
 
-template<SeparatorRule s, typename ... Ts> std::string memberDeclarations(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+template<SeparatorRule s, typename ... Ts>
+std::string memberDeclarations(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
 	return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 }
 
-template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclarationTuple {
+template<SeparatorRule s, int N, typename ... Ts>
+struct DisplayDeclarationTuple {
 	static const std::string str(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) {
-		return InstructionBase::instruction_begin(trailing) + std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + std::get<sizeof...(Ts) - N>(v).myName() +
+		return InstructionBase::instruction_begin(trailing) + 
+			std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + 
+			std::get<sizeof...(Ts) - N>(v).myName() +
 			((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
 			DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, trailing, separator);
 	}
 };
-template<SeparatorRule s, typename ... Ts> struct DisplayDeclarationTuple<s, 0, Ts...> {
+template<SeparatorRule s, typename ... Ts>
+struct DisplayDeclarationTuple<s, 0, Ts...> {
 	static const std::string str(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) { return ""; }
 };
 
-template<SeparatorRule s, typename ... Ts> std::string memberDeclarationsTuple(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) {
+template<SeparatorRule s, typename ... Ts>
+std::string memberDeclarationsTuple(const std::tuple<Ts...> & v, int & trailing, const std::string & separator) {
 	return DisplayDeclarationTuple<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 }
 
@@ -642,7 +544,7 @@ template<typename Arg, typename Arg2, typename ...Args> struct ArgTypeList<Arg,A
 template <typename ...Ts> constexpr bool SameTypeList = false;
 
 template <typename Input, typename Target>
-constexpr bool SameTypeList<ArgTypeList<Input>, ArgTypeList<Target> > = ConvertibleTo<Input, Target>; //EqualMat<Arg, ArgM>;
+constexpr bool SameTypeList<ArgTypeList<Input>, ArgTypeList<Target> > = IsConvertibleTo<Input, Target>; //EqualMat<Arg, ArgM>;
 
 template <typename LA, typename LB>
 constexpr bool SameTypeList<LA, LB> =
@@ -656,19 +558,19 @@ void checkArgsType(const std::function<void(Args...)>& f){
 //template<typename Lambda>
 
 template<typename F_Type>
-struct FunBase_T {
-	FunBase_T(const std::string & _name, const F_Type  & _f) : name(_name), f(_f) {}
+struct FunBase {
+	FunBase(const std::string & _name, const F_Type  & _f) : name(_name), f(_f) {}
 
 	F_Type f;
 	std::string name;
 };
 
 template<typename ReturnType, typename F_Type>
-struct Fun_T : FunBase_T<F_Type> {
+struct Fun : FunBase<F_Type> {
 	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
 
 	template<typename ... Strings>
-	Fun_T(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : FunBase_T<F_Type>(_name,_f) {
+	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : FunBase<F_Type>(_name,_f) {
 		init_function_declaration<ReturnType>(_name, functionFromLambda(_f), _argnames...);
 	}
 
@@ -679,16 +581,16 @@ struct Fun_T : FunBase_T<F_Type> {
 		//using RT = typename std::result_of_t<F_Type(R_Args...)>;
 		//std::cout << typeid(RT).name() << std::endl;
 		
-		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(FunBase_T<F_Type>::f));
+		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(FunBase<F_Type>::f));
 		//checkForTemp<R_Args...>(args...);
 
-		return ReturnType(createExp(std::make_shared<FunctionOp<>>(FunBase_T<F_Type>::name), getExp<R_Args>(args)... ));
+		return ReturnType(createExp(std::make_shared<FunctionOp<>>(FunBase<F_Type>::name), getExp<R_Args>(args)... ));
 	}
 };
 
 template<typename ReturnType,typename F_Type, typename ... Strings >
-Fun_T<ReturnType,F_Type> makeFunT(const std::string & name, const F_Type & f, const Strings & ...argnames) {
-	return Fun_T<ReturnType,F_Type>(name, f, argnames...);
+Fun<ReturnType,F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
+	return Fun<ReturnType,F_Type>(name, f, argnames...);
 }
 
 struct FunctionDeclarationBase : InstructionBase {
@@ -754,7 +656,6 @@ struct ForController : virtual ControllerBase {
 	struct EndFor {
 		~EndFor();
 
-
 		explicit operator bool() {
 			if (first) {
 				first = false;
@@ -817,10 +718,10 @@ struct IfController : virtual ControllerBase {
 
 	void begin_if(const Ex & ex) {
 		if (current_if) {
-			std::cout << " nested if" << std::endl;
+			//std::cout << " nested if" << std::endl;
 			current_if = std::make_shared<IfInstruction>(current_if);
 		} else {
-			std::cout << " non nested if" << std::endl;
+			//std::cout << " non nested if" << std::endl;
 			current_if = std::make_shared<IfInstruction>();
 		}
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
@@ -849,7 +750,7 @@ struct IfController : virtual ControllerBase {
 		
 	}
 	void end_if() {
-		std::cout << " end if " << std::endl;
+		//std::cout << " end if " << std::endl;
 		current_if = current_if->parent_if;
 		currentBlock = currentBlock->parent;
 	}
@@ -877,7 +778,7 @@ struct WhileController : virtual ControllerBase {
 
 	struct BeginWhile {
 		operator bool() const { 
-			std::cout << " BeginWhile operator bool() const " << first << std::endl;
+			//std::cout << " BeginWhile operator bool() const " << first << std::endl;
 			if (first) {
 				first = false;
 				return true;
@@ -889,21 +790,20 @@ struct WhileController : virtual ControllerBase {
 	};
 
 	void begin_while(const Ex & ex) {
-		std::cout << " begin while " << std::endl;
+		//std::cout << " begin while " << std::endl;
 		auto while_instruction = std::make_shared<WhileInstruction>(ex, currentBlock);
 		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(while_instruction));
 		currentBlock = while_instruction->body;
 	}
 
 	virtual void end_while() {
-		std::cout << " end while " << std::endl;
+		//std::cout << " end while " << std::endl;
 		currentBlock = currentBlock->parent;
 	}
 };
 
 struct MainController : virtual ForController, virtual WhileController, virtual IfController {
 	using Ptr = std::shared_ptr<MainController>;
-	InitManager init_manager;
 	
 	virtual void begin_for() {
 		check_end_if();
@@ -921,8 +821,7 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	}
 
 	void handleEvent(const Ex & e) {
-		//init_manager.handle(e);
-		
+	
 		if (for_status != NONE) {
 			if (feed_for(e)) {
 				return;
@@ -1049,8 +948,7 @@ struct MainListener {
 
 	/////////////////////////////////////////////////
 
-	//to be changed to EqualMat<CleanType<R_B>, BoolT> when moved outside of Algebra.h
-	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
 	void begin_if(R_B && b) {
 		if (currentShader) {
 			currentShader->begin_if(getExp<R_B>(b));
@@ -1061,7 +959,7 @@ struct MainListener {
 			currentShader->begin_else();
 		}
 	}
-	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
 	void begin_else_if(R_B && b) {
 		if (currentShader) {
 			currentShader->begin_else_if(getExp<R_B>(b));
@@ -1090,7 +988,7 @@ struct MainListener {
 
 	/////////////////////////////////////////////////
 
-	template<typename R_B, typename = std::enable_if_t< std::is_same<CleanType<R_B>, BoolT>::value> >
+	template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
 	void begin_while(R_B && b) {
 		if (currentShader) {
 			currentShader->begin_while(getExp<R_B>(b));
@@ -1153,17 +1051,17 @@ MainListener MainListener::overmind = MainListener();
 
 MainListener & listen() { return MainListener::overmind; }
 
-//specialization of Fun_T when ReturnType == void
+//specialization of Fun when ReturnType == void
 template<typename F_Type>
-struct Fun_T<void, F_Type> : FunBase_T<F_Type> {
+struct Fun<void, F_Type> : FunBase<F_Type> {
 	template<typename ... Strings>
-	Fun_T(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase_T<F_Type>(_name, _f) {
+	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase<F_Type>(_name, _f) {
 		init_function_declaration<void>(_name, functionFromLambda(_f), _argnames...);
 	}
 	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
 	void operator()(R_Args &&  ... args) {
-		checkArgsType<ArgTypeList<R_Args...> >(functionFromLambda(FunBase_T<F_Type>::f));
-		listen().addEvent(createExp(std::make_shared<FunctionOp<>>(FunBase_T<F_Type>::name), getExp<R_Args>(args)...));
+		checkArgsType<ArgTypeList<R_Args...> >(functionFromLambda(FunBase<F_Type>::f));
+		listen().addEvent(createExp(std::make_shared<FunctionOp<>>(FunBase<F_Type>::name), getExp<R_Args>(args)...));
 	}
 };
 
@@ -1284,15 +1182,15 @@ WhileController::BeginWhile::~BeginWhile() {
 //////////////////////////////////////
 
 
-class NamedObjectBaseT {
+class NamedObjectBase {
 public:
-	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = true)
+	NamedObjectBase(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true)
 		: parent(_parent), isUsed(_isUsed) {
 		namePtr = std::make_shared<std::string>(_name);
 		//std::cout << " end check" << std::endl;
 	}
 	
-	~NamedObjectBaseT() {
+	~NamedObjectBase() {
 		//if (!isUsed) {
 		//	if (exp) {
 		//		auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
@@ -1311,7 +1209,8 @@ public:
 	static const std::string typeStr() { return "dummyT"; }
 	std::shared_ptr<std::string> namePtr;
 	mutable bool isUsed = true;
-	NamedObjectBaseT * parent = nullptr;
+	NamedObjectBase * parent = nullptr;
+
 public:
 	Ex exp;
 
@@ -1320,19 +1219,17 @@ public:
 	const std::string myName() const { return *myNamePtr(); }
 };
 
-//template<> Ex getExp(const NamedObjectBaseT & obj) { return obj.exp; }
-
 
 template<typename T>
-class NamedObjectT : public NamedObjectBaseT {
+class NamedObject : public NamedObjectBase {
 public:
 
 	static const std::string typeStr() { return "dummyNameObjT"; }
 
 protected:
-	NamedObjectT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = true) : NamedObjectBaseT(_name, _parent, _isUsed) {
+	NamedObject(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true) : NamedObjectBase(_name, _parent, _isUsed) {
 		if (_name == "") {
-			namePtr = std::make_shared<std::string>(getTypeStrTest<T>() + "_" + std::to_string(counter));
+			namePtr = std::make_shared<std::string>(getTypeStr<T>() + "_" + std::to_string(counter));
 			++counter;
 		}
 	}
@@ -1342,5 +1239,5 @@ protected:
 public:
 
 };
-template<typename T> int NamedObjectT<T>::counter = 0;
+template<typename T> int NamedObject<T>::counter = 0;
 

@@ -43,7 +43,7 @@ template<unsigned int index, unsigned char c, unsigned char ... rest> struct Exc
 };
 
 
-enum numberType { BOOL, UINT, INT, FLOAT, DOUBLE, ERROR};
+enum numberType { BOOL, UINT, INT, FLOAT, DOUBLE, INVALID};
 
 template<numberType type, unsigned int Nrows, unsigned int Ncols>
 class MatrixT;

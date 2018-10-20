@@ -3,22 +3,19 @@
 
 
 
-#include "AlgebraFunctions.h"
-#include "Layouts.h"
-#include "Samplers.h"
-#include "BuildingBlocks.h"
-#include "Shaders.h"
-#include "ExpressionsTest.h"
+//#include "AlgebraFunctions.h"
+//#include "Layouts.h"
+//#include "Samplers.h"
+//#include "BuildingBlocks.h"
+//#include "Shaders.h"
 
 #include "MatrixTypesTest.h"
+#include "StructHelpers.h"
 
 //void srt1();
 //void srt2();
 //void srt3();
 //void firstTest();
-
-template<typename T,typename U> int myTfun(const T&t, const U&u) {}
-template<typename T> const auto myIntFun = myTfun<T,float>;
 
 int main()
 {
@@ -72,50 +69,49 @@ int main()
 
 	{
 
-		GL_STRUCT_T(MyType,
-			(FloatT) a,
-			(IntT) b
+		GL_STRUCT(MyType,
+			(Float) a,
+			(Int) b
 		);
 
-		MyType myType;
-
-		GL_STRUCT_T(MyBigType,
+		GL_STRUCT(MyBigType,
 			(MyType) v_a,
-			(IntT) v_b,
-			(FloatT) v_c
+			(Int) v_b,
+			(Float) v_c
 		) myBigType("myBugType");
 
 
 	
 		//does not compile on gcc with empty arg list
-		makeFunT<FloatT>("test@", []() {
-			GL_RETURN_T(FloatT(42));
+		makeFun<Float>("test@", []() {
+			GL_RETURN_T(Float(42));
 		});
 
-		auto fun = makeFunT<FloatT>("test@@", [&](FloatT f, IntT i, FloatT g) {
-			FloatT gg = f + i + g;
+
+		auto fun = makeFun<Float>("test@@", [&](Float f, Int i, Float g) {
+			Float gg = f + i + g;
 			++g;
-			BoolT bb("myBool");
+			Bool bb("myBool");
 
 			GL_IF_T(bb) {
-				FloatT ggg = gg;
-				FloatT hhh = 1.0;
+				Float ggg = gg;
+				Float hhh = 1.0;
 				//ggg + hhh;
 			}
 
-			GL_FOR_T(IntT a(0,"a"); a < 5; ++a) {
-				FloatT ggg = gg;
-				FloatT hhh = 1.0; 
+			GL_FOR_T(Int a(0,"a"); a < 5; ++a) {
+				Float ggg = gg;
+				Float hhh = 1.0; 
 				
 				++g;
-				GL_FOR_T(IntT b(2,"b"); b < 10; ++b) {
+				GL_FOR_T(Int b(2,"b"); b < 10; ++b) {
 					++a;
 				
 					GL_IF_T(a < 3) {
 						++b;
 					} GL_ELSE_IF_T(bb) {
 						++b;
-						GL_FOR_T(IntT c(22, "b"); c < 24; ++c) {
+						GL_FOR_T(Int c(22, "b"); c < 24; ++c) {
 							GL_IF_T(a < 4) {
 								++b;
 							}
@@ -158,65 +154,65 @@ int main()
 		}, "arg1", "arg2", "arg3");
 
 
-		auto fun_void = makeFunT<void>("void_fun", [](FloatT f) {
-			FloatT g;
+		auto fun_void = makeFun<void>("void_fun", [](Float f) {
+			Float g;
 			++g;
 		});
 
-		FloatT result_fun = fun(FloatT(1.0), 1, fun(1.0, 1, 1.0));
+		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
 
 		fun(1, 1, 1);
 
-		FloatT gggggg;
-		FloatT f = 1.0;
+		Float gggggg;
+		Float f = 1.0;
 		f = 0;
-		//f = DoubleT(); //do not compile implicit conversion goes from simple types to complex types
-		f = FloatT(3);
-		IntT ii = 1;
-		IntT jj = IntT(1.0);
-		IntT jjj = 1.0;
+		//f = Double(); //do not compile implicit conversion goes from simple types to complex types
+		f = Float(3);
+		Int ii = 1;
+		Int jj = Int(1.0);
+		Int jjj = 1.0;
 		//jj = 1.0; //not compiling
 
-		FloatT fff = true;
-		BoolT bb = true;
-		BoolT bbb = BoolT(f);
+		Float fff = true;
+		Bool bb = true;
+		Bool bbb = Bool(f);
 
-		BoolT bbbb = BoolT(FloatT(BoolT(FloatT(1))));
-		IntT iii = IntT(bb);
-		IntT ttt = bb;
+
+		Bool bbbb = Bool(Float(Bool(Float(1))));
+		Int iii = Int(bb);
+		Int ttt = bb;
 		bb = false;
 		ttt = false || bb && true || bb && false;
 
-		FloatT g(0.0, "blah");
+		Float g(0.0, "blah");
+		g = Float(1) + g + 0.1 + g + 1 + myBigType.v_b + myBigType.v_a.a + myBigType.v_c;
 
-		g = FloatT(1) + g + 0.1 + g + 1 + myType.a + myBigType.v_a.a + myType.a;
+		Float ffff = Float(1) + g;
 
-		FloatT ffff = FloatT(1) + g;
+		vec2 ff = vec2(1, 2);
+		vec4 vv = vec4(f, vec2(f, f), g) << "myVec4";
+		mat4 mm = mat4(vv, vv, vv, f, g, ff) << "mm";
 
-		vec2T ff = vec2T(1, 2);
-		vec4T vv = vec4T(f, vec2T(f, f), g) << "myVec4";
-		mat4T mm = mat4T(vv, vv, vv, f, g, ff) << "mm";
+		mat4 mmm = mat4(mat2(vec2(Float(1.0), Float(2)), ff), vec4(0, 0.0, 0.0, 1), vv, mat2(ff, ff)) << "mmm";
 
-		mat4T mmm = mat4T(mat2T(vec2T(FloatT(1.0), FloatT(2)), ff), vec4T(0, 0.0, 0.0, 1), vv, mat2T(ff, ff)) << "mmm";
-
-		FloatT gg = FloatT(mm); //yes, this is legal
+		Float gg = Float(mm); //yes, this is legal
 		bb = g < gg;
 
-		mat4T ma = mat4T(0) << "m";
-		mat4T maa = ma << "maa";
-		mat2x3T m23;
+		mat4 ma = mat4(0) << "m";
+		mat4 maa = ma << "maa";
+		mat2x3 m23;
 		ma = mm;
-		ma = mat4T(m23);
+		ma = mat4(m23);
 
 		ma = (++ma)++;
-		mat4T mb = (++ma)++;
-		ma += - -- -mat4T(0);
+		mat4 mb = (++ma)++;
+		ma += - -- -mat4(0);
 		//ma = 0; //not compiling
-		//ma = vec3T(); //not compiling
+		//ma = vec3(); //not compiling
 
 
-		mat3T m3 = mat3T(mat4T(0));
-		//mat3T m3 = mat4T(0); // not compiling
+		mat3 m3 = mat3(mat4(0));
+		mat3 m4 = mat4(0);  //apply conversion
 
 		//listen().explore();
 		listen().cout();
