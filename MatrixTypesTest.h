@@ -56,17 +56,17 @@ public:
 	MatrixT(Matrix_Track track, const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
 		areNotInit(*this);
-		isUsed = true;
+		
 	}
 
 	static const std::string typeStr() { return TypeStrT<MatrixT>::str(); }
 
 	explicit MatrixT(const std::string & _name = "") : NamedObjectT<MatrixT>(_name) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
-		isUsed = true;
+		
 	}
 
-	explicit MatrixT(const std::string & _name, NamedObjectBaseT * _parent, bool _isUsed = false) : NamedObjectT<MatrixT>(_name,_parent, _isUsed) {
+	explicit MatrixT(const std::string & _name, NamedObjectBaseT * _parent, bool _isUsed = true) : NamedObjectT<MatrixT>(_name,_parent, _isUsed) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
 		if (_parent) {
 			//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
@@ -77,7 +77,7 @@ public:
 	template <std::size_t N>
 	explicit MatrixT(const char(&s)[N]) : NamedObjectT<MatrixT>(s) {
 		exp = createDeclaration<MatrixT>(NamedObjectBaseT::myNamePtr());
-		isUsed = true;
+		
 	}
 
 	template<typename U, typename = std::enable_if_t<!isBool && (NR == 1 && NC == 1) && AreValid<U> && !Infos<U>::glsl_type > >
@@ -92,6 +92,7 @@ public:
 		(!isBool && NC != 1 && NR != 1 && Infos<T>::cols != 1 && Infos<T>::rows != 1) //matXY(matWZ)
 			) > >
 	MatrixT( R_T && x) : NamedObjectT<MatrixT>() {
+		
 		checkForTemp<R_T>(x);
 		if ( EqualMat<MatrixT,T> ) {
 			exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, getExp<R_T>(x));
@@ -109,6 +110,7 @@ public:
 		//exp = other.exp;
 		//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
 		//std::cout << " CTOR &&" << std::endl;
+		
 	}
 
 	MatrixT (const MatrixT& other) : NamedObjectT<MatrixT>(other) {
@@ -116,6 +118,7 @@ public:
 		//exp = other.exp;
 		//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
 		//std::cout << " CTOR const&" << std::endl;
+		
 	}
 	/////////////////////////////////////////////////////
 
@@ -150,6 +153,7 @@ public:
 	MatrixT(const Ex & _exp)  : NamedObjectT<MatrixT>() {
 		//std::cout << " from exp " << std::endl;
 		exp = createInit<MatrixT, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, _exp);
+		isUsed = false;
 	}
 
 	MatrixT(const TinitT<type,NR,NC> & t) : NamedObjectT<MatrixT>(t.name) {

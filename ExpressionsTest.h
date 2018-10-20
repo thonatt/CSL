@@ -679,7 +679,7 @@ struct Fun_T : FunBase_T<F_Type> {
 		//using RT = typename std::result_of_t<F_Type(R_Args...)>;
 		//std::cout << typeid(RT).name() << std::endl;
 		
-		checkArgsType<ArgTypeList<R_Args...> >(functionFromLambda(FunBase_T<F_Type>::f));
+		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(FunBase_T<F_Type>::f));
 		//checkForTemp<R_Args...>(args...);
 
 		return ReturnType(createExp(std::make_shared<FunctionOp<>>(FunBase_T<F_Type>::name), getExp<R_Args>(args)... ));
@@ -904,6 +904,11 @@ struct WhileController : virtual ControllerBase {
 struct MainController : virtual ForController, virtual WhileController, virtual IfController {
 	using Ptr = std::shared_ptr<MainController>;
 	InitManager init_manager;
+	
+	virtual void begin_for() {
+		check_end_if();
+		ForController::begin_for();
+	}
 
 	virtual void end_for() {
 		check_end_if();
@@ -996,7 +1001,9 @@ struct TShader : MainController {
 		if (!return_block->hasReturnStatement) {
 			//std::cout << "return statement " << ex->str() << std::endl;
 			currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<ReturnStatement>(ex)));
-			return_block->hasReturnStatement = true;
+			
+			//disabled for now
+			//return_block->hasReturnStatement = true;
 		}
 
 	}
@@ -1279,7 +1286,7 @@ WhileController::BeginWhile::~BeginWhile() {
 
 class NamedObjectBaseT {
 public:
-	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = false)
+	NamedObjectBaseT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = true)
 		: parent(_parent), isUsed(_isUsed) {
 		namePtr = std::make_shared<std::string>(_name);
 		//std::cout << " end check" << std::endl;
@@ -1303,7 +1310,7 @@ public:
 
 	static const std::string typeStr() { return "dummyT"; }
 	std::shared_ptr<std::string> namePtr;
-	mutable bool isUsed = false;
+	mutable bool isUsed = true;
 	NamedObjectBaseT * parent = nullptr;
 public:
 	Ex exp;
@@ -1323,7 +1330,7 @@ public:
 	static const std::string typeStr() { return "dummyNameObjT"; }
 
 protected:
-	NamedObjectT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = false) : NamedObjectBaseT(_name, _parent, _isUsed) {
+	NamedObjectT(const std::string & _name = "", NamedObjectBaseT * _parent = nullptr, bool _isUsed = true) : NamedObjectBaseT(_name, _parent, _isUsed) {
 		if (_name == "") {
 			namePtr = std::make_shared<std::string>(getTypeStrTest<T>() + "_" + std::to_string(counter));
 			++counter;

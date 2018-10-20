@@ -22,7 +22,6 @@ template<typename T> const auto myIntFun = myTfun<T,float>;
 
 int main()
 {
-
 	//testRef();
 
 	////correct and well translated
@@ -86,19 +85,32 @@ int main()
 			(FloatT) v_c
 		) myBigType("myBugType");
 
+
+	
 		//does not compile on gcc with empty arg list
 		makeFunT<FloatT>("test@", []() {
 			GL_RETURN_T(FloatT(42));
 		});
 
-		auto fun = makeFunT<FloatT>("test@@", [](FloatT f, IntT i, FloatT g) {
+		auto fun = makeFunT<FloatT>("test@@", [&](FloatT f, IntT i, FloatT g) {
 			FloatT gg = f + i + g;
 			++g;
 			BoolT bb("myBool");
+
+			GL_IF_T(bb) {
+				FloatT ggg = gg;
+				FloatT hhh = 1.0;
+				//ggg + hhh;
+			}
+
 			GL_FOR_T(IntT a(0,"a"); a < 5; ++a) {
+				FloatT ggg = gg;
+				FloatT hhh = 1.0; 
+				
 				++g;
 				GL_FOR_T(IntT b(2,"b"); b < 10; ++b) {
 					++a;
+				
 					GL_IF_T(a < 3) {
 						++b;
 					} GL_ELSE_IF_T(bb) {
