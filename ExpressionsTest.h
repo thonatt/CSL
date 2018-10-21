@@ -575,7 +575,7 @@ std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
 }
 
 template <typename ReturnType, typename... Args, typename ... Strings>
-void init_function_declaration(const std::string & fname, const std::function<ReturnType(Args...)>& f, const Strings & ... args_name);
+void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
 
 template<typename T> struct FunctionReturnType;
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
@@ -629,7 +629,7 @@ template<typename ReturnType, typename F_Type, typename ... Strings >
 Fun<ReturnType, F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
 	return Fun<ReturnType, F_Type>(name, f, argnames...);
 }
-template<typename ReturnType, typename F_Type, typename ... Strings , typename = std::enable_if_t<!std::is_convertible_v<F_Type,std::string> > >
+template<typename ReturnType, typename F_Type, typename ... Strings , typename = std::enable_if_t<!std::is_convertible<F_Type,std::string>::value > >
 Fun<ReturnType, F_Type> makeFun(const F_Type & f, const Strings & ...argnames) {
 	return Fun<ReturnType, F_Type>("", f, argnames...);
 }
