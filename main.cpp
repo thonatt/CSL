@@ -17,6 +17,8 @@
 //void srt3();
 //void firstTest();
 
+template<typename T> void checkFun(const T & t) {}
+
 int main()
 {
 	//testRef();
@@ -83,80 +85,87 @@ int main()
 
 	
 		//does not compile on gcc with empty arg list
-		makeFun<Float>("test@", []() {
-			GL_RETURN_T(Float(42));
+		auto fuuuu = makeFun<Float>("test@", []() {
+			GL_RETURN(Float(42) + 1.0);
 		});
 
 
-		auto fun = makeFun<Float>("test@@", [&](Float f, Int i, Float g) {
+		auto fun = makeFun<Float>([&](Float f, Int i, Float g) {
 			Float gg = f + i + g;
 			++g;
 			Bool bb("myBool");
 
-			GL_IF_T(bb) {
+			GL_IF(bb) {
 				Float ggg = gg;
 				Float hhh = 1.0;
 				//ggg + hhh;
 			}
 
-			GL_FOR_T(Int a(0,"a"); a < 5; ++a) {
+			GL_FOR(Int a(0,"a"); a < 5; ++a) {
 				Float ggg = gg;
 				Float hhh = 1.0; 
 				
 				++g;
-				GL_FOR_T(Int b(2,"b"); b < 10; ++b) {
+				GL_FOR(Int b(2,"b"); b < 10; ++b) {
 					++a;
 				
-					GL_IF_T(a < 3) {
+					GL_IF(a < 3) {
 						++b;
-					} GL_ELSE_IF_T(bb) {
+					} GL_ELSE_IF(bb) {
 						++b;
-						GL_FOR_T(Int c(22, "b"); c < 24; ++c) {
-							GL_IF_T(a < 4) {
+						GL_FOR(Int c(22, "b"); c < 24; ++c) {
+							GL_IF(a < 4) {
 								++b;
 							}
 						}
-						GL_IF_T(a < 4) {
+						GL_IF(a < 4) {
 							++b;
-						} GL_ELSE_IF_T(a < 12) {
-							GL_WHILE_T(a < 0) {
-								GL_WHILE_T(a < 0) {
-									GL_WHILE_T(a < 0) {
+						} GL_ELSE_IF(a < 12) {
+							GL_WHILE(a < 0) {
+								GL_WHILE(a < 0) {
+									GL_WHILE(a < 0) {
 									}
 									++b;
 								}
 							}
-						} GL_ELSE_IF_T(bb) {
+						} GL_ELSE_IF(bb) {
 							++b;
 						} 
-						GL_IF_T(bb){
-							GL_IF_T(bb && bb) {
-								GL_IF_T(bb && bb && bb) {
+						GL_IF(bb){
+							GL_IF(bb && bb) {
+								GL_IF(bb && bb && bb) {
 									++b;
 								}
-							} GL_ELSE_IF_T(bb) {
+							} GL_ELSE_IF(bb) {
 								//nothing
 							}
 						}
-					} GL_ELSE_T {
+					} GL_ELSE {
 						++b;
 					}
-					GL_IF_T(a < 0) {
+					GL_IF(a < 0) {
 						++b;
 					}
 
 					++a;
 				}
 			}
+			GL_RETURN(gg + g);
 
-			GL_RETURN_T(gg + g);
 			//GL_RETURN_T();
 		}, "arg1", "arg2", "arg3");
 
+		//auto fun_void = makeFun<void>([](Float f) {
+		//	Float g;
+		//	++g;
+		//});
 
-		auto fun_void = makeFun<void>("void_fun", [](Float f) {
-			Float g;
-			++g;
+		checkFun([]() -> double {
+			GL_IF(true) {
+				GL_RETURN_TEST(1.0);
+			} GL_ELSE{
+				GL_RETURN_TEST(2);
+			}
 		});
 
 		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
@@ -164,6 +173,8 @@ int main()
 		fun(1, 1, 1);
 
 		Float gggggg;
+		//fun_void(gggggg);
+		
 		Float f = 1.0;
 		f = 0;
 		//f = Double(); //do not compile implicit conversion goes from simple types to complex types

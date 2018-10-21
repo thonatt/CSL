@@ -26,13 +26,13 @@ functionFromLambda(const Lambda &func) {
 }
 
 template<typename R, template<typename...> class Params, typename... Args, std::size_t... I>
-R call_from_tuple_helper(std::function<R(Args...)> const&func, Params<Args...> const&params, std::index_sequence<I...>)
+void call_from_tuple_helper(std::function<R(Args...)> const&func, Params<Args...> const&params, std::index_sequence<I...>)
 {
-	return func(std::get<I>(params)...);
+	func(std::get<I>(params)...);
 }
 
 template<typename R, template<typename...> class Params, typename... Args>
-R call_from_tuple(const std::function<R(Args...)> &func, const Params<Args...> &params)
+void call_from_tuple(const std::function<R(Args...)> &func, const Params<Args...> &params)
 {
-	return call_from_tuple_helper(func, params, std::index_sequence_for<Args...>{});
+	call_from_tuple_helper(func, params, std::index_sequence_for<Args...>{});
 }

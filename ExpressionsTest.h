@@ -17,6 +17,51 @@ using uint = unsigned int;
 struct Exp;
 using Ex = std::shared_ptr<Exp>;
 
+class NamedObjectBase {
+public:
+	NamedObjectBase(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true)
+		: parent(_parent), isUsed(_isUsed) {
+		namePtr = std::make_shared<std::string>(_name);
+		//std::cout << " end check" << std::endl;
+	}
+
+	~NamedObjectBase();
+
+	static const std::string typeStr() { return "dummyT"; }
+	std::shared_ptr<std::string> namePtr;
+	mutable bool isUsed = true;
+	NamedObjectBase * parent = nullptr;
+
+public:
+	Ex exp;
+
+public:
+	const stringPtr myNamePtr() const { return (parent ? std::make_shared<std::string>(parent->myName() + "." + *namePtr) : namePtr); }
+	const std::string myName() const { return *myNamePtr(); }
+
+};
+
+template<typename T>
+class NamedObject : public NamedObjectBase {
+public:
+
+	static const std::string typeStr() { return "dummyNameObjT"; }
+
+protected:
+	NamedObject(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true) : NamedObjectBase(_name, _parent, _isUsed) {
+		if (_name == "") {
+			namePtr = std::make_shared<std::string>(getTypeStr<T>() + "_" + std::to_string(counter));
+			++counter;
+		}
+	}
+
+	static int counter;
+
+public:
+
+};
+template<typename T> int NamedObject<T>::counter = 0;
+
 enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, BEHIND };
 enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
@@ -530,7 +575,7 @@ std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
 }
 
 template <typename ReturnType, typename... Args, typename ... Strings>
-void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
+void init_function_declaration(const std::string & fname, const std::function<ReturnType(Args...)>& f, const Strings & ... args_name);
 
 template<typename T> struct FunctionReturnType;
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
@@ -550,47 +595,43 @@ template <typename LA, typename LB>
 constexpr bool SameTypeList<LA, LB> =
 SameTypeList<typename LA::first,typename LB::first> && SameTypeList<typename LA::rest, typename LB::rest>;
 
-template <typename List, typename ... Args>
-void checkArgsType(const std::function<void(Args...)>& f){
+template <typename List, typename ReturnType, typename ... Args>
+void checkArgsType(const std::function<ReturnType(Args...)>& f){
 	static_assert(SameTypeList < List, ArgTypeList<Args...> >, "arg types do not match function signature, or no implicit conversion available");
 }
 
 //template<typename Lambda>
 
-template<typename F_Type>
-struct FunBase {
-	FunBase(const std::string & _name, const F_Type  & _f) : name(_name), f(_f) {}
-
-	F_Type f;
-	std::string name;
+struct FunBase : NamedObject<FunBase> {
+	using NamedObject<FunBase>::NamedObject;
+	static const std::string typeStr() { return "function"; }
 };
 
 template<typename ReturnType, typename F_Type>
-struct Fun : FunBase<F_Type> {
+struct Fun : FunBase {
 	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
 
 	template<typename ... Strings>
-	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames ) : FunBase<F_Type>(_name,_f) {
-		init_function_declaration<ReturnType>(_name, functionFromLambda(_f), _argnames...);
+	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+		init_function_declaration<ReturnType>(myName(), functionFromLambda(_f), _argnames...);
 	}
 
-	//more type checking
 	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
 	ReturnType operator()(R_Args &&  ... args) {
-		//, std::enable_if_t< std::is_same_v<void, std::result_of_t<F_Type(CleanType<R_Args>...)> > >
-		//using RT = typename std::result_of_t<F_Type(R_Args...)>;
-		//std::cout << typeid(RT).name() << std::endl;
-		
-		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(FunBase<F_Type>::f));
-		//checkForTemp<R_Args...>(args...);
-
-		return ReturnType(createExp(std::make_shared<FunctionOp<>>(FunBase<F_Type>::name), getExp<R_Args>(args)... ));
+		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
+		return ReturnType(createExp(std::make_shared<FunctionOp<>>(myName()), getExp<R_Args>(args)...));
 	}
+
+	F_Type f;
 };
 
-template<typename ReturnType,typename F_Type, typename ... Strings >
-Fun<ReturnType,F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
-	return Fun<ReturnType,F_Type>(name, f, argnames...);
+template<typename ReturnType, typename F_Type, typename ... Strings >
+Fun<ReturnType, F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
+	return Fun<ReturnType, F_Type>(name, f, argnames...);
+}
+template<typename ReturnType, typename F_Type, typename ... Strings , typename = std::enable_if_t<!std::is_convertible_v<F_Type,std::string> > >
+Fun<ReturnType, F_Type> makeFun(const F_Type & f, const Strings & ...argnames) {
+	return Fun<ReturnType, F_Type>("", f, argnames...);
 }
 
 struct FunctionDeclarationBase : InstructionBase {
@@ -1053,16 +1094,18 @@ MainListener & listen() { return MainListener::overmind; }
 
 //specialization of Fun when ReturnType == void
 template<typename F_Type>
-struct Fun<void, F_Type> : FunBase<F_Type> {
+struct Fun<void, F_Type> : FunBase {
 	template<typename ... Strings>
-	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase<F_Type>(_name, _f) {
-		init_function_declaration<void>(_name, functionFromLambda(_f), _argnames...);
+	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+		init_function_declaration<void>(myName(), functionFromLambda(_f), _argnames...);
 	}
 	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
 	void operator()(R_Args &&  ... args) {
-		checkArgsType<ArgTypeList<R_Args...> >(functionFromLambda(FunBase<F_Type>::f));
-		listen().addEvent(createExp(std::make_shared<FunctionOp<>>(FunBase<F_Type>::name), getExp<R_Args>(args)...));
+		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
+		listen().addEvent(createExp(std::make_shared<FunctionOp<>>(myName()), getExp<R_Args>(args)...));
 	}
+
+	F_Type f;
 };
 
 template<typename T, CtorTypeDisplay tRule, OperatorDisplayRule  dRule, ParenthesisRule pRule, CtorStatus status, typename ... Args>
@@ -1115,6 +1158,7 @@ void init_function_declaration(const std::string & fname, const std::function<vo
 	std::tuple<Args...> args = getTuple<sizeof...(Args),Args...>(args_names_array);
 
 	listen().begin_function<ReturnType, Args...>(fname, args);
+	
 	call_from_tuple(f, args);
 
 	//std::cout << r.myName() << std::endl;
@@ -1146,14 +1190,16 @@ void return_statement(Ts && ... ts) {
 	ReturnStT<Ts...>::return_statement(std::forward<Ts>(ts)...);
 }
 
-#define GL_RETURN_T(...) return_statement( __VA_ARGS__ )
+
+#define GL_RETURN(...) return_statement( __VA_ARGS__ )
+#define GL_RETURN_TEST(...) if(false){ return __VA_ARGS__; } return_statement( __VA_ARGS__ )
 
 ForController::EndFor::~EndFor() {
 	listen().end_for();
 }
 
 
-#define GL_FOR_T(...) listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
+#define GL_FOR(...) listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
 listen().begin_for(); __VA_ARGS__;  \
 for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
 
@@ -1166,78 +1212,40 @@ IfController::BeginElse::~BeginElse() {
 	listen().end_if();
 }
 
-#define GL_IF_T(condition) listen().check_begin_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
+#define GL_IF(condition) listen().check_begin_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
 
-#define GL_ELSE_T else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
+#define GL_ELSE else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
 
-#define GL_ELSE_IF_T(condition) else if(true){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
+#define GL_ELSE_IF(condition) else if(true){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
 
 
 WhileController::BeginWhile::~BeginWhile() {
 	listen().end_while();
 }
 
-#define GL_WHILE_T(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
+#define GL_WHILE(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
 
 //////////////////////////////////////
 
+NamedObjectBase::~NamedObjectBase() {
+	//if (!isUsed) {
+	//	if (exp) {
+	//		auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
+	//		std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
+	//	}
+	//}
 
-class NamedObjectBase {
-public:
-	NamedObjectBase(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true)
-		: parent(_parent), isUsed(_isUsed) {
-		namePtr = std::make_shared<std::string>(_name);
-		//std::cout << " end check" << std::endl;
-	}
-	
-	~NamedObjectBase() {
-		//if (!isUsed) {
-		//	if (exp) {
-		//		auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
-		//		std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
-		//	}
-		//}
-
-		//should check inside scope
-		if (!isUsed && exp) {
-			auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
-			//std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
+	//should check inside scope
+	if (!isUsed && exp) {
+		auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
+		//std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
+		if (ctor) {
 			ctor->status = TEMP;
 		}
 	}
-
-	static const std::string typeStr() { return "dummyT"; }
-	std::shared_ptr<std::string> namePtr;
-	mutable bool isUsed = true;
-	NamedObjectBase * parent = nullptr;
-
-public:
-	Ex exp;
-
-public:
-	const stringPtr myNamePtr() const { return (parent ? std::make_shared<std::string>(parent->myName() + "." + *namePtr) : namePtr); }
-	const std::string myName() const { return *myNamePtr(); }
-};
+}
 
 
-template<typename T>
-class NamedObject : public NamedObjectBase {
-public:
 
-	static const std::string typeStr() { return "dummyNameObjT"; }
 
-protected:
-	NamedObject(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true) : NamedObjectBase(_name, _parent, _isUsed) {
-		if (_name == "") {
-			namePtr = std::make_shared<std::string>(getTypeStr<T>() + "_" + std::to_string(counter));
-			++counter;
-		}
-	}
-
-	static int counter;
-
-public:
-
-};
-template<typename T> int NamedObject<T>::counter = 0;
 
