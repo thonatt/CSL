@@ -95,7 +95,7 @@ struct Exp {
 	Exp(const OpB & _op, const std::vector<Ex> & _args = {}) : op(_op), args(_args) {
 		//std::cout << "Exp ctor " << n << std::endl;
 	}
-	const std::string str() const {
+	virtual const std::string str() const {
 		//std::cout << " str " << std::flush;
 		//std::cout << op->str() << std::endl;
 
@@ -125,8 +125,6 @@ struct Exp {
 			out += op->str();
 		}
 
-
-
 		return out;
 	}
 
@@ -145,6 +143,19 @@ struct Exp {
 	std::vector<Ex> args;
 
 };
+
+struct EmptyExp : Exp {
+	EmptyExp() : Exp(OpB(), {}) {}
+
+	using Ptr = std::shared_ptr<EmptyExp>;
+
+	static Ex get() { return std::static_pointer_cast<Exp>(std::make_shared<EmptyExp>()); }
+
+	virtual const std::string str() const {
+		return "";
+	}
+};
+
 struct Op : OpBase {};
 
 template<typename T>
@@ -372,6 +383,11 @@ struct Block {
 	using Ptr = std::shared_ptr<Block>;
 	Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
 
+	template<typename I>
+	void push_instruction(const I & i) {
+		instructions.push_back(std::static_pointer_cast<InstructionBase>(i));
+	}
+
 	virtual void cout(int & trailing, uint opts = DEFAULT) {
 		for (const auto & inst : instructions) {
 			inst->cout(trailing);
@@ -386,10 +402,27 @@ struct Block {
 	Block::Ptr parent;
 };
 
-struct ReturnBlock : Block {
-	ReturnBlock(const Block::Ptr & _parent = {} ) : Block(_parent) {}
+struct ReturnBlockBase : Block {
+	using Ptr = std::shared_ptr<ReturnBlockBase>;
+	using Block::Block;
+
+	virtual RunTimeInfos getType() {
+		return getRunTimeInfos<void>();
+	}
 
 	bool hasReturnStatement = false;
+};
+
+template<typename ReturnType>
+struct ReturnBlock : ReturnBlockBase {
+	using Ptr = std::shared_ptr<ReturnBlock<ReturnType>>;
+
+	ReturnBlock(const Block::Ptr & _parent = {} ) : ReturnBlockBase(_parent) {}
+	virtual RunTimeInfos getType() {
+		return getRunTimeInfos<ReturnType>();
+	}
+
+	virtual void cout(int & trailing, uint opts = DEFAULT);
 };
 
 //struct IfBlockT : Block {
@@ -416,8 +449,18 @@ struct ReturnStatement : Statement {
 	using Ptr = std::shared_ptr<ReturnStatement>;
 	ReturnStatement(const Ex & e) : Statement(e) {}
 	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
-		std::cout << instruction_begin(trailing) << "return " << ex->str() << instruction_end(opts);
+		std::cout << instruction_begin(trailing) << str() << instruction_end(opts);
 	}
+
+	const std::string str() const {
+		std::string s = "return";
+		const std::string ex_str = ex->str();
+		if (ex_str != "") {
+			s += " " + ex_str;
+		}
+		return s;
+	}
+
 	void explore() {
 		ex->explore();
 	}
@@ -426,6 +469,23 @@ struct ReturnStatement : Statement {
 InstructionBase::Ptr toInstruction(const Ex & e) {
 	auto statement = std::make_shared<Statement>(e);
 	return std::dynamic_pointer_cast<InstructionBase>(statement);
+}
+
+struct CommentInstruction : InstructionBase {
+	CommentInstruction(const std::string & s) : comment(s) {}
+	virtual void cout(int & trailing, uint otps = DEFAULT) {
+		std::cout << instruction_begin(trailing) << "//" << comment << std::endl;
+	}
+	std::string comment;
+};
+
+template<typename ReturnType>
+void ReturnBlock<ReturnType>::cout(int & trailing, uint opts)
+{
+	Block::cout(trailing, opts);
+	if (!std::is_same<ReturnType, void>::value && !ReturnBlockBase::hasReturnStatement) {
+		CommentInstruction("need return statement here").cout(trailing, opts);
+	}
 }
 
 struct ForInstruction : InstructionBase {
@@ -635,14 +695,21 @@ Fun<ReturnType, F_Type> makeFun(const F_Type & f, const Strings & ...argnames) {
 }
 
 struct FunctionDeclarationBase : InstructionBase {
-	FunctionDeclarationBase() {
-		body = std::make_shared<ReturnBlock>();
-	}
-	ReturnBlock::Ptr body;
+	virtual Block::Ptr getBody() { return {}; }
 };
 
-template<typename ... Args>
-struct FunctionDeclarationArgs : FunctionDeclarationBase {
+template<typename ReturnType>
+struct FunctionDeclarationRTBase : FunctionDeclarationBase {
+	FunctionDeclarationRTBase() {
+		body = std::make_shared<ReturnBlock<ReturnType>>();
+	}
+	virtual Block::Ptr getBody() { return std::static_pointer_cast<Block>(body); }
+
+	typename ReturnBlock<ReturnType>::Ptr body;
+};
+
+template<typename ReturnType, typename ... Args>
+struct FunctionDeclarationArgs : FunctionDeclarationRTBase<ReturnType> {
 	
 	FunctionDeclarationArgs(const std::string & _name, const std::tuple<Args...> & _args) : name(_name), args(_args) {	
 	}
@@ -652,15 +719,15 @@ struct FunctionDeclarationArgs : FunctionDeclarationBase {
 };
 
 template<typename ReturnT, typename ... Args>
-struct FunctionDeclaration : FunctionDeclarationArgs<Args...> {
-
-	using FunctionDeclarationArgs<Args...>::FunctionDeclarationArgs;
+struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
+	using Base = FunctionDeclarationArgs<ReturnT, Args...>;
+	using Base::FunctionDeclarationArgs;
 
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing) << ReturnT::typeStr() << " " << FunctionDeclarationArgs<Args...>::name << "(" <<
-			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, trailing, ", ") << ") \n{" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing) << ReturnT::typeStr() << " " << Base::name << "(" <<
+			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, trailing, ", ") << ") \n{" << std::endl;
 		++trailing;
-		FunctionDeclarationBase::body->cout(trailing);
+		Base::getBody()->cout(trailing);
 		--trailing;
 		std::cout << InstructionBase::instruction_begin(trailing) << "}" << std::endl;
 	}
@@ -668,15 +735,15 @@ struct FunctionDeclaration : FunctionDeclarationArgs<Args...> {
 
 //specialization for ReturnT == void
 template<typename ... Args>
-struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<Args...> {
-
-	using FunctionDeclarationArgs<Args...>::FunctionDeclarationArgs;
+struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...> {
+	using Base = FunctionDeclarationArgs<void, Args...>;
+	using Base::FunctionDeclarationArgs;
 
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing) << "void " << FunctionDeclarationArgs<Args...>::name << "(" <<
-			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(FunctionDeclarationArgs<Args...>::args, trailing, ", ") << ") \n{" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing) << "void " << Base::name << "(" <<
+			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, trailing, ", ") << ") \n{" << std::endl;
 		++trailing;
-		FunctionDeclarationBase::body->cout(trailing);
+		Base::getBody()->cout(trailing);
 		--trailing;
 		std::cout << InstructionBase::instruction_begin(trailing)  << "}" << std::endl;
 	}
@@ -711,7 +778,7 @@ struct ForController : virtual ControllerBase {
 
 	void begin_for() {
 		current_for = std::make_shared<ForInstruction>();
-		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_for));
+		currentBlock->push_instruction(current_for);
 		for_status = INIT;	
 	}
 
@@ -766,7 +833,7 @@ struct IfController : virtual ControllerBase {
 			current_if = std::make_shared<IfInstruction>();
 		}
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
-		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(current_if));
+		currentBlock->push_instruction(current_if);
 		currentBlock = current_if->bodies.back().body;
 	}
 
@@ -833,7 +900,7 @@ struct WhileController : virtual ControllerBase {
 	void begin_while(const Ex & ex) {
 		//std::cout << " begin while " << std::endl;
 		auto while_instruction = std::make_shared<WhileInstruction>(ex, currentBlock);
-		currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(while_instruction));
+		currentBlock->push_instruction(while_instruction);
 		currentBlock = while_instruction->body;
 	}
 
@@ -924,28 +991,48 @@ struct TShader : MainController {
 		currentBlock = std::static_pointer_cast<Block>(function_declaration->body);
 	}
 	void end_function() {
-		currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->body->parent;
+		currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->getBody()->parent;
 	}
-	void add_return_statement(const Ex & ex) {
+
+	ReturnBlockBase::Ptr get_return_block() {
 		Block::Ptr cBlock = currentBlock;
-		while (true) {
-			if (auto testblock = std::dynamic_pointer_cast<ReturnBlock>(cBlock)) {
-				break;
+		bool found_return_block = false;
+		while (!found_return_block) {
+			if (auto testblock = std::dynamic_pointer_cast<ReturnBlockBase>(cBlock)) {
+				found_return_block = true;
 			} else if (cBlock->parent) {
 				cBlock = cBlock->parent;
 			} else {
-				return;
+				break;
 			}
 		}
-		auto return_block = std::dynamic_pointer_cast<ReturnBlock>(cBlock);
-		if (!return_block->hasReturnStatement) {
-			//std::cout << "return statement " << ex->str() << std::endl;
-			currentBlock->instructions.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<ReturnStatement>(ex)));
-			
-			//disabled for now
-			//return_block->hasReturnStatement = true;
-		}
+		return std::dynamic_pointer_cast<ReturnBlockBase>(cBlock);
+	}
 
+	void add_return_statement() {
+		auto return_statement = std::make_shared<ReturnStatement>(EmptyExp::get());
+		if (auto return_block = get_return_block()) {
+			if (return_block->getType().is_void()) {
+				currentBlock->push_instruction(return_statement);
+			} else {
+				currentBlock->push_instruction(std::make_shared<CommentInstruction>("unexpected " + return_statement->str() + "; in non void function "));
+			}
+		}
+	}
+
+	template<typename R_T>
+	void add_return_statement(R_T && t) {
+		Ex ex = getExp<R_T>(t);
+		auto return_statement = std::make_shared<ReturnStatement>(ex);
+
+		if (auto return_block = get_return_block()) {
+			if (return_block->getType().isConvertibleTo(getRunTimeInfos< CleanType<R_T>>())) {
+				currentBlock->push_instruction(return_statement);
+				return_block->hasReturnStatement = true;
+			} else {
+				currentBlock->push_instruction(std::make_shared<CommentInstruction>("wrong result type in : return " + ex->str()));
+			}
+		}
 	}
 };
 
@@ -967,9 +1054,22 @@ struct MainListener {
 	
 	/////////////////////////////////////////////////
 
-	void add_return_statement(const Ex & ex) {
+	//void add_return_statement(const Ex & ex) {
+	//	if (currentShader) {
+	//		currentShader->add_return_statement(ex);
+	//	}
+	//}
+
+	void add_return_statement() {
 		if (currentShader) {
-			currentShader->add_return_statement(ex);
+			currentShader->add_return_statement();
+		}
+	}
+
+	template<typename T>
+	void add_return_statement(T && t) {
+		if (currentShader) {
+			currentShader->add_return_statement(std::forward<T>(t));
 		}
 	}
 
@@ -1172,16 +1272,18 @@ void init_function_declaration(const std::string & fname, const std::function<vo
 
 template<typename ...Ts> struct ReturnStT;
 
-template<typename T> struct ReturnStT<T> {
+template<typename T>
+struct ReturnStT<T> {
 	static void return_statement(T && t) {
 		//checkForTemp<T>(t);
-		listen().add_return_statement(getExp<T>(t));
+		//listen().add_return_statement(getExp<T>(t));
+		listen().add_return_statement(std::forward<T>(t));
 	}
 };
 
 template<> struct ReturnStT<> {
 	static void return_statement() {
-		std::cout << "return void" << std::endl;
+		listen().add_return_statement();
 	}
 };
 
@@ -1191,7 +1293,7 @@ void return_statement(Ts && ... ts) {
 }
 
 
-#define GL_RETURN(...) return_statement( __VA_ARGS__ )
+#define GL_RETURN return_statement
 #define GL_RETURN_TEST(...) if(false){ return __VA_ARGS__; } return_statement( __VA_ARGS__ )
 
 ForController::EndFor::~EndFor() {

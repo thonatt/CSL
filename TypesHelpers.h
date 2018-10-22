@@ -11,7 +11,7 @@ using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 
 // matrix types forward declarations
 
-enum ScalarType { BOOL, UINT, INT, FLOAT, DOUBLE, INVALID };
+enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
 
 template<ScalarType type, uint Nrows, uint Ncols>
 class Matrix;
@@ -33,7 +33,7 @@ using vec4 = Vec<FLOAT, 4>;
 using mat2x2 = Matrix<FLOAT, 2, 2>;
 using mat2x3 = Matrix<FLOAT, 2, 3>;
 using mat2x4 = Matrix<FLOAT, 2, 4>;
-using mat3x2 = Matrix<FLOAT, 2, 2>;
+using mat3x2 = Matrix<FLOAT, 3, 2>;
 using mat3x3 = Matrix<FLOAT, 3, 3>;
 using mat3x4 = Matrix<FLOAT, 3, 4>;
 using mat4x2 = Matrix<FLOAT, 4, 2>;
@@ -87,6 +87,51 @@ template<> struct Infos<bool> {
 	static const ScalarType scalar_type = BOOL;
 };
 
+template<> struct Infos<void> {
+	static const bool is_numeric_type = false;
+	static const bool is_glsl_type = false;
+	static const uint rows = 0;
+	static const uint cols = 0;
+	static const ScalarType scalar_type = VOID;
+
+};
+struct RunTimeInfos {
+	
+	template<typename T>
+	void fromT() {
+		is_numeric_type = Infos<T>::is_numeric_type;
+		is_glsl_type = Infos<T>::is_glsl_type;
+		rows = Infos<T>::rows;
+		cols = Infos<T>::cols;
+		scalar_type = Infos<T>::scalar_type;
+	}
+
+	bool is_void() const {
+		return scalar_type == VOID;
+	}
+
+	bool isConvertibleTo(const RunTimeInfos & other) const {
+		bool valid = scalar_type != INVALID && other.scalar_type != INVALID;
+		bool same_dim = rows == other.rows && cols == other.cols;
+		bool higher_type = scalar_type <= other.scalar_type;
+		return valid && same_dim && higher_type;
+	}
+	
+	bool is_numeric_type;
+	bool is_glsl_type;
+	uint rows;
+	uint cols;
+	ScalarType scalar_type;
+};
+
+template<typename T>
+RunTimeInfos getRunTimeInfos() {
+	RunTimeInfos i;
+	i.fromT<T>();
+	return i;
+}
+
+	
 //// enable_if helpers
 
 // ScalarType helpers

@@ -82,13 +82,19 @@ int main()
 			(Float) v_c
 		) myBigType("myBugType");
 
-
-	
-		//does not compile on gcc with empty arg list
+		//
 		auto fuuuu = makeFun<Float>("test@", []() {
+			GL_RETURN();
 			GL_RETURN(Float(42) + 1.0);
 		});
 
+		auto fu_void = makeFun<void>("test@", [](){
+			GL_RETURN(Float(1));
+			GL_RETURN();
+		});
+
+		auto fu_void_no_return = makeFun<void>("test@", []() { });
+		auto fu_no_return = makeFun<Float>("test@", []() {});
 
 		auto fun = makeFun<Float>([&](Float f, Int i, Float g) {
 			Float gg = f + i + g;
@@ -106,7 +112,7 @@ int main()
 				Float hhh = 1.0; 
 				
 				++g;
-				GL_FOR(Int b(2,"b"); b < 10; ++b) {
+				GL_FOR(Int b = Int(2,"b"); b < 10; ++b) {
 					++a;
 				
 					GL_IF(a < 3) {
@@ -150,6 +156,7 @@ int main()
 					++a;
 				}
 			}
+			GL_RETURN(mat2x3(8));
 			GL_RETURN(gg + g);
 
 			//GL_RETURN_T();
@@ -160,13 +167,13 @@ int main()
 		//	++g;
 		//});
 
-		checkFun([]() -> double {
-			GL_IF(true) {
-				GL_RETURN_TEST(1.0);
-			} GL_ELSE{
-				GL_RETURN_TEST(2);
-			}
-		});
+		//checkFun([]() -> double {
+		//	GL_IF(true) {
+		//		GL_RETURN_TEST(1.0);
+		//	} GL_ELSE{
+		//		GL_RETURN_TEST(2);
+		//	}
+		//});
 
 		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
 
