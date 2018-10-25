@@ -62,8 +62,8 @@ public:
 };
 template<typename T> int NamedObject<T>::counter = 0;
 
-enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, BEHIND };
-enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
+enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIND };
+enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS, ARGS_PARENTHESIS, ARGS_BRACKETS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
 enum CtorStatus { DECLARATION, INITIALISATION, TEMP };
 enum StatementOptions {
@@ -95,12 +95,16 @@ struct Exp {
 	Exp(const OpB & _op, const std::vector<Ex> & _args = {}) : op(_op), args(_args) {
 		//std::cout << "Exp ctor " << n << std::endl;
 	}
+	stringPtr strPtr() const { return std::make_shared<std::string>(str()); }
 	virtual const std::string str() const {
 		//std::cout << " str " << std::flush;
 		//std::cout << op->str() << std::endl;
 
-		std::string separator = op->displayRule == IN_BETWEEN ? " " + op->str() + " " : ", ";
-		bool parenthesis = op->parRule == USE_PARENTHESIS;
+		const std::string around = op->displayRule == IN_BETWEEN_NOSPACE ? "" : " ";
+		std::string separator = (op->displayRule == IN_BETWEEN || op->displayRule == IN_BETWEEN_NOSPACE) ? around + op->str() + around : ", ";
+		const bool parenthesis = op->parRule == USE_PARENTHESIS;
+		const bool internal_parenthesis = op->parRule == ARGS_PARENTHESIS;
+		const bool internal_bracket = op->parRule == ARGS_BRACKETS;
 
 		std::string out; // = (op->displayRule == IN_BETWEEN || op->displayRule == BEHIND) ? "" : op->str();
 
@@ -114,7 +118,20 @@ struct Exp {
 			}
 			const int size = (int)args.size();
 			for (int i = 0; i < size; ++i) {
-				out += args[i]->str() + (i == size - 1 ? "" : separator);
+				if (internal_parenthesis) {
+					out += "(";
+				}
+				if (internal_bracket) {
+					out += "[";
+				}
+				out += args[i]->str();
+				if (internal_parenthesis) {
+					out += ")";
+				}
+				if (internal_bracket) {
+					out += "]";
+				}
+				out += (i == size - 1 ? "" : separator);
 			}
 			if (parenthesis) {
 				out += ")";
@@ -721,7 +738,7 @@ struct FunctionDeclarationArgs : FunctionDeclarationRTBase<ReturnType> {
 template<typename ReturnT, typename ... Args>
 struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
 	using Base = FunctionDeclarationArgs<ReturnT, Args...>;
-	using Base::FunctionDeclarationArgs;
+	using Base::Base;
 
 	virtual void cout(int & trailing, uint opts) {
 		std::cout << InstructionBase::instruction_begin(trailing) << ReturnT::typeStr() << " " << Base::name << "(" <<
@@ -737,7 +754,7 @@ struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
 template<typename ... Args>
 struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...> {
 	using Base = FunctionDeclarationArgs<void, Args...>;
-	using Base::FunctionDeclarationArgs;
+	using Base::Base;
 
 	virtual void cout(int & trailing, uint opts) {
 		std::cout << InstructionBase::instruction_begin(trailing) << "void " << Base::name << "(" <<

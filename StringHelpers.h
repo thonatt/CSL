@@ -42,15 +42,15 @@ template<> struct TypePrefixStr<DOUBLE> {
 
 // specialization for glsl types
 
-template<ScalarType type, uint N>
-struct TypeStr< Vec<type, N> > {
+template<ScalarType type, uint N, AssignType assignable>
+struct TypeStr< Vec<type, N, assignable> > {
 	static const std::string str() {
 		return TypePrefixStr<type>::str() + "vec" + std::to_string(N); 
 	}
 };
 
-template<ScalarType type, uint N, uint M>
-struct TypeStr< Matrix<type, N, M> > {
+template<ScalarType type, uint N, uint M, AssignType assignable>
+struct TypeStr< Matrix<type, N, M, assignable> > {
 	static const std::string str() {
 		return TypePrefixStr<type>::str() + "mat" + std::to_string(N) + (N == M ? std::string("") : "x" + std::to_string(M));
 	}

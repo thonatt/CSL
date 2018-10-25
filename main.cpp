@@ -9,6 +9,7 @@
 //#include "BuildingBlocks.h"
 //#include "Shaders.h"
 
+#include "BuiltInFunctions.h"
 #include "MatrixTypesTest.h"
 #include "StructHelpers.h"
 
@@ -17,10 +18,28 @@
 //void srt3();
 //void firstTest();
 
+//struct T {
+//	T() {}
+//	T(const T &) { std::cout << " const& ctor " << std::endl;}
+//	void operator=(T&) & { std::cout << " & & " << std::endl;  }
+//	void operator=(T&&) & { std::cout << " & && " << std::endl; }
+//	void operator=(T&) && { std::cout << " && & " << std::endl;  }
+//	void operator=(T&&) && { std::cout << " && && " << std::endl;  }
+//};
+//void testT() {
+//	T t;
+//	t = t;
+//	t = T();
+//	T() = t;
+//	T() = T();
+//}
+
 template<typename T> void checkFun(const T & t) {}
 
 int main()
 {
+
+
 	//testRef();
 
 	////correct and well translated
@@ -96,14 +115,58 @@ int main()
 		auto fu_void_no_return = makeFun<void>("test@", []() { });
 		auto fu_no_return = makeFun<Float>("test@", []() {});
 
+
+		GL_STRUCT(MyVecType,
+			(vec3) a,
+			(vec3) b
+		);
+
+		{
+
+			using namespace all_swizzles;
+			using namespace glsl_4_50;
+
+			vec3 k;
+
+			k[r, b, g] = k[b, g, r][r, r, r][x, y, z];
+			//k[r, r, r] = k; //not compiling
+			//k[r, r, r] = k[b, g, r]; //not compiling
+			k = k[b, g, b];
+			k[r, g, b] = k;
+			k = k;
+			vec2 kk = k[r, g];
+			kk = k[x, x];
+
+			mat3 mm;
+			k = mm[0][x,y][0]*mm[1];
+
+			dvec3 dk;
+			Float hhhh = length(length(kk)*k+k);
+			hhhh += 1;
+
+			
+			length(dk);
+
+			MyVecType vecc;
+
+			vecc.a[x, y] += vecc.b[y, x];
+		}
+
+
 		auto fun = makeFun<Float>([&](Float f, Int i, Float g) {
 			Float gg = f + i + g;
 			++g;
 			Bool bb("myBool");
-
+		
+			gg == gg;
 			GL_IF(bb) {
 				Float ggg = gg;
 				Float hhh = 1.0;
+				ggg *= 2.0 * ggg;
+				ggg -= hhh - 1;
+				mat3 m;
+				vec3 k; 
+				vec3 kk = 2.0*mat3(k,k,k)*m*k / k << "kk";
 				//ggg + hhh;
 			}
 
@@ -124,7 +187,7 @@ int main()
 								++b;
 							}
 						}
-						GL_IF(a < 4) {
+						GL_IF(!(a < 4)) {
 							++b;
 						} GL_ELSE_IF(a < 12) {
 							GL_WHILE(a < 0) {
@@ -134,11 +197,11 @@ int main()
 									++b;
 								}
 							}
-						} GL_ELSE_IF(bb) {
+						} GL_ELSE_IF(!bb) {
 							++b;
 						} 
 						GL_IF(bb){
-							GL_IF(bb && bb) {
+							GL_IF(bb && !bb) {
 								GL_IF(bb && bb && bb) {
 									++b;
 								}
@@ -175,9 +238,13 @@ int main()
 		//	}
 		//});
 
+
 		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
 
 		fun(1, 1, 1);
+
+		Int iiii = 0;
+		result_fun = iiii + 0.5;
 
 		Float gggggg;
 		//fun_void(gggggg);

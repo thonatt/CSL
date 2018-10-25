@@ -12,13 +12,16 @@ using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 // matrix types forward declarations
 
 enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
+enum AssignType { ASSIGNABLE, NON_ASSIGNABLE };
 
-template<ScalarType type, uint Nrows, uint Ncols>
+template<ScalarType type, uint Nrows, uint Ncols, AssignType a = ASSIGNABLE>
 class Matrix;
 
-template<ScalarType type, uint N> using Vec = Matrix<type, N, 1>;
+template<ScalarType type, uint N, AssignType assignable = ASSIGNABLE>
+using Vec = Matrix<type, N, 1, assignable>;
 
-template<ScalarType type> using Scalar = Vec<type, 1>;
+template<ScalarType type>
+using Scalar = Vec<type, 1>;
 
 using Double = Scalar<DOUBLE>;
 using Float = Scalar<FLOAT>;
@@ -44,6 +47,11 @@ using mat2 = mat2x2;
 using mat3 = mat3x3;
 using mat4 = mat4x4;
 
+
+using dvec2 = Vec<DOUBLE, 2>;
+using dvec3 = Vec<DOUBLE, 3>;
+using dvec4 = Vec<DOUBLE, 4>;
+
 // types infos
 
 template<typename T> struct Infos {
@@ -54,9 +62,9 @@ template<typename T> struct Infos {
 	static const ScalarType scalar_type = INVALID;
 };
 
-template<ScalarType type, uint Nrows, uint Ncols>
-struct Infos<Matrix<type, Nrows, Ncols>> {
-	static const bool is_numeric_type = true;
+template<ScalarType type, uint Nrows, uint Ncols, AssignType assignable>
+struct Infos<Matrix<type, Nrows, Ncols, assignable>> {
+	static const bool is_numeric_type = type != BOOL;
 	static const bool is_glsl_type = true;
 	static const uint rows = Nrows;
 	static const uint cols = Ncols;
@@ -176,6 +184,9 @@ constexpr bool IsVector = IsValid<A> && Infos<A>::cols == 1;
 template<typename A>
 constexpr bool IsScalar = IsVector<A> && Infos<A>::rows == 1;
 
+template<typename A, typename B>
+constexpr bool ValidForMatMultiplication = Infos<A>::cols == Infos<B>::rows && !(IsScalar<A> && IsScalar<B> );
+
 template<typename ...Ts> struct MatElementsT;
 template<typename ...Ts> constexpr uint MatElements = MatElementsT<Ts...>::value;
 
@@ -203,6 +214,10 @@ constexpr bool IsConvertibleTo = EqualDim<A, B> && ((EqualType<A, bool> && Equal
 
 template<typename A, typename B>
 using ArithmeticBinaryReturnType = Matrix< HigherType<A, B>, MaxRows<A, B>, MaxCols<A, B> >;
+
+template<typename A, typename B>
+using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<A>::rows, Infos<B>::cols >;
+
 
 // variadic helpers
 

@@ -29,7 +29,7 @@ struct StructTypename : public NamedObject<StructTypename> {	\
 	StructTypename(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = false ) : NamedObject<StructTypename>(_name, _parent, _isUsed) \
 		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	{  \
-		if(!_parent) { exp = createDeclaration<StructTypename>(myNamePtr()); }\
+		if(!_parent) { exp = createDeclaration<StructTypename>(myNamePtr()); isUsed = true; }\
 	} \
 	static const std::string typeStr() { return std::string(#StructTypename); } \
 } \
