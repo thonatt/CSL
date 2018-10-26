@@ -347,6 +347,13 @@ public:
 	}
 ////
 
+	template<bool b = !isScalar, typename = std::enable_if_t<b> >
+	const Int length() const & {
+		return Int(createExp(std::make_shared<MemberFunctionOp>(NamedObjectBase::myNamePtr(),"length")));
+	}
+	
+	const Int length() const && = delete; 
+
 	template<typename R_A, typename A = CleanType<R_A>,
 		typename = std::enable_if_t< NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
 		void operator*=(R_A&& a) const && = delete;

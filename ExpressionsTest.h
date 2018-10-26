@@ -27,6 +27,8 @@ public:
 
 	~NamedObjectBase();
 
+	Ex alias() const;
+
 	static const std::string typeStr() { return "dummyT"; }
 	std::shared_ptr<std::string> namePtr;
 	mutable bool isUsed = true;
@@ -257,6 +259,14 @@ struct FunctionOp : OpBase {
 	const std::string name;
 };
 
+struct MemberFunctionOp : OpBase {
+	MemberFunctionOp(std::shared_ptr<std::string> _obj_name, const std::string & s) : OpBase(IN_FRONT), name(s), obj_name(_obj_name) {}
+	virtual const std::string str() const { return *obj_name + "." + name; }
+	virtual void explore() { std::cout << "OP " << name << " "; OpBase::explore(); }
+	const std::string name;
+	std::shared_ptr<std::string> obj_name;
+		
+};
 void isNotInit(const Ex & expr) {
 	if (auto ctor = std::dynamic_pointer_cast<CtorBase>(expr->op)) {
 		//ctor->isInit = false;
@@ -328,6 +338,13 @@ template<typename T, bool temp = !std::is_lvalue_reference<T>::value> Ex getExp(
 		//std::cout << " ref use " << t.myName() << std::endl;
 		return createExp(std::make_shared<Alias>(t.myNamePtr()));
 	}
+}
+template<bool temp, typename T> Ex getExpForced(const T &t) {
+	return getExp<T, temp>(t);
+}
+
+Ex NamedObjectBase::alias() const {
+	return createExp(std::make_shared<Alias>(myNamePtr()));
 }
 
 template<typename T, CtorTypeDisplay tRule = DISPLAY, OperatorDisplayRule dRule = IN_FRONT, 

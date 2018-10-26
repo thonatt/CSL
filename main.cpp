@@ -10,8 +10,11 @@
 //#include "Shaders.h"
 
 #include "BuiltInFunctions.h"
+#include "Samplers.h"
 #include "MatrixTypesTest.h"
 #include "StructHelpers.h"
+
+
 
 //void srt1();
 //void srt2();
@@ -36,9 +39,36 @@
 
 template<typename T> void checkFun(const T & t) {}
 
+template<typename ...T> struct Print;
+
+template<typename T> struct Print<T>{
+	static void str(const T & t) {
+		std::cout << t << std::endl;
+	}
+};
+template<typename T, typename U, typename ... Us> struct Print<T,U,Us...> {
+	static void str(const T & t, const U & u, const Us & ... us ) {
+		Print<T>::str(t);
+		Print<U, Us...>::str(u, us...);
+	}
+};
+
+template<typename ... T> void priint(const T & ... t) {
+	Print<T...>::str(t...);
+}
+template<typename  ...T> void pp(T && ...ts) {
+	priint(ts...);
+}
+
+template<typename  ...T, typename = std::enable_if_t<sizeof...(T) == 0 || sizeof...(T) == 1 > >
+void ppp(int i, int j, T && ...ts) {
+	pp(i,j,(ts + 10)...);
+}
+
 int main()
 {
-
+	ppp(1,2);
+	ppp(1,2,3);
 
 	//testRef();
 
@@ -89,6 +119,7 @@ int main()
 	}
 
 	{
+		
 
 		GL_STRUCT(MyType,
 			(Float) a,
@@ -126,6 +157,17 @@ int main()
 			using namespace all_swizzles;
 			using namespace glsl_4_50;
 
+			sampler2DArray sampler2darray;
+			sampler2D sampler2d;
+			
+			vec3 point;
+			vec2 pt2d;
+			Float biais("biais");
+
+			vec4 tex = texture(sampler2darray, point) << "tex";
+			tex = texture(sampler2d, pt2d)[w,w,z,z];
+			vec4 otex = texture(sampler2d, pt2d, biais) << "tex_biais";
+	 
 			vec3 k;
 
 			k[r, b, g] = k[b, g, r][r, r, r][x, y, z];
@@ -138,6 +180,8 @@ int main()
 			kk = k[x, x];
 
 			mat3 mm;
+			Int ll = mm.length() << "ll";
+
 			k = mm[0][x,y][0]*mm[1];
 
 			dvec3 dk;

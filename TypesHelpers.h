@@ -47,10 +47,27 @@ using mat2 = mat2x2;
 using mat3 = mat3x3;
 using mat4 = mat4x4;
 
-
 using dvec2 = Vec<DOUBLE, 2>;
 using dvec3 = Vec<DOUBLE, 3>;
 using dvec4 = Vec<DOUBLE, 4>;
+
+// samplers types forward decalrations
+
+enum AccessType { SAMPLER, IMAGE };
+enum SamplerType { BASIC, CUBE, RECTANGLE, MULTI_SAMPLE, BUFFER, ATOMIC };
+enum SamplerIsArray { NOT_ARRAY, ARRAY };
+enum SamplerIsShadow { NOT_SHADOW, SHADOW };
+
+template<
+	AccessType aType,
+	ScalarType nType,
+	uint N,
+	SamplerType sType = BASIC,
+	SamplerIsArray isArray = NOT_ARRAY,
+	SamplerIsShadow isShadow = NOT_SHADOW
+>
+class Sampler;
+
 
 // types infos
 
@@ -199,6 +216,16 @@ template<typename T, typename ...Ts> struct MatElementsT<T, Ts...> {
 };
 
 // other helpers
+template<typename A> 
+constexpr bool IsVecF = Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT;
+
+
+template<typename ... A>
+constexpr bool IsFloat = false;
+
+template<typename A>
+constexpr bool IsFloat<A> = IsVecF<A> && Infos<A>::rows == 1;
+
 
 template<typename A, typename B>
 constexpr bool SuperiorType = Infos<B>::scalar_type >= Infos<A>::scalar_type;
@@ -241,4 +268,15 @@ template<typename T> struct SameScalarTypeT<T> {
 
 template<typename T, typename U, typename ...Ts> struct SameScalarTypeT<T, U, Ts...> {
 	static const bool value = EqualType<T,U> && SameScalarType<U, Ts...>;
+};
+
+
+template<SamplerType input, SamplerType ... sources>
+struct IsAnySamplerType {
+	static const bool value = false;
+};
+
+template<SamplerType input, SamplerType source, SamplerType ... sources >
+struct IsAnySamplerType<input, source, sources...> {
+	static const bool value = (input == source) || IsAnySamplerType<input, sources...>::value;
 };
