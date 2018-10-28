@@ -54,6 +54,10 @@ using dvec2 = Vec<DOUBLE, 2>;
 using dvec3 = Vec<DOUBLE, 3>;
 using dvec4 = Vec<DOUBLE, 4>;
 
+using ivec2 = Vec<INT, 2>;
+using ivec3 = Vec<INT, 3>;
+using ivec4 = Vec<INT, 4>;
+
 // samplers types forward decalrations
 
 enum AccessType { SAMPLER, IMAGE };

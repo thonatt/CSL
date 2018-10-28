@@ -83,9 +83,9 @@ struct Qualifier< qType, T, Layout<LayoutArgs...>> : public T {
 	}
 
 	template<typename R_A, typename A = CleanType<R_A>, typename = std::enable_if_t<EqualMat<A,T> > >
-	void operator=(R_A && other) & {
+	void operator=(R_A && other) const & {
 		listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(),
-			getExp<Matrix, false>(*this),
+			getExp<Qualifier, false>(*this),
 			getExp<R_A>(other))
 		);
 	}

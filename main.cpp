@@ -68,9 +68,9 @@ void ppp(int i, int j, T && ...ts) {
 
 int main()
 {
-	//srt4();
-	//listen().cout();
-	//return 0;
+	srt4();
+	listen().cout();
+	return 0;
 	
 	using LL = Layout< Binding<4>, Offset<3>, Binding<3>, Shared, Offset<4>, Binding<2> >;
 	
@@ -199,6 +199,9 @@ int main()
 			k = mm[0][x,y][0]*mm[1];
 
 			dvec3 dk;
+			ivec2 ik;
+			kk = pow(ik, kk);
+
 			Float hhhh = length(length(kk)*k+k);
 			hhhh += 1;
 
@@ -967,18 +970,18 @@ void srt4(){
 	});
 	
 	auto applyGamma = makeFun<vec4>("applyGamma", [](vec4 A) {
-		A[x,y,z] = (1.0/2.2) * A[x,y,z];
+		A[x, y, z] = pow(A[x, y, z], vec3(1.0 / 2.2));
 		GL_RETURN(A);
 	});
 	
 	auto main = makeFun<void>("main", [&]()
 	{
 		  vec4 tex = texture(tex0, uvs[y,x]) << "tex";
-		  vec3 baseColor = tex[z,y,x]; // can't do tex[z,y,z] here.
+		  vec3 baseColor = tex[z,y,z]; // can't do tex[z,y,z] here.
 		  tex[x,y,z] = mixColors(baseColor, refColor, refAlpha);
 		  tex[a] = tex[a] * 1.1;
 		  vec4 res = applyGamma(tex); // If res it not used afterwards, it will be removed? I can never remember if this is a known "gotcha" with local unnamed variables construction in CSL, or if this is an issue.
 		  res += tex;
-		  //fragColor = res; // can't assign to an out yet.
+		  fragColor = res; // can't assign to an out yet.
 	});
 }

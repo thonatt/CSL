@@ -363,7 +363,10 @@ public:
 		return false;
 	}
 
-
+	template<bool b = (assignable == NON_ASSIGNABLE), typename = std::enable_if_t<b> >
+	operator Matrix<type,NR,NC,ASSIGNABLE>() const & {
+		return Matrix<type, NR, NC, ASSIGNABLE>(getExpForced<false,Matrix<type, NR, NC, NON_ASSIGNABLE>>(*this));
+	}
 
 };
 
