@@ -19,6 +19,7 @@
 //void srt1();
 //void srt2();
 //void srt3();
+void srt4();
 //void firstTest();
 
 //struct T {
@@ -67,6 +68,9 @@ void ppp(int i, int j, T && ...ts) {
 
 int main()
 {
+	//srt4();
+	//listen().cout();
+	//return 0;
 	
 	using LL = Layout< Binding<4>, Offset<3>, Binding<3>, Shared, Offset<4>, Binding<2> >;
 	
@@ -944,3 +948,37 @@ int main()
 //	
 //	std::cout << shader1.getStr() << std::endl;
 //}
+
+void srt4(){
+	using namespace all_swizzles;
+	using namespace glsl_4_50;
+	
+	// The ins, uniforms and outs should be placed before any function, as they can use them.
+	// I know this is probably a trivial fix that you're keeping for once all the generation is ok :)
+	In<vec2> uvs("uvs"); // missing space between "in" and "type" in the generated code
+	Uniform<vec3> refColor("finalColor");
+	Uniform<Float> refAlpha("refAlpha"); // I tried to had a uniform struct, but ran in  some constructor issue.
+	sampler2D tex0("texture0"); // Can't build a uniform sampler yet.
+	Out<vec4> fragColor("fragColor");
+	
+	auto mixColors = makeFun<vec3>("mixColors", [](vec3 A, vec3 B, Float f) {
+		vec3 diff = B - A;
+		GL_RETURN(A + f * diff);
+	});
+	
+	auto applyGamma = makeFun<vec4>("applyGamma", [](vec4 A) {
+		A[x,y,z] = (1.0/2.2) * A[x,y,z];
+		GL_RETURN(A);
+	});
+	
+	auto main = makeFun<void>("main", [&]()
+	{
+		  vec4 tex = texture(tex0, uvs[y,x]) << "tex";
+		  vec3 baseColor = tex[z,y,x]; // can't do tex[z,y,z] here.
+		  tex[x,y,z] = mixColors(baseColor, refColor, refAlpha);
+		  tex[a] = tex[a] * 1.1;
+		  vec4 res = applyGamma(tex); // If res it not used afterwards, it will be removed? I can never remember if this is a known "gotcha" with local unnamed variables construction in CSL, or if this is an issue.
+		  res += tex;
+		  //fragColor = res; // can't assign to an out yet.
+	});
+}
