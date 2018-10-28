@@ -4,9 +4,6 @@
 
 enum SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 
-template<bool b, SwizzleSet S1, SwizzleSet S2>
-constexpr SwizzleSet WhatSet = b ? S1 : S2;
-
 template<uint Dim, uint Size, SwizzleSet Set, uint Bytes, bool Repeated>
 class SwizzlePack {
 public:

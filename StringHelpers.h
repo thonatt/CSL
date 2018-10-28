@@ -3,8 +3,20 @@
 #include <string>
 #include "TypesHelpers.h"
 
+template<typename ... Ts> struct TypeStr {
+	static const std::string str() {
+		return "";
+	}
+};
+
+template<typename T, typename U, typename ... Ts> struct TypeStr<T, U, Ts...> {
+	static const std::string str() {
+		return (TypeStr<T>::str() != "" ? (TypeStr<T>::str() + ", ") : "" ) + TypeStr<U, Ts...>::str();
+	}
+};
+
 template<typename T> 
-struct TypeStr {
+struct TypeStr<T> {
 	static const std::string str() { return T::typeStr(); }
 };
 
@@ -98,3 +110,64 @@ struct TypeStr<Sampler<aType, nType, N, sType, isArray, isShadow>> {
 };
 
 template<> const std::string TypeStr<Sampler<SAMPLER, UINT, 0, ATOMIC>>::str() { return "atomic_uint"; }
+
+// layout types
+
+template<LayoutArgIntType t>
+struct LayoutArgIntStr {
+	static const std::string str();
+};
+template<> const std::string LayoutArgIntStr<OFFSET>::str() { return "offset"; }
+template<> const std::string LayoutArgIntStr<BINDING>::str() { return "binding"; }
+template<> const std::string LayoutArgIntStr<LOCATION>::str() { return "location"; }
+
+template<LayoutArgBoolType t>
+struct LayoutArgBoolStr {
+	static const std::string str();
+};
+template<> const std::string LayoutArgBoolStr<STD140>::str() { return "std140"; }
+template<> const std::string LayoutArgBoolStr<STD430>::str() { return "std430"; }
+template<> const std::string LayoutArgBoolStr<SHARED>::str() { return "shared"; }
+template<> const std::string LayoutArgBoolStr<PACKED>::str() { return "packed"; }
+
+template<QualifierType t>
+struct QualifierTypeStr {
+	static const std::string str();
+};
+template<> const std::string QualifierTypeStr<UNIFORM>::str() { return "uniform "; }
+template<> const std::string QualifierTypeStr<IN>::str() { return "in" ; }
+template<> const std::string QualifierTypeStr<OUT>::str() { return "out "; }
+
+template<LayoutArgIntType type, int N>
+struct TypeStr<LayoutArgInt<type,N>> {
+	static const std::string str() {
+		return N < 0 ? std::string("") :
+			(LayoutArgIntStr<type>::str() +" = " + std::to_string(N));
+	}
+};
+
+template<LayoutArgBoolType type, bool b>
+struct TypeStr<LayoutArgBool<type, b>> {
+	static const std::string str() {
+		return b ? LayoutArgBoolStr<type>::str() : std::string("");
+	}
+};
+
+template< typename ... LayoutArgs> 
+struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
+	static const bool empty = Layout<LayoutArgs...>::empty;
+	static const std::string str() {
+		return empty ?
+			std::string("") 
+			: 
+			("layout(" + TypeStr<LayoutArgs...>::str() + ") "
+			);
+	}
+};
+
+template<QualifierType qType, typename T, typename ... LayoutArgs>
+struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
+	static const std::string str() {	
+		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str();
+	}
+};

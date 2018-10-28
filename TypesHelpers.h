@@ -6,6 +6,9 @@ using uint = unsigned int;
 template<uint A, uint B>
 constexpr uint MaxUint = A > B ? A : B;
 
+template<int First, int Second> 
+constexpr int Last = (Second >= 0 ? Second : First);
+
 template<typename T>
 using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 
@@ -68,6 +71,21 @@ template<
 >
 class Sampler;
 
+// layout types forward declarations
+
+enum LayoutArgBoolType { SHARED, PACKED, STD140, STD430 };
+enum LayoutArgIntType { OFFSET, BINDING, LOCATION };
+enum QualifierType { IN, OUT, UNIFORM };
+
+template<LayoutArgBoolType layoutArg, bool b> struct LayoutArgBool;
+template<LayoutArgIntType layoutArg, int N> struct LayoutArgInt;
+
+template<typename ... LayoutCleanedArgs> struct LayoutCleanedArg;
+
+template<typename ... LayoutArgs> struct Layout;
+
+template<QualifierType qType, typename T, typename L>
+struct Qualifier;
 
 // types infos
 
@@ -120,6 +138,16 @@ template<> struct Infos<void> {
 	static const ScalarType scalar_type = VOID;
 
 };
+
+template<QualifierType qType, typename T, typename L>
+struct Infos<Qualifier<qType, T, L> > {
+	static const bool is_numeric_type = Infos<T>::is_numeric_type;
+	static const bool is_glsl_type = Infos<T>::is_glsl_type;
+	static const uint rows = Infos<T>::rows;
+	static const uint cols = Infos<T>::cols;
+	static const ScalarType scalar_type = Infos<T>::scalar_type;
+};
+
 struct RunTimeInfos {
 	
 	template<typename T>
@@ -248,16 +276,31 @@ using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<A>::rows, Infos
 
 // variadic helpers
 
-template<typename ...Ts> struct AreValidT;
-template<typename ...Ts> constexpr bool AreValid = AreValidT<Ts...>::value;
+template<bool ... bs> struct AllTrueT;
+template<bool ... bs> constexpr bool AllTrue = AllTrueT<bs...>::value;
 
-template<> struct AreValidT<> {
+template<> struct AllTrueT<> {
 	static const bool value = true;
 };
-
-template<typename T, typename ...Ts> struct AreValidT<T, Ts...> {
-	static const bool value = IsValid<T> && AreValidT<Ts...>::value;
+template<bool b, bool ... bs> struct AllTrueT<b, bs...> {
+	static const bool value = b && AllTrueT<bs...>::value;
 };
+
+template<bool ... bs> struct AnyTrueT;
+template<bool ... bs> constexpr bool AnyTrue = AnyTrueT<bs...>::value;
+
+template<> struct AnyTrueT<> {
+	static const bool value = false;
+};
+template<bool b, bool ... bs> struct AnyTrueT<b, bs...> {
+	static const bool value = b || AnyTrueT<bs...>::value;
+};
+
+template<typename ...Ts> struct AreValidT {
+	static const bool value = AllTrue<IsValid<Ts>...>;
+};
+template<typename ...Ts> constexpr bool AreValid = AreValidT<Ts...>::value;
+
 
 template<typename ...Ts> struct SameScalarTypeT;
 template<typename ...Ts> constexpr bool SameScalarType = SameScalarTypeT<Ts...>::value;
@@ -270,13 +313,7 @@ template<typename T, typename U, typename ...Ts> struct SameScalarTypeT<T, U, Ts
 	static const bool value = EqualType<T,U> && SameScalarType<U, Ts...>;
 };
 
-
 template<SamplerType input, SamplerType ... sources>
 struct IsAnySamplerType {
-	static const bool value = false;
-};
-
-template<SamplerType input, SamplerType source, SamplerType ... sources >
-struct IsAnySamplerType<input, source, sources...> {
-	static const bool value = (input == source) || IsAnySamplerType<input, sources...>::value;
+	static const bool value = AnyTrue<(input == sources)...>;
 };

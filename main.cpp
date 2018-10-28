@@ -13,7 +13,7 @@
 #include "Samplers.h"
 #include "MatrixTypesTest.h"
 #include "StructHelpers.h"
-
+#include "Layouts.h"
 
 
 //void srt1();
@@ -67,8 +67,17 @@ void ppp(int i, int j, T && ...ts) {
 
 int main()
 {
-	ppp(1,2);
-	ppp(1,2,3);
+	
+	using LL = Layout< Binding<4>, Offset<3>, Binding<3>, Shared, Offset<4>, Binding<2> >;
+	
+	using LLC = LL::CleanedArgs;
+
+	Uniform<Float> myUni("myUni");
+	Uniform<mat4x2, LL> myComplexUni;
+
+	
+	//ppp(1,2);
+	//ppp(1,2,3);
 
 	//testRef();
 
@@ -120,7 +129,6 @@ int main()
 
 	{
 		
-
 		GL_STRUCT(MyType,
 			(Float) a,
 			(Int) b
@@ -157,6 +165,8 @@ int main()
 			using namespace all_swizzles;
 			using namespace glsl_4_50;
 
+			myComplexUni[0][x, y, z] = myUni * myComplexUni[1][x,x,x];
+
 			sampler2DArray sampler2darray;
 			sampler2D sampler2d;
 			
@@ -166,7 +176,7 @@ int main()
 
 			vec4 tex = texture(sampler2darray, point) << "tex";
 			tex = texture(sampler2d, pt2d)[w,w,z,z];
-			vec4 otex = texture(sampler2d, pt2d, biais) << "tex_biais";
+			vec3 otex = texture(sampler2d, pt2d, biais)[r,g,b] << "tex_biais";
 	 
 			vec3 k;
 
