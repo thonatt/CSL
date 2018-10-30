@@ -78,7 +78,9 @@ struct Layout {
 template<QualifierType qType, typename T, typename ... LayoutArgs>
 struct Qualifier< qType, T, Layout<LayoutArgs...>> : public T {
 	
-	Qualifier(const std::string & s = "") : T(Matrix_Track::UNTRACKED, s) {
+	using UnderlyingType = T;
+
+	Qualifier(const std::string & s = "") : T(s,NOT_TRACKED) {
 		NamedObjectBase::exp = createDeclaration<Qualifier>(NamedObjectBase::myNamePtr());
 	}
 

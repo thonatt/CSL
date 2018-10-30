@@ -91,6 +91,10 @@ template<typename ... LayoutArgs> struct Layout;
 template<QualifierType qType, typename T, typename L>
 struct Qualifier;
 
+// arrays
+
+template<typename T, uint N> struct Array;
+
 // types infos
 
 template<typename T> struct Infos {
@@ -144,13 +148,25 @@ template<> struct Infos<void> {
 };
 
 template<QualifierType qType, typename T, typename L>
-struct Infos<Qualifier<qType, T, L> > {
-	static const bool is_numeric_type = Infos<T>::is_numeric_type;
-	static const bool is_glsl_type = Infos<T>::is_glsl_type;
-	static const uint rows = Infos<T>::rows;
-	static const uint cols = Infos<T>::cols;
-	static const ScalarType scalar_type = Infos<T>::scalar_type;
+struct Infos<Qualifier<qType, T, L> > : Infos<T> { };
+
+template<typename T>
+struct SamplerInfos {
+	static const bool is_sampler = false;
 };
+
+template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerIsArray isArray, SamplerIsShadow isShadow>
+struct SamplerInfos<Sampler<aType, nType, N, sType, isArray, isShadow>> {
+	static const bool is_sampler = true;
+	static const uint size = N;
+	static const AccessType access_type = aType;
+	static const ScalarType scalar_type = nType;
+	static const SamplerType type = sType;
+	static const SamplerIsArray is_array = isArray;
+};
+
+template<QualifierType qType, typename T, typename L>
+struct SamplerInfos<Qualifier<qType, T, L> > : SamplerInfos<T> { };
 
 struct RunTimeInfos {
 	
@@ -251,6 +267,8 @@ template<typename T, typename ...Ts> struct MatElementsT<T, Ts...> {
 template<typename A> 
 constexpr bool IsVecF = Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT;
 
+template<typename A>
+constexpr bool IsInteger = IsScalar<A> && (Infos<A>::scalar_type == INT || Infos<A>::scalar_type == UINT);
 
 template<typename ... A>
 constexpr bool IsFloat = false;

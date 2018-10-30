@@ -19,7 +19,7 @@
 #define PAIR(x) REM x
 
 #define DECLARE_MEMBER(r, data, i, elem) PAIR(elem);
-#define INIT_MEMBER_PARENT(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), this, true) 
+#define INIT_MEMBER_PARENT(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), TRACKED, this, true) 
 #define MEMBER_TYPE(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)
 #define MEMBER_STR(r, data, i, elem) , std::string(BOOST_PP_STRINGIZE(STRIP(elem)))
 
@@ -31,10 +31,11 @@ listen().add_struct<true BOOST_PP_SEQ_FOR_EACH_I(MEMBER_TYPE, , BOOST_PP_VARIADI
 struct StructTypename : public NamedObject<StructTypename> {	\
 	BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	\
-	StructTypename(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = false ) : NamedObject<StructTypename>(_name, _parent, _isUsed) \
+	StructTypename(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = false ) \
+		: NamedObject<StructTypename>(_name, _track, _parent, _isUsed) \
 		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	{  \
-		if(!_parent) { exp = createDeclaration<StructTypename>(myNamePtr()); isUsed = true; }\
+		if(!_parent) {  isUsed = true;  if(_track) { exp = createDeclaration<StructTypename>(myNamePtr()); } } \
 	} \
 	static const std::string typeStr() { return std::string(#StructTypename); } \
 }

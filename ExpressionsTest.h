@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <algorithm> //for std::replace
 
 #include "StringHelpers.h"
 #include "FunctionHelpers.h"
@@ -17,10 +18,12 @@ using uint = unsigned int;
 struct Exp;
 using Ex = std::shared_ptr<Exp>;
 
+enum NamedObjectTracking { NOT_TRACKED, TRACKED };
+
 class NamedObjectBase {
 public:
-	NamedObjectBase(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true)
-		: parent(_parent), isUsed(_isUsed) {
+	NamedObjectBase(const std::string & _name = "", NamedObjectTracking _tracked = TRACKED , NamedObjectBase * _parent = nullptr, bool _isUsed = true)
+		: parent(_parent), isUsed(_isUsed), tracked(_tracked) {
 		namePtr = std::make_shared<std::string>(_name);
 		//std::cout << " end check" << std::endl;
 	}
@@ -33,6 +36,7 @@ public:
 	std::shared_ptr<std::string> namePtr;
 	mutable bool isUsed = true;
 	NamedObjectBase * parent = nullptr;
+	NamedObjectTracking tracked = TRACKED;
 
 public:
 	Ex exp;
@@ -50,13 +54,15 @@ public:
 	static const std::string typeStr() { return "dummyNameObjT"; }
 
 protected:
-	NamedObject(const std::string & _name = "", NamedObjectBase * _parent = nullptr, bool _isUsed = true) : NamedObjectBase(_name, _parent, _isUsed) {
+	NamedObject(const std::string & _name = "", NamedObjectTracking _tracked = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = true) :
+		NamedObjectBase(_name, _tracked, _parent, _isUsed) {
 		if (_name == "") {
 			namePtr = std::make_shared<std::string>(getTypeStr<T>() + "_" + std::to_string(counter));
+			std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
+
 			++counter;
 		}
 	}
-
 	static int counter;
 
 public:
@@ -161,6 +167,17 @@ struct Exp {
 	OpB op;
 	std::vector<Ex> args;
 
+};
+
+template<uint N>
+struct ExpOfArray : Exp {
+	using Ptr = std::shared_ptr<ExpOfArray>;
+
+	ExpOfArray(const OpB & _op) : Exp(_op) { }
+
+	virtual const std::string str() const {
+		return Exp::str() + "[" + std::to_string(N) + "]";
+	}
 };
 
 struct EmptyExp : Exp {
@@ -1257,7 +1274,15 @@ Ex createDeclaration(const stringPtr & name, const Args &... args)
 	return createInit<T, DISPLAY, IN_FRONT, USE_PARENTHESIS, DECLARATION, Args...>(name, args...);
 }
 
-enum class Matrix_Track { UNTRACKED };
+template<typename T, uint N>
+Ex createArrayDeclaration(const stringPtr & name) {
+	auto ctor = std::make_shared<Ctor<T>>(name,false,DECLARATION);
+	Ex expr = std::static_pointer_cast<Exp>(std::make_shared<ExpOfArray<N>>(std::static_pointer_cast<OpBase>(ctor)));
+	listen().addEvent(expr);
+	return expr;
+}
+
+//enum class Matrix_Track { UNTRACKED };
 
 
 template<unsigned int S, typename... Args> struct TupleBuilder;
@@ -1275,7 +1300,7 @@ template<unsigned int S, typename Arg, typename... Args>
 struct TupleBuilder<S, Arg, Args...> {
 	static std::tuple<Arg, Args...> tup(std::array<std::string, S> & names) {
 		return std::tuple_cat(
-			std::tuple<Arg>({ Matrix_Track::UNTRACKED, names[S - sizeof...(Args) - 1] }),
+			std::tuple<Arg>( Arg( names[S - sizeof...(Args) - 1], NOT_TRACKED ) ),
 			getTuple<S, Args...>(names)
 		);
 	}

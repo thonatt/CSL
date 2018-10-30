@@ -958,12 +958,27 @@ void srt4(){
 	
 	// The ins, uniforms and outs should be placed before any function, as they can use them.
 	// I know this is probably a trivial fix that you're keeping for once all the generation is ok :)
-	In<vec2> uvs("uvs"); // missing space between "in" and "type" in the generated code
+	In<vec2> uvs("uvs");
 	Uniform<vec3> refColor("finalColor");
-	Uniform<Float> refAlpha("refAlpha"); // I tried to had a uniform struct, but ran in  some constructor issue.
-	sampler2D tex0("texture0"); // Can't build a uniform sampler yet.
-	Out<vec4> fragColor("fragColor");
+
+	Array<Uniform<vec3,Layout<Location<0>>>, 7> myArray;
+	myArray[0] = myArray[1 + Int(3)];
+
+	Array<Uniform<sampler2D>, 2> mySamplerArray;
+	texture(mySamplerArray[1], vec2(0));
+
+	GL_STRUCT(MyStruct,
+		(Float) alpha,
+		(Float) beta,
+		(Float) gamma
+	);
+
+	Uniform<Float> refAlpha("refAlpha"); 
+	Uniform<MyStruct> abg("agb");
 	
+	Uniform<sampler2D,Layout<Location<3>,Binding<0>,Location<0>>> tex0("texture0"); 
+	Out<vec4> fragColor("fragColor");
+
 	auto mixColors = makeFun<vec3>("mixColors", [](vec3 A, vec3 B, Float f) {
 		vec3 diff = B - A;
 		GL_RETURN(A + f * diff);
@@ -982,6 +997,6 @@ void srt4(){
 		  tex[a] = tex[a] * 1.1;
 		  vec4 res = applyGamma(tex); // If res it not used afterwards, it will be removed? I can never remember if this is a known "gotcha" with local unnamed variables construction in CSL, or if this is an issue.
 		  res += tex;
-		  fragColor = res; // can't assign to an out yet.
+		  fragColor = res;
 	});
 }

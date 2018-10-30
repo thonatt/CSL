@@ -3,20 +3,8 @@
 #include <string>
 #include "TypesHelpers.h"
 
-template<typename ... Ts> struct TypeStr {
-	static const std::string str() {
-		return "";
-	}
-};
-
-template<typename T, typename U, typename ... Ts> struct TypeStr<T, U, Ts...> {
-	static const std::string str() {
-		return (TypeStr<T>::str() != "" ? (TypeStr<T>::str() + ", ") : "" ) + TypeStr<U, Ts...>::str();
-	}
-};
-
-template<typename T> 
-struct TypeStr<T> {
+template<typename T>
+struct TypeStr {
 	static const std::string str() { return T::typeStr(); }
 };
 
@@ -24,6 +12,25 @@ template<typename T>
 const std::string getTypeStr() {
 	return TypeStr<T>::str();
 }
+
+template<typename ... Ts> struct MultipleTypeStr {
+	static const std::string str(bool previous_str = false) {
+		return "";
+	}
+};
+
+template<typename T> struct MultipleTypeStr<T> {
+	static const std::string str(bool previous_str = false) {
+		return TypeStr<T>::str();
+	}
+};
+
+template<typename T, typename U, typename ... Ts> struct MultipleTypeStr<T, U, Ts...> {
+	static const std::string str(bool previous_str = false) {
+		const bool empty = (MultipleTypeStr<T>::str() == "");
+		return (empty ? std::string("") : (previous_str ? ", " : " ") + MultipleTypeStr<T>::str()) + MultipleTypeStr<U, Ts...>::str(!empty || previous_str);
+	}
+};
 
 // specialization for cpp types
 
@@ -135,7 +142,7 @@ struct QualifierTypeStr {
 	static const std::string str();
 };
 template<> const std::string QualifierTypeStr<UNIFORM>::str() { return "uniform "; }
-template<> const std::string QualifierTypeStr<IN>::str() { return "in" ; }
+template<> const std::string QualifierTypeStr<IN>::str() { return "in " ; }
 template<> const std::string QualifierTypeStr<OUT>::str() { return "out "; }
 
 template<LayoutArgIntType type, int N>
@@ -160,7 +167,7 @@ struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
 		return empty ?
 			std::string("") 
 			: 
-			("layout(" + TypeStr<LayoutArgs...>::str() + ") "
+			("layout(" + MultipleTypeStr<LayoutArgs...>::str() + " ) "
 			);
 	}
 };
@@ -169,5 +176,13 @@ template<QualifierType qType, typename T, typename ... LayoutArgs>
 struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 	static const std::string str() {	
 		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str();
+	}
+};
+
+//array 
+template<typename T, uint N>
+struct TypeStr< Array<T, N> > {
+	static const std::string str() {
+		return TypeStr<T>::str();
 	}
 };

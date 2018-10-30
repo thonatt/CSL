@@ -21,6 +21,8 @@ public:
 	using NamedObjectBase::isUsed;
 	template<AssignType other_assignable> using OtherMat = Matrix<type, NR, NC, other_assignable>;
 
+	using UnderlyingType = Matrix;
+
 protected:
 	static const bool isBool = (type == BOOL);
 	static const bool isScalar = (NC == 1 && NR == 1);
@@ -30,20 +32,22 @@ public:
 	static const std::string typeStr() { return TypeStr<Matrix>::str(); }
 
 	// special constructor for function args as tuples
-	Matrix(Matrix_Track track, const std::string & _name = "") : NamedObject<Matrix>(_name) {
-		exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
-		areNotInit(*this);
-		
-	}
+	//explicit Matrix(const std::string & _name = "", ) : NamedObject<Matrix>(_name,_tracked) {
+	//	exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
+	//	if (_tracked == NOT_TRACKED) {
+	//		areNotInit(*this);
+	//	}
+	//}
 
-	// constructors for declarations
-	explicit Matrix(const std::string & _name = "") : NamedObject<Matrix>(_name) {
-		exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
-	}
+	//// constructors for declarations
+	//explicit Matrix(const std::string & _name = "") : NamedObject<Matrix>(_name) {
+	//	exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
+	//}
 
-	explicit Matrix(const std::string & _name, NamedObjectBase * _parent, bool _isUsed = true) : NamedObject<Matrix>(_name,_parent, _isUsed) {
+	explicit Matrix(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = true)
+		: NamedObject<Matrix>(_name, _track, _parent, _isUsed) {
 		exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
-		if (_parent) {
+		if (_parent || !_track) {
 			//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
 			areNotInit(*this);
 		}
@@ -463,3 +467,28 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 {
 	return ArithmeticBinaryReturnType<A, B>(createExp(std::make_shared<FunctionOp<IN_BETWEEN, ARGS_PARENTHESIS>>("/"), getExp<R_A>(a), getExp<R_B>(b)));
 }
+
+
+
+
+//
+
+template<typename T, uint N>
+struct Array : NamedObject<typename T::UnderlyingType> {
+	using Type = typename T::UnderlyingType;
+
+	explicit Array(const std::string & _name = "") : NamedObject<Type>(_name) {
+		NamedObjectBase::exp = createArrayDeclaration<Array,N>(NamedObjectBase::myNamePtr());
+	}
+
+	template<typename R_A, typename A = CleanType<R_A>, 
+		typename = std::enable_if_t< IsInteger<A> > >
+		Type operator[](R_A && a) const & {
+		return Type(
+			createExp(std::make_shared<FunctionOp<IN_FRONT, ARGS_BRACKETS>>(getExp<Array, false>(*this)->str()),
+				getExp<R_A>(a)
+			)
+		);
+	}
+
+};
