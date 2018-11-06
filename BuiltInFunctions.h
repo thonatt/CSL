@@ -10,7 +10,7 @@ namespace glsl_1_10 {
 		>
 	>
 	Vec<FLOAT, Infos<A>::rows> pow(R_A && a, R_B && b) {
-		return Vec<FLOAT, Infos<A>::rows>(createExp(std::make_shared<FunctionOp<>>("pow"), getExp<R_A>(a), getExp<R_B>(b)));
+		return Vec<FLOAT, Infos<A>::rows>(createFCallExp("pow", getExp<R_A>(a), getExp<R_B>(b) ) );
 	}
 
 	template<typename R_A, typename A = CleanType<R_A>,
@@ -18,7 +18,7 @@ namespace glsl_1_10 {
 			Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT
 		> >
 	Float length(R_A && v) {
-		return Float(createExp(std::make_shared<FunctionOp<>>("length"), getExp<R_A>(v)));
+		return Float(createFCallExp("length", getExp<R_A>(v)));
 	}
 
 }
@@ -40,7 +40,9 @@ namespace glsl_1_30 {
 		(sizeof...(R_B) == 0 || ( sizeof...(R_B) == 1 && IsFloat<CleanType<R_B>...> ) )
 	> >
 		Vec< SamplerInfos<S>::scalar_type, 4> texture(R_S && sampler, R_A &&  P, R_B && ... bias) {
-		return Vec< SamplerInfos<S>::scalar_type, 4>(createExp(std::make_shared<FunctionOp<>>("texture"), getExp<R_S>(sampler), getExp<R_A>(P), getExp<R_B>(bias)... ));
+		return Vec< SamplerInfos<S>::scalar_type, 4>(
+			createFCallExp("texture", getExp<R_S>(sampler), getExp<R_A>(P), getExp<R_B>(bias)... )
+		);
 	}
 }
 
@@ -64,7 +66,7 @@ namespace glsl_4_00 {
 		Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE
 	> >
 		Float length(R_A && v) {
-		return Float(createExp(std::make_shared < FunctionOp<> > ("length"), getExp<R_A>(v)));
+		return Float(createFCallExp("length", getExp<R_A>(v) ));
 	}
 }
 

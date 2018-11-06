@@ -14,7 +14,7 @@ public:
 	}
 
 	Sampler(const Ex & _exp) : NamedObject<Sampler>() {
-		NamedObjectBase::exp = createInit<Sampler, HIDE, IN_FRONT, NO_PARENTHESIS>(NamedObjectBase::myNamePtr(), _exp);
+		NamedObjectBase::exp = createInit<Sampler, HIDE, NO_PARENTHESIS>(NamedObjectBase::myNamePtr(), _exp);
 		NamedObjectBase::isUsed = false;
 	}
 };

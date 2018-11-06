@@ -20,55 +20,13 @@
 //void srt2();
 //void srt3();
 void srt4();
-//void firstTest();
+void test_pred();
 
-//struct T {
-//	T() {}
-//	T(const T &) { std::cout << " const& ctor " << std::endl;}
-//	void operator=(T&) & { std::cout << " & & " << std::endl;  }
-//	void operator=(T&&) & { std::cout << " & && " << std::endl; }
-//	void operator=(T&) && { std::cout << " && & " << std::endl;  }
-//	void operator=(T&&) && { std::cout << " && && " << std::endl;  }
-//};
-//void testT() {
-//	T t;
-//	t = t;
-//	t = T();
-//	T() = t;
-//	T() = T();
-//}
-
-template<typename T> void checkFun(const T & t) {}
-
-template<typename ...T> struct Print;
-
-template<typename T> struct Print<T>{
-	static void str(const T & t) {
-		std::cout << t << std::endl;
-	}
-};
-template<typename T, typename U, typename ... Us> struct Print<T,U,Us...> {
-	static void str(const T & t, const U & u, const Us & ... us ) {
-		Print<T>::str(t);
-		Print<U, Us...>::str(u, us...);
-	}
-};
-
-template<typename ... T> void priint(const T & ... t) {
-	Print<T...>::str(t...);
-}
-template<typename  ...T> void pp(T && ...ts) {
-	priint(ts...);
-}
-
-template<typename  ...T, typename = std::enable_if_t<sizeof...(T) == 0 || sizeof...(T) == 1 > >
-void ppp(int i, int j, T && ...ts) {
-	pp(i,j,(ts + 10)...);
-}
 
 int main()
 {
-	srt4();
+	//srt4();
+	test_pred();
 	listen().cout();
 	return 0;
 	
@@ -967,6 +925,8 @@ void srt4(){
 	Array<Uniform<sampler2D>, 2> mySamplerArray;
 	texture(mySamplerArray[1], vec2(0));
 
+	Array<vec3, 77> myVec3s("myVec3s");
+
 	GL_STRUCT(MyStruct,
 		(Float) alpha,
 		(Float) beta,
@@ -975,9 +935,14 @@ void srt4(){
 
 	Uniform<Float> refAlpha("refAlpha"); 
 	Uniform<MyStruct> abg("agb");
-	
+
 	Uniform<sampler2D,Layout<Location<3>,Binding<0>,Location<0>>> tex0("texture0"); 
 	Out<vec4> fragColor("fragColor");
+
+	auto project = makeFun<vec3>("mixColors", [](mat4 proj, vec3 pt) {
+		std::cout << "project" << std::endl;
+		GL_RETURN((proj * vec4(pt, 1.0))[x,y,z]);
+	}, "proj", "pt");
 
 	auto mixColors = makeFun<vec3>("mixColors", [](vec3 A, vec3 B, Float f) {
 		vec3 diff = B - A;
@@ -999,4 +964,16 @@ void srt4(){
 		  res += tex;
 		  fragColor = res;
 	});
+}
+
+void test_pred() {
+	using namespace all_swizzles;
+	using namespace glsl_4_50;
+
+	Float g("g");
+	g + (3.0 + (g + g) / (Float(3) + g))*(g + g)*(g*g + g * g)*g;
+	++(g + g);
+	mat4 m;
+	g = m.length();
+	m*vec4(1, vec2(2, 3) + 7*vec2(4, 5), 6);
 }
