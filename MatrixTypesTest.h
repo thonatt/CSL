@@ -105,10 +105,6 @@ public:
 	}
 
 	Matrix & operator=(const Matrix & other) & {
-		//listen().addEvent(createExp(std::make_shared<SingleCharBinaryOp<'=', NO_PARENTHESIS>>(),
-		//	getExp<Matrix, false>(*this),
-		//	getExp<Matrix, false>(other))
-		//);
 		listen().addEvent(
 			createExp<MiddleOperator<ASSIGNMENT>>(
 				" = ",
@@ -119,6 +115,16 @@ public:
 		return *this;
 	}
 
+	Matrix & operator=(Matrix && other) & {
+		listen().addEvent(
+			createExp<MiddleOperator<ASSIGNMENT>>(
+				" = ",
+				getExp<Matrix, false>(*this),
+				getExp<Matrix, true>(other)
+				)
+		);
+		return *this;
+	}
 
 	/////////////////////////////////////////////////////
 

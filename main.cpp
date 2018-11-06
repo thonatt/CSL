@@ -970,8 +970,17 @@ void test_pred() {
 	using namespace all_swizzles;
 	using namespace glsl_4_50;
 
+	auto fun = makeFun<Float>([](Float f) {
+		GL_RETURN(f);
+	});
+	auto fun2 = makeFun<void>([](Float f) {
+	});
+
 	Float g("g");
-	g + (3.0 + (g + g) / (Float(3) + g))*(g + g)*(g*g + g * g)*g;
+	g + (3.0 + (g + g) /(Float(3) + g))*(g + g)*(g*g + g * g)*g;
+	fun(g);
+	fun2(g);
+
 	++(g + g);
 	mat4 m;
 	g = m.length();

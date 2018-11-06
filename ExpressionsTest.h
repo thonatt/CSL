@@ -201,7 +201,7 @@ struct MiddleOperator : Predecense<predecence> {
  	}
 
 	const std::string str() const {
-		return checkForParenthesis(lhs) + OperatorBase::op_str() + checkForParenthesis(rhs);
+		return OperatorBase::checkForParenthesis(lhs) + OperatorBase::op_str() + OperatorBase::checkForParenthesis(rhs);
 	}
 
 	Ex lhs, rhs;
@@ -237,7 +237,7 @@ struct FunctionCall : Predecense<FUNCTION_CALL>, ArgsCall<N> {
 	}
 
 	virtual const std::string str() const {
-		return op_str() + args_str();
+		return op_str() + ArgsCall<N>::args_str();
 	}
 
 };
@@ -323,7 +323,7 @@ struct MemberSelector : FunctionCall<N> {
 	}
 
 	const std::string str() const {
-		return checkForParenthesis(obj) + "." + FunctionCall<N>::str();
+		return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str();
 	}
 
 	Ex obj;
@@ -334,7 +334,7 @@ struct ArraySubscript : Predecense<ARRAY_SUBSCRIPT> {
 	}
 
 	const std::string str() const {
-		return checkForParenthesis(obj) + "[" + arg->str() + "]";
+		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str() + "]";
 	}
 
 	Ex obj, arg;
@@ -346,7 +346,7 @@ struct PrefixUnary : Predecense<PREFIX> {
 	}
 
 	const std::string str() const {
-		return op_str() + checkForParenthesis(obj);
+		return op_str() + OperatorBase::checkForParenthesis(obj);
 	}
 
 	Ex obj;
@@ -358,7 +358,7 @@ struct PostfixUnary : Predecense<POSTFIX> {
 	}
 
 	const std::string str() const {
-		return checkForParenthesis(obj) + op_str();
+		return OperatorBase::checkForParenthesis(obj) + op_str();
 	}
 
 	Ex obj;
@@ -370,7 +370,7 @@ struct Ternary : Predecense<TERNARY> {
 	}
 
 	const std::string str() const {
-		return checkForParenthesis(condition) + " ? " + checkForParenthesis(first) + " : " + checkForParenthesis(second);
+		return OperatorBase::checkForParenthesis(condition) + " ? " + OperatorBase::checkForParenthesis(first) + " : " + OperatorBase::checkForParenthesis(second);
 	}
 
 	Ex condition, first, second;
@@ -1299,7 +1299,7 @@ struct Fun<void, F_Type> : FunBase {
 	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
 	void operator()(R_Args &&  ... args) {
 		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
-		listen().addEvent(createExp(std::make_shared<FunctionOp<>>(myName()), getExp<R_Args>(args)...));
+		listen().addEvent(createFCallExp(myName(), getExp<R_Args>(args)...));
 	}
 
 	F_Type f;
