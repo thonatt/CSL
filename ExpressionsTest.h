@@ -232,7 +232,7 @@ template<uint N>
 struct FunctionCall : Predecense<FUNCTION_CALL>, ArgsCall<N> {
 
 	template<typename ... Args>
-	FunctionCall(const std::string & s = "", const Args & ... _args)
+	FunctionCall(const std::string & s, const Args & ... _args)
 		: Predecense<FUNCTION_CALL>(makeStringPtr(s)), ArgsCall<N>(_args...) {
 	}
 
@@ -258,7 +258,7 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	}
 
 	template<typename ... Args>
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status = INITIALISATION, const Args & ...  _args)
+	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, const Args & ...  _args)
 		: ArgsCall<N>(_args...), ConstructorBase(_status), obj_name_ptr(_obj_name_ptr) {
 		//std::cout << "ctpr" << _status << " " << status << std::endl;
 	}
