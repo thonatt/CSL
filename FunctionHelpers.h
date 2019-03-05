@@ -14,11 +14,11 @@ struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
 	using RType = ReturnType;
 };
 
-template<typename ReturnType, typename Fun>
-struct FunctionReturnType< ReturnType(Fun::*)() const> {
-	using type = std::function<ReturnType()>;
-	using RType = ReturnType;
-};
+//template<typename ReturnType, typename Fun>
+//struct FunctionReturnType< ReturnType(Fun::*)() const> {
+//	using type = std::function<ReturnType()>;
+//	using RType = ReturnType;
+//};
 
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type
 functionFromLambda(const Lambda &func) {

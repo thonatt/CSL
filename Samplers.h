@@ -13,8 +13,13 @@ public:
 		NamedObjectBase::exp = createDeclaration<Sampler>(NamedObjectBase::myNamePtr());
 	}
 
-	Sampler(const Ex & _exp) : NamedObject<Sampler>() {
-		NamedObjectBase::exp = createInit<Sampler, HIDE, NO_PARENTHESIS>(NamedObjectBase::myNamePtr(), _exp);
+	Sampler(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT) : NamedObject<Sampler>() {
+		if (_init) {
+			NamedObjectBase::exp = createInit<Sampler, HIDE, NO_PARENTHESIS>(NamedObjectBase::myNamePtr(), _exp);
+		} else {
+			NamedObjectBase::exp = _exp;
+		}
+		
 		NamedObjectBase::isUsed = false;
 	}
 };

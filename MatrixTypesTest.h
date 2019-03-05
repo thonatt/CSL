@@ -174,9 +174,18 @@ public:
 		exp = createInit<Matrix>(namePtr, getExp<R_U>(u), getExp<R_V>(v), getExp<R_Us>(us)...);
 	}
 
-	Matrix(const Ex & _exp)  : NamedObject<Matrix>() {
+	Matrix(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT )  : NamedObject<Matrix>() {
 		//std::cout << " from exp " << std::endl;
-		exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, _exp);
+	
+		if (_init) {
+			exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, _exp);
+		}
+		
+		
+		if (!_track) {
+			areNotInit(*this);
+		}
+
 		//exp = _exp;
 		isUsed = false;
 	}
@@ -407,21 +416,21 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< EqualMat<A, Bool> &&  EqualMat<B, Bool>  > >
 Bool operator&&(R_A && b1, R_B && b2) 
 {
-	return Bool(createExp<MiddleOperator<LOGICAL_AND>>("&&", getExp<R_A>(b1), getExp<R_B>(b2)));
+	return Bool(createExp<MiddleOperator<LOGICAL_AND>>(" && ", getExp<R_A>(b1), getExp<R_B>(b2)));
 }
 
 template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
 	typename = std::enable_if_t< EqualMat<A, Bool> &&  EqualMat<B, Bool>  > >
 Bool operator||(R_A && b1, R_B && b2) 
 {
-	return Bool(createExp<MiddleOperator<LOGICAL_OR>>("||", getExp<R_A>(b1), getExp<R_B>(b2)));
+	return Bool(createExp<MiddleOperator<LOGICAL_OR>>(" || ", getExp<R_A>(b1), getExp<R_B>(b2)));
 }
 
 template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
 	typename = std::enable_if_t< NoBools<A,B> && EqualDim<A,B> > >
 	Bool operator==(R_A && b1, R_B && b2)
 {
-	return Bool(createExp<MiddleOperator<EQUALITY>>("==", getExp<R_A>(b1), getExp<R_B>(b2)));
+	return Bool(createExp<MiddleOperator<EQUALITY>>(" == ", getExp<R_A>(b1), getExp<R_B>(b2)));
 }
 
 // > and < operators
@@ -429,14 +438,14 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< NoBools<A, B> && IsScalar<A> && IsScalar<B> > >
 Bool operator>(R_A && a, R_B && b) 
 {
-	return Bool(createExp<MiddleOperator<RELATIONAL>>(">", getExp<R_A>(a), getExp<R_B>(b)));
+	return Bool(createExp<MiddleOperator<RELATIONAL>>(" > ", getExp<R_A>(a), getExp<R_B>(b)));
 }
 
 template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
 	typename = std::enable_if_t< NoBools<A, B> && IsScalar<A> && IsScalar<B> > >
 Bool operator<(R_A && a, R_B && b)
 {
-	return Bool(createExp<MiddleOperator<RELATIONAL>>("<", getExp<R_A>(a), getExp<R_B>(b)));
+	return Bool(createExp<MiddleOperator<RELATIONAL>>(" < ", getExp<R_A>(a), getExp<R_B>(b)));
 }
 
 // + and - operators
@@ -487,18 +496,38 @@ struct Array : NamedObject<typename T::UnderlyingType> {
 	using Type = typename T::UnderlyingType;
 
 	explicit Array(const std::string & _name = "") : NamedObject<Type>(_name) {
-		NamedObjectBase::exp = createArrayDeclaration<Array,N>(NamedObjectBase::myNamePtr());
+		NamedObjectBase::exp = createArrayDeclaration<Array>(NamedObjectBase::myNamePtr());
 	}
 
 	template<typename R_A, typename A = CleanType<R_A>, 
 		typename = std::enable_if_t< IsInteger<A> > >
-		Type operator[](R_A && a) const & {
-		return Type(
-			createExp<ArraySubscript>(
+		const Type & operator[](R_A && a) const {
+
+		previous_calls.push_back(
+			Type(createExp<ArraySubscript>(
 				getExp<Array, false>(*this),
 				getExp<R_A>(a)
+				), NOT_TRACKED, NO_INIT
 			)
 		);
+
+		return previous_calls.back();
 	}
 
+	template<typename R_A, typename A = CleanType<R_A>,
+		typename = std::enable_if_t< IsInteger<A> > >
+		Type & operator[](R_A && a) {
+		
+		previous_calls.push_back(
+			Type(createExp<ArraySubscript>(
+				getExp<Array, false>(*this),
+				getExp<R_A>(a)
+				), NOT_TRACKED, NO_INIT
+			)
+		);
+
+		return previous_calls.back();
+	}
+
+	std::vector<Type> previous_calls;
 };

@@ -966,23 +966,94 @@ void srt4(){
 	});
 }
 
+struct TTT : public NamedObject<TTT> {
+	using UnderlyingType = TTT;
+
+	Float f;
+
+	TTT(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = false)
+		: NamedObject<TTT>(_name, _track, _parent, _isUsed), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f")))
+	{
+		if (!_parent) { isUsed = true;  if (_track) { exp = createDeclaration<TTT>(myNamePtr()); } }
+	}
+
+	TTT(const Ex & _exp) : NamedObject<TTT>(), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f"))) {
+		exp = createInit<TTT, HIDE, NO_PARENTHESIS>(myNamePtr(), _exp);
+		isUsed = false;
+	}
+};
+
+
 void test_pred() {
 	using namespace all_swizzles;
 	using namespace glsl_4_50;
 
+	GL_STRUCT(MyStruct,
+		(Float) f,
+		(Float) g
+	);
+
+	GL_STRUCT(MyMegaStruct,
+		(MyStruct) ff,
+		(MyStruct) gg
+	);
+
+	//MyStruct my("my");
+
+	//Array<Uniform<MyStruct, Offset<0>>, 12> myArray("myArray");
+
+	//Array<Uniform<MyStruct, Layout<Offset<3>>>,15> u("u");
+	//Uniform<MyStruct,Offset<0>> u("u");
+	//Array<Float, 3> ff("ff");
+	Array<MyMegaStruct, 2> a("ar");
+
+	//Array<Uniform<MyStruct>, 10> ar2("ar2");
+
+	//Array<TTT,3> tt("tt");
+
+	//tt[0].f;
+
 	auto fun = makeFun<Float>([](Float f) {
 		GL_RETURN(f);
 	});
+
+	//ff[0];
+	//u[0];
+	//std::cout << u[0].f.myName() << std::endl;
+	//std::cout << u[0].f.parent << std::endl;
+	MyMegaStruct struc;
+	//std::cout << "myn : " << a[0].ff.myName() << std::endl;
+
+	Array<mat4, 4> am("array_of_mat");
+	am[0] * am[1];
+	am[0].length() * am[1];
+
+	//a[0].ff.g * a[1].gg.f;
+
+	std::cout << a.isTemp() << std::endl;
+	std::cout << a[0].isTemp() << std::endl;
+	std::cout << a[0].ff.isTemp() << std::endl;
+	std::cout << a[0].ff.g.isTemp() << std::endl;
+
+	std::cout << "!!" << std::endl;
+	a[0].ff.g.checkTemp();
+
 	auto fun2 = makeFun<void>([](Float f) {
 	});
+	auto fun3 = makeFun<void>([&]() {
+		Float g("g");
+		g + (3.0 + (g + g) / (Float(3) + g))*(g + g)*(g*g + g * g)*g;
+		fun(g);
+		fun2(g);
 
-	Float g("g");
-	g + (3.0 + (g + g) /(Float(3) + g))*(g + g)*(g*g + g * g)*g;
-	fun(g);
-	fun2(g);
+		++(g + g);
+		mat4 m;
+		g = m.length();
+		m[3][x, y] = 3.0*(m*vec4(1, vec2(2, 3) + 7 * vec2(4, 5), 6))[x, x];
 
-	++(g + g);
-	mat4 m;
-	g = m.length();
-	m*vec4(1, vec2(2, 3) + 7*vec2(4, 5), 6);
+		Array<Uniform<Bool>, 4> bs("bs");
+		!(bs[0] && !(g < -g) && !bs[1] || !bs[2]) && !bs[3];
+	});
+
+
 }

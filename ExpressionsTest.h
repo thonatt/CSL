@@ -25,6 +25,7 @@ struct OperatorBase;
 using Ex = std::shared_ptr<OperatorBase>;
 
 enum NamedObjectTracking { NOT_TRACKED, TRACKED };
+enum NamedObjectInit { NO_INIT, INIT };
 
 class NamedObjectBase {
 public:
@@ -38,6 +39,26 @@ public:
 
 	Ex alias() const;
 
+	bool isTemp() const & {
+		return false;
+	}
+	bool isTemp() const && {
+		return true;
+	}
+	void checkTemp() const && {
+		std::cout << "isTmp&& : " << std::move(*this).isTemp() << std::endl;
+		if (parent) {
+			std::move(*parent).isTemp();
+		}
+	}
+
+	void checkTemp() const & {
+		std::cout << "isTmp& : " << isTemp() << std::endl;
+		if (parent) {
+			parent->isTemp();
+		}
+	}
+
 	static const std::string typeStr() { return "dummyT"; }
 	stringPtr namePtr;
 	mutable bool isUsed = true;
@@ -48,8 +69,12 @@ public:
 	Ex exp;
 
 public:
-	const stringPtr myNamePtr() const { return (parent ? std::make_shared<std::string>(parent->myName() + "." + *namePtr) : namePtr); }
-	const std::string myName() const { return *myNamePtr(); }
+	const stringPtr myNamePtr() const { 
+		return (parent ? std::make_shared<std::string>(parent->myName() + "." + *namePtr) : namePtr);
+	}
+	const std::string myName() const & { return *myNamePtr(); }
+	const std::string myName() const &&;
+
 
 };
 
@@ -80,6 +105,7 @@ enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIN
 enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
 enum CtorTypeDisplay { DISPLAY, HIDE};
 enum CtorStatus { DECLARATION, INITIALISATION, TEMP };
+enum CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
 
 enum StatementOptions {
 	SEMICOLON = 1 << 0,
@@ -90,7 +116,7 @@ enum StatementOptions {
 	DEFAULT = SEMICOLON | NEW_LINE 
 };
 
-enum OperatorPredence {
+enum OperatorPrecedence {
 
 	ALIAS = 1,
 
@@ -179,13 +205,13 @@ struct OperatorBase {
 	bool disabled = false;
 };
 
-template<OperatorPredence predecence>
-struct Predecense : OperatorBase {
-	Predecense(stringPtr _op_str_ptr = {}) : OperatorBase(_op_str_ptr) {}
-	virtual uint rank() const { return (int)predecence; }
+template<OperatorPrecedence precedence>
+struct Precedence : OperatorBase {
+	Precedence(stringPtr _op_str_ptr = {}) : OperatorBase(_op_str_ptr) {}
+	virtual uint rank() const { return (uint)precedence; }
 };
 
-struct Alias : Predecense<ALIAS> {
+struct Alias : Precedence<ALIAS> {
 	Alias(stringPtr _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
 	Alias(const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
 	virtual const std::string str() const { return *obj_str_ptr; }
@@ -193,10 +219,10 @@ struct Alias : Predecense<ALIAS> {
 	stringPtr obj_str_ptr;
 }; 
 
-template<OperatorPredence predecence>
-struct MiddleOperator : Predecense<predecence> {
+template<OperatorPrecedence precedence>
+struct MiddleOperator : Precedence<precedence> {
 	MiddleOperator(const std::string & op_str, Ex _lhs, Ex _rhs)
-		: Predecense<predecence>(makeStringPtr(op_str)), lhs(_lhs), rhs(_rhs) {
+		: Precedence<precedence>(makeStringPtr(op_str)), lhs(_lhs), rhs(_rhs) {
 		//std::cout << "middle op : " << op_str << " " << *OperatorBase::op_str_ptr << std::endl;
  	}
 
@@ -225,15 +251,16 @@ struct ArgsCall {
 		return "(" + args_str_body() + ")";
 	}
 
-	std::vector<Ex> args;
+	std::array<Ex, N> args;
+	//std::vector<Ex> args;
 };
 
 template<uint N>
-struct FunctionCall : Predecense<FUNCTION_CALL>, ArgsCall<N> {
+struct FunctionCall : Precedence<FUNCTION_CALL>, ArgsCall<N> {
 
 	template<typename ... Args>
 	FunctionCall(const std::string & s, const Args & ... _args)
-		: Predecense<FUNCTION_CALL>(makeStringPtr(s)), ArgsCall<N>(_args...) {
+		: Precedence<FUNCTION_CALL>(makeStringPtr(s)), ArgsCall<N>(_args...) {
 	}
 
 	virtual const std::string str() const {
@@ -243,11 +270,13 @@ struct FunctionCall : Predecense<FUNCTION_CALL>, ArgsCall<N> {
 };
 
 struct ConstructorBase : OperatorBase {
-	ConstructorBase(CtorStatus _status = INITIALISATION) : status(_status) { }
+	ConstructorBase(CtorStatus _status = INITIALISATION, CtorPosition _position = INSIDE_BLOCK) 
+		: status(_status), position(_position) { }
 	CtorStatus status;
+	CtorPosition position;
 };
 
-template<typename T, uint N = 0, CtorTypeDisplay typeDisplay = DISPLAY, ParenthesisRule parenthesis = USE_PARENTHESIS>
+template<typename T, uint N = 0, CtorTypeDisplay typeDisplay = DISPLAY, ParenthesisRule parenthesis = USE_PARENTHESIS, CtorPosition position = INSIDE_BLOCK>
 struct Constructor : ArgsCall<N>, ConstructorBase {
 
 	virtual uint rank() const {
@@ -259,8 +288,8 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 
 	template<typename ... Args>
 	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, const Args & ...  _args)
-		: ArgsCall<N>(_args...), ConstructorBase(_status), obj_name_ptr(_obj_name_ptr) {
-		//std::cout << "ctpr" << _status << " " << status << std::endl;
+		: ArgsCall<N>(_args...), ConstructorBase(_status, position), obj_name_ptr(_obj_name_ptr)
+	{
 	}
 
 	const std::string obj_name() const {
@@ -304,12 +333,12 @@ struct Constructor<Array<T, M>> : Constructor<T> {
 	}
 };
 
-struct FieldSelector : Predecense<FIELD_SELECTOR> {
+struct FieldSelector : Precedence<FIELD_SELECTOR> {
 	FieldSelector(Ex _obj, stringPtr member_str)
 		: member_str_ptr(member_str), obj(_obj) {
 	}
 	const std::string str() const {
-		return obj->str() + "." + *member_str_ptr;
+		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
 	}
 	Ex obj;
 	stringPtr member_str_ptr;
@@ -329,20 +358,21 @@ struct MemberSelector : FunctionCall<N> {
 	Ex obj;
 };
 
-struct ArraySubscript : Predecense<ARRAY_SUBSCRIPT> {
+struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
 	ArraySubscript(Ex _obj, Ex _arg) : obj(_obj), arg(_arg) {
 	}
 
 	const std::string str() const {
+		std::cout << " array_sub" << std::endl;
 		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str() + "]";
 	}
 
 	Ex obj, arg;
 };
 
-struct PrefixUnary : Predecense<PREFIX> {
+struct PrefixUnary : Precedence<PREFIX> {
 	PrefixUnary(const std::string & op_str, Ex _obj)
-		: Predecense<PREFIX>(makeStringPtr(op_str)), obj(_obj) {
+		: Precedence<PREFIX>(makeStringPtr(op_str)), obj(_obj) {
 	}
 
 	const std::string str() const {
@@ -352,9 +382,9 @@ struct PrefixUnary : Predecense<PREFIX> {
 	Ex obj;
 };
 
-struct PostfixUnary : Predecense<POSTFIX> {
+struct PostfixUnary : Precedence<POSTFIX> {
 	PostfixUnary(const std::string & op_str, Ex _obj)
-		: Predecense<POSTFIX>(makeStringPtr(op_str)), obj(_obj) {
+		: Precedence<POSTFIX>(makeStringPtr(op_str)), obj(_obj) {
 	}
 
 	const std::string str() const {
@@ -364,7 +394,7 @@ struct PostfixUnary : Predecense<POSTFIX> {
 	Ex obj;
 };
 
-struct Ternary : Predecense<TERNARY> {
+struct Ternary : Precedence<TERNARY> {
 	Ternary(Ex _condition, Ex _first, Ex _second)  
 		: condition(_condition), first(_first), second(_second) {
 	}
@@ -413,6 +443,9 @@ void areNotInit(const A & a, const Args &... args) {
 }
 template<typename A> void areNotInit(const A & a) {
 	//std::cout << "not init " << a.name << std::endl;
+	if (a.parent) {
+		areNotInit(*a.parent);
+	}
 	isNotInit(a.exp);
 }
 template<> void areNotInit() {}
@@ -428,11 +461,18 @@ Ex createExp(const Args &... args) {
 template<typename T, bool temp = !std::is_lvalue_reference<T>::value> Ex getExp(const T & t) {
 	//std::cout << t.exp.use_count() << std::endl;
 	t.isUsed = true;
-	if(temp) {
+	if(temp && !t.parent) {
 		areNotInit(t);
 		//std::cout << " get exp temp " << t.myName() << std::endl;
 		return t.exp;
 	} else {
+		if (t.parent) {
+			areNotInit(*t.parent);
+			if (temp) {
+				return createExp<Alias>(std::move(t).myNamePtr());
+			}
+			return createExp<Alias>(t.myNamePtr());
+		}
 		//std::cout << " ref use " << t.myName() << std::endl;		
 		return createExp<Alias>(t.myNamePtr());
 	}
@@ -444,6 +484,14 @@ template<bool temp, typename T> Ex getExpForced(const T &t) {
 
 Ex NamedObjectBase::alias() const {
 	return createExp<Alias>(myNamePtr());
+}
+
+const std::string NamedObjectBase::myName() const && {
+	std::string s = exp->str();
+	if (parent) {
+		s += std::move(*parent).myName() + ".";
+	}
+	return s;
 }
 
 template<> Ex getExp<bool>(const bool & b) {
@@ -497,6 +545,11 @@ struct Block {
 	}
 	std::vector<InstructionBase::Ptr> instructions;
 	Block::Ptr parent;
+};
+
+struct MainBlock : Block {
+	using Ptr = std::shared_ptr<MainBlock>;
+	int dummy;
 };
 
 struct ReturnBlockBase : Block {
@@ -849,6 +902,24 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...
 struct ControllerBase {
 
 	void queueEvent(const Ex & e) {
+
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(e)) {
+			if (auto cBlock = std::dynamic_pointer_cast<MainBlock>(currentBlock)) {
+				if (ctor->position == INSIDE_BLOCK) {
+					std::cout << " not valid outside block : " << e->str() << std::endl;
+				}
+			} else {
+				if (ctor->status == DECLARATION && ctor->position == MAIN_BLOCK) {
+					std::cout << " not valid inside block : " << e->str() << std::endl;
+				}
+			}
+		}
+
+		//if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(e)) {
+		//	if (ctor->position == MAIN_BLOCK) {
+		//		std::cout << "main_block : " << ctor->str() << std::endl;
+		//	}
+		//}
 		currentBlock->instructions.push_back(toInstruction(e));
 	}
 
@@ -1042,14 +1113,14 @@ struct TShader : MainController {
 	using Ptr = std::shared_ptr<TShader>;
 
 	TShader() {
-		declarations = std::make_shared<Block>();
+		declarations = std::make_shared<MainBlock>();
 		currentBlock = declarations;
 
 		//add defaut main
 		//functions.push_back(std::make_shared<Block>(createExp<>()))
 	}
 
-	Block::Ptr declarations;
+	MainBlock::Ptr declarations;
 	std::vector<InstructionBase::Ptr> structs; 
 	std::vector<InstructionBase::Ptr> functions;
 	
@@ -1061,11 +1132,13 @@ struct TShader : MainController {
 			struc->cout(trailing);
 			std::cout << "\n";
 		}
+
+		declarations->cout(trailing);
+		std::cout << "\n";
 		for (const auto & fun : functions) {
 			fun->cout(trailing);
 			std::cout << "\n";
-		}
-		declarations->cout(trailing);
+		}		
 	}
 	void explore() {
 		declarations->explore();
@@ -1085,10 +1158,13 @@ struct TShader : MainController {
 		auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT,Args...> >(name, args );
 		functions.push_back(std::static_pointer_cast<InstructionBase>(function_declaration));
 		function_declaration->body->parent = currentBlock;
+		std::cout << "begin_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
 		currentBlock = std::static_pointer_cast<Block>(function_declaration->body);
+		std::cout << " in_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
 	}
 	void end_function() {
 		currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->getBody()->parent;
+		std::cout << " end_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
 	}
 
 	ReturnBlockBase::Ptr get_return_block() {
@@ -1314,29 +1390,68 @@ struct Fun<void, F_Type> : FunBase {
 //	return expr;
 //}
 
-template<typename T, CtorTypeDisplay tRule = DISPLAY, ParenthesisRule pRule = USE_PARENTHESIS, CtorStatus status = INITIALISATION, typename ... Args>
+template<typename T, CtorTypeDisplay tRule = DISPLAY, ParenthesisRule pRule = USE_PARENTHESIS, CtorStatus status = INITIALISATION, 
+	CtorPosition position = INSIDE_BLOCK, typename ... Args>
 Ex createInit(const stringPtr & name, const Args &... args)
 {
-	auto ctor = std::make_shared<Constructor<T, sizeof...(args), tRule, pRule> >(name, status, std::vector<Ex> { args... });
+	auto ctor = std::make_shared<Constructor<T, sizeof...(args), tRule, pRule, position> >(name, status, args...);
 	Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
 	listen().addEvent(expr);
 	return expr;
 }
 
+template<typename T>
+struct CreateDeclaration {
+	template<typename ... Args>
+	static Ex run(const stringPtr & name, const Args &... args) {
+		return createInit<T, DISPLAY, USE_PARENTHESIS, DECLARATION, INSIDE_BLOCK, Args...>(name, args...);
+	}
+};
+
+template<QualifierType type, typename T, typename L>
+struct CreateDeclaration<Qualifier<type, T, L>> {
+	template<typename ... Args>
+	static Ex run(const stringPtr & name, const Args &... args) {
+		Ex e = createInit<Qualifier<type, T, L>, DISPLAY, USE_PARENTHESIS, DECLARATION, MAIN_BLOCK, Args...>(name, args...);
+		std::cout << "mb" << e->str() << std::endl;
+		return e;
+	}
+};
 
 template<typename T, typename ... Args>
-Ex createDeclaration(const stringPtr & name, const Args &... args)
-{
-	return createInit<T, DISPLAY, USE_PARENTHESIS, DECLARATION, Args...>(name, args...);
+Ex createDeclaration(const stringPtr & name, const Args &... args) {
+	return CreateDeclaration<T>::run(name, args...);
 }
 
-template<typename T, uint N>
+template<typename T>
+struct CreateArrayDeclaration {
+	
+	static Ex run(const stringPtr & name) {
+		auto ctor = std::make_shared<Constructor<T>>(name, DECLARATION);
+		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
+		listen().addEvent(expr);
+		return expr;
+	}
+};
+
+
+template<QualifierType type, typename T, typename L>
+struct CreateArrayDeclaration<Qualifier<type, T, L>> {
+
+	static Ex run(const stringPtr & name) {
+		auto ctor = std::make_shared<Constructor<Qualifier<type, T, L>,0,DISPLAY,USE_PARENTHESIS,MAIN_BLOCK>>(name, DECLARATION);
+		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
+		std::cout << "mb" << expr->str() << std::endl;
+		listen().addEvent(expr);
+		return expr;
+	}
+};
+
+template<typename T>
 Ex createArrayDeclaration(const stringPtr & name) {
-	auto ctor = std::make_shared<Constructor<T>>(name,DECLARATION);
-	Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-	listen().addEvent(expr);
-	return expr;
+	return CreateArrayDeclaration<T>::run(name);
 }
+
 
 template<typename ... Args> 
 Ex createFCallExp(const std::string & f_name, const Args & ... args) {
