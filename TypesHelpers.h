@@ -12,6 +12,9 @@ constexpr int Last = (Second >= 0 ? Second : First);
 template<typename T>
 using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 
+template<typename T>
+using CT = std::remove_const_t<std::remove_reference_t<T>>;
+
 // matrix types forward declarations
 
 enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
@@ -62,18 +65,21 @@ using ivec4 = Vec<INT, 4>;
 
 enum AccessType { SAMPLER, IMAGE };
 enum SamplerType { BASIC, CUBE, RECTANGLE, MULTI_SAMPLE, BUFFER, ATOMIC };
-enum SamplerIsArray { NOT_ARRAY, ARRAY };
-enum SamplerIsShadow { NOT_SHADOW, SHADOW };
+//enum SamplerIsArray { NOT_ARRAY, ARRAY };
+//enum SamplerIsShadow { NOT_SHADOW, SHADOW };
+
+enum SamplerFlags { IS_ARRAY = 1 << 1, IS_SHADOW = 1 << 2 };
 
 template<
 	AccessType aType,
 	ScalarType nType,
 	uint N,
 	SamplerType sType = BASIC,
-	SamplerIsArray isArray = NOT_ARRAY,
-	SamplerIsShadow isShadow = NOT_SHADOW
+	uint flags = 0
 >
 class Sampler;
+
+using atomic_uint = Sampler<SAMPLER, UINT, 0, ATOMIC >;
 
 // layout types forward declarations
 
@@ -155,14 +161,14 @@ struct SamplerInfos {
 	static const bool is_sampler = false;
 };
 
-template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerIsArray isArray, SamplerIsShadow isShadow>
-struct SamplerInfos<Sampler<aType, nType, N, sType, isArray, isShadow>> {
+template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint sflags> //SamplerIsArray isArray, SamplerIsShadow isShadow>
+struct SamplerInfos<Sampler<aType, nType, N, sType, sflags>> {
 	static const bool is_sampler = true;
 	static const uint size = N;
 	static const AccessType access_type = aType;
 	static const ScalarType scalar_type = nType;
 	static const SamplerType type = sType;
-	static const SamplerIsArray is_array = isArray;
+	static const uint flags = sflags;
 };
 
 template<QualifierType qType, typename T, typename L>

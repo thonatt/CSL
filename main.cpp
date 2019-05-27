@@ -9,332 +9,401 @@
 //#include "BuildingBlocks.h"
 //#include "Shaders.h"
 
-#include "BuiltInFunctions.h"
-#include "Samplers.h"
+//#include "BuiltInFunctions.h"
+//#include "Samplers.h"
 #include "MatrixTypesTest.h"
 #include "StructHelpers.h"
-#include "Layouts.h"
+//#include "Layouts.h"
 
 
 //void srt1();
 //void srt2();
 //void srt3();
-void srt4();
-void test_pred();
-
+//void srt4();
+//void test_pred();
+void test_accessor();
 
 int main()
 {
-	//srt4();
-	test_pred();
+	test_accessor();
+
 	listen().cout();
-	return 0;
-	
-	using LL = Layout< Binding<4>, Offset<3>, Binding<3>, Shared, Offset<4>, Binding<2> >;
-	
-	using LLC = LL::CleanedArgs;
-
-	Uniform<Float> myUni("myUni");
-	Uniform<mat4x2, LL> myComplexUni;
-
-	
-	//ppp(1,2);
-	//ppp(1,2,3);
-
-	//testRef();
-
-	////correct and well translated
-	//T a = T(0) << "a";
-	//T c("plop");
-
-	////wrong but well translated to T xxx = T(0);
-	//T b(0);
-
-	////copy elision works fine
-	//T el = T(T(T(1, 2, 3))); 
-	//T el2 = T(T(T(1, 2, 3))) << "el";
-
-	////works fine
-	//a = T(1);
-	//T d = T(a, T(2,c), T(a,3.0)) << "d";
-	//a = 1;
-	//a = fun(b, c);
-	//T f = fun(a*a + b, fun(d, a) + fun(a, d));
-
-	////will not compile, operator<< only for initialisation
-	////a = fun(b, c) << "blah"
-
-	////will not compile, only one init for ctor;
-	////T e = T(fun(a, b) << "ab", fun(b,a) << "ba");
-
-	////works, but names are useless
-	//T e = T(T(fun(a, b) << "ab"), T(T(fun(b, a) << "ba")));
-
-	//T g = T(0) << "e";
-
-	//Manager::man.cout();
-
-	{
-
-
-		//vec2T vv = vec2T(3, 4) << "vv";	
-		//vv += vv;
-		//vv = vec2T(0);
-
-		//BoolT bb;
-		//bb = bb && bb;
-		//BoolT bbbb = (bb && true &&  false && bb && false) << "bb";
-
-		//listen().explore();
-
-	}
-
-	{
-		
-		GL_STRUCT(MyType,
-			(Float) a,
-			(Int) b
-		);
-
-		GL_STRUCT(MyBigType,
-			(MyType) v_a,
-			(Int) v_b,
-			(Float) v_c
-		) myBigType("myBugType");
-
-		//
-		auto fuuuu = makeFun<Float>("test@", []() {
-			GL_RETURN();
-			GL_RETURN(Float(42) + 1.0);
-		});
-
-		auto fu_void = makeFun<void>("test@", [](){
-			GL_RETURN(Float(1));
-			GL_RETURN();
-		});
-
-		auto fu_void_no_return = makeFun<void>("test@", []() { });
-		auto fu_no_return = makeFun<Float>("test@", []() {});
-
-
-		GL_STRUCT(MyVecType,
-			(vec3) a,
-			(vec3) b
-		);
-
-		{
-
-			using namespace all_swizzles;
-			using namespace glsl_4_50;
-
-			myComplexUni[0][x, y, z] = myUni * myComplexUni[1][x,x,x];
-
-			sampler2DArray sampler2darray;
-			sampler2D sampler2d;
-			
-			vec3 point;
-			vec2 pt2d;
-			Float biais("biais");
-
-			vec4 tex = texture(sampler2darray, point) << "tex";
-			tex = texture(sampler2d, pt2d)[w,w,z,z];
-			vec3 otex = texture(sampler2d, pt2d, biais)[r,g,b] << "tex_biais";
-	 
-			vec3 k;
-
-			k[r, b, g] = k[b, g, r][r, r, r][x, y, z];
-			//k[r, r, r] = k; //not compiling
-			//k[r, r, r] = k[b, g, r]; //not compiling
-			k = k[b, g, b];
-			k[r, g, b] = k;
-			k = k;
-			vec2 kk = k[r, g];
-			kk = k[x, x];
-
-			mat3 mm;
-			Int ll = mm.length() << "ll";
-
-			k = mm[0][x,y][0]*mm[1];
-
-			dvec3 dk;
-			ivec2 ik;
-			kk = pow(ik, kk);
-
-			Float hhhh = length(length(kk)*k+k);
-			hhhh += 1;
-
-			
-			length(dk);
-
-			MyVecType vecc;
-
-			vecc.a[x, y] += vecc.b[y, x];
-		}
-
-
-		auto fun = makeFun<Float>([&](Float f, Int i, Float g) {
-			Float gg = f + i + g;
-			++g;
-			Bool bb("myBool");
-		
-			gg == gg;
-			GL_IF(bb) {
-				Float ggg = gg;
-				Float hhh = 1.0;
-				ggg *= 2.0 * ggg;
-				ggg -= hhh - 1;
-				mat3 m;
-				vec3 k; 
-				vec3 kk = 2.0*mat3(k,k,k)*m*k / k << "kk";
-				//ggg + hhh;
-			}
-
-			GL_FOR(Int a(0,"a"); a < 5; ++a) {
-				Float ggg = gg;
-				Float hhh = 1.0; 
-				
-				++g;
-				GL_FOR(Int b = Int(2,"b"); b < 10; ++b) {
-					++a;
-				
-					GL_IF(a < 3) {
-						++b;
-					} GL_ELSE_IF(bb) {
-						++b;
-						GL_FOR(Int c(22, "b"); c < 24; ++c) {
-							GL_IF(a < 4) {
-								++b;
-							}
-						}
-						GL_IF(!(a < 4)) {
-							++b;
-						} GL_ELSE_IF(a < 12) {
-							GL_WHILE(a < 0) {
-								GL_WHILE(a < 0) {
-									GL_WHILE(a < 0) {
-									}
-									++b;
-								}
-							}
-						} GL_ELSE_IF(!bb) {
-							++b;
-						} 
-						GL_IF(bb){
-							GL_IF(bb && !bb) {
-								GL_IF(bb && bb && bb) {
-									++b;
-								}
-							} GL_ELSE_IF(bb) {
-								//nothing
-							}
-						}
-					} GL_ELSE {
-						++b;
-					}
-					GL_IF(a < 0) {
-						++b;
-					}
-
-					++a;
-				}
-			}
-			GL_RETURN(mat2x3(8));
-			GL_RETURN(gg + g);
-
-			//GL_RETURN_T();
-		}, "arg1", "arg2", "arg3");
-
-		//auto fun_void = makeFun<void>([](Float f) {
-		//	Float g;
-		//	++g;
-		//});
-
-		//checkFun([]() -> double {
-		//	GL_IF(true) {
-		//		GL_RETURN_TEST(1.0);
-		//	} GL_ELSE{
-		//		GL_RETURN_TEST(2);
-		//	}
-		//});
-
-
-		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
-
-		fun(1, 1, 1);
-
-		Int iiii = 0;
-		result_fun = iiii + 0.5;
-
-		Float gggggg;
-		//fun_void(gggggg);
-		
-		Float f = 1.0;
-		f = 0;
-		//f = Double(); //do not compile implicit conversion goes from simple types to complex types
-		f = Float(3);
-		Int ii = 1;
-		Int jj = Int(1.0);
-		Int jjj = 1.0;
-		//jj = 1.0; //not compiling
-
-		Float fff = true;
-		Bool bb = true;
-		Bool bbb = Bool(f);
-
-
-		Bool bbbb = Bool(Float(Bool(Float(1))));
-		Int iii = Int(bb);
-		Int ttt = bb;
-		bb = false;
-		ttt = false || bb && true || bb && false;
-
-		Float g(0.0, "blah");
-		g = Float(1) + g + 0.1 + g + 1 + myBigType.v_b + myBigType.v_a.a + myBigType.v_c;
-
-		Float ffff = Float(1) + g;
-
-		vec2 ff = vec2(1, 2);
-		vec4 vv = vec4(f, vec2(f, f), g) << "myVec4";
-		mat4 mm = mat4(vv, vv, vv, f, g, ff) << "mm";
-
-		mat4 mmm = mat4(mat2(vec2(Float(1.0), Float(2)), ff), vec4(0, 0.0, 0.0, 1), vv, mat2(ff, ff)) << "mmm";
-
-		Float gg = Float(mm); //yes, this is legal
-		bb = g < gg;
-
-		mat4 ma = mat4(0) << "m";
-		mat4 maa = ma << "maa";
-		mat2x3 m23;
-		ma = mm;
-		ma = mat4(m23);
-
-		ma = (++ma)++;
-		mat4 mb = (++ma)++;
-		ma += - -- -mat4(0);
-		//ma = 0; //not compiling
-		//ma = vec3(); //not compiling
-
-
-		mat3 m3 = mat3(mat4(0));
-		mat3 m4 = mat4(0);  //apply conversion
-
-		//listen().explore();
-		listen().cout();
-
-	}
-
-	//firstTest();
-	//testFuns();
-	//testBlocks();
-	//srt1();
-	//srt2();
-	//srt3();
-
-
-	std::cout << " end " << std::endl;
 
 	return 0;
 }
+
+void test_accessor() {
+	//Array<Bool, 4> bs("bs");
+	//std::cout << getExp(bs[3])->str() << std::endl;
+
+	//Bool bb = bs[0];
+
+	//Float f = Float(1.0, "f");
+	//Bool bb = Bool("b1");
+	//Bool bh = false;
+
+	auto fun = makeFun<vec2>([](Float f) {
+		GL_RETURN(vec2(1.0));
+	});
+
+	auto fun2 = makeFun<void>([]() {
+	});
+
+	GL_STRUCT(
+		MyStruct,
+		(Float) f,
+		(vec2) v
+	);
+
+	GL_STRUCT(
+		MySuperStruct,
+		(MyStruct) s,
+		(Float) f
+	);
+
+
+	auto fun3 = makeFun<MyStruct>([](MySuperStruct s) {
+		GL_RETURN(s.s);
+	}, "my");
+
+	MySuperStruct my("mySupStruct");
+
+	Float f = 1.0;
+	Float g = 1;
+	fun2();
+	vec2 vv = vec2(1.0, 2.0);
+	vec2 vvvv = vec2(1.0, 1);
+	vec2 vvv = my.s.f*f*vec2(3.0, 3.0) + my.s.v + g * (mat2(0) + mat2(1))*vv + fun(1.0) << "vvv";
+
+	vec2 p = vec2(1.0, 2.0) << "lop";
+
+	//std::cout << vv.str() << std::endl;
+	//std::cout << "dbg : " << getExp(vec4(vec2(2.0, 2.0), vec2(1.0, 1.0)))->str() << std::endl;
+	//std::cout << "dbg : " << (bool)(getExp(vec2(1.0, 2.0))->flags & PARENTHESIS) << std::endl;
+	//std::cout << "dbg : " << getExp(vv)->str() << std::endl;
+
+
+
+}
+
+
+
+//int main()
+//{
+//	//srt4();
+//	
+//	//test_pred();
+//
+//	test_accessor();
+//
+//	listen().cout();
+//	return 0;
+//	
+//	using LL = Layout< Binding<4>, Offset<3>, Binding<3>, Shared, Offset<4>, Binding<2> >;
+//	
+//	using LLC = LL::CleanedArgs;
+//
+//	Uniform<Float> myUni("myUni");
+//	Uniform<mat4x2, LL> myComplexUni;
+//
+//	
+//	//ppp(1,2);
+//	//ppp(1,2,3);
+//
+//	//testRef();
+//
+//	////correct and well translated
+//	//T a = T(0) << "a";
+//	//T c("plop");
+//
+//	////wrong but well translated to T xxx = T(0);
+//	//T b(0);
+//
+//	////copy elision works fine
+//	//T el = T(T(T(1, 2, 3))); 
+//	//T el2 = T(T(T(1, 2, 3))) << "el";
+//
+//	////works fine
+//	//a = T(1);
+//	//T d = T(a, T(2,c), T(a,3.0)) << "d";
+//	//a = 1;
+//	//a = fun(b, c);
+//	//T f = fun(a*a + b, fun(d, a) + fun(a, d));
+//
+//	////will not compile, operator<< only for initialisation
+//	////a = fun(b, c) << "blah"
+//
+//	////will not compile, only one init for ctor;
+//	////T e = T(fun(a, b) << "ab", fun(b,a) << "ba");
+//
+//	////works, but names are useless
+//	//T e = T(T(fun(a, b) << "ab"), T(T(fun(b, a) << "ba")));
+//
+//	//T g = T(0) << "e";
+//
+//	//Manager::man.cout();
+//
+//	{
+//
+//
+//		//vec2T vv = vec2T(3, 4) << "vv";	
+//		//vv += vv;
+//		//vv = vec2T(0);
+//
+//		//BoolT bb;
+//		//bb = bb && bb;
+//		//BoolT bbbb = (bb && true &&  false && bb && false) << "bb";
+//
+//		//listen().explore();
+//
+//	}
+//
+//	{
+//		
+//		GL_STRUCT(MyType,
+//			(Float) a,
+//			(Int) b
+//		);
+//
+//		GL_STRUCT(MyBigType,
+//			(MyType) v_a,
+//			(Int) v_b,
+//			(Float) v_c
+//		) myBigType("myBugType");
+//
+//		//
+//		auto fuuuu = makeFun<Float>("test@", []() {
+//			GL_RETURN();
+//			GL_RETURN(Float(42) + 1.0);
+//		});
+//
+//		auto fu_void = makeFun<void>("test@", [](){
+//			GL_RETURN(Float(1));
+//			GL_RETURN();
+//		});
+//
+//		auto fu_void_no_return = makeFun<void>("test@", []() { });
+//		auto fu_no_return = makeFun<Float>("test@", []() {});
+//
+//
+//		GL_STRUCT(MyVecType,
+//			(vec3) a,
+//			(vec3) b
+//		);
+//
+//		{
+//
+//			using namespace all_swizzles;
+//			using namespace glsl_4_50;
+//
+//			myComplexUni[0][x, y, z] = myUni * myComplexUni[1][x,x,x];
+//
+//			sampler2DArray sampler2darray;
+//			sampler2D sampler2d;
+//			
+//			vec3 point;
+//			vec2 pt2d;
+//			Float biais("biais");
+//
+//			vec4 tex = texture(sampler2darray, point) << "tex";
+//			tex = texture(sampler2d, pt2d)[w,w,z,z];
+//			vec3 otex = texture(sampler2d, pt2d, biais)[r,g,b] << "tex_biais";
+//	 
+//			vec3 k;
+//
+//			k[r, b, g] = k[b, g, r][r, r, r][x, y, z];
+//			//k[r, r, r] = k; //not compiling
+//			//k[r, r, r] = k[b, g, r]; //not compiling
+//			k = k[b, g, b];
+//			k[r, g, b] = k;
+//			k = k;
+//			vec2 kk = k[r, g];
+//			kk = k[x, x];
+//
+//			mat3 mm;
+//			Int ll = mm.length() << "ll";
+//
+//			k = mm[0][x,y][0]*mm[1];
+//
+//			dvec3 dk;
+//			ivec2 ik;
+//			kk = pow(ik, kk);
+//
+//			Float hhhh = length(length(kk)*k+k);
+//			hhhh += 1;
+//
+//			
+//			length(dk);
+//
+//			MyVecType vecc;
+//
+//			vecc.a[x, y] += vecc.b[y, x];
+//		}
+//
+//
+//		auto fun = makeFun<Float>([&](Float f, Int i, Float g) {
+//			Float gg = f + i + g;
+//			++g;
+//			Bool bb("myBool");
+//		
+//			gg == gg;
+//			GL_IF(bb) {
+//				Float ggg = gg;
+//				Float hhh = 1.0;
+//				ggg *= 2.0 * ggg;
+//				ggg -= hhh - 1;
+//				mat3 m;
+//				vec3 k; 
+//				vec3 kk = 2.0*mat3(k,k,k)*m*k / k << "kk";
+//				//ggg + hhh;
+//			}
+//
+//			GL_FOR(Int a(0,"a"); a < 5; ++a) {
+//				Float ggg = gg;
+//				Float hhh = 1.0; 
+//				
+//				++g;
+//				GL_FOR(Int b = Int(2,"b"); b < 10; ++b) {
+//					++a;
+//				
+//					GL_IF(a < 3) {
+//						++b;
+//					} GL_ELSE_IF(bb) {
+//						++b;
+//						GL_FOR(Int c(22, "b"); c < 24; ++c) {
+//							GL_IF(a < 4) {
+//								++b;
+//							}
+//						}
+//						GL_IF(!(a < 4)) {
+//							++b;
+//						} GL_ELSE_IF(a < 12) {
+//							GL_WHILE(a < 0) {
+//								GL_WHILE(a < 0) {
+//									GL_WHILE(a < 0) {
+//									}
+//									++b;
+//								}
+//							}
+//						} GL_ELSE_IF(!bb) {
+//							++b;
+//						} 
+//						GL_IF(bb){
+//							GL_IF(bb && !bb) {
+//								GL_IF(bb && bb && bb) {
+//									++b;
+//								}
+//							} GL_ELSE_IF(bb) {
+//								//nothing
+//							}
+//						}
+//					} GL_ELSE {
+//						++b;
+//					}
+//					GL_IF(a < 0) {
+//						++b;
+//					}
+//
+//					++a;
+//				}
+//			}
+//			GL_RETURN(mat2x3(8));
+//			GL_RETURN(gg + g);
+//
+//			//GL_RETURN_T();
+//		}, "arg1", "arg2", "arg3");
+//
+//		//auto fun_void = makeFun<void>([](Float f) {
+//		//	Float g;
+//		//	++g;
+//		//});
+//
+//		//checkFun([]() -> double {
+//		//	GL_IF(true) {
+//		//		GL_RETURN_TEST(1.0);
+//		//	} GL_ELSE{
+//		//		GL_RETURN_TEST(2);
+//		//	}
+//		//});
+//
+//
+//		Float result_fun = fun(Float(1.0), 1, fun(1.0, 1, 1.0));
+//
+//		fun(1, 1, 1);
+//
+//		Int iiii = 0;
+//		result_fun = iiii + 0.5;
+//
+//		Float gggggg;
+//		//fun_void(gggggg);
+//		
+//		Float f = 1.0;
+//		f = 0;
+//		//f = Double(); //do not compile implicit conversion goes from simple types to complex types
+//		f = Float(3);
+//		Int ii = 1;
+//		Int jj = Int(1.0);
+//		Int jjj = 1.0;
+//		//jj = 1.0; //not compiling
+//
+//		Float fff = true;
+//		Bool bb = true;
+//		Bool bbb = Bool(f);
+//
+//
+//		Bool bbbb = Bool(Float(Bool(Float(1))));
+//		Int iii = Int(bb);
+//		Int ttt = bb;
+//		bb = false;
+//		ttt = false || bb && true || bb && false;
+//
+//		Float g(0.0, "blah");
+//		g = Float(1) + g + 0.1 + g + 1 + myBigType.v_b + myBigType.v_a.a + myBigType.v_c;
+//
+//		Float ffff = Float(1) + g;
+//
+//		vec2 ff = vec2(1, 2);
+//		vec4 vv = vec4(f, vec2(f, f), g) << "myVec4";
+//		mat4 mm = mat4(vv, vv, vv, f, g, ff) << "mm";
+//
+//		mat4 mmm = mat4(mat2(vec2(Float(1.0), Float(2)), ff), vec4(0, 0.0, 0.0, 1), vv, mat2(ff, ff)) << "mmm";
+//
+//		Float gg = Float(mm); //yes, this is legal
+//		bb = g < gg;
+//
+//		mat4 ma = mat4(0) << "m";
+//		mat4 maa = ma << "maa";
+//		mat2x3 m23;
+//		ma = mm;
+//		ma = mat4(m23);
+//
+//		ma = (++ma)++;
+//		mat4 mb = (++ma)++;
+//		ma += - -- -mat4(0);
+//		//ma = 0; //not compiling
+//		//ma = vec3(); //not compiling
+//
+//
+//		mat3 m3 = mat3(mat4(0));
+//		mat3 m4 = mat4(0);  //apply conversion
+//
+//		//listen().explore();
+//		listen().cout();
+//
+//	}
+//
+//	//firstTest();
+//	//testFuns();
+//	//testBlocks();
+//	//srt1();
+//	//srt2();
+//	//srt3();
+//
+//
+//	std::cout << " end " << std::endl;
+//
+//	return 0;
+//}
 
 //void firstTest() {
 //	{
@@ -910,150 +979,157 @@ int main()
 //	std::cout << shader1.getStr() << std::endl;
 //}
 
-void srt4(){
-	using namespace all_swizzles;
-	using namespace glsl_4_50;
-	
-	// The ins, uniforms and outs should be placed before any function, as they can use them.
-	// I know this is probably a trivial fix that you're keeping for once all the generation is ok :)
-	In<vec2> uvs("uvs");
-	Uniform<vec3> refColor("finalColor");
-
-	Array<Uniform<vec3,Layout<Location<0>>>, 7> myArray;
-	myArray[0] = myArray[1 + Int(3)];
-
-	Array<Uniform<sampler2D>, 2> mySamplerArray;
-	texture(mySamplerArray[1], vec2(0));
-
-	Array<vec3, 77> myVec3s("myVec3s");
-
-	GL_STRUCT(MyStruct,
-		(Float) alpha,
-		(Float) beta,
-		(Float) gamma
-	);
-
-	Uniform<Float> refAlpha("refAlpha"); 
-	Uniform<MyStruct> abg("agb");
-
-	Uniform<sampler2D,Layout<Location<3>,Binding<0>,Location<0>>> tex0("texture0"); 
-	Out<vec4> fragColor("fragColor");
-
-	auto project = makeFun<vec3>("mixColors", [](mat4 proj, vec3 pt) {
-		std::cout << "project" << std::endl;
-		GL_RETURN((proj * vec4(pt, 1.0))[x,y,z]);
-	}, "proj", "pt");
-
-	auto mixColors = makeFun<vec3>("mixColors", [](vec3 A, vec3 B, Float f) {
-		vec3 diff = B - A;
-		GL_RETURN(A + f * diff);
-	});
-	
-	auto applyGamma = makeFun<vec4>("applyGamma", [](vec4 A) {
-		A[x, y, z] = pow(A[x, y, z], vec3(1.0 / 2.2));
-		GL_RETURN(A);
-	});
-	
-	auto main = makeFun<void>("main", [&]()
-	{
-		  vec4 tex = texture(tex0, uvs[y,x]) << "tex";
-		  vec3 baseColor = tex[z,y,z]; // can't do tex[z,y,z] here.
-		  tex[x,y,z] = mixColors(baseColor, refColor, refAlpha);
-		  tex[a] = tex[a] * 1.1;
-		  vec4 res = applyGamma(tex); // If res it not used afterwards, it will be removed? I can never remember if this is a known "gotcha" with local unnamed variables construction in CSL, or if this is an issue.
-		  res += tex;
-		  fragColor = res;
-	});
-}
-
-struct TTT : public NamedObject<TTT> {
-	using UnderlyingType = TTT;
-
-	Float f;
-
-	TTT(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = false)
-		: NamedObject<TTT>(_name, _track, _parent, _isUsed), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f")))
-	{
-		if (!_parent) { isUsed = true;  if (_track) { exp = createDeclaration<TTT>(myNamePtr()); } }
-	}
-
-	TTT(const Ex & _exp) : NamedObject<TTT>(), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f"))) {
-		exp = createInit<TTT, HIDE, NO_PARENTHESIS>(myNamePtr(), _exp);
-		isUsed = false;
-	}
-};
-
-
-void test_pred() {
-	using namespace all_swizzles;
-	using namespace glsl_4_50;
-
-	GL_STRUCT(MyStruct,
-		(Float) f,
-		(Float) g
-	);
-
-	GL_STRUCT(MyMegaStruct,
-		(MyStruct) ff,
-		(MyStruct) gg
-	);
-
-	//MyStruct my("my");
-
-	//Array<Uniform<MyStruct, Offset<0>>, 12> myArray("myArray");
-
-	//Array<Uniform<MyStruct, Layout<Offset<3>>>,15> u("u");
-	//Uniform<MyStruct,Offset<0>> u("u");
-	//Array<Float, 3> ff("ff");
-	Array<MyMegaStruct, 2> a("ar");
-
-	//Array<Uniform<MyStruct>, 10> ar2("ar2");
-
-	//Array<TTT,3> tt("tt");
-
-	//tt[0].f;
-
-	auto fun = makeFun<Float>([](Float f) {
-		GL_RETURN(f);
-	});
-
-	//ff[0];
-	//u[0];
-	//std::cout << u[0].f.myName() << std::endl;
-	//std::cout << u[0].f.parent << std::endl;
-	MyMegaStruct struc;
-	//std::cout << "myn : " << a[0].ff.myName() << std::endl;
-
-	Array<mat4, 4> am("array_of_mat");
-	am[0] * am[1];
-	am[0].length() * am[1];
-
-	//a[0].ff.g * a[1].gg.f;
-
-	std::cout << a.isTemp() << std::endl;
-	std::cout << a[0].isTemp() << std::endl;
-	std::cout << a[0].ff.isTemp() << std::endl;
-	std::cout << a[0].ff.g.isTemp() << std::endl;
-
-	std::cout << "!!" << std::endl;
-	a[0].ff.g.checkTemp();
-
-	auto fun2 = makeFun<void>([](Float f) {
-	});
-	auto fun3 = makeFun<void>([&]() {
-		Float g("g");
-		g + (3.0 + (g + g) / (Float(3) + g))*(g + g)*(g*g + g * g)*g;
-		fun(g);
-		fun2(g);
-
-		++(g + g);
-		mat4 m;
-		g = m.length();
-		m[3][x, y] = 3.0*(m*vec4(1, vec2(2, 3) + 7 * vec2(4, 5), 6))[x, x];
-
-		Array<Uniform<Bool>, 4> bs("bs");
-		!(bs[0] && !(g < -g) && !bs[1] || !bs[2]) && !bs[3];
-	});
-
-
-}
+//void srt4(){
+//	using namespace all_swizzles;
+//	using namespace glsl_4_50;
+//	
+//	// The ins, uniforms and outs should be placed before any function, as they can use them.
+//	// I know this is probably a trivial fix that you're keeping for once all the generation is ok :)
+//	In<vec2> uvs("uvs");
+//	Uniform<vec3> refColor("finalColor");
+//
+//	Array<Uniform<vec3,Layout<Location<0>>>, 7> myArray;
+//	myArray[0] = myArray[1 + Int(3)];
+//
+//	Array<Uniform<sampler2D>, 2> mySamplerArray;
+//	texture(mySamplerArray[1], vec2(0));
+//
+//	Array<vec3, 77> myVec3s("myVec3s");
+//
+//	GL_STRUCT(MyStruct,
+//		(Float) alpha,
+//		(Float) beta,
+//		(Float) gamma
+//	);
+//
+//	Uniform<Float> refAlpha("refAlpha"); 
+//	Uniform<MyStruct> abg("agb");
+//
+//	Uniform<sampler2D,Layout<Location<3>,Binding<0>,Location<0>>> tex0("texture0"); 
+//	Out<vec4> fragColor("fragColor");
+//
+//	auto project = makeFun<vec3>("mixColors", [](mat4 proj, vec3 pt) {
+//		std::cout << "project" << std::endl;
+//		GL_RETURN((proj * vec4(pt, 1.0))[x,y,z]);
+//	}, "proj", "pt");
+//
+//	auto mixColors = makeFun<vec3>("mixColors", [](vec3 A, vec3 B, Float f) {
+//		vec3 diff = B - A;
+//		GL_RETURN(A + f * diff);
+//	});
+//	
+//	auto applyGamma = makeFun<vec4>("applyGamma", [](vec4 A) {
+//		A[x, y, z] = pow(A[x, y, z], vec3(1.0 / 2.2));
+//		GL_RETURN(A);
+//	});
+//	
+//	auto main = makeFun<void>("main", [&]()
+//	{
+//		  vec4 tex = texture(tex0, uvs[y,x]) << "tex";
+//		  vec3 baseColor = tex[z,y,z]; // can't do tex[z,y,z] here.
+//		  tex[x,y,z] = mixColors(baseColor, refColor, refAlpha);
+//		  tex[a] = tex[a] * 1.1;
+//		  vec4 res = applyGamma(tex); // If res it not used afterwards, it will be removed? I can never remember if this is a known "gotcha" with local unnamed variables construction in CSL, or if this is an issue.
+//		  res += tex;
+//		  fragColor = res;
+//	});
+//}
+//
+//struct TTT : public NamedObject<TTT> {
+//	using UnderlyingType = TTT;
+//
+//	Float f;
+//
+//	TTT(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = false)
+//		: NamedObject<TTT>(_name, _track, _parent, _isUsed), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f")))
+//	{
+//		if (!_parent) { isUsed = true;  if (_track) { exp = createDeclaration<TTT>(myNamePtr()); } }
+//	}
+//
+//	TTT(const Ex & _exp) : NamedObject<TTT>(), f(createExp<FieldSelector>(getExp<TTT, false>(*this), std::make_shared<std::string>("f"))) {
+//		exp = createInit<TTT, HIDE, NO_PARENTHESIS>(myNamePtr(), _exp);
+//		isUsed = false;
+//	}
+//};
+//
+//
+//void test_pred() {
+//	using namespace all_swizzles;
+//	using namespace glsl_4_50;
+//
+//	GL_STRUCT(MyStruct,
+//		(Float) f,
+//		(Float) g
+//	);
+//
+//	GL_STRUCT(MyMegaStruct,
+//		(MyStruct) ff,
+//		(MyStruct) gg
+//	);
+//
+//	//MyStruct my("my");
+//
+//	//Array<Uniform<MyStruct, Offset<0>>, 12> myArray("myArray");
+//
+//	//Array<Uniform<MyStruct, Layout<Offset<3>>>,15> u("u");
+//	//Uniform<MyStruct,Offset<0>> u("u");
+//	//Array<Float, 3> ff("ff");
+//	Array<MyMegaStruct, 2> a("ar");
+//
+//	//Array<Uniform<MyStruct>, 10> ar2("ar2");
+//
+//	//Array<TTT,3> tt("tt");
+//
+//	//tt[0].f;
+//
+//	auto fun = makeFun<Float>([](Float f) {
+//		GL_RETURN(f);
+//	});
+//
+//	//ff[0];
+//	//u[0];
+//	//std::cout << u[0].f.myName() << std::endl;
+//	//std::cout << u[0].f.parent << std::endl;
+//	MyMegaStruct struc;
+//	//std::cout << "myn : " << a[0].ff.myName() << std::endl;
+//
+//	Array<mat4, 4> am("array_of_mat");
+//	am[0] * am[1];
+//	am[0].length() * am[1];
+//
+//	//a[0].ff.g * a[1].gg.f;
+//
+//	std::cout << a.isTemp() << std::endl;
+//	std::cout << a[0].isTemp() << std::endl;
+//	std::cout << a[0].ff.isTemp() << std::endl;
+//	std::cout << a[0].ff.g.isTemp() << std::endl;
+//
+//	std::cout << "!!" << std::endl;
+//	a[0].ff.g.checkTemp();
+//
+//	auto fun2 = makeFun<void>([](Float f) {
+//	});
+//	auto fun3 = makeFun<void>([&]() {
+//		Float g("g");
+//		g + (3.0 + (g + g) / (Float(3) + g))*(g + g)*(g*g + g * g)*g;
+//		fun(g);
+//		fun2(g);
+//
+//		++(g + g);
+//		mat4 m;
+//		m.length();
+//		g = Float(m.length());
+//		g = 0;
+//		std::cout << "plop : " << getE(Float(m.length()))->str() << std::endl;
+//
+//		m[3][x, y] = 3.0*(m*vec4(1, vec2(2, 3) + 7 * vec2(4, 5), 6))[x, x];
+//
+//		//Array<Uniform<Bool>, 4> bs("bs");
+//		Array<Bool, 4> bs("bs");
+//		std::cout << getExp(bs[3])->str() << std::endl;
+//	
+//		!(bs[0] && !(g < -g) && !bs[1] || !bs[2]) && !bs[3];
+//	});
+//
+//
+//}

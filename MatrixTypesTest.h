@@ -3,22 +3,22 @@
 #include "ExpressionsTest.h"
 #include "Swizzles.h"
 
-template<ScalarType type, uint Nrows, uint Ncols>
-struct MatrixInit {
-	MatrixInit(const Ex & ex, const std::string & s);
-
-	std::string name;
-	Ex exp;
-};
+//template<ScalarType type, uint Nrows, uint Ncols>
+//struct MatrixInit {
+//	MatrixInit(const Ex & ex, const std::string & s);
+//
+//	std::string name;
+//	Ex exp;
+//};
 
 /// matrix class
 
 template<ScalarType type, uint NR, uint NC, AssignType assignable>
 class Matrix : public NamedObject<Matrix<type, NR, NC, assignable>> {
 public:
-	using NamedObjectBase::exp;
-	using NamedObjectBase::namePtr;
-	using NamedObjectBase::isUsed;
+	//using NamedObjectBase::exp;
+	//using NamedObjectBase::namePtr;
+	//using NamedObjectBase::isUsed;
 	template<AssignType other_assignable> using OtherMat = Matrix<type, NR, NC, other_assignable>;
 
 	using UnderlyingType = Matrix;
@@ -44,26 +44,38 @@ public:
 	//	exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
 	//}
 
-	explicit Matrix(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = true)
-		: NamedObject<Matrix>(_name, _track, _parent, _isUsed) {
-		exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
-		if (_parent || !_track) {
-			//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
-			areNotInit(*this);
-		}
+	explicit Matrix(const std::string & _name = "", uint flags = IS_TRACKED)
+		: NamedObject<Matrix>(_name, flags)
+	{	
 	}
 
 	template <std::size_t N>
-	explicit Matrix(const char(&s)[N]) : NamedObject<Matrix>(s) {
-		exp = createDeclaration<Matrix>(NamedObjectBase::myNamePtr());
+	explicit Matrix(const char(&s)[N], uint flags = IS_TRACKED)
+		: NamedObject<Matrix>(s)
+	{
+	}
+
+	Matrix(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+		: NamedObject<Matrix>(_ex, ctor_flags, obj_flags, s)
+	{
+
 	}
 
 	// constructor from cpp types (bool, int, and double)
-	template<typename U, typename = std::enable_if_t<!isBool && (NR == 1 && NC == 1) && AreValid<U> && !Infos<U>::is_glsl_type > >
-	Matrix( U && u, const std::string & s) : NamedObject<Matrix>(s) {
+	template<typename U, typename = std::enable_if_t<IsValid<U> && !Infos<U>::is_glsl_type && isScalar && !isBool > >
+	Matrix(U && u, const std::string & s)
+		: NamedObject<Matrix>(
+			EqualMat<U,Matrix> ? 0 : ( DISPLAY_TYPE | PARENTHESIS),
+			IS_TRACKED , s,
+			Ex(U,u)
+			)
+	{
 		//exp = createInit<Matrix, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, getExp<U>(u));
-		exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, getExp<U>(u));
+		//exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, getExp<U>(u));
 	}
+
+	Matrix(const NamedObjectInit<Matrix> & obj) : NamedObject<Matrix>(obj) {}
+
 
 	//glsl constructors
 
@@ -73,16 +85,26 @@ public:
 			isScalar || IsScalar<T>  || //matXY(int/float)
 		(!isBool && NC != 1 && NR != 1 && Infos<T>::cols != 1 && Infos<T>::rows != 1) //matXY(matWZ)
 			) > >
-	Matrix( R_T && x) : NamedObject<Matrix>() {
+	Matrix( R_T && x)
+		: NamedObject<Matrix>(
+			EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
+			IS_TRACKED,
+			"",
+			EX(R_T, x)			
+			)
+	{
 		
-		//checkForTemp<R_T>(x);
-		if ( EqualMat<Matrix,T> ) {
-			//exp = createInit<Matrix, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, getExp<R_T>(x));
-			exp = createInit<Matrix,HIDE, NO_PARENTHESIS>(namePtr, getExp<R_T>(x));
-		} else {
-			//exp = createInit<Matrix, DISPLAY, IN_FRONT, USE_PARENTHESIS>(namePtr, getExp<R_T>(x));
-			exp = createInit<Matrix>(namePtr, getExp<R_T>(x));
-		}
+		////checkForTemp<R_T>(x);
+		//if ( EqualMat<Matrix,T> ) {
+		//	std::cout << "conversion " << getTypeStr<T>() << " -> " << getTypeStr<Matrix>() << std::endl <<
+		//		" : " << name() << " " << getExp<R_T>(x)->str() << std::endl;
+		//	//exp = createInit<Matrix, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, getExp<R_T>(x));
+		//	//exp = createInit<Matrix,HIDE, NO_PARENTHESIS>(namePtr, getExp<R_T>(x));
+		//	exp = getExp<R_T>(x);
+		//} else {
+		//	//exp = createInit<Matrix, DISPLAY, IN_FRONT, USE_PARENTHESIS>(namePtr, getExp<R_T>(x));
+		//	exp = createInit<Matrix>(namePtr, getExp<R_T>(x));
+		//}
 	}
 
 	/////////////////////////////////////////////////////
@@ -104,27 +126,39 @@ public:
 		//std::cout << " CTOR const&" << std::endl;
 	}
 
-	Matrix & operator=(const Matrix & other) & {
+	Matrix & operator=(Matrix && other) & {
+		std::cout << "getE(other) " << getE(other)->str() << std::endl;
 		listen().addEvent(
 			createExp<MiddleOperator<ASSIGNMENT>>(
 				" = ",
-				getExp<Matrix, false>(*this),
-				getExp<Matrix, false>(other)
+				getEx(),
+				EX(Matrix, other)
 			)
 		);
 		return *this;
 	}
 
-	Matrix & operator=(Matrix && other) & {
+	Matrix & operator=(const Matrix & other) & {
 		listen().addEvent(
 			createExp<MiddleOperator<ASSIGNMENT>>(
 				" = ",
-				getExp<Matrix, false>(*this),
-				getExp<Matrix, true>(other)
-				)
+				getEx(),
+				getE(other)
+			)
 		);
 		return *this;
 	}
+
+	//Matrix & operator=(Matrix && other) & {
+	//	listen().addEvent(
+	//		createExp<MiddleOperator<ASSIGNMENT>>(
+	//			" = ",
+	//			getExp<Matrix, false>(*this),
+	//			getExp<Matrix, true>(other)
+	//			)
+	//	);
+	//	return *this;
+	//}
 
 	/////////////////////////////////////////////////////
 
@@ -165,38 +199,46 @@ public:
 	> >
 	Matrix & operator=(const  U & u) = delete;
 
-	template<typename R_U, typename R_V, typename U = CleanType<R_U>, typename V = CleanType<R_V>, typename ...R_Us,
-		typename = std::enable_if_t < AreValid<U, V, CleanType<R_Us>... > && MatElements<U, V, CleanType<R_Us>... > == NR * NC > >
-	explicit Matrix(R_U && u, R_V && v, R_Us && ...us) : NamedObject<Matrix>() {
+	template<typename R_U, typename R_V, typename ...R_Us,
+		typename = std::enable_if_t < AreValid<CT<R_U>, CT<R_V>, CT<R_Us>... > && MatElements<CT<R_U>, CT<R_V>, CT<R_Us>... > == NR * NC > >
+	explicit Matrix(R_U && u, R_V && v, R_Us && ...us) 
+		: NamedObject<Matrix>(
+		 PARENTHESIS | DISPLAY_TYPE, IS_TRACKED, "", 
+			EX(R_U, u), EX(R_V, v), EX(R_Us, us)... )
+	{
 		//std::cout << "multictor " << std::endl; 
 		//areNotInit(u, v, us...);
 		//checkForTemp<R_U, R_V, R_Us...>(u, v, us...);
-		exp = createInit<Matrix>(namePtr, getExp<R_U>(u), getExp<R_V>(v), getExp<R_Us>(us)...);
+		//exp = createInit<Matrix>(namePtr, getExp<R_U>(u), getExp<R_V>(v), getExp<R_Us>(us)...);
 	}
 
-	Matrix(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT )  : NamedObject<Matrix>() {
-		//std::cout << " from exp " << std::endl;
-	
-		if (_init) {
-			exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, _exp);
-		}
-		
-		
-		if (!_track) {
-			areNotInit(*this);
-		}
+	//Matrix(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT )  : NamedObject<Matrix>() {
+	//	//std::cout << " from exp " << std::endl;
+	//
+	//	if (_init) {
+	//		exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, _exp);
+	//	} else {
+	//		exp = _exp;
+	//	}
+	//	
+	//	
+	//	if (!_track) {
+	//		areNotInit(*this);
+	//	}
 
-		//exp = _exp;
-		isUsed = false;
-	}
+	//	//exp = _exp;
+	//	isUsed = false;
+	//}
 
-	Matrix(const MatrixInit<type,NR,NC> & t) : NamedObject<Matrix>(t.name) {
-		//std::cout << "from TiniT" << std::endl;
-		exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, t.exp);
-		//std::cout << std::dynamic_pointer_cast<CtorBase>(exp->op)->status << t.exp->str() <<   std::endl;
-	}
+	//Matrix(const MatrixInit<type,NR,NC> & t)
+	//	: NamedObject<Matrix>(t.exp, t) 
+	//{
+	//	//std::cout << "from TiniT" << std::endl;
+	//	//exp = createInit<Matrix, HIDE, NO_PARENTHESIS>(namePtr, t.exp);
+	//	//std::cout << std::dynamic_pointer_cast<CtorBase>(exp->op)->status << t.exp->str() <<   std::endl;
+	//}
 
-	Matrix & operator=(const MatrixInit < type, NR, NC> & other) = delete;
+	//Matrix & operator=(const MatrixInit < type, NR, NC> & other) = delete;
 
 
 	///////////////////
@@ -395,20 +437,21 @@ public:
 };
 
 //// MatrixInit
-template<ScalarType type, unsigned int NR, unsigned int NC>
-MatrixInit<type,NR,NC> operator<<(const Matrix<type,NR,NC> & m, const std::string & s) {
-	return MatrixInit<type,NR,NC>(getExp< Matrix<type, NR, NC>,false>(m), s);
-}
-
-template<ScalarType type, unsigned int NR, unsigned int NC>
-MatrixInit<type, NR, NC> operator<<(Matrix<type, NR, NC> && m, const std::string & s) {
-	return MatrixInit<type, NR, NC>(getExp<Matrix<type,NR,NC>,true>(m), s);
-}
-
-template<ScalarType type, unsigned int NR, unsigned int NC>
-MatrixInit<type, NR, NC>::MatrixInit(const Ex & _exp, const std::string & s) 
-	: name(s), exp(_exp) {
-}
+//template<ScalarType type, unsigned int NR, unsigned int NC>
+//MatrixInit<type,NR,NC> operator<<(const Matrix<type,NR,NC> & m, const std::string & s) {
+//	return MatrixInit<type,NR,NC>(getExp< Matrix<type, NR, NC>,false>(m), s);
+//}
+//
+//template<ScalarType type, unsigned int NR, unsigned int NC>
+//MatrixInit<type, NR, NC> operator<<(Matrix<type, NR, NC> && m, const std::string & s) {
+//	return MatrixInit<type, NR, NC>(getExp<Matrix<type,NR,NC>,true>(m), s);
+//}
+//
+//template<ScalarType type, unsigned int NR, unsigned int NC>
+//MatrixInit<type, NR, NC>::MatrixInit(const Ex & _exp, const std::string & s) 
+//	: name(s), exp(_exp) 
+//{
+//}
 
 
 // Bool operators
@@ -453,7 +496,7 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< NoBools<A, B> && (EqualMat<A, B> || ( IsScalar<A> || IsScalar<B> ) ) > >
 ArithmeticBinaryReturnType<A, B> operator+(R_A && a, R_B && b)
 {
-	return ArithmeticBinaryReturnType<A, B>(createExp<MiddleOperator<ADDITION>>(" + ", getExp<R_A>(a), getExp<R_B>(b)));
+	return { createExp<MiddleOperator<ADDITION>>(" + ", EX(R_A, a), EX(R_B, b)) };
 }
 
 template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = CleanType<R_B>,
@@ -469,7 +512,7 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< NoBools<A, B> && ValidForMatMultiplication<A,B> > >
 	MultiplicationReturnType<A, B> operator*(R_A && a, R_B && b)
 {
-	return MultiplicationReturnType<A, B>(createExp<MiddleOperator<MULTIPLY>>("*", getExp<R_A>(a), getExp<R_B>(b)));
+	return { createExp<MiddleOperator<MULTIPLY>>("*", EX(R_A, a), EX(R_B, b) ) };
 }
 
 // cwise multiplication
@@ -477,7 +520,7 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< NoBools<A, B> && ( IsScalar<A> || IsScalar<B> ) > >
 	ArithmeticBinaryReturnType<A, B> operator*(R_A && a, R_B && b)
 {
-	return ArithmeticBinaryReturnType<A, B>(createExp<MiddleOperator<MULTIPLY>>("*", getExp<R_A>(a), getExp<R_B>(b)));
+	return { createExp<MiddleOperator<MULTIPLY>>("*", EX(R_A, a), EX(R_B, b)) };
 }
 
 // ()/() operator
@@ -485,17 +528,17 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 	typename = std::enable_if_t< NoBools<A, B> && (EqualMat<A, B> || (IsScalar<A> || IsScalar<B>)) > >
 	ArithmeticBinaryReturnType<A, B> operator/(R_A && a, R_B && b)
 {
-	return ArithmeticBinaryReturnType<A, B>(createExp<MiddleOperator<DIVISION>>("/", getExp<R_A>(a), getExp<R_B>(b)));
+	return { createExp<MiddleOperator<DIVISION>>("/", EX(R_A, a), EX(R_B, b)) };
 }
 
 
 //
 
 template<typename T, uint N>
-struct Array : NamedObject<typename T::UnderlyingType> {
+struct Array : NamedObject<Array<T,N>> {
 	using Type = typename T::UnderlyingType;
 
-	explicit Array(const std::string & _name = "") : NamedObject<Type>(_name) {
+	explicit Array(const std::string & _name = "") : NamedObject<Array>(_name) {
 		NamedObjectBase::exp = createArrayDeclaration<Array>(NamedObjectBase::myNamePtr());
 	}
 
@@ -510,7 +553,7 @@ struct Array : NamedObject<typename T::UnderlyingType> {
 				), NOT_TRACKED, NO_INIT
 			)
 		);
-
+		areNotInit(previous_calls.back());
 		return previous_calls.back();
 	}
 
@@ -525,7 +568,8 @@ struct Array : NamedObject<typename T::UnderlyingType> {
 				), NOT_TRACKED, NO_INIT
 			)
 		);
-
+		//areNotInit(previous_calls.back());
+		
 		return previous_calls.back();
 	}
 

@@ -19,9 +19,10 @@
 #define PAIR(x) REM x
 
 #define DECLARE_MEMBER(r, data, i, elem) PAIR(elem);
-#define INIT_MEMBER_PARENT(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), TRACKED, this, true) 
+#define INIT_MEMBER_PARENT(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), IS_TRACKED, this) 
 #define INIT_MEMBER_PARENT_FROM_EXP(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), TRACKED, this, true) 
-#define INIT_MEMBER_PARENT_NEW(r, data, i, elem) , STRIP(elem)(createExp<FieldSelector>(getExpForced<false>(*this), std::make_shared<std::string>(BOOST_PP_STRINGIZE(STRIP(elem)))),NOT_TRACKED) 
+#define INIT_MEMBER_PARENT_NEW(r, data, i, elem) , STRIP(elem)( \
+	createExp<FieldSelector>(getExRef(), std::make_shared<std::string>(BOOST_PP_STRINGIZE(STRIP(elem)))), 0, ALWAYS_EXP) 
 #define MEMBER_TYPE(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)
 #define MEMBER_STR(r, data, i, elem) , std::string(BOOST_PP_STRINGIZE(STRIP(elem)))
 
@@ -35,21 +36,16 @@ struct StructTypename : public NamedObject<StructTypename> { \
 	\
 	BOOST_PP_SEQ_FOR_EACH_I(DECLARE_MEMBER, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	\
-	StructTypename(const std::string & _name = "", NamedObjectTracking _track = TRACKED, NamedObjectBase * _parent = nullptr, bool _isUsed = false ) \
-		: NamedObject<StructTypename>(_name, _track, _parent, _isUsed) \
-		 BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
-	{  \
-		if(!_parent) {  isUsed = true;  if(_track) { exp = createDeclaration<StructTypename>(myNamePtr()); } } \
+	StructTypename(const std::string & _name = "", uint _flags = IS_TRACKED) \
+		: NamedObject<StructTypename>(_name, _flags) \
+		BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT_NEW, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
+	{ \
 	} \
 	\
-	StructTypename(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT) : NamedObject<StructTypename>()	\
-	  BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
+	StructTypename(const Ex & _ex, uint ctor_flags = 0,	uint obj_flags = IS_TRACKED, const std::string & s = "") \
+		: NamedObject<StructTypename>(_ex, ctor_flags, obj_flags, s)	\
+		BOOST_PP_SEQ_FOR_EACH_I(INIT_MEMBER_PARENT_NEW, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
 	{ \
-		if(!parent) { \
-			if( _init ) { exp = createInit<StructTypename, HIDE, NO_PARENTHESIS>(myNamePtr(), _exp); } else { exp = _exp; }\
-			if (!_track) { areNotInit(*this); } \
-			isUsed = false; \
-		} \
 	} \
 	\
 	static const std::string typeStr() { return std::string(#StructTypename); } \

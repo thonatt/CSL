@@ -28,7 +28,13 @@ template<typename T> struct MultipleTypeStr<T> {
 template<typename T, typename U, typename ... Ts> struct MultipleTypeStr<T, U, Ts...> {
 	static const std::string str(bool previous_str = false) {
 		const bool empty = (MultipleTypeStr<T>::str() == "");
-		return (empty ? std::string("") : (previous_str ? ", " : " ") + MultipleTypeStr<T>::str()) + MultipleTypeStr<U, Ts...>::str(!empty || previous_str);
+
+		std::string out = MultipleTypeStr<U, Ts...>::str(!empty || previous_str);
+		if (empty) {
+			return out;
+		} else {
+			return (previous_str ? ", " : " ") + MultipleTypeStr<T>::str() + out;
+		}
 	}
 };
 
@@ -105,18 +111,33 @@ template<> struct TypeStr<Double> {
 	static const std::string str() { return "double"; }
 };
 
+//for debug
+template<> struct TypeStr<bool> {
+	static const std::string str() { return "std bool"; }
+};
+template<> struct TypeStr<int> {
+	static const std::string str() { return "std int"; }
+};
+template<> struct TypeStr<double> {
+	static const std::string str() { return "std double"; }
+};
+
 // sampler types
 
-template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerIsArray isArray, SamplerIsShadow isShadow >
-struct TypeStr<Sampler<aType, nType, N, sType, isArray, isShadow>> {
+template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
 	static const std::string str() {
-		return TypePrefixStr<nType>::str() + AccessTypeInfo<aType>::str() +
-			(N != 0 ? std::to_string(N) + "D" : "") + SamplerTypeInfo<sType>::str() +
-			(isArray ? "Array" : "") + (isShadow ? "Shadow" : "");
+		return
+			TypePrefixStr<nType>::str() + 
+			AccessTypeInfo<aType>::str() +
+			(N != 0 ? std::to_string(N) + "D" : "") + 
+			SamplerTypeInfo<sType>::str() +
+			(flags & IS_ARRAY ? "Array" : "") +
+			(flags & IS_SHADOW ? "Shadow" : "");
 	}
 };
 
-template<> const std::string TypeStr<Sampler<SAMPLER, UINT, 0, ATOMIC>>::str() { return "atomic_uint"; }
+template<> const std::string TypeStr<atomic_uint>::str() { return "atomic_uint"; }
 
 // layout types
 
@@ -164,11 +185,11 @@ template< typename ... LayoutArgs>
 struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
 	static const bool empty = Layout<LayoutArgs...>::empty;
 	static const std::string str() {
-		return empty ?
-			std::string("") 
-			: 
-			("layout(" + MultipleTypeStr<LayoutArgs...>::str() + " ) "
-			);
+		if (empty) {
+			return "";
+		} else {
+			return "layout(" + MultipleTypeStr<LayoutArgs...>::str() + " ) ";
+		}
 	}
 };
 

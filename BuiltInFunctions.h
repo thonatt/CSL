@@ -32,17 +32,18 @@ namespace glsl_1_30 {
 
 	// ScalarType nType, unsigned int N, SamplerIsArray is_array,
 
-	template<typename R_A, typename R_S, typename A = CleanType<R_A>, typename S = CleanType<R_S>, typename ... R_B ,
+	template<typename R_A, typename R_S, typename A = CleanType<R_A>, typename S = CleanType<R_S>,
+		typename SI = SamplerInfos<S>, typename ... R_B ,
 		typename = std::enable_if_t<
-		(SamplerInfos<S>::access_type == SAMPLER ) && (SamplerInfos<S>::type == BASIC) && 
+		(SI::access_type == SAMPLER ) && (SI::type == BASIC) && 
 		IsVecF<A> &&
-		(Infos<A>::rows == SamplerInfos<S>::size + (int)SamplerInfos<S>::is_array) &&
+		Infos<A>::rows == ( SI::size + ( (SI::flags & IS_ARRAY) ? 1 : 0 ) ) &&
 		(sizeof...(R_B) == 0 || ( sizeof...(R_B) == 1 && IsFloat<CleanType<R_B>...> ) )
 	> >
-		Vec< SamplerInfos<S>::scalar_type, 4> texture(R_S && sampler, R_A &&  P, R_B && ... bias) {
-		return Vec< SamplerInfos<S>::scalar_type, 4>(
-			createFCallExp("texture", getExp<R_S>(sampler), getExp<R_A>(P), getExp<R_B>(bias)... )
-		);
+		Vec< SI::scalar_type, 4> texture(R_S && sampler, R_A &&  P, R_B && ... bias) {
+		return {
+			createFCallExp("texture", getExp<R_S>(sampler), getExp<R_A>(P), getExp<R_B>(bias)...)
+		};
 	}
 }
 
