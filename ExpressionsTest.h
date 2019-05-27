@@ -113,8 +113,8 @@ struct NamedObjectInit {
 };
 
 template<typename T, typename ... Args>
-Ex createInit(const stringPtr & name, CtorStatus = INITIALISATION,
-	uint ctor_flags = PARENTHESIS | DISPLAY_TYPE , const Args &... args);
+Ex createInit(const stringPtr & name, CtorStatus/* = INITIALISATION*/,
+	uint ctor_flags /*= PARENTHESIS | DISPLAY_TYPE*/ , const Args &... args);
 
 template<typename T, typename ... Args>
 Ex createDeclaration(const stringPtr & name, uint flags = 0, const Args &... args);
@@ -158,9 +158,9 @@ protected:
 
 	template<typename ... Args>
 	NamedObject(
-		uint ctor_flags = 0,
-		uint obj_flags = IS_TRACKED,
-		const std::string & s = "",
+		uint ctor_flags/* = 0*/,
+		uint obj_flags/* = IS_TRACKED*/,
+		const std::string & s/* = ""*/,
 		const Args &... args
 	) : NamedObjectBase(s, obj_flags)
 	{
