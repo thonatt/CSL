@@ -38,6 +38,19 @@ enum NamedObjectFlags {
 	ALWAYS_EXP = 1 << 4
 };
 
+enum CtorStatus { DECLARATION, INITIALISATION, TEMP, FORWARD };
+enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIND };
+//enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
+//enum CtorTypeDisplay { DISPLAY, HIDE};
+enum class CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
+
+enum OpFlags : uint {
+	DISABLED = 1 << 1,
+	DISPLAY_TYPE = 1 << 2,
+	PARENTHESIS = 1 << 3,
+	MAIN_BLOCK = 1 << 4
+};
+
 class NamedObjectBase {
 public:
 	NamedObjectBase(const std::string & _name = "", uint _flags = IS_USED | IS_TRACKED)
@@ -98,6 +111,13 @@ struct NamedObjectInit {
 	Ex exp;
 	std::string name;
 };
+
+template<typename T, typename ... Args>
+Ex createInit(const stringPtr & name, CtorStatus = INITIALISATION,
+	uint ctor_flags = PARENTHESIS | DISPLAY_TYPE , const Args &... args);
+
+template<typename T, typename ... Args>
+Ex createDeclaration(const stringPtr & name, uint flags = 0, const Args &... args);
 
 template<typename T>
 class NamedObject : public NamedObjectBase {
@@ -169,14 +189,7 @@ protected:
 		}
 	}
 
-	void checkDisabling() {
-		if (!(flags & IS_TRACKED)) {
-			//std::cout << "disabling " << str() << std::endl;
-			exp->disable();
-			//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
-			//areNotInit(*this);
-		}
-	}
+	void checkDisabling();
 
 	static int counter;
 
@@ -184,12 +197,6 @@ public:
 
 };
 template<typename T> int NamedObject<T>::counter = 0;
-
-enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIND };
-//enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
-//enum CtorTypeDisplay { DISPLAY, HIDE};
-enum CtorStatus { DECLARATION, INITIALISATION, TEMP, FORWARD };
-enum class CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
 
 enum StatementOptions {
 	SEMICOLON = 1 << 0,
@@ -251,13 +258,6 @@ enum OperatorPrecedence {
 struct OperatorBase;
 using Ex = std::shared_ptr<OperatorBase>;
 
-enum OpFlags : uint {
-	DISABLED = 1 << 1,
-	DISPLAY_TYPE = 1 << 2,
-	PARENTHESIS = 1 << 3,
-	MAIN_BLOCK = 1 << 4
-};
-
 struct OperatorBase {
 	//OperatorBase(stringPtr _op_str_ptr = {}) : op_str_ptr(_op_str_ptr) {
 	//	if (!op_str_ptr) {
@@ -309,6 +309,11 @@ struct OperatorBase {
 	//stringPtr op_str_ptr;
 	uint flags = 0;
 };
+
+template<typename Operator, typename ... Args>
+Ex createExp(const Args &... args) {
+	return std::static_pointer_cast<OperatorBase>(std::make_shared<Operator>(args...));
+}
 
 struct NamedOperator {
 
@@ -383,6 +388,11 @@ struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
 		return op_str() + ArgsCall<N>::args_str();
 	}
 };
+
+template<typename ... Args>
+Ex createFCallExp(const std::string & f_name, const Args & ... args) {
+	return createExp<FunctionCall<sizeof...(Args)>>(f_name, args...);
+}
 
 struct ConstructorBase : OperatorBase {
 	ConstructorBase(CtorStatus _status = INITIALISATION, uint _flags = 0) 
@@ -597,11 +607,6 @@ template<> void areNotInit() {}
 template<> void areNotInit<bool>(const bool &) {}
 template<> void areNotInit<int>(const int &) {}
 template<> void areNotInit<double>(const double &) {}
-
-template<typename Operator, typename ... Args>
-Ex createExp(const Args &... args) {
-	return std::static_pointer_cast<OperatorBase>(std::make_shared<Operator>(args...));
-}
 
 template<typename T> Ex getE(T && t) {
 	return std::forward<T>(t).getEx();
@@ -1621,12 +1626,8 @@ struct Fun<void, F_Type> : FunBase {
 //}
 
 template<typename T, typename ... Args>
-Ex createInit(
-	const stringPtr & name,
-	CtorStatus status = INITIALISATION,
-	uint ctor_flags = PARENTHESIS | DISPLAY_TYPE,
-	const Args &... args
-) {
+Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args) 
+{
 	//std::cout << "ctor : " << *name << " " << (bool)(ctor_flags & PARENTHESIS) << std::endl;
 	auto ctor = std::make_shared<Constructor<T, sizeof...(args)>>(name, status, ctor_flags, args...);
 	Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
@@ -1648,18 +1649,18 @@ struct CreateDeclaration {
 	}
 };
 
-template<QualifierType type, typename T, typename L>
-struct CreateDeclaration<Qualifier<type, T, L>> {
-	template<typename ... Args>
-	static Ex run(const stringPtr & name, const Args &... args) {
-		Ex e = createInit<Qualifier<type, T, L>, DISPLAY, USE_PARENTHESIS, DECLARATION, MAIN_BLOCK, Args...>(name, args...);
-		std::cout << "mb" << e->str() << std::endl;
-		return e;
-	}
-};
+//template<QualifierType type, typename T, typename L>
+//struct CreateDeclaration<Qualifier<type, T, L>> {
+//	template<typename ... Args>
+//	static Ex run(const stringPtr & name, const Args &... args) {
+//		Ex e = createInit<Qualifier<type, T, L>, DISPLAY, USE_PARENTHESIS, DECLARATION, MAIN_BLOCK, Args...>(name, args...);
+//		std::cout << "mb" << e->str() << std::endl;
+//		return e;
+//	}
+//};
 
 template<typename T, typename ... Args>
-Ex createDeclaration(const stringPtr & name, uint flags = 0, const Args &... args) {
+Ex createDeclaration(const stringPtr & name, uint flags, const Args &... args) {
 	return CreateDeclaration<T>::run(name, DECLARATION, flags, args...);
 }
 
@@ -1674,29 +1675,23 @@ struct CreateArrayDeclaration {
 	}
 };
 
+//template<QualifierType type, typename T, typename L>
+//struct CreateArrayDeclaration<Qualifier<type, T, L>> {
+//
+//	static Ex run(const stringPtr & name) {
+//		auto ctor = std::make_shared<Constructor<Qualifier<type, T, L>,0,DISPLAY,USE_PARENTHESIS,MAIN_BLOCK>>(name, DECLARATION);
+//		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
+//		std::cout << "mb" << expr->str() << std::endl;
+//		listen().addEvent(expr);
+//		return expr;
+//	}
+//};
+//
+//template<typename T>
+//Ex createArrayDeclaration(const stringPtr & name) {
+//	return CreateArrayDeclaration<T>::run(name);
+//}
 
-template<QualifierType type, typename T, typename L>
-struct CreateArrayDeclaration<Qualifier<type, T, L>> {
-
-	static Ex run(const stringPtr & name) {
-		auto ctor = std::make_shared<Constructor<Qualifier<type, T, L>,0,DISPLAY,USE_PARENTHESIS,MAIN_BLOCK>>(name, DECLARATION);
-		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-		std::cout << "mb" << expr->str() << std::endl;
-		listen().addEvent(expr);
-		return expr;
-	}
-};
-
-template<typename T>
-Ex createArrayDeclaration(const stringPtr & name) {
-	return CreateArrayDeclaration<T>::run(name);
-}
-
-
-template<typename ... Args> 
-Ex createFCallExp(const std::string & f_name, const Args & ... args) {
-	return createExp<FunctionCall<sizeof...(Args)>>(f_name, args...);
-}
 
 //enum class Matrix_Track { UNTRACKED };
 
@@ -1823,7 +1818,13 @@ NamedObjectBase::~NamedObjectBase() {
 	//}
 }
 
-
-
-
-
+template<typename T>
+inline void NamedObject<T>::checkDisabling()
+{
+	if (!(flags & IS_TRACKED)) {
+		//std::cout << "disabling " << str() << std::endl;
+		exp->disable();
+		//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
+		//areNotInit(*this);
+	}
+}

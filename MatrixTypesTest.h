@@ -67,7 +67,7 @@ public:
 		: NamedObject<Matrix>(
 			EqualMat<U,Matrix> ? 0 : ( DISPLAY_TYPE | PARENTHESIS),
 			IS_TRACKED , s,
-			Ex(U,u)
+			EX(U,u)
 			)
 	{
 		//exp = createInit<Matrix, HIDE, IN_FRONT, NO_PARENTHESIS>(namePtr, getExp<U>(u));
@@ -126,28 +126,28 @@ public:
 		//std::cout << " CTOR const&" << std::endl;
 	}
 
-	Matrix & operator=(Matrix && other) & {
-		std::cout << "getE(other) " << getE(other)->str() << std::endl;
-		listen().addEvent(
-			createExp<MiddleOperator<ASSIGNMENT>>(
-				" = ",
-				getEx(),
-				EX(Matrix, other)
-			)
-		);
-		return *this;
-	}
+	//Matrix & operator=(Matrix && other) & {
+	//	std::cout << "getE(other) " << getE(other)->str() << std::endl;
+	//	listen().addEvent(
+	//		createExp<MiddleOperator<ASSIGNMENT>>(
+	//			" = ",
+	//			getEx(),
+	//			EX(Matrix, other)
+	//		)
+	//	);
+	//	return *this;
+	//}
 
-	Matrix & operator=(const Matrix & other) & {
-		listen().addEvent(
-			createExp<MiddleOperator<ASSIGNMENT>>(
-				" = ",
-				getEx(),
-				getE(other)
-			)
-		);
-		return *this;
-	}
+	//Matrix & operator=(const Matrix & other) & {
+	//	listen().addEvent(
+	//		createExp<MiddleOperator<ASSIGNMENT>>(
+	//			" = ",
+	//			getEx(),
+	//			getE(other)
+	//		)
+	//	);
+	//	return *this;
+	//}
 
 	//Matrix & operator=(Matrix && other) & {
 	//	listen().addEvent(
@@ -429,10 +429,10 @@ public:
 		return false;
 	}
 
-	template<bool b = (assignable == NON_ASSIGNABLE), typename = std::enable_if_t<b> >
-	operator Matrix<type,NR,NC,ASSIGNABLE>() const & {
-		return Matrix<type, NR, NC, ASSIGNABLE>(getExpForced<false,Matrix<type, NR, NC, NON_ASSIGNABLE>>(*this));
-	}
+	//template<bool b = (assignable == NON_ASSIGNABLE), typename = std::enable_if_t<b> >
+	//operator Matrix<type,NR,NC,ASSIGNABLE>() const & {
+	//	return Matrix<type, NR, NC, ASSIGNABLE>(getExpForced<false,Matrix<type, NR, NC, NON_ASSIGNABLE>>(*this));
+	//}
 
 };
 
@@ -534,44 +534,44 @@ template<typename R_A, typename A = CleanType<R_A>, typename R_B, typename B = C
 
 //
 
-template<typename T, uint N>
-struct Array : NamedObject<Array<T,N>> {
-	using Type = typename T::UnderlyingType;
-
-	explicit Array(const std::string & _name = "") : NamedObject<Array>(_name) {
-		NamedObjectBase::exp = createArrayDeclaration<Array>(NamedObjectBase::myNamePtr());
-	}
-
-	template<typename R_A, typename A = CleanType<R_A>, 
-		typename = std::enable_if_t< IsInteger<A> > >
-		const Type & operator[](R_A && a) const {
-
-		previous_calls.push_back(
-			Type(createExp<ArraySubscript>(
-				getExp<Array, false>(*this),
-				getExp<R_A>(a)
-				), NOT_TRACKED, NO_INIT
-			)
-		);
-		areNotInit(previous_calls.back());
-		return previous_calls.back();
-	}
-
-	template<typename R_A, typename A = CleanType<R_A>,
-		typename = std::enable_if_t< IsInteger<A> > >
-		Type & operator[](R_A && a) {
-		
-		previous_calls.push_back(
-			Type(createExp<ArraySubscript>(
-				getExp<Array, false>(*this),
-				getExp<R_A>(a)
-				), NOT_TRACKED, NO_INIT
-			)
-		);
-		//areNotInit(previous_calls.back());
-		
-		return previous_calls.back();
-	}
-
-	std::vector<Type> previous_calls;
-};
+//template<typename T, uint N>
+//struct Array : NamedObject<Array<T,N>> {
+//	using Type = typename T::UnderlyingType;
+//
+//	explicit Array(const std::string & _name = "") : NamedObject<Array>(_name) {
+//		NamedObjectBase::exp = createArrayDeclaration<Array>(NamedObjectBase::myNamePtr());
+//	}
+//
+//	template<typename R_A, typename A = CleanType<R_A>, 
+//		typename = std::enable_if_t< IsInteger<A> > >
+//		const Type & operator[](R_A && a) const {
+//
+//		previous_calls.push_back(
+//			Type(createExp<ArraySubscript>(
+//				getExp<Array, false>(*this),
+//				getExp<R_A>(a)
+//				), NOT_TRACKED, NO_INIT
+//			)
+//		);
+//		areNotInit(previous_calls.back());
+//		return previous_calls.back();
+//	}
+//
+//	template<typename R_A, typename A = CleanType<R_A>,
+//		typename = std::enable_if_t< IsInteger<A> > >
+//		Type & operator[](R_A && a) {
+//		
+//		previous_calls.push_back(
+//			Type(createExp<ArraySubscript>(
+//				getExp<Array, false>(*this),
+//				getExp<R_A>(a)
+//				), NOT_TRACKED, NO_INIT
+//			)
+//		);
+//		//areNotInit(previous_calls.back());
+//		
+//		return previous_calls.back();
+//	}
+//
+//	std::vector<Type> previous_calls;
+//};
