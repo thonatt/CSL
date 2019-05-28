@@ -20,11 +20,11 @@ using CT = std::remove_const_t<std::remove_reference_t<T>>;
 enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
 enum AssignType { ASSIGNABLE, NON_ASSIGNABLE };
 
-template<ScalarType type, uint Nrows, uint Ncols, AssignType a = ASSIGNABLE>
+template<ScalarType type, uint Nrows, uint Ncols>
 class Matrix;
 
-template<ScalarType type, uint N, AssignType assignable = ASSIGNABLE>
-using Vec = Matrix<type, N, 1, assignable>;
+template<ScalarType type, uint N>
+using Vec = Matrix<type, N, 1>;
 
 template<ScalarType type>
 using Scalar = Vec<type, 1>;
@@ -111,8 +111,8 @@ template<typename T> struct Infos {
 	static const ScalarType scalar_type = INVALID;
 };
 
-template<ScalarType type, uint Nrows, uint Ncols, AssignType assignable>
-struct Infos<Matrix<type, Nrows, Ncols, assignable>> {
+template<ScalarType type, uint Nrows, uint Ncols>
+struct Infos<Matrix<type, Nrows, Ncols>> {
 	static const bool is_numeric_type = type != BOOL;
 	static const bool is_glsl_type = true;
 	static const uint rows = Nrows;
@@ -222,41 +222,41 @@ template<ScalarType A, ScalarType B>
 constexpr ScalarType LowerScalarType = (A > B ? B : A);
 
 template<typename A, typename B>
-constexpr ScalarType HigherType = HigherScalarType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
+constexpr ScalarType HigherType = HigherScalarType<Infos<CT<A>>::scalar_type, Infos<CT<B>>::scalar_type>;
 
 template<typename A, typename B>
-constexpr ScalarType LowerType = LowerScalarType<Infos<A>::scalar_type, Infos<B>::scalar_type>;
+constexpr ScalarType LowerType = LowerScalarType<Infos<CT<A>>::scalar_type, Infos<CT<B>>::scalar_type>;
 
 template<typename A, typename B> 
-constexpr bool EqualType = Infos<A>::scalar_type == Infos<B>::scalar_type;
+constexpr bool EqualType = Infos<CT<A>>::scalar_type == Infos<CT<B>>::scalar_type;
 
 template<typename A>
-constexpr bool IsValid = Infos<A>::scalar_type != INVALID;
+constexpr bool IsValid = Infos<CT<A>>::scalar_type != INVALID;
 
 template<typename A>
-constexpr bool NotBool = Infos<A>::is_numeric_type;
+constexpr bool NotBool = Infos<CT<A>>::is_numeric_type;
 
 template<typename A, typename B>
 constexpr bool NoBools = NotBool<A> && NotBool<B>;
 
 // rows/cols helpers
 template<typename A, typename B>
-constexpr uint MaxRows = MaxUint<Infos<A>::rows, Infos<B>::rows>;
+constexpr uint MaxRows = MaxUint<Infos<CT<A>>::rows, Infos<CT<B>>::rows>;
 
 template<typename A, typename B>
-constexpr uint MaxCols = MaxUint<Infos<A>::cols, Infos<B>::cols>;
+constexpr uint MaxCols = MaxUint<Infos<CT<A>>::cols, Infos<CT<B>>::cols>;
 
 template<typename A>
-constexpr uint NumElements = Infos<A>::rows*Infos<A>::cols;
+constexpr uint NumElements = Infos<CT<A>>::rows*Infos<CT<A>>::cols;
 
 template<typename A>
-constexpr bool IsVector = IsValid<A> && Infos<A>::cols == 1;
+constexpr bool IsVector = IsValid<A> && Infos<CT<A>>::cols == 1;
 
 template<typename A>
-constexpr bool IsScalar = IsVector<A> && Infos<A>::rows == 1;
+constexpr bool IsScalar = IsVector<A> && Infos<CT<A>>::rows == 1;
 
 template<typename A, typename B>
-constexpr bool ValidForMatMultiplication = Infos<A>::cols == Infos<B>::rows && !(IsScalar<A> && IsScalar<B> );
+constexpr bool ValidForMatMultiplication = Infos<CT<A>>::cols == Infos<CT<B>>::rows && !(IsScalar<A> && IsScalar<B> );
 
 template<typename ...Ts> struct MatElementsT;
 template<typename ...Ts> constexpr uint MatElements = MatElementsT<Ts...>::value;
@@ -287,7 +287,7 @@ template<typename A, typename B>
 constexpr bool SuperiorType = Infos<B>::scalar_type >= Infos<A>::scalar_type;
 
 template<typename A, typename B>
-constexpr bool EqualDim = (Infos<A>::rows == Infos<B>::rows) && (Infos<A>::cols == Infos<B>::cols);
+constexpr bool EqualDim = (Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols);
 
 template<typename A, typename B>
 constexpr bool EqualMat = EqualType<A, B> && EqualDim<A, B>;
@@ -299,7 +299,7 @@ template<typename A, typename B>
 using ArithmeticBinaryReturnType = Matrix< HigherType<A, B>, MaxRows<A, B>, MaxCols<A, B> >;
 
 template<typename A, typename B>
-using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<A>::rows, Infos<B>::cols >;
+using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<CT<A>>::rows, Infos<CT<B>>::cols >;
 
 
 // variadic helpers

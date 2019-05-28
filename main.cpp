@@ -1,5 +1,5 @@
-#include <iostream>
-#include <cmath>
+//#include <iostream>
+//#include <cmath>
 
 
 
@@ -22,6 +22,31 @@
 //void srt4();
 //void test_pred();
 void test_accessor();
+
+struct T {
+	void f() & { std::cout << "&" << std::endl; }
+	void f() && { std::cout << "&&" << std::endl; };
+
+	void g() { f(); }
+
+	void h() & { f(); }
+	void h() && { f(); }
+
+	void i() & { f(); }
+	void i() && { std::move(*this).f(); }
+};
+
+
+void test_rval_qual() {
+	T t;
+
+	t.g();
+	T().g();
+	t.h();
+	T().h();
+	t.i();
+	T().i();
+}
 
 int main()
 {
@@ -61,6 +86,7 @@ void test_accessor() {
 		(Float) f
 	);
 
+	using namespace xyzw;
 
 	auto fun3 = makeFun<MyStruct>([](MySuperStruct s) {
 		GL_RETURN(s.s);
@@ -71,12 +97,31 @@ void test_accessor() {
 	Float f = 1.0;
 	Float g = 1;
 	fun2();
-	vec2 vv = vec2(1.0, 2.0);
-	vec2 vvvv = vec2(1.0, 1);
-	vec2 vvv = my.s.f*f*vec2(3.0, 3.0) + my.s.v + g * (mat2(0) + mat2(1))*vv + fun(1.0) << "vvv";
+	vec2 vv = vec2(1.0, 2.0) << "vv";
+	vec2 vvvv = vec2(1.0, 1) << "vvvv";
+	vec2 vvv = my.s.f*f*vec2(3.0, 3.0) + my.s.v + vv.length() * g * (mat2(0) + mat2(1))*vv + fun(1.0) << "vvv";
 
-	vec2 p = vec2(1.0, 2.0) << "lop";
+	vec2 pp = vec2(1.0, 2.0) << "lop";
+	pp = pp[x, y] = pp[y, x];
+	pp = pp[y, x];
+	pp[x, y] = pp + pp;
+	pp = vv;
+	pp *= pp + vv;
+	pp[1 + Int(2.0) ];
+	vv[x] = mat4(0)[1][0];
+	 
+	Array<vec3, 5> myA("myArray");
+	myA[1] += myA[2];
+	
+	Array<vec3, 3> myC = { vec3(0), vec3(1), vec3(2) };
 
+	Array<Bool, 2> myB("bools");
+
+	Bool bbb = true;
+	GL_IF(bbb && myB[0]) {
+		pp = pp;
+	}
+	
 	//std::cout << vv.str() << std::endl;
 	//std::cout << "dbg : " << getExp(vec4(vec2(2.0, 2.0), vec2(1.0, 1.0)))->str() << std::endl;
 	//std::cout << "dbg : " << (bool)(getExp(vec2(1.0, 2.0))->flags & PARENTHESIS) << std::endl;

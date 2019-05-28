@@ -22,7 +22,7 @@
 #define INIT_MEMBER_PARENT(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), IS_TRACKED, this) 
 #define INIT_MEMBER_PARENT_FROM_EXP(r, data, i, elem) , STRIP(elem)(BOOST_PP_STRINGIZE(STRIP(elem)), TRACKED, this, true) 
 #define INIT_MEMBER_PARENT_NEW(r, data, i, elem) , STRIP(elem)( \
-	createExp<FieldSelector>(getExRef(), std::make_shared<std::string>(BOOST_PP_STRINGIZE(STRIP(elem)))), 0, ALWAYS_EXP) 
+	createExp<MemberAccessor>(getExRef(), std::make_shared<std::string>(BOOST_PP_STRINGIZE(STRIP(elem)))), 0, ALWAYS_EXP) 
 #define MEMBER_TYPE(r, data, i, elem) , BOOST_PP_SEQ_HEAD(elem)
 #define MEMBER_STR(r, data, i, elem) , std::string(BOOST_PP_STRINGIZE(STRIP(elem)))
 

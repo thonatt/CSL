@@ -10,7 +10,7 @@ template<typename T> struct FunctionReturnType {
 
 template<typename ReturnType, typename Fun, typename... Args>
 struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
-	using type = std::function<ReturnType(Args...)>;
+	using type = const std::function<ReturnType(Args...)>;
 	using RType = ReturnType;
 };
 
@@ -20,7 +20,8 @@ struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
 //	using RType = ReturnType;
 //};
 
-template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type
+template<typename Lambda> 
+typename FunctionReturnType<decltype(&Lambda::operator())>::type
 functionFromLambda(const Lambda &func) {
 	return func;
 }

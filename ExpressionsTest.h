@@ -4,7 +4,10 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <iostream>
 #include <algorithm> //for std::replace
+#include <iomanip> // for std::setprecision
+#include <sstream> // ^
 
 #include "StringHelpers.h"
 #include "FunctionHelpers.h"
@@ -51,59 +54,7 @@ enum OpFlags : uint {
 	MAIN_BLOCK = 1 << 4
 };
 
-class NamedObjectBase {
-public:
-	NamedObjectBase(const std::string & _name = "", uint _flags = IS_USED | IS_TRACKED)
-		: flags(_flags)
-	{
-		namePtr = std::make_shared<std::string>(_name);
-		//std::cout << " end check" << std::endl;
-	}
-
-	~NamedObjectBase();
-
-	bool isUsed() const {
-		return flags & IS_USED;
-	}
-
-	bool isTracked() const {
-		return flags & IS_TRACKED;
-	}
-
-	Ex alias() const;
-
-	Ex getEx() &;
-	Ex getEx() const &;
-	Ex getEx() && ;
-	Ex getEx() const &&;
-
-
-	Ex getExRef();
-	Ex getExRef() const;
-	Ex getExTmp(); 
-	Ex getExTmp() const;
-
-	static const std::string typeStr() { return "dummyT"; }
-	stringPtr namePtr;
-
-	mutable uint flags;
-	//mutable bool isUsed = true;
-	//NamedObjectBase * parent = nullptr;
-	//NamedObjectTracking tracked = TRACKED;
-
-public:
-	Ex exp;
-
-public:
-	stringPtr strPtr() const {
-		return namePtr;
-	}
-
-	const std::string str() const {
-		return *strPtr();
-	}
-
-};
+class NamedObjectBase;
 
 template<typename T>
 struct NamedObjectInit {
@@ -120,83 +71,7 @@ template<typename T, typename ... Args>
 Ex createDeclaration(const stringPtr & name, uint flags = 0, const Args &... args);
 
 template<typename T>
-class NamedObject : public NamedObjectBase {
-public:
-
-	static const std::string typeStr() { return "dummyNameObjT"; }
-
-public:
-	NamedObjectInit<T> operator<<(const std::string & s) && {
-		return { getExTmp() , s };
-	}
-
-
-protected:
-	NamedObject(const std::string & _name = "", uint _flags = IS_TRACKED) 
-		: NamedObjectBase(_name, _flags) 
-	{
-		checkName();
-
-		exp = createDeclaration<T>(NamedObjectBase::strPtr());
-
-		checkDisabling();
-	}
-
-	NamedObject(
-		const Ex & _ex,
-		uint ctor_flags = 0,
-		uint obj_flags = IS_TRACKED,
-		const std::string & s = ""
-	) : NamedObjectBase(s, obj_flags)
-	{
-		checkName();
-
-		exp = createInit<T>(strPtr(), FORWARD, ctor_flags, _ex);
-	
-		checkDisabling();
-	}
-
-	template<typename ... Args>
-	NamedObject(
-		uint ctor_flags = 0,
-		uint obj_flags = IS_TRACKED,
-		const std::string & s = "",
-		const Args &... args
-	) : NamedObjectBase(s, obj_flags)
-	{
-		checkName();
-
-		exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, args ...);
-
-		checkDisabling();
-	}
-
-	NamedObject(const NamedObjectInit<T> & obj_init) : NamedObjectBase(obj_init.name, IS_TRACKED | IS_USED)
-	{
-		checkName();
-
-		exp = createInit<T>(strPtr(), INITIALISATION, 0, obj_init.exp);
-	}
-
-	void checkName()
-	{
-		if (*namePtr == "") {			
-			namePtr = std::make_shared<std::string>(getTypeStr<T>() + "_" + std::to_string(counter));
-			std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
-
-			//std::cout << "created " << str() << std::endl;
-			++counter;
-		}
-	}
-
-	void checkDisabling();
-
-	static int counter;
-
-public:
-
-};
-template<typename T> int NamedObject<T>::counter = 0;
+class NamedObject;
 
 enum StatementOptions {
 	SEMICOLON = 1 << 0,
@@ -475,19 +350,19 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	stringPtr obj_name_ptr;
 };
 
-template<typename T, uint M>
-struct Constructor<Array<T, M>> : Constructor<T> {
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status)
-		: Constructor<T>(_obj_name_ptr, _status) {
+template<typename T, uint N>
+struct Constructor<Array<T, N>> : Constructor<T> {
+	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags)
+		: Constructor<T>(_obj_name_ptr, _status, flags) {
 	}
 
 	const std::string str() const {
-		return Constructor<T>::str() + "[" + std::to_string(M) + "]";
+		return Constructor<T>::str() + "[" + std::to_string(N) + "]";
 	}
 };
 
-struct FieldSelector : Precedence<FIELD_SELECTOR> {
-	FieldSelector(const Ex & _obj, stringPtr member_str)
+struct MemberAccessor : Precedence<FIELD_SELECTOR> {
+	MemberAccessor(const Ex & _obj, stringPtr member_str)
 		: member_str_ptr(member_str), obj(_obj) {
 	}
 	const std::string str() const {
@@ -498,9 +373,9 @@ struct FieldSelector : Precedence<FIELD_SELECTOR> {
 };
 
 template<uint N>
-struct MemberSelector : FunctionCall<N> {
+struct MemberFunctionAccessor : FunctionCall<N> {
 	template<typename ...Args>
-	MemberSelector(const Ex & _obj, const std::string & fun_name, const Args & ... _args) 
+	MemberFunctionAccessor(const Ex & _obj, const std::string & fun_name, const Args & ... _args)
 		: FunctionCall<N>(fun_name, _args...), obj(_obj) {
 	}
 
@@ -516,7 +391,7 @@ struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
 	}
 
 	const std::string str() const {
-		std::cout << " array_sub" << std::endl;
+		//std::cout << " array_sub" << std::endl;
 		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str() + "]";
 	}
 
@@ -572,7 +447,12 @@ struct EmptyExp : OperatorBase {
 template<typename T>
 struct Litteral : OperatorBase {
 	Litteral(const T & _i) : i(_i) {}
-	virtual const std::string str() const { return std::to_string(i); }
+	virtual const std::string str() const {
+		std::stringstream ss;
+		ss << std::fixed << std::setprecision(1) << i;
+		return ss.str();
+		//return std::to_string(i); 
+	}
 	T i;
 };
 
@@ -582,35 +462,66 @@ template<> struct Litteral<bool> : OperatorBase {
 	bool b;
 };
 
-void isNotInit(const Ex & expr) {
-	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(expr)) {
-		//ctor->isInit = false;
-		ctor->disable();
-		ctor->setTemp();
-	}
-}
-
-template<typename ...Args> void areNotInit(const Args &... args);
-template<typename A, typename ...Args>
-void areNotInit(const A & a, const Args &... args) {
-	areNotInit(a);
-	areNotInit(args...);
-}
-template<typename A> void areNotInit(const A & a) {
-	//std::cout << "not init " << a.name << std::endl;
-	if (a.parent) {
-		areNotInit(*a.parent);
-	}
-	isNotInit(a.exp);
-}
-template<> void areNotInit() {}
-template<> void areNotInit<bool>(const bool &) {}
-template<> void areNotInit<int>(const int &) {}
-template<> void areNotInit<double>(const double &) {}
-
 template<typename T> Ex getE(T && t) {
 	return std::forward<T>(t).getEx();
 }
+
+class NamedObjectBase {
+public:
+	NamedObjectBase(const std::string & _name = "", uint _flags = IS_USED | IS_TRACKED)
+		: flags(_flags)
+	{
+		namePtr = std::make_shared<std::string>(_name);
+		//std::cout << " end check" << std::endl;
+	}
+
+	~NamedObjectBase();
+
+	bool isUsed() const {
+		return flags & IS_USED;
+	}
+
+	bool isTracked() const {
+		return flags & IS_TRACKED;
+	}
+
+	Ex alias() const;
+
+	Ex getEx() &;
+	Ex getEx() const &;
+	Ex getEx() && ;
+	Ex getEx() const &&;
+
+	Ex getExRef();
+	Ex getExRef() const;
+	Ex getExTmp();
+	Ex getExTmp() const;
+
+	void checkDisabling();
+
+
+	static const std::string typeStr() { return "dummyT"; }
+
+	//mutable bool isUsed = true;
+	//NamedObjectBase * parent = nullptr;
+	//NamedObjectTracking tracked = TRACKED;
+
+protected:
+	stringPtr namePtr;
+	Ex exp;
+	mutable uint flags;
+
+public:
+
+	stringPtr strPtr() const {
+		return namePtr;
+	}
+
+	const std::string str() const {
+		return *strPtr();
+	}
+
+};
 
 inline Ex NamedObjectBase::getEx() &
 {
@@ -619,7 +530,6 @@ inline Ex NamedObjectBase::getEx() &
 
 inline Ex NamedObjectBase::getEx() const &
 {
-
 	return getExRef();
 }
 
@@ -637,7 +547,7 @@ inline Ex NamedObjectBase::getExRef()
 {
 	if (flags & ALWAYS_EXP) {
 		return getExTmp();
-	} 
+	}
 	flags = flags | IS_USED;
 	return alias();
 }
@@ -670,6 +580,98 @@ inline Ex NamedObjectBase::getExTmp() const
 	}
 	return exp;
 }
+
+NamedObjectBase::~NamedObjectBase() {
+	if (!isUsed()) {
+		//std::cout << " ~ setTemp " << exp->str() << std::endl;
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+			ctor->setTemp();
+		}
+	}
+	//should check inside scope
+
+}
+
+inline void NamedObjectBase::checkDisabling()
+{
+	if (!(flags & IS_TRACKED)) {
+		//std::cout << "disabling " << str() << std::endl;
+		exp->disable();
+	}
+}
+
+
+template<typename T>
+class NamedObject : public NamedObjectBase {
+public:
+
+	static const std::string typeStr() { return "dummyNameObjT"; }
+
+public:
+	NamedObjectInit<T> operator<<(const std::string & s) const && {
+		return { getExTmp() , s };
+	}
+
+protected:
+	NamedObject(const std::string & _name = "", uint _flags = IS_TRACKED)
+		: NamedObjectBase(_name, _flags)
+	{
+		checkName();
+
+		exp = createDeclaration<T>(NamedObjectBase::strPtr(), 0);
+
+		checkDisabling();
+	}
+
+	NamedObject(
+		const Ex & _ex,
+		uint ctor_flags = 0,
+		uint obj_flags = IS_TRACKED,
+		const std::string & s = ""
+	) : NamedObjectBase(s, obj_flags)
+	{
+		checkName();
+		exp = createInit<T>(strPtr(), FORWARD, ctor_flags, _ex);
+		checkDisabling();
+	}
+
+	template<typename ... Args>
+	NamedObject(
+		uint ctor_flags = 0,
+		uint obj_flags = IS_TRACKED,
+		const std::string & s = "",
+		const Args &... args
+	) : NamedObjectBase(s, obj_flags)
+	{
+		checkName();
+		exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, args ...);
+		checkDisabling();
+	}
+
+	NamedObject(const NamedObjectInit<T> & obj_init) : NamedObjectBase(obj_init.name, IS_TRACKED | IS_USED)
+	{
+		checkName();
+
+		exp = createInit<T>(strPtr(), INITIALISATION, 0, obj_init.exp);
+	}
+
+	void checkName()
+	{
+		if (*namePtr == "") {
+			namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counter));
+			std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
+
+			//std::cout << "created " << str() << std::endl;
+			++counter;
+		}
+	}
+
+	static int counter;
+
+public:
+
+};
+template<typename T> int NamedObject<T>::counter = 0;
 
 //template<typename T, bool temp = !std::is_lvalue_reference<T>::value> Ex getExp(const T & t) {
 //	//std::cout << t.exp.use_count() << std::endl;
@@ -1497,10 +1499,10 @@ struct MainListener {
 
 	/////////////////////////////////////////////////
 
-	template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
-	void begin_if(R_B && b) {
+	template<typename B, typename = std::enable_if_t< EqualType<B, Bool> > >
+	void begin_if(B && b) {
 		if (currentShader) {
-			currentShader->begin_if(getExp<R_B>(b));
+			currentShader->begin_if(EX(B, b));
 		}
 	}
 	void begin_else() {
@@ -1508,10 +1510,10 @@ struct MainListener {
 			currentShader->begin_else();
 		}
 	}
-	template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
-	void begin_else_if(R_B && b) {
+	template<typename B, typename = std::enable_if_t< EqualType<B, Bool> > >
+	void begin_else_if(B && b) {
 		if (currentShader) {
-			currentShader->begin_else_if(getExp<R_B>(b));
+			currentShader->begin_else_if(EX(B, b));
 		}
 	}
 	void end_if_sub_block() {
@@ -1664,16 +1666,20 @@ Ex createDeclaration(const stringPtr & name, uint flags, const Args &... args) {
 	return CreateDeclaration<T>::run(name, DECLARATION, flags, args...);
 }
 
-template<typename T>
-struct CreateArrayDeclaration {
-	
-	static Ex run(const stringPtr & name) {
-		auto ctor = std::make_shared<Constructor<T>>(name, DECLARATION);
-		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-		listen().addEvent(expr);
-		return expr;
-	}
-};
+//template<typename T>
+//struct CreateArrayDeclaration {	
+//	static Ex run(const stringPtr & name, int n) {
+//		auto ctor = std::make_shared<Constructor<Array<T>>>(name, DECLARATION, n);
+//		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
+//		listen().addEvent(expr);
+//		return expr;
+//	}
+//};
+//
+//template<typename T>
+//Ex createArrayDeclaration(const stringPtr & name, int n) {
+//	return CreateArrayDeclaration<T>::run(name, n);
+//}
 
 //template<QualifierType type, typename T, typename L>
 //struct CreateArrayDeclaration<Qualifier<type, T, L>> {
@@ -1687,10 +1693,7 @@ struct CreateArrayDeclaration {
 //	}
 //};
 //
-//template<typename T>
-//Ex createArrayDeclaration(const stringPtr & name) {
-//	return CreateArrayDeclaration<T>::run(name);
-//}
+
 
 
 //enum class Matrix_Track { UNTRACKED };
@@ -1793,38 +1796,3 @@ WhileController::BeginWhile::~BeginWhile() {
 
 //////////////////////////////////////
 
-NamedObjectBase::~NamedObjectBase() {
-
-	if (!isUsed()) {
-		//std::cout << " ~ setTemp " << exp->str() << std::endl;
-		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-			ctor->setTemp();
-		}
-	}
-
-	//if (!isUsed) {
-	//	if (exp) {
-	//		auto ctor = std::dynamic_pointer_cast<CtorBase>(exp->op);
-	//		std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
-	//	}
-	//}
-
-	//should check inside scope
-	//if (!isUsed() && exp) {	
-	//	//std::cout << "not used " << exp->str() << " " << myName() << " " << ctor->status << std::endl;
-	//	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-	//		ctor->setTemp();
-	//	}
-	//}
-}
-
-template<typename T>
-inline void NamedObject<T>::checkDisabling()
-{
-	if (!(flags & IS_TRACKED)) {
-		//std::cout << "disabling " << str() << std::endl;
-		exp->disable();
-		//std::static_pointer_cast<CtorBase>(exp->op)->firstStr = false;
-		//areNotInit(*this);
-	}
-}
