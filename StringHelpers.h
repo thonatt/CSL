@@ -213,6 +213,11 @@ struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 //array 
 template<typename T, uint N>
 struct TypeStr< Array<T, N> > {
+
+	static std::string array_str() {
+		return "[" + std::to_string(N) + "]";
+	}
+
 	static std::string str() {
 		return TypeStr<T>::str();
 	}

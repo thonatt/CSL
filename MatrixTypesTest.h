@@ -351,8 +351,10 @@ struct Array : NamedObject<Array<T, N>> {
 
 	template<typename ... Us,
 	typename = std::enable_if_t< AllTrue<EqualMat<Us,T>...> && sizeof...(Us) == N > >
-	Array(Us && ... us) : NamedObject<Array<T, N>>("", IS_TRACKED) {
-
+	Array(Us && ... us)
+		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us,us)... )
+	{
+		
 	}
 	 
 

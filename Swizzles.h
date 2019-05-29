@@ -6,20 +6,21 @@ enum SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 enum SwizzeStatus : uint { NON_REPEATED = 0, REPEATED = 1 };
 
 template<uint Dim, SwizzleSet Set, uint Bytes, uint Size = 1, SwizzeStatus Status = NON_REPEATED>
+class SwizzlePack;
+
+template<uint D1, uint D2, SwizzleSet S1, SwizzleSet S2, uint B1, uint B2, uint Size, SwizzeStatus status>
+using OutSwizzle = SwizzlePack<
+	MaxUint<D1, D2>, S1 == S2 ? S1 : MIXED_SET, (B1 | B2), Size + 1, ((status == REPEATED || (B1 & B2) != 0) ? REPEATED : NON_REPEATED) >;
+
+template<uint Dim, SwizzleSet Set, uint Bytes, uint Size, SwizzeStatus Status>
 class SwizzlePack {
 public:
 	SwizzlePack(const std::string & _s) : s(std::make_shared<std::string>(_s)) { }
 
-	template<uint _Dim, SwizzleSet _Set, uint _Bytes, 
-		typename OutSwizzle = SwizzlePack<
-		MaxUint<Dim, _Dim>,
-		Set == _Set ? Set : MIXED_SET,
-		Bytes | _Bytes,
-		Size + 1,
-		(Status == REPEATED || (Bytes & _Bytes) != 0) ? REPEATED : NON_REPEATED
-		>
-	>
-	OutSwizzle operator,(const SwizzlePack<_Dim, _Set, _Bytes, 1> & other) const {
+	template<uint Dim_, SwizzleSet Set_, uint Bytes_>
+	OutSwizzle<Dim, Dim_, Set, Set_, Bytes, Bytes_, Size, Status> 
+	operator,(const SwizzlePack<Dim_, Set_, Bytes_, 1> & other) const
+	{
 		return { *s + *other.s };
 	}
 

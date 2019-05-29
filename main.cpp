@@ -94,6 +94,8 @@ void test_accessor() {
 
 	MySuperStruct my("mySupStruct");
 
+	MySuperStruct my2 = MySuperStruct(MyStruct(1.0, vec2(2.0)), Float(3));
+
 	Float f = 1.0;
 	Float g = 1;
 	fun2();
@@ -109,7 +111,7 @@ void test_accessor() {
 	pp *= pp + vv;
 	pp[1 + Int(2.0) ];
 	vv[x] = mat4(0)[1][0];
-	 
+
 	Array<vec3, 5> myA("myArray");
 	myA[1] += myA[2];
 	

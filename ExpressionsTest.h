@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <vector>
 #include <array>
 #include <memory>
@@ -64,11 +63,10 @@ struct NamedObjectInit {
 };
 
 template<typename T, typename ... Args>
-Ex createInit(const stringPtr & name, CtorStatus = INITIALISATION,
-	uint ctor_flags = PARENTHESIS | DISPLAY_TYPE , const Args &... args);
+Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args);
 
 template<typename T, typename ... Args>
-Ex createDeclaration(const stringPtr & name, uint flags = 0, const Args &... args);
+Ex createDeclaration(const stringPtr & name, uint ctor_flags, const Args &... args);
 
 template<typename T>
 class NamedObject;
@@ -85,6 +83,7 @@ enum StatementOptions {
 enum OperatorPrecedence {
 
 	ALIAS = 1,
+	INITIALIZER_LIST = 1,
 
 	ARRAY_SUBSCRIPT = 2,
 	FUNCTION_CALL = 2,
@@ -145,15 +144,15 @@ struct OperatorBase {
 
 	}
 
-	virtual const std::string str() const {
+	virtual std::string str() const {
 		return "no_str";
 	}
 
-	//const std::string op_str() const {
+	//std::string op_str() const {
 	//	return *op_str_ptr;
 	//}
 
-	const std::string explore() const {
+	std::string explore() const {
 		return "no_exploration";
 	}
 
@@ -165,7 +164,7 @@ struct OperatorBase {
 		return rank() < other->rank();
 	}
 
-	const std::string checkForParenthesis(Ex exp) const {
+	std::string checkForParenthesis(Ex exp) const {
 		if (inversion(exp)) {
 			//return exp->str();
 			return "(" + exp->str() + ")";
@@ -194,7 +193,7 @@ struct NamedOperator {
 
 	NamedOperator(const std::string & str) : operator_str(str) {}
 
-	const std::string op_str() const { return operator_str; }
+	std::string op_str() const { return operator_str; }
 
 	std::string operator_str;
 };
@@ -208,9 +207,9 @@ struct Precedence : OperatorBase {
 
 struct Alias : Precedence<ALIAS> {
 	Alias(stringPtr _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
-	//Alias(const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
-	virtual const std::string str() const { return *obj_str_ptr; }
-	//virtual const std::string str() const { return "Alias[" + *obj_str_ptr + "]"; }
+	//Alias( const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
+	virtual std::string str() const { return *obj_str_ptr; }
+	//virtual std::string str() const { return "Alias[" + *obj_str_ptr + "]"; }
 	
 	stringPtr obj_str_ptr;
 }; 
@@ -222,7 +221,7 @@ struct MiddleOperator : Precedence<precedence>, NamedOperator {
 		//std::cout << "middle op : " << op_str << " " << *OperatorBase::op_str_ptr << std::endl;
  	}
 
-	const std::string str() const {
+	std::string str() const {
 		return OperatorBase::checkForParenthesis(lhs) + NamedOperator::op_str() + OperatorBase::checkForParenthesis(rhs);
 	}
 
@@ -235,7 +234,7 @@ struct ArgsCall {
 	template<typename ... Args>
 	ArgsCall(const Args & ... _args) : args{ _args... } {}
 
-	const std::string args_str_body() const {
+	std::string args_str_body() const {
 		std::string out = "";
 		for (uint i = 0; i < N; ++i) {
 			out += args[i]->str() + ((i == N - 1) ? "" : ", ");
@@ -243,7 +242,7 @@ struct ArgsCall {
 		return out;
 	}
 
-	const std::string args_str() const {
+	std::string args_str() const {
 		return "(" + args_str_body() + ")";
 	}
 
@@ -259,7 +258,7 @@ struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
 		: NamedOperator(s), ArgsCall<N>(_args...) {
 	}
 
-	virtual const std::string str() const {
+	virtual std::string str() const {
 		return op_str() + ArgsCall<N>::args_str();
 	}
 };
@@ -310,22 +309,26 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	{
 	}
 
-	const std::string obj_name() const {
+	std::string obj_name() const {
 		return *obj_name_ptr;
 	}
 
-	const std::string type_str() const {
+	std::string lhs_type_str() const {
 		return getTypeStr<T>();
 	}
 
-	const std::string lhs_str() const {
-		return type_str() + " " + obj_name();
+	virtual std::string rhs_type_str() const {
+		return getTypeStr<T>();
 	}
 
-	const std::string rhs_str() const {
+	virtual std::string lhs_str() const {
+		return lhs_type_str() + " " + obj_name();
+	}
+
+	std::string rhs_str() const {
 		std::string str;
 		if (flags & DISPLAY_TYPE) {
-			str += type_str();
+			str += rhs_type_str();
 		}
 		if (flags & PARENTHESIS) {
 			str += ArgsCall<N>::args_str();
@@ -335,7 +338,7 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		return str;
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		if (status() == INITIALISATION) {
 			return lhs_str() + " = " + rhs_str();
 		} else if (status() == DECLARATION) {
@@ -350,14 +353,20 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	stringPtr obj_name_ptr;
 };
 
-template<typename T, uint N>
-struct Constructor<Array<T, N>> : Constructor<T> {
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags)
-		: Constructor<T>(_obj_name_ptr, _status, flags) {
+template<typename T, uint N, uint M>
+struct Constructor<Array<T, N>, M> : Constructor<T,M> {
+	
+	template<typename ... Args>
+	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags, const Args & ...  _args)
+		: Constructor<T,M>(_obj_name_ptr, _status, flags, _args...) {
 	}
 
-	const std::string str() const {
-		return Constructor<T>::str() + "[" + std::to_string(N) + "]";
+	virtual std::string lhs_str() const {
+		return Constructor<T,M>::lhs_str() + TypeStr< Array<T, N> >::array_str();
+	}
+
+	virtual std::string rhs_type_str() const {
+		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
 	}
 };
 
@@ -365,7 +374,7 @@ struct MemberAccessor : Precedence<FIELD_SELECTOR> {
 	MemberAccessor(const Ex & _obj, stringPtr member_str)
 		: member_str_ptr(member_str), obj(_obj) {
 	}
-	const std::string str() const {
+	std::string str() const {
 		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
 	}
 	Ex obj;
@@ -379,7 +388,7 @@ struct MemberFunctionAccessor : FunctionCall<N> {
 		: FunctionCall<N>(fun_name, _args...), obj(_obj) {
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str();
 	}
 
@@ -390,7 +399,7 @@ struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
 	ArraySubscript(Ex _obj, Ex _arg) : obj(_obj), arg(_arg) {
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		//std::cout << " array_sub" << std::endl;
 		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str() + "]";
 	}
@@ -404,7 +413,7 @@ struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
 		: NamedOperator(op_str), obj(_obj) {
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		return op_str() + OperatorBase::checkForParenthesis(obj);
 	}
 
@@ -417,7 +426,7 @@ struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
 		: NamedOperator(op_str), obj(_obj) {
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		return OperatorBase::checkForParenthesis(obj) + op_str();
 	}
 
@@ -429,17 +438,30 @@ struct Ternary : Precedence<TERNARY> {
 		: condition(_condition), first(_first), second(_second) {
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		return OperatorBase::checkForParenthesis(condition) + " ? " + OperatorBase::checkForParenthesis(first) + " : " + OperatorBase::checkForParenthesis(second);
 	}
 
 	Ex condition, first, second;
 };
 
+template<uint N>
+struct InitializerList : Precedence<INITIALIZER_LIST>, ArgsCall<N>
+{
+	template<typename ... Args>
+	InitializerList(const Args & ... args) : ArgsCall<N>(args...) 
+	{ 
+	}
+
+	virtual std::string str() const {
+		return "{ " + ArgsCall<N>::args_str_body() + " }";
+	}
+};
+
 struct EmptyExp : OperatorBase {
 	static Ex get() { return std::static_pointer_cast<OperatorBase>(std::make_shared<EmptyExp>()); }
 
-	const std::string str() const {
+	std::string str() const {
 		return "";
 	}
 };
@@ -447,7 +469,7 @@ struct EmptyExp : OperatorBase {
 template<typename T>
 struct Litteral : OperatorBase {
 	Litteral(const T & _i) : i(_i) {}
-	virtual const std::string str() const {
+	virtual std::string str() const {
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(1) << i;
 		return ss.str();
@@ -458,7 +480,7 @@ struct Litteral : OperatorBase {
 
 template<> struct Litteral<bool> : OperatorBase {
 	Litteral(const bool & _b) : b(_b) {}
-	virtual const std::string str() const { return b ? "true" : "false"; }
+	virtual std::string str() const { return b ? "true" : "false"; }
 	bool b;
 };
 
@@ -500,7 +522,7 @@ public:
 	void checkDisabling();
 
 
-	static const std::string typeStr() { return "dummyT"; }
+	static std::string typeStr() { return "dummyT"; }
 
 	//mutable bool isUsed = true;
 	//NamedObjectBase * parent = nullptr;
@@ -517,7 +539,7 @@ public:
 		return namePtr;
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		return *strPtr();
 	}
 
@@ -605,7 +627,7 @@ template<typename T>
 class NamedObject : public NamedObjectBase {
 public:
 
-	static const std::string typeStr() { return "dummyNameObjT"; }
+	static std::string typeStr() { return "dummyNameObjT"; }
 
 public:
 	NamedObjectInit<T> operator<<(const std::string & s) const && {
@@ -637,9 +659,9 @@ protected:
 
 	template<typename ... Args>
 	NamedObject(
-		uint ctor_flags = 0,
-		uint obj_flags = IS_TRACKED,
-		const std::string & s = "",
+		uint ctor_flags,
+		uint obj_flags,
+		const std::string & s,
 		const Args &... args
 	) : NamedObjectBase(s, obj_flags)
 	{
@@ -722,14 +744,14 @@ template<> Ex getExp<double>(double && d) {
 struct InstructionBase {
 	using Ptr = std::shared_ptr<InstructionBase>;
 
-	static const std::string instruction_begin(int trailing) {
+	static std::string instruction_begin(int trailing) {
 		std::string out;
 		for (int t = 0; t < trailing; ++t) {
 			out += "   ";
 		}
 		return out;
 	}
-	static const std::string instruction_end(uint opts) {
+	static std::string instruction_end(uint opts) {
 		return std::string(opts & SEMICOLON ? ";" : opts & COMMA ? "," : "") + (opts & NEW_LINE ? "\n" : "");
 	}
 
@@ -827,9 +849,9 @@ struct ReturnStatement : Statement {
 		std::cout << instruction_begin(trailing) << str() << instruction_end(opts);
 	}
 
-	const std::string str() const {
+	std::string str() const {
 		std::string s = "return";
-		const std::string ex_str = ex->str();
+		std::string ex_str = ex->str();
 		if (ex_str != "") {
 			s += " " + ex_str;
 		}
@@ -847,7 +869,7 @@ InstructionBase::Ptr toInstruction(const Ex & e) {
 }
 
 struct CommentInstruction : InstructionBase {
-	CommentInstruction(const std::string & s) : comment(s) {}
+	CommentInstruction( const std::string & s) : comment(s) {}
 	virtual void cout(int & trailing, uint otps = DEFAULT) {
 		std::cout << instruction_begin(trailing) << "//" << comment << std::endl;
 	}
@@ -949,7 +971,7 @@ template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclaration;
 
 template<SeparatorRule s, int N, typename T, typename ... Ts>
 struct DisplayDeclaration<s, N, T, Ts...> {
-	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+	static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
 		return InstructionBase::instruction_begin(trailing) + T::typeStr() + " " + v[v.size() - N] + 
 			 ( (s==SEP_AFTER_ALL || ( s==SEP_IN_BETWEEN && N!=1) ) ? separator : "" ) + 
 			DisplayDeclaration<s, N - 1, Ts...>::str(v, trailing, separator);
@@ -958,7 +980,7 @@ struct DisplayDeclaration<s, N, T, Ts...> {
 
 template<SeparatorRule s, typename ... T>
 struct DisplayDeclaration<s, 0,T...> {
-	static const std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) { return ""; }
+	static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) { return ""; }
 };
 
 template<SeparatorRule s, typename ... Ts>
@@ -968,7 +990,7 @@ std::string memberDeclarations(const std::vector<std::string> & v, int & trailin
 
 template<SeparatorRule s, int N, typename ... Ts>
 struct DisplayDeclarationTuple {
-	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
+	static std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
 		return std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + 
 			std::get<sizeof...(Ts) - N>(v).str() +
 			((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
@@ -977,7 +999,7 @@ struct DisplayDeclarationTuple {
 };
 template<SeparatorRule s, typename ... Ts>
 struct DisplayDeclarationTuple<s, 0, Ts...> {
-	static const std::string str(const std::tuple<Ts...> & v, const std::string & separator) { return ""; }
+	static std::string str(const std::tuple<Ts...> & v, const std::string & separator) { return ""; }
 };
 
 template<SeparatorRule s, typename ... Ts>
@@ -1009,7 +1031,7 @@ struct StructDeclaration : InstructionBase {
 //}
 
 template <typename ReturnType, typename... Args, typename ... Strings>
-void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
+void init_function_declaration( const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
 
 template<typename T> struct FunctionReturnType;
 template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
@@ -1040,8 +1062,8 @@ void checkArgsType(const std::function<ReturnType(Args...)>& f){
 //template<typename Lambda>
 
 struct FunBase : NamedObject<FunBase> {
-	FunBase(const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
-	static const std::string typeStr() { return "function"; }
+	FunBase( const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
+	static std::string typeStr() { return "function"; }
 };
 
 template<typename ReturnType, typename F_Type>
@@ -1049,7 +1071,7 @@ struct Fun : FunBase {
 	//using FunctionType = std::result_of_t< plugType<ReturnType>(F_Type));
 
 	template<typename ... Strings>
-	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+	Fun( const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
 		init_function_declaration<ReturnType>(str(), functionFromLambda(_f), _argnames...);
 	}
 
@@ -1063,7 +1085,7 @@ struct Fun : FunBase {
 };
 
 template<typename ReturnType, typename F_Type, typename ... Strings >
-Fun<ReturnType, F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
+Fun<ReturnType, F_Type> makeFun( const std::string & name, const F_Type & f, const Strings & ...argnames) {
 	return Fun<ReturnType, F_Type>(name, f, argnames...);
 }
 template<typename ReturnType, typename F_Type, typename ... Strings , typename = std::enable_if_t<!std::is_convertible<F_Type,std::string>::value > >
@@ -1088,7 +1110,7 @@ struct FunctionDeclarationRTBase : FunctionDeclarationBase {
 template<typename ReturnType, typename ... Args>
 struct FunctionDeclarationArgs : FunctionDeclarationRTBase<ReturnType> {
 	
-	FunctionDeclarationArgs(const std::string & _name, const std::tuple<Args...> & _args) : name(_name), args(_args) {	
+	FunctionDeclarationArgs( const std::string & _name, const std::tuple<Args...> & _args) : name(_name), args(_args) {	
 	}
 
 	std::string name;
@@ -1389,7 +1411,7 @@ struct TShader : MainController {
 	}
 
 	template<typename ReturnT, typename ...Args>
-	void begin_function(const std::string & name, const std::tuple<Args...> & args) {
+	void begin_function( const std::string & name, const std::tuple<Args...> & args) {
 		auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT,Args...> >(name, args );
 		functions.push_back(std::static_pointer_cast<InstructionBase>(function_declaration));
 		function_declaration->body->parent = currentBlock;
@@ -1564,7 +1586,7 @@ struct MainListener {
 	/////////////////////////////////////////////////
 
 	template<typename ReturnT, typename ...Args>
-	void begin_function(const std::string & name, const std::tuple<Args...> & args) {
+	void begin_function( const std::string & name, const std::tuple<Args...> & args) {
 		if (currentShader) {
 			currentShader->begin_function<ReturnT, Args...>(name, args);
 		}
@@ -1606,7 +1628,7 @@ MainListener & listen() { return MainListener::overmind; }
 template<typename F_Type>
 struct Fun<void, F_Type> : FunBase {
 	template<typename ... Strings>
-	Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+	Fun( const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
 		init_function_declaration<void>(NamedObjectBase::str(), functionFromLambda(_f), _argnames...);
 	}
 	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
@@ -1722,7 +1744,7 @@ struct TupleBuilder<S, Arg, Args...> {
 
 
 template <typename ReturnType, typename... Args, typename ... Strings>
-void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name)
+void init_function_declaration( const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name)
 {
 	static_assert(sizeof...(Strings) <= sizeof...(Args), "too many string arguments for function declaration");
 	
