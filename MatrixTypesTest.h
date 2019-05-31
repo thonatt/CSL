@@ -33,7 +33,6 @@ public:
 	Matrix(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
 		: NamedObject<Matrix>(_ex, ctor_flags, obj_flags, s)
 	{
-
 	}
 
 	// constructor from cpp types (bool, int, and double)
@@ -118,7 +117,7 @@ public:
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Dim, Set, Bytes, Size, REPEATED> & swizzle) const &&
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getgetStrPtrEx()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
@@ -191,11 +190,11 @@ public:
 		return { createExp<PrefixUnary>("-", NamedObjectBase::getExTmp()) };
 	}
 
-	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	template<bool b = isBool, typename = std::enable_if_t<b> >
 	Matrix operator!() & {
 		return { createExp<PrefixUnary>("!", NamedObjectBase::getExRef()) };
 	}
-	template<bool b = !isBool, typename = std::enable_if_t<b> >
+	template<bool b = isBool, typename = std::enable_if_t<b> >
 	Matrix operator!() && {
 		return { createExp<PrefixUnary>("!", NamedObjectBase::getExTmp()) };
 	}
@@ -254,13 +253,20 @@ public:
 	//	typename = std::enable_if_t< NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
 	//	void operator*=(R_A&& a) const && = delete;
 
-	// ??
-	//template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	//operator bool() const {
-	//	return false;
-	//}
+	// needed for loops
+	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	operator bool() & {
+		std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
+		//needed as any [variable;] in GL_FOR wont generate any instruction
+		listen().stack_for_condition(NamedObjectBase::getExRef());
+		return false;
+	}
 
-
+	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	operator bool() && {
+		std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
+		return false;
+	}
 };
 
 // Bool operators
@@ -340,10 +346,12 @@ template<typename A, typename B,
 	return { createExp<MiddleOperator<DIVISION>>("/", EX(A, a), EX(B, b)) };
 }
 
+
+////////////////////////////////////
+// Arrrays
+
 template<typename T, uint N>
 struct Array : NamedObject<Array<T, N>> {
-	using Type = typename T::UnderlyingType;
-
 	Array(const std::string & _name = "")
 		: NamedObject<Array<T,N>>(_name, IS_TRACKED)
 	{
@@ -353,20 +361,20 @@ struct Array : NamedObject<Array<T, N>> {
 	typename = std::enable_if_t< AllTrue<EqualMat<Us,T>...> && sizeof...(Us) == N > >
 	Array(Us && ... us)
 		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us,us)... )
-	{
-		
+	{		
 	}
 	 
+	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) {}
 
 	template<typename A,  
 	typename = std::enable_if_t< IsInteger<A> > >
-		Type operator[](A && a) & {
+		typename T::UnderlyingType operator[](A && a) & {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExRef(), EX(A,a)) };
 	}
 
 	template<typename A,
 		typename = std::enable_if_t< IsInteger<A> > >
-		Type operator[](A && a) && {
+		typename T::UnderlyingType operator[](A && a) && {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExTmp(), EX(A,a)) };
 	}
 };

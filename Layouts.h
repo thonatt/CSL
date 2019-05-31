@@ -6,7 +6,6 @@ template<LayoutArgBoolType layoutArg, bool b>
 struct LayoutArgBool {
 };
 
-
 using Shared = LayoutArgBool<SHARED, true>;
 using Packed = LayoutArgBool<PACKED, true>;
 using std140 = LayoutArgBool<STD140, true>;
@@ -53,56 +52,65 @@ template<typename ... LayoutCleanedArgs> struct LayoutCleanedArg {};
 template<typename ... LayoutArgs>
 struct Layout {
 	
-	static const int offset = GetLayoutArg<OFFSET, LayoutArgs...>::value;
-	static const int binding = GetLayoutArg<BINDING, LayoutArgs...>::value;
-	static const int location = GetLayoutArg<LOCATION, LayoutArgs...>::value;
+	static constexpr int offset = GetLayoutArg<OFFSET, LayoutArgs...>::value;
+	static constexpr int binding = GetLayoutArg<BINDING, LayoutArgs...>::value;
+	static constexpr int location = GetLayoutArg<LOCATION, LayoutArgs...>::value;
 
-	static const bool is_std140 = AnyTrue<std::is_same<LayoutArgs, std140>::value...>;
-	static const bool is_std430 = AnyTrue<std::is_same<LayoutArgs, std430>::value...>;
-	static const bool is_shared = AnyTrue<std::is_same<LayoutArgs, Shared>::value...>;
-	static const bool is_packed = AnyTrue<std::is_same<LayoutArgs, Packed>::value...>;
+	static constexpr bool is_std140 = ContainsType<std140, LayoutArgs...>;
+	static constexpr bool is_std430 = ContainsType<std430, LayoutArgs...>;
+	static constexpr bool is_packed = ContainsType<Packed, LayoutArgs...>; 
+	static constexpr bool is_shared = ContainsType<Shared, LayoutArgs...>;
 
 	using CleanedArgs = LayoutCleanedArg<
 		Offset<offset>,
 		Binding<binding>,
 		Location<location>,
-		LayoutArgBool<STD140,is_std140>,
-		LayoutArgBool<STD430,is_std430>,
-		LayoutArgBool<PACKED,is_packed>,
-		LayoutArgBool<SHARED,is_shared>
+		LayoutArgBool<STD140, is_std140>,
+		LayoutArgBool<STD430, is_std430>,
+		LayoutArgBool<PACKED, is_packed>,
+		LayoutArgBool<SHARED, is_shared>
 	>;
 
-	static const bool empty = (offset < 0) && (binding < 0) && (location < 0) && !( is_std140 || is_std430 || is_shared || is_packed);
+	static constexpr bool empty = (offset < 0) && (binding < 0) && (location < 0) && !( is_std140 || is_std430 || is_shared || is_packed);
 };
 
 template<QualifierType qType, typename T, typename ... LayoutArgs>
-struct Qualifier< qType, T, Layout<LayoutArgs...>> : public T {
-	
+struct Qualifier< qType, T, Layout<LayoutArgs...>> 
+	: public NamedObject<Qualifier<qType, T, Layout<LayoutArgs...> > >
+{	
 	using UnderlyingType = T;
+	using L = Layout<LayoutArgs...>;
+	using Obj = NamedObject < Qualifier<qType, T, L> >;
 
-	Qualifier(const std::string & s = "") : T(s,NOT_TRACKED) {
-		NamedObjectBase::exp = createDeclaration<Qualifier>(NamedObjectBase::myNamePtr());
+	Qualifier(const std::string & s = "")
+		: NamedObject<Qualifier<qType,T,L>>(s,IS_TRACKED) 
+	{
 	}
 
-	template<typename R_A, typename A = CleanType<R_A>, typename = std::enable_if_t<EqualMat<A,T> > >
-	void operator=(R_A && other) const & {
-		listen().addEvent(
-			createExp<MiddleOperator<ASSIGNMENT>>(
-				" = ",
-				getExp<Qualifier, false>(*this),
-				getExp<R_A>(other)
-			)
-		);
-	}
+	//template<typename R_A, typename A = CleanType<R_A>, typename = std::enable_if_t<EqualMat<A,T> > >
+	//void operator=(R_A && other) const & {
+	//	listen().addEvent(
+	//		createExp<MiddleOperator<ASSIGNMENT>>(
+	//			" = ",
+	//			getExp<Qualifier, false>(*this),
+	//			getExp<R_A>(other)
+	//		)
+	//	);
+	//}
 
 	//static const int offset = Layout<LayoutArgs...>::offset;
 	//static const int binding = Layout<LayoutArgs...>::binding;
 	//static const int location = Layout<LayoutArgs...>::location;
 };
 
-template<typename T, typename L = Layout<> > using Uniform = Qualifier<UNIFORM, T, L>;
-template<typename T, typename L = Layout<>> using In = Qualifier<IN, T, L>;
-template<typename T, typename L =  Layout<>> using Out = Qualifier<OUT, T, L>;
+template<typename T, typename L = Layout<> >
+using Uniform = Qualifier<UNIFORM, T, L>;
+
+template<typename T, typename L = Layout<>>
+using In = Qualifier<IN, T, L>;
+
+template<typename T, typename L =  Layout<>>
+using Out = Qualifier<OUT, T, L>;
 
 //
 //#include "Algebra.h"

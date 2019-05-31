@@ -49,8 +49,9 @@ enum class CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
 enum OpFlags : uint {
 	DISABLED = 1 << 1,
 	DISPLAY_TYPE = 1 << 2,
-	PARENTHESIS = 1 << 3,
-	MAIN_BLOCK = 1 << 4
+	MULTIPLE_INITS = 1 <<3,
+	PARENTHESIS = 1 << 4,
+	MAIN_BLOCK = 1 << 5
 };
 
 class NamedObjectBase;
@@ -70,15 +71,6 @@ Ex createDeclaration(const stringPtr & name, uint ctor_flags, const Args &... ar
 
 template<typename T>
 class NamedObject;
-
-enum StatementOptions {
-	SEMICOLON = 1 << 0,
-	COMMA = 1 << 1,
-	NOTHING = 1 << 2,
-	NEW_LINE = 1 << 3,
-	IGNORE_DISABLE = 1 << 4,
-	DEFAULT = SEMICOLON | NEW_LINE 
-};
 
 enum OperatorPrecedence {
 
@@ -290,6 +282,10 @@ struct ConstructorBase : OperatorBase {
 		return ctor_status;
 	}
 
+	virtual bool is_bool_ctor() const {
+		return false;
+	}
+
 	CtorStatus ctor_status;
 };
 
@@ -314,6 +310,9 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	}
 
 	std::string lhs_type_str() const {
+		if (flags & MULTIPLE_INITS) {
+			return "";
+		}
 		return getTypeStr<T>();
 	}
 
@@ -348,6 +347,10 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		} else {
 			return rhs_str();
 		}
+	}
+
+	virtual bool is_bool_ctor() const {
+		return IsSameType<T, Bool>;
 	}
 
 	stringPtr obj_name_ptr;
@@ -741,18 +744,46 @@ template<> Ex getExp<double>(double && d) {
 	return createExp<Litteral<double>>(d);
 }
 
+
+/////////////////////////////////////////////////////////////////////////
+
+enum StatementOptions : uint {
+	SEMICOLON = 1 << 0,
+	COMMA = 1 << 1,
+	NOTHING = 1 << 2,
+	ADD_SPACE = 1 << 3,
+	NEW_LINE = 1 << 4,
+	IGNORE_DISABLE = 1 << 5,
+	IGNORE_TRAILING = 1 << 6,
+	DEFAULT = SEMICOLON | NEW_LINE
+};
+
 struct InstructionBase {
 	using Ptr = std::shared_ptr<InstructionBase>;
 
-	static std::string instruction_begin(int trailing) {
+	static std::string instruction_begin(int trailing, uint opts = 0) {
 		std::string out;
-		for (int t = 0; t < trailing; ++t) {
-			out += "   ";
+		if (!(opts & IGNORE_TRAILING)) {
+			for (int t = 0; t < trailing; ++t) {
+				out += "   ";
+			}
 		}
 		return out;
 	}
+
 	static std::string instruction_end(uint opts) {
-		return std::string(opts & SEMICOLON ? ";" : opts & COMMA ? "," : "") + (opts & NEW_LINE ? "\n" : "");
+		std::string out;
+		if (opts & SEMICOLON) {
+			out += ";";
+		} else if (opts & COMMA) {
+			out += ",";
+		}
+		if (opts & ADD_SPACE) {
+			out += " ";
+		} else if (opts & NEW_LINE) {
+			out += "\n";
+		}
+		return out;
 	}
 
 	virtual void cout(int & trailing, uint otps = DEFAULT) {}
@@ -763,10 +794,14 @@ struct Block {
 	using Ptr = std::shared_ptr<Block>;
 	Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
 
-	template<typename I>
-	void push_instruction(const I & i) {
-		instructions.push_back(std::static_pointer_cast<InstructionBase>(i));
+	virtual void push_instruction(const InstructionBase::Ptr & i) {
+		instructions.push_back(i);
 	}
+
+	//template<typename S>
+	//void push_statement(const S & s) {
+	//	push_instruction(std::static_pointer_cast<InstructionBase>(s));
+	//}
 
 	virtual void cout(int & trailing, uint opts = DEFAULT) {
 		for (const auto & inst : instructions) {
@@ -829,24 +864,132 @@ struct ReturnBlock : ReturnBlockBase {
 
 struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
+	
 	Statement(const Ex & e) : ex(e) {}
 	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		if ( (opts & IGNORE_DISABLE) || !ex->disabled()) {
-			std::cout << ( opts & NEW_LINE ? instruction_begin(trailing) : "" ) << ex->str() << instruction_end(opts);
+			std::cout <<
+				( (opts & NEW_LINE) ? instruction_begin(trailing, opts) : "" )
+				<< ex->str() 
+				<< instruction_end(opts);
 		}
-
 	}
+
 	void explore() {
 		ex->explore();
 	}
 	Ex ex;
 };
 
+InstructionBase::Ptr toInstruction(const Ex & e) {
+	auto statement = std::make_shared<Statement>(e);
+	return std::dynamic_pointer_cast<InstructionBase>(statement);
+}
+
+struct EmptyStatement : Statement {
+
+	EmptyStatement(uint _flags = 0) : flags(_flags), Statement(Ex()) {}
+
+	static InstructionBase::Ptr create(uint _flags = 0) { 
+		return std::static_pointer_cast<InstructionBase>(std::make_shared<EmptyStatement>(_flags)); 
+	}
+
+	virtual void cout(int & trailing, uint opts = 0) {
+		if (flags != 0) {
+			std::cout << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
+		} else {
+			std::cout << Statement::instruction_begin(trailing, opts) << Statement::instruction_end(opts);
+		}
+		
+	}
+
+	uint flags;
+};
+
+struct ForArgsBlock : Block {
+	using Ptr = std::shared_ptr<ForArgsBlock>;
+	using Block::Block;
+
+	enum Status { INIT, CONDITION, LOOP };
+
+	Status status = INIT;
+	Ex stacked_condition;
+
+	virtual void cout(int & trailing, uint opts = DEFAULT) {
+		
+		std::vector<InstructionBase::Ptr> inits, conditions, loops;
+		Status status = INIT;
+		auto it = instructions.begin();
+
+		while (it != instructions.end()) {
+			if (auto statement = std::dynamic_pointer_cast<Statement>(*it)) {
+				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(statement->ex)) {
+					//std::cout << "for : " << ctor->str() << " " << ctor->ctor_status << std::endl;
+					if (status == INIT) {
+						if (ctor->ctor_status == INITIALISATION) {
+							//std::cout << "init : " << ctor->str() << " " << ctor->ctor_status << std::endl;
+							if (inits.size() > 0) {
+								ctor->flags = ctor->flags | MULTIPLE_INITS;
+							}
+							inits.push_back(*it);
+						} else if (ctor->is_bool_ctor()) {
+							//std::cout << "init2 : " << ctor->str() << " " << ctor->ctor_status << std::endl;
+							status = CONDITION;
+						} else if(ctor->ctor_status == FORWARD){
+							//std::cout << "init3 : " << ctor->str() << " " << ctor->ctor_status << std::endl;
+							status = LOOP;
+						}
+					}
+
+					if (status == CONDITION) {
+						if (ctor->is_bool_ctor()) {
+							conditions.push_back(*it);
+						} else {
+							status = LOOP;
+						}
+					}
+
+					if (status == LOOP) {
+						loops.push_back(*it);
+					}
+				}
+			}
+			++it;
+		}
+		
+		if (inits.empty()) {
+			inits.push_back(EmptyStatement::create());
+		}
+		if (conditions.empty()) {
+			if (stacked_condition) {
+				conditions.push_back(toInstruction(stacked_condition));
+			} else {
+				conditions.push_back(EmptyStatement::create());
+			}
+		}
+		if (loops.empty()) {
+			loops.push_back(EmptyStatement::create());
+		}
+
+		for (int i = 0; i < (int)inits.size() - 1; ++i) {
+			inits[i]->cout(trailing, IGNORE_TRAILING | COMMA);
+		}
+		inits.back()->cout(trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
+
+		conditions.back()->cout(trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
+
+		loops.back()->cout(trailing, IGNORE_TRAILING | NOTHING);
+	}
+
+};
+
 struct ReturnStatement : Statement {
 	using Ptr = std::shared_ptr<ReturnStatement>;
+
 	ReturnStatement(const Ex & e) : Statement(e) {}
+
 	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
-		std::cout << instruction_begin(trailing) << str() << instruction_end(opts);
+		std::cout << instruction_begin(trailing, opts) << str() << instruction_end(opts);
 	}
 
 	std::string str() const {
@@ -863,13 +1006,9 @@ struct ReturnStatement : Statement {
 	}
 };
 
-InstructionBase::Ptr toInstruction(const Ex & e) {
-	auto statement = std::make_shared<Statement>(e);
-	return std::dynamic_pointer_cast<InstructionBase>(statement);
-}
-
 struct CommentInstruction : InstructionBase {
-	CommentInstruction( const std::string & s) : comment(s) {}
+	CommentInstruction(const std::string & s) : comment(s) {}
+
 	virtual void cout(int & trailing, uint otps = DEFAULT) {
 		std::cout << instruction_begin(trailing) << "//" << comment << std::endl;
 	}
@@ -888,21 +1027,23 @@ void ReturnBlock<ReturnType>::cout(int & trailing, uint opts)
 struct ForInstruction : InstructionBase {
 	using Ptr = std::shared_ptr<ForInstruction>;
 	
+	ForInstruction() {
+		args = std::make_shared<ForArgsBlock>();
+		body = std::make_shared<Block>();
+	}
+
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing) << "for( ";
-		init->cout(trailing, SEMICOLON); 
-		std::cout << " ";
-		condition->cout(trailing, SEMICOLON);
-		std::cout << " ";
-		loop->cout(trailing, NOTHING);
-		std::cout << " ){\n";
+		std::cout << instruction_begin(trailing, opts) << "for( ";
+		args->cout(trailing, IGNORE_TRAILING );
+		std::cout << "){\n";
 		++trailing;
 		body->cout(trailing, opts);
 		--trailing;
-		std::cout << instruction_begin(trailing) << "}\n";
+		std::cout << instruction_begin(trailing, opts) << "}\n";
 	}
 
-	Statement::Ptr init, condition, loop;
+	//Statement::Ptr init, condition, loop;
+	ForArgsBlock::Ptr args;
 	Block::Ptr body;
 };
 
@@ -914,13 +1055,13 @@ struct WhileInstruction : InstructionBase {
 		body = std::make_shared<Block>(parent);
 	}
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing) << "while( ";
+		std::cout << instruction_begin(trailing, opts) << "while( ";
 		condition->cout(trailing, NOTHING | IGNORE_DISABLE);
 		std::cout << " ){\n";
 		++trailing;
 		body->cout(trailing, opts);
 		--trailing;
-		std::cout << instruction_begin(trailing) << "}\n";
+		std::cout << instruction_begin(trailing, opts) << "}\n";
 	}
 
 	Statement::Ptr condition;
@@ -942,7 +1083,7 @@ struct IfInstruction : InstructionBase {
 		const int numBodies = (int)bodies.size();
 		for (int i = 0; i < numBodies; ++i) {
 			if (i == 0) {
-				std::cout << instruction_begin(trailing) << "if( ";
+				std::cout << instruction_begin(trailing, opts) << "if( ";
 				bodies[0].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
 				std::cout << " ) {\n";
 			} else if(bodies[i].condition) {
@@ -956,7 +1097,7 @@ struct IfInstruction : InstructionBase {
 			++trailing;
 			bodies[i].body->cout(trailing);
 			--trailing;
-			std::cout << instruction_begin(trailing) << "}" << (i == numBodies - 1 ? "\n" : " ");
+			std::cout << instruction_begin(trailing, opts) << "}" << (i == numBodies - 1 ? "\n" : " ");
 		}
 	}
 
@@ -1014,11 +1155,11 @@ struct StructDeclaration : InstructionBase {
 		name(_name), member_names{ _names... } {}
 
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing) << "struct " << name << " { " << std::endl;
+		std::cout << instruction_begin(trailing, opts) << "struct " << name << " { " << std::endl;
 		++trailing;
 		std::cout << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, trailing, ";\n");
 		--trailing;
-		std::cout << instruction_begin(trailing) << "}" << std::endl;
+		std::cout << instruction_begin(trailing, opts) << "}" << std::endl;
 	}
 
 	std::vector<std::string> member_names;
@@ -1123,13 +1264,13 @@ struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
 	using Base::Base;
 
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing) << ReturnT::typeStr() << " " << Base::name << "(" <<
+		std::cout << InstructionBase::instruction_begin(trailing, opts) << ReturnT::typeStr() << " " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-		std::cout << InstructionBase::instruction_begin(trailing) << "{" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
 		++trailing;
 		Base::getBody()->cout(trailing);
 		--trailing;
-		std::cout << InstructionBase::instruction_begin(trailing) << "}" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing, opts) << "}" << std::endl;
 	}
 };
 
@@ -1140,13 +1281,13 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...
 	using Base::Base;
 
 	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing) << "void " << Base::name << "(" <<
+		std::cout << InstructionBase::instruction_begin(trailing, opts) << "void " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-		std::cout << InstructionBase::instruction_begin(trailing) << "{" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
 		++trailing;
 		Base::getBody()->cout(trailing);
 		--trailing;
-		std::cout << InstructionBase::instruction_begin(trailing)  << "}" << std::endl;
+		std::cout << InstructionBase::instruction_begin(trailing, opts)  << "}" << std::endl;
 	}
 };
 
@@ -1181,7 +1322,6 @@ struct ControllerBase {
 };
 
 struct ForController : virtual ControllerBase {
-	enum ForStatus { NONE, INIT, BODY };
 
 	struct EndFor {
 		~EndFor();
@@ -1197,40 +1337,31 @@ struct ForController : virtual ControllerBase {
 		bool first = true;
 	};
 
-
 	void begin_for() {
 		current_for = std::make_shared<ForInstruction>();
 		currentBlock->push_instruction(current_for);
-		for_status = INIT;	
 	}
 
-	bool feed_for(const Ex & e) {
-		if (for_status == BODY) {
-			//queueEvent(e);
-			return false;
-		} else if (!current_for->init) {
-			current_for->init = std::make_shared<Statement>(e);
-			//std::cout << "init : " << e->str() << std::endl;
-		} else if (!current_for->condition) {
-			current_for->condition = std::make_shared<Statement>(e);
-			//std::cout << "condition : " << e->str() << std::endl;
-		} else if (!current_for->loop) {
-			current_for->loop = std::make_shared<Statement>(e);
-			current_for->body = std::make_shared<Block>(currentBlock);
-			//std::cout << "loop : " << e->str() << std::endl;
-			currentBlock = current_for->body;
-			for_status = BODY;
-		} 
-		return true;
+	void begin_for_args() {	
+		current_for->body->parent = currentBlock;
+		currentBlock = current_for->args;
+	}
+
+	void begin_for_body() {
+		currentBlock = current_for->body;
 	}
 
 	virtual void end_for() {
-		for_status = NONE;
 		currentBlock = currentBlock->parent;
 	}
 
+	void stack_for_condition(const Ex & ex) {
+		if (current_for) {
+			current_for->args->stacked_condition = ex;
+		}
+	}
+
 	ForInstruction::Ptr current_for;
-	ForStatus for_status = NONE;
 };
 
 
@@ -1247,13 +1378,16 @@ struct IfController : virtual ControllerBase {
 	};
 
 	void begin_if(const Ex & ex) {
-		if (current_if) {
-			//std::cout << " nested if" << std::endl;
-			current_if = std::make_shared<IfInstruction>(current_if);
-		} else {
-			//std::cout << " non nested if" << std::endl;
-			current_if = std::make_shared<IfInstruction>();
-		}
+
+		current_if = std::make_shared<IfInstruction>(current_if);
+		
+		//if (current_if) {
+		//	//std::cout << " nested if" << std::endl;			
+		//} else {
+		//	//std::cout << " non nested if" << std::endl;
+		//	current_if = std::make_shared<IfInstruction>();
+		//}
+
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
 		currentBlock->push_instruction(current_if);
 		currentBlock = current_if->bodies.back().body;
@@ -1335,9 +1469,17 @@ struct WhileController : virtual ControllerBase {
 struct MainController : virtual ForController, virtual WhileController, virtual IfController {
 	using Ptr = std::shared_ptr<MainController>;
 	
-	virtual void begin_for() {
+	void add_blank_line(int n = 0) {
+		if (currentBlock) {
+			for (int i = 0; i < n; ++i) {
+				currentBlock->push_instruction(EmptyStatement::create(NEW_LINE | IGNORE_TRAILING | NOTHING));
+			}			
+		}
+	}
+
+	virtual void begin_for_args() {
 		check_end_if();
-		ForController::begin_for();
+		ForController::begin_for_args();
 	}
 
 	virtual void end_for() {
@@ -1352,11 +1494,12 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 
 	void handleEvent(const Ex & e) {
 	
-		if (for_status != NONE) {
-			if (feed_for(e)) {
-				return;
-			}
-		} 
+		//if (for_status != NONE) {
+		//	if (feed_for(e)) {
+		//		return;
+		//	}
+		//} 
+
 		check_end_if();
 
 		queueEvent(e);
@@ -1473,7 +1616,13 @@ struct MainListener {
 	
 	MainListener() {
 		shader = std::make_shared<TShader>();
-		currentShader = shader.get();
+		currentShader = shader;
+	}
+
+	void add_blank_line(int n = 0){
+		if (currentShader) {
+			currentShader->add_blank_line(n);
+		}
 	}
 
 	/////////////////////////////////////////////////
@@ -1513,9 +1662,27 @@ struct MainListener {
 		}
 	}
 
+	void begin_for_args() {
+		if (currentShader) {
+			currentShader->begin_for_args();
+		}
+	}
+
+	void begin_for_body() {
+		if (currentShader) {
+			currentShader->begin_for_body();
+		}
+
+	}
 	void end_for() {
 		if (currentShader) {
 			currentShader->end_for();
+		}
+	}
+
+	void stack_for_condition(const Ex & ex) {
+		if (currentShader) {
+			currentShader->stack_for_condition(ex);
 		}
 	}
 
@@ -1615,7 +1782,7 @@ struct MainListener {
 	bool & active() { return isListening; }
 
 	TShader::Ptr shader;
-	TShader * currentShader;
+	TShader::Ptr currentShader;
 	bool isListening = true;
 	static MainListener overmind;
 };
@@ -1790,10 +1957,9 @@ ForController::EndFor::~EndFor() {
 }
 
 
-#define GL_FOR(...) listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
-listen().begin_for(); __VA_ARGS__;  \
+#define GL_FOR(...) listen().begin_for(); listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
+listen().begin_for_args(); __VA_ARGS__;  listen().begin_for_body(); \
 for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
-
 
 
 IfController::BeginIf::~BeginIf() {
@@ -1807,7 +1973,7 @@ IfController::BeginElse::~BeginElse() {
 
 #define GL_ELSE else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
 
-#define GL_ELSE_IF(condition) else if(true){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
+#define GL_ELSE_IF(condition) else if(false){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
 
 
 WhileController::BeginWhile::~BeginWhile() {

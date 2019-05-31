@@ -24,27 +24,25 @@ std::string getTypeNamingStr() {
 }
 
 template<typename ... Ts> struct MultipleTypeStr {
-	static std::string str(bool previous_str = false) {
+	static std::string str() {
 		return "";
 	}
 };
 
 template<typename T> struct MultipleTypeStr<T> {
-	static std::string str(bool previous_str = false) {
+	static std::string str() {
 		return TypeStr<T>::str();
 	}
 };
 
 template<typename T, typename U, typename ... Ts> struct MultipleTypeStr<T, U, Ts...> {
-	static std::string str(bool previous_str = false) {
-		const bool empty = (MultipleTypeStr<T>::str() == "");
-
-		std::string out = MultipleTypeStr<U, Ts...>::str(!empty || previous_str);
-		if (empty) {
-			return out;
-		} else {
-			return (previous_str ? ", " : " ") + MultipleTypeStr<T>::str() + out;
+	static std::string str() {
+		const std::string current = MultipleTypeStr<T>::str();
+		const std::string next = MultipleTypeStr<U, Ts...>::str();
+		if (current != "" && next != "") {
+			return current + ", " + next;
 		}
+		return current + next;
 	}
 };
 
@@ -179,8 +177,11 @@ template<> std::string QualifierTypeStr<OUT>::str() { return "out "; }
 template<LayoutArgIntType type, int N>
 struct TypeStr<LayoutArgInt<type,N>> {
 	static std::string str() {
-		return N < 0 ? std::string("") :
-			(LayoutArgIntStr<type>::str() +" = " + std::to_string(N));
+		if (N < 0) {
+			return "";
+		} else {
+			return LayoutArgIntStr<type>::str() + " = " + std::to_string(N);
+		}
 	}
 };
 
@@ -198,7 +199,7 @@ struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
 		if (empty) {
 			return "";
 		} else {
-			return "layout(" + MultipleTypeStr<LayoutArgs...>::str() + " ) ";
+			return "layout(" + MultipleTypeStr<LayoutArgs...>::str() + ") ";
 		}
 	}
 };

@@ -9,11 +9,11 @@
 //#include "BuildingBlocks.h"
 //#include "Shaders.h"
 
-//#include "BuiltInFunctions.h"
+#include "BuiltInFunctions.h"
 //#include "Samplers.h"
 #include "MatrixTypesTest.h"
 #include "StructHelpers.h"
-//#include "Layouts.h"
+#include "Layouts.h"
 
 
 //void srt1();
@@ -88,7 +88,7 @@ void test_accessor() {
 
 	using namespace xyzw;
 
-	auto fun3 = makeFun<MyStruct>([](MySuperStruct s) {
+	auto fun3 = makeFun<MyStruct>("myFun", [](MySuperStruct s) {
 		GL_RETURN(s.s);
 	}, "my");
 
@@ -112,18 +112,52 @@ void test_accessor() {
 	pp[1 + Int(2.0) ];
 	vv[x] = mat4(0)[1][0];
 
+
 	Array<vec3, 5> myA("myArray");
 	myA[1] += myA[2];
 	
-	Array<vec3, 3> myC = { vec3(0), vec3(1), vec3(2) };
+	Array<vec3, 3> myC = Array<vec3, 3>(vec3(0), vec3(1), vec3(2)) << "myC";
 
 	Array<Bool, 2> myB("bools");
 
-	Bool bbb = true;
+	using namespace glsl_4_50;
+
+	pp = pow(pow(pp, pp)[x, x], vec2(2.0));
+
+	Bool bbb = Bool(true) << "myBool";
+
 	GL_IF(bbb && myB[0]) {
-		pp = pp;
+		listen().add_blank_line(5);
+		GL_FOR(Int i = Int(0) << "i", j = Int(1) << "j"; i < 5; i++) {
+			
+		}
+
+		GL_FOR(;;) {
+		}
+
+		GL_FOR(; bbb;) {
+		}
+
+		GL_FOR(Int m = 0; (m > 5) || !bbb; ) {
+		}
+
+		Int k = Int(0) << "k";
+		GL_FOR(; k == 3; ++k) {
+		}
+		Int kk = Int(0) << "kk";
+		GL_FOR(; ; ++kk) {
+		}
+
+		listen().add_blank_line(5);
+
 	}
-	
+
+	using LL = Layout < Binding<0>, Shared , Location<2> >;
+	using QQ = Uniform<vec3, LL>;
+
+	Array<QQ, 5> u("myU");
+	u[3] = u[4] + pow(u[0], u[3]);
+
 	//std::cout << vv.str() << std::endl;
 	//std::cout << "dbg : " << getExp(vec4(vec2(2.0, 2.0), vec2(1.0, 1.0)))->str() << std::endl;
 	//std::cout << "dbg : " << (bool)(getExp(vec2(1.0, 2.0))->flags & PARENTHESIS) << std::endl;

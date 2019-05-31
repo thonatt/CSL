@@ -4,13 +4,13 @@
 
 namespace glsl_1_10 {
 
-	template<typename R_A, typename R_B, typename A = CleanType<R_A>, typename B = CleanType<R_B>,
+	template<typename A, typename B,
 		typename = std::enable_if_t< 
-		NoBools<A, B> && IsConvertibleTo<A,Vec<FLOAT,Infos<B>::rows>> && IsConvertibleTo<B, Vec<FLOAT, Infos<A>::rows>>
+		NoBools<A, B> && IsConvertibleTo<A,Vec<FLOAT,Infos<CT<B>>::rows>> && IsConvertibleTo<B, Vec<FLOAT, Infos<CT<A>>::rows>>
 		>
 	>
-	Vec<FLOAT, Infos<A>::rows> pow(R_A && a, R_B && b) {
-		return Vec<FLOAT, Infos<A>::rows>(createFCallExp("pow", getExp<R_A>(a), getExp<R_B>(b) ) );
+	Vec<FLOAT, Infos<CT<A>>::rows> pow(A && a, B && b) {
+		return { createFCallExp("pow", EX(A,a), EX(B,b)) };
 	}
 
 	template<typename R_A, typename A = CleanType<R_A>,

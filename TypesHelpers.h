@@ -15,6 +15,19 @@ using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
 template<typename T>
 using CT = std::remove_const_t<std::remove_reference_t<T>>;
 
+template<typename A, typename B>
+struct IsSameTypeT {
+	static constexpr bool value = false;
+};
+
+template<typename A, typename B>
+constexpr bool IsSameType = IsSameTypeT<A,B>::value;
+
+template<typename A>
+struct IsSameTypeT<A,A> {
+	static constexpr bool value = true;
+};
+
 // matrix types forward declarations
 
 enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
@@ -274,7 +287,7 @@ template<typename A>
 constexpr bool IsVecF = Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT;
 
 template<typename A>
-constexpr bool IsInteger = IsScalar<A> && (Infos<A>::scalar_type == INT || Infos<A>::scalar_type == UINT);
+constexpr bool IsInteger = IsScalar<A> && (Infos<CT<A>>::scalar_type == INT || Infos<CT<A>>::scalar_type == UINT);
 
 template<typename ... A>
 constexpr bool IsFloat = false;
@@ -284,7 +297,7 @@ constexpr bool IsFloat<A> = IsVecF<A> && Infos<A>::rows == 1;
 
 
 template<typename A, typename B>
-constexpr bool SuperiorType = Infos<B>::scalar_type >= Infos<A>::scalar_type;
+constexpr bool SuperiorType = Infos<CT<B>>::scalar_type >= Infos<CT<A>>::scalar_type;
 
 template<typename A, typename B>
 constexpr bool EqualDim = (Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols);
@@ -323,6 +336,9 @@ template<> struct AnyTrueT<> {
 template<bool b, bool ... bs> struct AnyTrueT<b, bs...> {
 	static const bool value = b || AnyTrueT<bs...>::value;
 };
+
+template<typename T, typename ... Ts>
+constexpr bool ContainsType = AnyTrue<IsSameType<T, Ts>...>;
 
 template<typename ...Ts> struct AreValidT {
 	static const bool value = AllTrue<IsValid<Ts>...>;
