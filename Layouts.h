@@ -76,32 +76,61 @@ struct Layout {
 
 template<QualifierType qType, typename T, typename ... LayoutArgs>
 struct Qualifier< qType, T, Layout<LayoutArgs...>> 
-	: public NamedObject<Qualifier<qType, T, Layout<LayoutArgs...> > >
+	: public T
 {	
 	using UnderlyingType = T;
-	using L = Layout<LayoutArgs...>;
-	using Obj = NamedObject < Qualifier<qType, T, L> >;
+	using T::operator=;
 
-	Qualifier(const std::string & s = "")
-		: NamedObject<Qualifier<qType,T,L>>(s,IS_TRACKED) 
+	Qualifier(const std::string &s = "", uint flags = 0) : T(s, 0)
 	{
+		exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 	}
 
-	//template<typename R_A, typename A = CleanType<R_A>, typename = std::enable_if_t<EqualMat<A,T> > >
-	//void operator=(R_A && other) const & {
-	//	listen().addEvent(
-	//		createExp<MiddleOperator<ASSIGNMENT>>(
-	//			" = ",
-	//			getExp<Qualifier, false>(*this),
-	//			getExp<R_A>(other)
-	//		)
-	//	);
-	//}
+	Qualifier(T && t) : T("", 0)
+	{
+		//TODO  why extra declaration
 
-	//static const int offset = Layout<LayoutArgs...>::offset;
-	//static const int binding = Layout<LayoutArgs...>::binding;
-	//static const int location = Layout<LayoutArgs...>::location;
+		exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, t.getExTmp());
+		//t.setNotUsed();
+
+	}
+
+	Qualifier(const NamedObjectInit<T> & obj) : T(obj.name,0)
+	{
+		exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
+	}
+
+
 };
+
+//template<QualifierType qType, typename T, typename ... LayoutArgs>
+//struct Qualifier< qType, T, Layout<LayoutArgs...>> 
+//	: public NamedObject<Qualifier<qType, T, Layout<LayoutArgs...> > >
+//{	
+//	using UnderlyingType = T;
+//	using L = Layout<LayoutArgs...>;
+//	using Obj = NamedObject < Qualifier<qType, T, L> >;
+//
+//	Qualifier(const std::string & s = "")
+//		: NamedObject<Qualifier<qType,T,L>>(s,IS_TRACKED) 
+//	{
+//	}
+//
+//	//template<typename R_A, typename A = CleanType<R_A>, typename = std::enable_if_t<EqualMat<A,T> > >
+//	//void operator=(R_A && other) const & {
+//	//	listen().addEvent(
+//	//		createExp<MiddleOperator<ASSIGNMENT>>(
+//	//			" = ",
+//	//			getExp<Qualifier, false>(*this),
+//	//			getExp<R_A>(other)
+//	//		)
+//	//	);
+//	//}
+//
+//	//static const int offset = Layout<LayoutArgs...>::offset;
+//	//static const int binding = Layout<LayoutArgs...>::binding;
+//	//static const int location = Layout<LayoutArgs...>::location;
+//};
 
 template<typename T, typename L = Layout<> >
 using Uniform = Qualifier<UNIFORM, T, L>;
@@ -111,6 +140,19 @@ using In = Qualifier<IN, T, L>;
 
 template<typename T, typename L =  Layout<>>
 using Out = Qualifier<OUT, T, L>;
+
+template<> struct GetTemplateQualifierT<In> {
+	static const QualifierType value = IN;
+};
+
+template<> struct GetTemplateQualifierT<Uniform> {
+	static const QualifierType value = UNIFORM;
+};
+
+template<> struct GetTemplateQualifierT<Out> {
+	static const QualifierType value = OUT;
+};
+
 
 //
 //#include "Algebra.h"

@@ -5,21 +5,26 @@
 enum SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 enum SwizzeStatus : uint { NON_REPEATED = 0, REPEATED = 1 };
 
-template<uint Dim, SwizzleSet Set, uint Bytes, uint Size = 1, SwizzeStatus Status = NON_REPEATED>
+template<SwizzleSet Set, uint Dim, uint Bytes = (2 << Dim), uint Size = 1, SwizzeStatus Status = NON_REPEATED>
 class SwizzlePack;
 
-template<uint D1, uint D2, SwizzleSet S1, SwizzleSet S2, uint B1, uint B2, uint Size, SwizzeStatus status>
+template<SwizzleSet S1, SwizzleSet S2, uint D1, uint D2, uint B1, uint B2, uint Size, SwizzeStatus status>
 using OutSwizzle = SwizzlePack<
-	MaxUint<D1, D2>, S1 == S2 ? S1 : MIXED_SET, (B1 | B2), Size + 1, ((status == REPEATED || (B1 & B2) != 0) ? REPEATED : NON_REPEATED) >;
+	S1 == S2 ? S1 : MIXED_SET,
+	MaxUint<D1, D2>,
+	(B1 | B2),
+	Size + 1,
+	(status == REPEATED || (B1 & B2) != 0) ? REPEATED : NON_REPEATED
+>;
 
-template<uint Dim, SwizzleSet Set, uint Bytes, uint Size, SwizzeStatus Status>
+template<SwizzleSet Set, uint Dim, uint Bytes, uint Size, SwizzeStatus Status>
 class SwizzlePack {
 public:
 	SwizzlePack(const std::string & _s) : s(std::make_shared<std::string>(_s)) { }
 
 	template<uint Dim_, SwizzleSet Set_, uint Bytes_>
-	OutSwizzle<Dim, Dim_, Set, Set_, Bytes, Bytes_, Size, Status> 
-	operator,(const SwizzlePack<Dim_, Set_, Bytes_, 1> & other) const
+	OutSwizzle<Set, Set_, Dim, Dim_, Bytes, Bytes_, Size, Status>
+	operator,(const SwizzlePack<Set_, Dim_, Bytes_, 1> & other) const
 	{
 		return { *s + *other.s };
 	}
@@ -33,24 +38,24 @@ public:
 };
 
 namespace rgba {
-	const SwizzlePack<1, RGBA, 1> r("r");
-	const SwizzlePack<2, RGBA, 2> g("g");
-	const SwizzlePack<3, RGBA, 4> b("b");
-	const SwizzlePack<4, RGBA, 8> a("a");
+	const SwizzlePack<RGBA, 1> r("r");
+	const SwizzlePack<RGBA, 2> g("g");
+	const SwizzlePack<RGBA, 3> b("b");
+	const SwizzlePack<RGBA, 4> a("a");
 }
 
 namespace xyzw {
-	const SwizzlePack<1, XYZW, 1> x("x");
-	const SwizzlePack<2, XYZW, 2> y("y");
-	const SwizzlePack<3, XYZW, 4> z("z");
-	const SwizzlePack<4, XYZW, 8> w("w");
+	const SwizzlePack<XYZW, 1> x("x");
+	const SwizzlePack<XYZW, 2> y("y");
+	const SwizzlePack<XYZW, 3> z("z");
+	const SwizzlePack<XYZW, 4> w("w");
 }
 
 namespace stpq {
-	const SwizzlePack<1, STPQ, 1> s("s");
-	const SwizzlePack<2, STPQ, 2> t("t");
-	const SwizzlePack<3, STPQ, 4> p("p");
-	const SwizzlePack<4, STPQ, 8> q("q");
+	const SwizzlePack<STPQ, 1> s("s");
+	const SwizzlePack<STPQ, 2> t("t");
+	const SwizzlePack<STPQ, 3> p("p");
+	const SwizzlePack<STPQ, 4> q("q");
 }
 
 namespace all_swizzles {

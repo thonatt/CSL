@@ -9,18 +9,8 @@ public:
 	//static_assert(IsSamplerType<nType>::value, "Invalide sampler nType");
 	//static_assert(IsValid<aType, nType, Dim, sType, isArray, isShadow>::value, "Invalide sampler template arguments");
 
-	Sampler(const std::string & s = "", NamedObjectTracking _track = TRACKED ) : NamedObject<Sampler>(s,_track) {
-		NamedObjectBase::exp = createDeclaration<Sampler>(NamedObjectBase::myNamePtr());
-	}
-
-	Sampler(const Ex & _exp, NamedObjectTracking _track = TRACKED, NamedObjectInit _init = INIT) : NamedObject<Sampler>() {
-		if (_init) {
-			NamedObjectBase::exp = createInit<Sampler, HIDE, NO_PARENTHESIS>(NamedObjectBase::myNamePtr(), _exp);
-		} else {
-			NamedObjectBase::exp = _exp;
-		}
-		
-		NamedObjectBase::isUsed = false;
+	Sampler(const std::string & s = "", uint obj_flags = 0) 
+		: NamedObject<Sampler>(s,obj_flags) {
 	}
 };
 

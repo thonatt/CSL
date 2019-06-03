@@ -37,7 +37,7 @@
 
 #define GL_STRUCT(StructTypename,...)  \
 \
-listen().add_struct<true MEMBER_ITERATE(MEMBER_TYPE_IT, __VA_ARGS__) >(std::string(#StructTypename) \
+listen().add_struct<true MEMBER_ITERATE(MEMBER_TYPE_IT, __VA_ARGS__) >(BOOST_PP_STRINGIZE(StructTypename) \
 			MEMBER_ITERATE(MEMBER_STR_IT, __VA_ARGS__) ); \
 \
 struct StructTypename : public NamedObject<StructTypename> { \
@@ -63,5 +63,30 @@ struct StructTypename : public NamedObject<StructTypename> { \
 	{ \
 	} \
 	\
-	static std::string typeStr() { return std::string(#StructTypename); } \
+	static std::string typeStr(int trailing = 0) { return std::string(#StructTypename); } \
 }
+
+#define GL_INTERFACE(Qualifier, Name, ...) \
+struct Name : public NamedObject<Name> { \
+	using UnderlyingType = Name;	\
+	\
+	MEMBER_ITERATE(DECLARE_MEMBER_IT, __VA_ARGS__) \
+	\
+	Name(const std::string & _name = "", uint _flags = IS_TRACKED) \
+		: NamedObject<Name>(_name, _flags) \
+		MEMBER_ITERATE(INIT_MEMBER_PARENT_IT, __VA_ARGS__) \
+	{ \
+	} \
+	\
+	static std::string typeStr(int trailing = 0) { \
+		return InterfaceDeclaration<GetTemplateQualifierT<Qualifier>::value MEMBER_ITERATE(MEMBER_TYPE_IT, __VA_ARGS__)>::str( \
+			BOOST_PP_STRINGIZE(Name), trailing  MEMBER_ITERATE(MEMBER_STR_IT, __VA_ARGS__)  \
+		); \
+	} \
+}
+
+#define GL_DECLARE(name, ...) __VA_ARGS__  name(BOOST_PP_STRINGIZE(name))
+
+//#define GL_INTERFACE(Qualifier, name, Name, ...) \
+//			GL_STRUCT(Name, __VA_ARGS__ ); \
+//			Qualifier<Name> name(BOOST_PP_STRINGIZE(name));

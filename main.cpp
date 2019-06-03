@@ -15,6 +15,9 @@
 #include "StructHelpers.h"
 #include "Layouts.h"
 
+#include "shader_suite/blur.h"
+
+#include <chrono>
 
 //void srt1();
 //void srt2();
@@ -50,9 +53,20 @@ void test_rval_qual() {
 
 int main()
 {
-	test_accessor();
+	//test_accessor();
 
-	listen().cout();
+	auto start = std::chrono::steady_clock::now();
+
+	auto blur_str = blurShader();
+
+	auto ambiant_str = ambiantShader();
+
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+
+	std::cout << blur_str << std::endl;
+	std::cout << ambiant_str << std::endl;
+
+	std::cout << "elapsed time : " << duration.count() << std::endl;
 
 	return 0;
 }
@@ -120,7 +134,7 @@ void test_accessor() {
 
 	Array<Bool, 2> myB("bools");
 
-	using namespace glsl_4_50;
+	using namespace glsl_450;
 
 	pp = pow(pow(pp, pp)[x, x], vec2(2.0));
 
@@ -154,6 +168,14 @@ void test_accessor() {
 
 	using LL = Layout < Binding<0>, Shared , Location<2> >;
 	using QQ = Uniform<vec3, LL>;
+
+	Uniform<MyStruct> myUniS;
+	In<Float> inF2 = Float(2.0) << "plop"; 
+	In<Float> inF = 3.0;
+	In<Float> inF3;
+	In<Float> inF4 = Float(4.0);
+	vec2 vev = vec2(1);
+	myUniS.f = inF * inF2*inF3*inF4*myUniS.v[x] * vev[y];
 
 	Array<QQ, 5> u("myU");
 	u[3] = u[4] + pow(u[0], u[3]);

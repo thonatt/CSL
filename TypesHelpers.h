@@ -98,7 +98,12 @@ using atomic_uint = Sampler<SAMPLER, UINT, 0, ATOMIC >;
 
 enum LayoutArgBoolType { SHARED, PACKED, STD140, STD430 };
 enum LayoutArgIntType { OFFSET, BINDING, LOCATION };
-enum QualifierType { IN, OUT, UNIFORM };
+enum QualifierType { IN, OUT, UNIFORM, NOT_QUALIFIER };
+
+template<template<typename T, typename Layout> class Quali>
+struct GetTemplateQualifierT {
+	static const QualifierType value = NOT_QUALIFIER;
+};
 
 template<LayoutArgBoolType layoutArg, bool b> struct LayoutArgBool;
 template<LayoutArgIntType layoutArg, int N> struct LayoutArgInt;
@@ -269,7 +274,7 @@ template<typename A>
 constexpr bool IsScalar = IsVector<A> && Infos<CT<A>>::rows == 1;
 
 template<typename A, typename B>
-constexpr bool ValidForMatMultiplication = Infos<CT<A>>::cols == Infos<CT<B>>::rows && !(IsScalar<A> && IsScalar<B> );
+constexpr bool ValidForMatMultiplication = Infos<CT<A>>::cols == Infos<CT<B>>::rows && !(IsScalar<A> || IsScalar<B> );
 
 template<typename ...Ts> struct MatElementsT;
 template<typename ...Ts> constexpr uint MatElements = MatElementsT<Ts...>::value;
@@ -284,7 +289,7 @@ template<typename T, typename ...Ts> struct MatElementsT<T, Ts...> {
 
 // other helpers
 template<typename A> 
-constexpr bool IsVecF = Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT;
+constexpr bool IsVecF = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == FLOAT;
 
 template<typename A>
 constexpr bool IsInteger = IsScalar<A> && (Infos<CT<A>>::scalar_type == INT || Infos<CT<A>>::scalar_type == UINT);
@@ -293,7 +298,7 @@ template<typename ... A>
 constexpr bool IsFloat = false;
 
 template<typename A>
-constexpr bool IsFloat<A> = IsVecF<A> && Infos<A>::rows == 1;
+constexpr bool IsFloat<A> = IsVecF<A> && Infos<CT<A>>::rows == 1;
 
 
 template<typename A, typename B>

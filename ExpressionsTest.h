@@ -4,9 +4,10 @@
 #include <array>
 #include <memory>
 #include <iostream>
+#include <sstream> 
+
 #include <algorithm> //for std::replace
 #include <iomanip> // for std::setprecision
-#include <sstream> // ^
 
 #include "StringHelpers.h"
 #include "FunctionHelpers.h"
@@ -33,7 +34,7 @@ using Ex = std::shared_ptr<OperatorBase>;
 //enum NamedObjectTracking { NOT_TRACKED, TRACKED };
 //enum NamedObjectInit { NO_INIT, INIT };
 
-enum NamedObjectFlags {
+enum NamedObjectFlags : uint {
 	IS_USED = 1 << 1,
 	IS_INIT = 1 << 2,
 	IS_TRACKED = 1 << 3,
@@ -136,7 +137,7 @@ struct OperatorBase {
 
 	}
 
-	virtual std::string str() const {
+	virtual std::string str(int trailing) const {
 		return "no_str";
 	}
 
@@ -159,9 +160,9 @@ struct OperatorBase {
 	std::string checkForParenthesis(Ex exp) const {
 		if (inversion(exp)) {
 			//return exp->str();
-			return "(" + exp->str() + ")";
+			return "(" + exp->str(0) + ")";
 		} 
-		return exp->str();
+		return exp->str(0);
 	}
 
 	void disable() {
@@ -200,7 +201,7 @@ struct Precedence : OperatorBase {
 struct Alias : Precedence<ALIAS> {
 	Alias(stringPtr _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
 	//Alias( const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
-	virtual std::string str() const { return *obj_str_ptr; }
+	std::string str(int trailing) const { return *obj_str_ptr; }
 	//virtual std::string str() const { return "Alias[" + *obj_str_ptr + "]"; }
 	
 	stringPtr obj_str_ptr;
@@ -213,7 +214,7 @@ struct MiddleOperator : Precedence<precedence>, NamedOperator {
 		//std::cout << "middle op : " << op_str << " " << *OperatorBase::op_str_ptr << std::endl;
  	}
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		return OperatorBase::checkForParenthesis(lhs) + NamedOperator::op_str() + OperatorBase::checkForParenthesis(rhs);
 	}
 
@@ -229,7 +230,7 @@ struct ArgsCall {
 	std::string args_str_body() const {
 		std::string out = "";
 		for (uint i = 0; i < N; ++i) {
-			out += args[i]->str() + ((i == N - 1) ? "" : ", ");
+			out += args[i]->str(0) + ((i == N - 1) ? "" : ", ");
 		}
 		return out;
 	}
@@ -250,7 +251,7 @@ struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
 		: NamedOperator(s), ArgsCall<N>(_args...) {
 	}
 
-	virtual std::string str() const {
+	std::string str(int trailing) const {
 		return op_str() + ArgsCall<N>::args_str();
 	}
 };
@@ -275,6 +276,11 @@ struct ConstructorBase : OperatorBase {
 	void setTemp() {
 		if (status() == INITIALISATION) {
 			ctor_status = TEMP;
+		}
+	}
+	void setInit() {
+		if (status() == FORWARD) {
+			ctor_status = INITIALISATION;
 		}
 	}
 
@@ -309,19 +315,19 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		return *obj_name_ptr;
 	}
 
-	std::string lhs_type_str() const {
+	std::string lhs_type_str(int trailing) const {
 		if (flags & MULTIPLE_INITS) {
 			return "";
 		}
-		return getTypeStr<T>();
+		return getTypeStr<T>(trailing);
 	}
 
 	virtual std::string rhs_type_str() const {
 		return getTypeStr<T>();
 	}
 
-	virtual std::string lhs_str() const {
-		return lhs_type_str() + " " + obj_name();
+	virtual std::string lhs_str(int trailing) const {
+		return lhs_type_str(trailing) + " " + obj_name();
 	}
 
 	std::string rhs_str() const {
@@ -337,13 +343,13 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		return str;
 	}
 
-	std::string str() const {
+	virtual std::string str(int trailing) const {
 		if (status() == INITIALISATION) {
-			return lhs_str() + " = " + rhs_str();
+			return lhs_str(trailing) + " = " + rhs_str();
 		} else if (status() == DECLARATION) {
-			return lhs_str();
+			return lhs_str(trailing);
 		} else if (status() == FORWARD) {
-			return ArgsCall<N>::args[0]->str();
+			return ArgsCall<N>::args[0]->str(0);
 		} else {
 			return rhs_str();
 		}
@@ -364,12 +370,12 @@ struct Constructor<Array<T, N>, M> : Constructor<T,M> {
 		: Constructor<T,M>(_obj_name_ptr, _status, flags, _args...) {
 	}
 
-	virtual std::string lhs_str() const {
-		return Constructor<T,M>::lhs_str() + TypeStr< Array<T, N> >::array_str();
+	virtual std::string lhs_str(int trailing) const {
+		return Constructor<T,M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
 	}
 
-	virtual std::string rhs_type_str() const {
-		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
+	virtual std::string rhs_type_str(int trailing) const {
+		return getTypeStr<T>(trailing) + TypeStr< Array<T, N> >::array_str();
 	}
 };
 
@@ -377,7 +383,7 @@ struct MemberAccessor : Precedence<FIELD_SELECTOR> {
 	MemberAccessor(const Ex & _obj, stringPtr member_str)
 		: member_str_ptr(member_str), obj(_obj) {
 	}
-	std::string str() const {
+	std::string str(int trailing) const {
 		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
 	}
 	Ex obj;
@@ -391,8 +397,8 @@ struct MemberFunctionAccessor : FunctionCall<N> {
 		: FunctionCall<N>(fun_name, _args...), obj(_obj) {
 	}
 
-	std::string str() const {
-		return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str();
+	std::string str(int trailing) const {
+		return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str(0);
 	}
 
 	Ex obj;
@@ -402,9 +408,9 @@ struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
 	ArraySubscript(Ex _obj, Ex _arg) : obj(_obj), arg(_arg) {
 	}
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		//std::cout << " array_sub" << std::endl;
-		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str() + "]";
+		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str(0) + "]";
 	}
 
 	Ex obj, arg;
@@ -416,7 +422,7 @@ struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
 		: NamedOperator(op_str), obj(_obj) {
 	}
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		return op_str() + OperatorBase::checkForParenthesis(obj);
 	}
 
@@ -429,7 +435,7 @@ struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
 		: NamedOperator(op_str), obj(_obj) {
 	}
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		return OperatorBase::checkForParenthesis(obj) + op_str();
 	}
 
@@ -441,7 +447,7 @@ struct Ternary : Precedence<TERNARY> {
 		: condition(_condition), first(_first), second(_second) {
 	}
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		return OperatorBase::checkForParenthesis(condition) + " ? " + OperatorBase::checkForParenthesis(first) + " : " + OperatorBase::checkForParenthesis(second);
 	}
 
@@ -456,7 +462,7 @@ struct InitializerList : Precedence<INITIALIZER_LIST>, ArgsCall<N>
 	{ 
 	}
 
-	virtual std::string str() const {
+	virtual std::string str(int trailing) const {
 		return "{ " + ArgsCall<N>::args_str_body() + " }";
 	}
 };
@@ -464,7 +470,7 @@ struct InitializerList : Precedence<INITIALIZER_LIST>, ArgsCall<N>
 struct EmptyExp : OperatorBase {
 	static Ex get() { return std::static_pointer_cast<OperatorBase>(std::make_shared<EmptyExp>()); }
 
-	std::string str() const {
+	std::string str(int trailing) const {
 		return "";
 	}
 };
@@ -472,7 +478,8 @@ struct EmptyExp : OperatorBase {
 template<typename T>
 struct Litteral : OperatorBase {
 	Litteral(const T & _i) : i(_i) {}
-	virtual std::string str() const {
+
+	virtual std::string str(int trailing) const {
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(1) << i;
 		return ss.str();
@@ -483,7 +490,7 @@ struct Litteral : OperatorBase {
 
 template<> struct Litteral<bool> : OperatorBase {
 	Litteral(const bool & _b) : b(_b) {}
-	virtual std::string str() const { return b ? "true" : "false"; }
+	virtual std::string str(int trailing) const { return b ? "true" : "false"; }
 	bool b;
 };
 
@@ -508,6 +515,10 @@ public:
 
 	bool isTracked() const {
 		return flags & IS_TRACKED;
+	}
+
+	void setNotUsed() {
+		flags = flags & ~(IS_USED);
 	}
 
 	Ex alias() const;
@@ -574,6 +585,9 @@ inline Ex NamedObjectBase::getExRef()
 		return getExTmp();
 	}
 	flags = flags | IS_USED;
+	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+		ctor->setInit();
+	}
 	return alias();
 }
 
@@ -628,6 +642,7 @@ inline void NamedObjectBase::checkDisabling()
 
 template<typename T>
 class NamedObject : public NamedObjectBase {
+
 public:
 
 	static std::string typeStr() { return "dummyNameObjT"; }
@@ -698,26 +713,6 @@ public:
 };
 template<typename T> int NamedObject<T>::counter = 0;
 
-//template<typename T, bool temp = !std::is_lvalue_reference<T>::value> Ex getExp(const T & t) {
-//	//std::cout << t.exp.use_count() << std::endl;
-//	t.isUsed = true;
-//	if(temp && !t.parent) {
-//		areNotInit(t);
-//		//std::cout << " get exp temp " << t.myName() << std::endl;
-//		return t.exp;
-//	} else {
-//		if (t.parent) {
-//			areNotInit(*t.parent);
-//			if (temp) {
-//				return createExp<Alias>(std::move(t).myNamePtr());
-//			}
-//			return createExp<Alias>(t.myNamePtr());
-//		}
-//		//std::cout << " ref use " << t.myName() << std::endl;		
-//		return createExp<Alias>(t.myNamePtr());
-//	}
-//}
-
 template<typename T>
 Ex getExp(T && t)
 {
@@ -735,15 +730,38 @@ Ex NamedObjectBase::alias() const {
 template<> Ex getExp<bool>(bool && b) {
 	return createExp<Litteral<bool>>(b);
 }
+template<> Ex getExp<bool&>(bool & b) {
+	return createExp<Litteral<bool>>(b);
+}
 
 template<> Ex getExp<int>(int && i) {
 	return createExp<Litteral<int>>(i);
+}
+template<> Ex getExp<int&>(int & i) {
+	return createExp<Litteral<int>>(i);
+}
+
+
+template<> Ex getExp<uint>(uint && i) {
+	return createExp<Litteral<uint>>(i);
+}
+template<> Ex getExp<uint&>(uint & i) {
+	return createExp<Litteral<uint>>(i);
+}
+
+template<> Ex getExp<float>(float && d) {
+	return createExp<Litteral<float>>(d);
+}
+template<> Ex getExp<float&>(float & d) {
+	return createExp<Litteral<float>>(d);
 }
 
 template<> Ex getExp<double>(double && d) {
 	return createExp<Litteral<double>>(d);
 }
-
+template<> Ex getExp<double&>(double & d) {
+	return createExp<Litteral<double>>(d);
+}
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -763,7 +781,7 @@ struct InstructionBase {
 
 	static std::string instruction_begin(int trailing, uint opts = 0) {
 		std::string out;
-		if (!(opts & IGNORE_TRAILING)) {
+		if ((opts & IGNORE_TRAILING) == 0) {
 			for (int t = 0; t < trailing; ++t) {
 				out += "   ";
 			}
@@ -786,6 +804,7 @@ struct InstructionBase {
 		return out;
 	}
 
+	virtual void str(std::stringstream & stream, int & trailing, uint otps) { }
 	virtual void cout(int & trailing, uint otps = DEFAULT) {}
 	virtual void explore() {}
 };
@@ -802,6 +821,12 @@ struct Block {
 	//void push_statement(const S & s) {
 	//	push_instruction(std::static_pointer_cast<InstructionBase>(s));
 	//}
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
+		for (const auto & inst : instructions) {
+			inst->str(stream, trailing, opts);
+		}
+	}
 
 	virtual void cout(int & trailing, uint opts = DEFAULT) {
 		for (const auto & inst : instructions) {
@@ -853,8 +878,9 @@ struct ReturnBlock : ReturnBlockBase {
 		return typeid(ReturnType).hash_code() == other_type_hash;
 	}
 
+	virtual void str(std::stringstream & stream, int & trailing, uint otps);
 
-	virtual void cout(int & trailing, uint opts = DEFAULT);
+	//virtual void cout(int & trailing, uint opts = DEFAULT);
 };
 
 //struct IfBlockT : Block {
@@ -866,11 +892,21 @@ struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
 	
 	Statement(const Ex & e) : ex(e) {}
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
+		if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
+			stream <<
+				((opts & NEW_LINE) ? instruction_begin(trailing, opts) : "")
+				<< ex->str(trailing)
+				<< instruction_end(opts);
+		}
+	}
+
 	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		if ( (opts & IGNORE_DISABLE) || !ex->disabled()) {
 			std::cout <<
 				( (opts & NEW_LINE) ? instruction_begin(trailing, opts) : "" )
-				<< ex->str() 
+				<< ex->str(trailing) 
 				<< instruction_end(opts);
 		}
 	}
@@ -894,6 +930,14 @@ struct EmptyStatement : Statement {
 		return std::static_pointer_cast<InstructionBase>(std::make_shared<EmptyStatement>(_flags)); 
 	}
 
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		if (flags != 0) {
+			stream << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
+		} else {
+			stream << Statement::instruction_begin(trailing, opts) << Statement::instruction_end(opts);
+		}
+	}
+
 	virtual void cout(int & trailing, uint opts = 0) {
 		if (flags != 0) {
 			std::cout << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
@@ -915,7 +959,7 @@ struct ForArgsBlock : Block {
 	Status status = INIT;
 	Ex stacked_condition;
 
-	virtual void cout(int & trailing, uint opts = DEFAULT) {
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
 		
 		std::vector<InstructionBase::Ptr> inits, conditions, loops;
 		Status status = INIT;
@@ -972,13 +1016,13 @@ struct ForArgsBlock : Block {
 		}
 
 		for (int i = 0; i < (int)inits.size() - 1; ++i) {
-			inits[i]->cout(trailing, IGNORE_TRAILING | COMMA);
+			inits[i]->str(stream, trailing, IGNORE_TRAILING | COMMA);
 		}
-		inits.back()->cout(trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
+		inits.back()->str(stream, trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
 
-		conditions.back()->cout(trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
+		conditions.back()->str(stream, trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
 
-		loops.back()->cout(trailing, IGNORE_TRAILING | NOTHING);
+		loops.back()->str(stream, trailing, IGNORE_TRAILING | NOTHING);
 	}
 
 };
@@ -988,13 +1032,13 @@ struct ReturnStatement : Statement {
 
 	ReturnStatement(const Ex & e) : Statement(e) {}
 
-	virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
-		std::cout << instruction_begin(trailing, opts) << str() << instruction_end(opts);
+	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		stream << instruction_begin(trailing, opts) << internal_str() << instruction_end(opts);
 	}
 
-	std::string str() const {
+	std::string internal_str() const {
 		std::string s = "return";
-		std::string ex_str = ex->str();
+		std::string ex_str = ex->str(0);
 		if (ex_str != "") {
 			s += " " + ex_str;
 		}
@@ -1009,18 +1053,18 @@ struct ReturnStatement : Statement {
 struct CommentInstruction : InstructionBase {
 	CommentInstruction(const std::string & s) : comment(s) {}
 
-	virtual void cout(int & trailing, uint otps = DEFAULT) {
-		std::cout << instruction_begin(trailing) << "//" << comment << std::endl;
+	virtual void str(std::stringstream & stream, int & trailing, uint otps = DEFAULT) {
+		stream << instruction_begin(trailing) << "//" << comment << std::endl;
 	}
 	std::string comment;
 };
 
 template<typename ReturnType>
-void ReturnBlock<ReturnType>::cout(int & trailing, uint opts)
+void ReturnBlock<ReturnType>::str(std::stringstream & stream, int & trailing, uint opts)
 {
-	Block::cout(trailing, opts);
+	Block::str(stream, trailing, opts);
 	if (!std::is_same<ReturnType, void>::value && !ReturnBlockBase::hasReturnStatement) {
-		CommentInstruction("need return statement here").cout(trailing, opts);
+		CommentInstruction("need return statement here").str(stream, trailing, opts);
 	}
 }
 
@@ -1032,14 +1076,14 @@ struct ForInstruction : InstructionBase {
 		body = std::make_shared<Block>();
 	}
 
-	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing, opts) << "for( ";
-		args->cout(trailing, IGNORE_TRAILING );
-		std::cout << "){\n";
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << "for( ";
+		args->str(stream, trailing, IGNORE_TRAILING );
+		stream << "){\n";
 		++trailing;
-		body->cout(trailing, opts);
+		body->str(stream, trailing, opts);
 		--trailing;
-		std::cout << instruction_begin(trailing, opts) << "}\n";
+		stream << instruction_begin(trailing, opts) << "}\n";
 	}
 
 	//Statement::Ptr init, condition, loop;
@@ -1054,19 +1098,19 @@ struct WhileInstruction : InstructionBase {
 		condition = std::make_shared<Statement>(ex);
 		body = std::make_shared<Block>(parent);
 	}
-	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing, opts) << "while( ";
-		condition->cout(trailing, NOTHING | IGNORE_DISABLE);
-		std::cout << " ){\n";
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << "while( ";
+		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+		stream << " ){\n";
 		++trailing;
-		body->cout(trailing, opts);
+		body->str(stream, trailing, opts);
 		--trailing;
-		std::cout << instruction_begin(trailing, opts) << "}\n";
+		stream << instruction_begin(trailing, opts) << "}\n";
 	}
 
 	Statement::Ptr condition;
-	Block::Ptr body;
-	
+	Block::Ptr body;	
 };
 
 struct IfInstruction : InstructionBase {
@@ -1079,25 +1123,25 @@ struct IfInstruction : InstructionBase {
 
 	IfInstruction(std::shared_ptr<IfInstruction> _parent = {}) : parent_if(_parent) {}
 
-	virtual void cout(int & trailing, uint opts) {
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
 		const int numBodies = (int)bodies.size();
 		for (int i = 0; i < numBodies; ++i) {
 			if (i == 0) {
-				std::cout << instruction_begin(trailing, opts) << "if( ";
-				bodies[0].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
-				std::cout << " ) {\n";
+				stream << instruction_begin(trailing, opts) << "if( ";
+				bodies[0].condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+				stream << " ) {\n";
 			} else if(bodies[i].condition) {
-				std::cout << "else if( ";
-				bodies[i].condition->cout(trailing, NOTHING | IGNORE_DISABLE);
-				std::cout << " ) {\n";
+				stream << "else if( ";
+				bodies[i].condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+				stream << " ) {\n";
 			} else {
-				std::cout << "else {\n";
+				stream << "else {\n";
 			}
 
 			++trailing;
-			bodies[i].body->cout(trailing);
+			bodies[i].body->str(stream, trailing, DEFAULT);
 			--trailing;
-			std::cout << instruction_begin(trailing, opts) << "}" << (i == numBodies - 1 ? "\n" : " ");
+			stream << instruction_begin(trailing, opts) << "}" << (i == numBodies - 1 ? "\n" : " ");
 		}
 	}
 
@@ -1154,18 +1198,32 @@ struct StructDeclaration : InstructionBase {
 	StructDeclaration(const std::string & _name, const Strings &... _names) : 
 		name(_name), member_names{ _names... } {}
 
-	virtual void cout(int & trailing, uint opts) {
-		std::cout << instruction_begin(trailing, opts) << "struct " << name << " { " << std::endl;
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << "struct " << name << " {\n";
 		++trailing;
-		std::cout << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, trailing, ";\n");
+		stream << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, trailing, ";\n");
 		--trailing;
-		std::cout << instruction_begin(trailing, opts) << "}" << std::endl;
+		stream << instruction_begin(trailing, opts) << "}\n";
 	}
 
 	std::vector<std::string> member_names;
 	std::string name;
 };
 
+template<QualifierType qType, typename ... Args>
+struct InterfaceDeclaration : InstructionBase {
+	
+	template<typename ... Strings>
+	static std::string str(const std::string & name, int trailing, const Strings &... member_names) {
+		std::string out;
+		int member_trailing = trailing + 1;
+		out += QualifierTypeStr<qType>::str() + " " + name + " { \n";
+		out += memberDeclarations<SEP_AFTER_ALL, Args...>({ member_names... }, member_trailing, ";\n");
+		out += Statement::instruction_begin(trailing) + "}";
+		return out;
+	}
+	
+};
 //template<int N, typename ... Strings>
 //std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
 //	return std::array<std::string, N>{_argnames...};
@@ -1204,7 +1262,7 @@ void checkArgsType(const std::function<ReturnType(Args...)>& f){
 
 struct FunBase : NamedObject<FunBase> {
 	FunBase( const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
-	static std::string typeStr() { return "function"; }
+	static std::string typeStr(int trailing = 0) { return "function"; }
 };
 
 template<typename ReturnType, typename F_Type>
@@ -1263,14 +1321,14 @@ struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
 	using Base = FunctionDeclarationArgs<ReturnT, Args...>;
 	using Base::Base;
 
-	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing, opts) << ReturnT::typeStr() << " " << Base::name << "(" <<
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << InstructionBase::instruction_begin(trailing, opts) << ReturnT::typeStr() << " " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-		std::cout << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
+		stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
 		++trailing;
-		Base::getBody()->cout(trailing);
+		Base::getBody()->str(stream, trailing, DEFAULT);
 		--trailing;
-		std::cout << InstructionBase::instruction_begin(trailing, opts) << "}" << std::endl;
+		stream << InstructionBase::instruction_begin(trailing, opts) << "}" << std::endl;
 	}
 };
 
@@ -1280,14 +1338,14 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...
 	using Base = FunctionDeclarationArgs<void, Args...>;
 	using Base::Base;
 
-	virtual void cout(int & trailing, uint opts) {
-		std::cout << InstructionBase::instruction_begin(trailing, opts) << "void " << Base::name << "(" <<
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << InstructionBase::instruction_begin(trailing, opts) << "void " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-		std::cout << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
+		stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
 		++trailing;
-		Base::getBody()->cout(trailing);
+		Base::getBody()->str(stream, trailing, DEFAULT);
 		--trailing;
-		std::cout << InstructionBase::instruction_begin(trailing, opts)  << "}" << std::endl;
+		stream << InstructionBase::instruction_begin(trailing, opts)  << "}" << std::endl;
 	}
 };
 
@@ -1381,13 +1439,6 @@ struct IfController : virtual ControllerBase {
 
 		current_if = std::make_shared<IfInstruction>(current_if);
 		
-		//if (current_if) {
-		//	//std::cout << " nested if" << std::endl;			
-		//} else {
-		//	//std::cout << " non nested if" << std::endl;
-		//	current_if = std::make_shared<IfInstruction>();
-		//}
-
 		current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
 		currentBlock->push_instruction(current_if);
 		currentBlock = current_if->bodies.back().body;
@@ -1470,6 +1521,7 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	using Ptr = std::shared_ptr<MainController>;
 	
 	void add_blank_line(int n = 0) {
+		check_end_if();
 		if (currentBlock) {
 			for (int i = 0; i < n; ++i) {
 				currentBlock->push_instruction(EmptyStatement::create(NEW_LINE | IGNORE_TRAILING | NOTHING));
@@ -1506,10 +1558,10 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	}
 };
 
-struct TShader : MainController {
-	using Ptr = std::shared_ptr<TShader>;
+struct ShaderBase : MainController {
+	using Ptr = std::shared_ptr<ShaderBase>;
 
-	TShader() {
+	ShaderBase() {
 		declarations = std::make_shared<MainBlock>();
 		currentBlock = declarations;
 
@@ -1517,29 +1569,35 @@ struct TShader : MainController {
 		//functions.push_back(std::make_shared<Block>(createExp<>()))
 	}
 
+	virtual std::string header() const { return ""; }
+
 	MainBlock::Ptr declarations;
 	std::vector<InstructionBase::Ptr> structs; 
 	std::vector<InstructionBase::Ptr> functions;
 	
-	int version;
 
-	void cout() {
-
-		std::cout << std::endl << " shader begin : " << std::endl<<  std::endl;
+	std::string str() const {
 		int trailing = 1;
+
+		std::stringstream out;
+
+		out << Statement::instruction_begin(trailing) << header() << "\n\n";
+
 		for (const auto & struc : structs) {
-			struc->cout(trailing);
-			std::cout << "\n";
+			struc->str(out, trailing, DEFAULT);
+			out << "\n";
 		}
 
-		declarations->cout(trailing);
-		std::cout << "\n";
+		declarations->str(out, trailing, DEFAULT);
+		out << "\n";
 		for (const auto & fun : functions) {
-			fun->cout(trailing);
-			std::cout << "\n";
-		}		
-		std::cout << " shader end " << std::endl;
+			fun->str(out, trailing, DEFAULT);
+			out << "\n";
+		}
+
+		return out.str();
 	}
+
 	void explore() {
 		declarations->explore();
 		for (const auto & struc : structs) {
@@ -1588,7 +1646,9 @@ struct TShader : MainController {
 			if (return_block->getType().is_void()) {
 				currentBlock->push_instruction(return_statement);
 			} else {
-				currentBlock->push_instruction(std::make_shared<CommentInstruction>("unexpected " + return_statement->str() + "; in non void function "));
+				currentBlock->push_instruction(
+					std::make_shared<CommentInstruction>("unexpected " + return_statement->internal_str() + "; in non void function ")
+				);
 			}
 		}
 	}
@@ -1605,18 +1665,50 @@ struct TShader : MainController {
 				currentBlock->push_instruction(return_statement);
 				return_block->hasReturnStatement = true;
 			} else {
-				currentBlock->push_instruction(std::make_shared<CommentInstruction>("wrong result type in : return " + ex->str()));
+				currentBlock->push_instruction(std::make_shared<CommentInstruction>("wrong result type in : return " + ex->str(0)));
 			}
 		}
 	}
 };
 
+template<GLVersion version>
+struct IShader : ShaderBase {
+	using Ptr = std::shared_ptr<IShader>;
+
+	virtual std::string header() const {
+		return "#version " + gl_version_str<version>();
+	}
+};
+
+template<GLVersion version>
+struct ShaderWrapper {
+
+	ShaderWrapper() {
+		shader_ptr = std::make_shared<IShader<version>>();
+		listen().currentShader = shader_ptr;
+	}
+
+	template<typename F_Type, typename ... Strings >
+	void main(const F_Type & f, const Strings & ...argnames) {
+		Fun<void, F_Type>("main", f, argnames...);
+	}
+
+	std::string str() {
+		if (shader_ptr) {
+			return shader_ptr->str();
+		} else {
+			return "";
+		}
+	}
+
+	typename IShader<version>::Ptr shader_ptr;
+};
 
 struct MainListener {
 	
 	MainListener() {
-		shader = std::make_shared<TShader>();
-		currentShader = shader;
+		//shader = std::make_shared<TShader>();
+		//currentShader = shader;
 	}
 
 	void add_blank_line(int n = 0){
@@ -1766,11 +1858,6 @@ struct MainListener {
 
 	/////////////////////////////////////////////////
 
-	void cout() {
-		if (currentShader) {
-			currentShader->cout();
-		}
-	}
 	void explore() {
 		if (currentShader) {
 			std::cout << "############## explore ############" << std::endl;
@@ -1781,8 +1868,8 @@ struct MainListener {
 
 	bool & active() { return isListening; }
 
-	TShader::Ptr shader;
-	TShader::Ptr currentShader;
+	//TShader::Ptr shader;
+	ShaderBase::Ptr currentShader;
 	bool isListening = true;
 	static MainListener overmind;
 };
@@ -1790,6 +1877,8 @@ struct MainListener {
 MainListener MainListener::overmind = MainListener();
 
 MainListener & listen() { return MainListener::overmind; }
+
+void lineBreak(int n = 1) { listen().add_blank_line(n); }
 
 //specialization of Fun when ReturnType == void
 template<typename F_Type>
@@ -1831,11 +1920,8 @@ struct CreateDeclaration {
 	
 	template<typename ... Args>
 	static Ex run(
-		const stringPtr & name,
-		CtorStatus status = INITIALISATION,
-		uint flags = PARENTHESIS | DISPLAY_TYPE, 
-		const Args &... args
-	) {
+		const stringPtr & name,	CtorStatus status, uint flags, const Args &... args)
+	{
 		return createInit<T, Args...>(name, status, flags, args...);
 	}
 };

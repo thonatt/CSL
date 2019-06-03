@@ -68,7 +68,7 @@ public:
 	template<typename R_T, typename T = CleanType<R_T>, typename = std::enable_if_t< 
 		AreValid<T> && (
 			isScalar || IsScalar<T>  || //matXY(int/float)
-		(!isBool && NC != 1 && NR != 1 && Infos<T>::cols != 1 && Infos<T>::rows != 1) //matXY(matWZ)
+		(!isBool && (NC != 1 || NR != 1) &&  (Infos<T>::cols != 1 || Infos<T>::rows != 1) ) //matXY(matWZ)
 			) > >
 	Matrix( R_T && x)
 		: NamedObject<Matrix>(
@@ -101,28 +101,28 @@ public:
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
-		Vec<type, Size> operator[](const SwizzlePack<Dim, Set, Bytes, Size, REPEATED> & swizzle) const &
+		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
-		Vec<type, Size> operator[](const SwizzlePack<Dim, Set, Bytes, Size, NON_REPEATED> & swizzle) const &
+		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
-		Vec<type, Size> operator[](const SwizzlePack<Dim, Set, Bytes, Size, REPEATED> & swizzle) const &&
+		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &&
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
-		Vec<type, Size> operator[](const SwizzlePack<Dim, Set, Bytes, Size, NON_REPEATED> & swizzle) const &&
+		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &&
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStrPtr()) };
 	}
@@ -256,7 +256,7 @@ public:
 	// needed for loops
 	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
 	operator bool() & {
-		std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
+		//std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
 		//needed as any [variable;] in GL_FOR wont generate any instruction
 		listen().stack_for_condition(NamedObjectBase::getExRef());
 		return false;
@@ -264,7 +264,7 @@ public:
 
 	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
 	operator bool() && {
-		std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
+		//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
 		return false;
 	}
 };
@@ -332,7 +332,7 @@ template<typename A,typename B,
 
 // cwise multiplication
 template<typename A, typename B,
-	typename = std::enable_if_t< NoBools<A, B> && (IsScalar<A> || IsScalar<B>) > >
+	typename = std::enable_if_t< NoBools<A, B> && ( EqualDim<A,B> || IsScalar<A> || IsScalar<B>) > >
 	ArithmeticBinaryReturnType<A, B> operator*(A && a, B && b)
 {
 	return { createExp<MiddleOperator<MULTIPLY>>("*", EX(A, a), EX(B, b)) };
@@ -364,7 +364,9 @@ struct Array : NamedObject<Array<T, N>> {
 	{		
 	}
 	 
-	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) {}
+	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) 
+	{
+	}
 
 	template<typename A,  
 	typename = std::enable_if_t< IsInteger<A> > >

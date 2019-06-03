@@ -2,15 +2,16 @@
 
 #include <string>
 #include "TypesHelpers.h"
+#include <boost/preprocessor/seq/for_each_i.hpp>
 
 template<typename T>
 struct TypeStr {
-	static std::string str() { return T::typeStr(); }
+	static std::string str(int trailing = 0) { return T::typeStr(trailing); }
 };
 
 template<typename T>
-std::string getTypeStr() {
-	return TypeStr<T>::str();
+std::string getTypeStr(int trailing = 0) {
+	return TypeStr<T>::str(trailing);
 }
 
 template<typename T>
@@ -48,7 +49,7 @@ template<typename T, typename U, typename ... Ts> struct MultipleTypeStr<T, U, T
 
 // specialization for cpp types
 
-template<> std::string TypeStr<void>::str() { return "void"; }
+template<> std::string TypeStr<void>::str(int trailing) { return "void"; }
 
 // helper for scalar types prefix
 
@@ -87,54 +88,54 @@ template<> std::string SamplerTypeInfo<BUFFER>::str() { return "Buffer"; }
 
 template<ScalarType type, uint N>
 struct TypeStr<Vec<type, N>> {
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		return TypePrefixStr<type>::str() + "vec" + std::to_string(N);
 	}
 };
 
 template<ScalarType type, uint N, uint M>
 struct TypeStr< Matrix<type, N, M> > {
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		return TypePrefixStr<type>::str() + "mat" + std::to_string(N) + (N == M ? std::string("") : "x" + std::to_string(M));
 	}
 };
 
 template<> struct TypeStr<Bool> {
-	static std::string str() { return "bool"; }
+	static std::string str(int trailing = 0) { return "bool"; }
 };
 
 template<> struct TypeStr<Uint> {
-	static std::string str() { return "uint"; }
+	static std::string str(int trailing = 0) { return "uint"; }
 };
 
 template<> struct TypeStr<Int> {
-	static std::string str() { return "int"; }
+	static std::string str(int trailing = 0) { return "int"; }
 };
 
 template<> struct TypeStr<Float> {
-	static std::string str() { return "float"; }
+	static std::string str(int trailing = 0) { return "float"; }
 };
 
 template<> struct TypeStr<Double> {
-	static std::string str() { return "double"; }
+	static std::string str(int trailing = 0) { return "double"; }
 };
 
 //for debug
 template<> struct TypeStr<bool> {
-	static std::string str() { return "std bool"; }
+	static std::string str(int trailing = 0) { return "std bool"; }
 };
 template<> struct TypeStr<int> {
-	static std::string str() { return "std int"; }
+	static std::string str(int trailing = 0) { return "std int"; }
 };
 template<> struct TypeStr<double> {
-	static std::string str() { return "std double"; }
+	static std::string str(int trailing = 0) { return "std double"; }
 };
 
 // sampler types
 
 template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
 struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		return
 			TypePrefixStr<nType>::str() + 
 			AccessTypeInfo<aType>::str() +
@@ -145,7 +146,7 @@ struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
 	}
 };
 
-template<> std::string TypeStr<atomic_uint>::str() { return "atomic_uint"; }
+template<> std::string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
 
 // layout types
 
@@ -170,13 +171,13 @@ template<QualifierType t>
 struct QualifierTypeStr {
 	static std::string str();
 };
-template<> std::string QualifierTypeStr<UNIFORM>::str() { return "uniform "; }
-template<> std::string QualifierTypeStr<IN>::str() { return "in " ; }
-template<> std::string QualifierTypeStr<OUT>::str() { return "out "; }
+template<> std::string QualifierTypeStr<UNIFORM>::str() { return "uniform"; }
+template<> std::string QualifierTypeStr<IN>::str() { return "in" ; }
+template<> std::string QualifierTypeStr<OUT>::str() { return "out"; }
 
 template<LayoutArgIntType type, int N>
 struct TypeStr<LayoutArgInt<type,N>> {
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		if (N < 0) {
 			return "";
 		} else {
@@ -187,7 +188,7 @@ struct TypeStr<LayoutArgInt<type,N>> {
 
 template<LayoutArgBoolType type, bool b>
 struct TypeStr<LayoutArgBool<type, b>> {
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		return b ? LayoutArgBoolStr<type>::str() : std::string("");
 	}
 };
@@ -206,8 +207,8 @@ struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
 
 template<QualifierType qType, typename T, typename ... LayoutArgs>
 struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
-	static std::string str() {	
-		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str();
+	static std::string str(int trailing = 0) {
+		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str();
 	}
 };
 
@@ -219,7 +220,7 @@ struct TypeStr< Array<T, N> > {
 		return "[" + std::to_string(N) + "]";
 	}
 
-	static std::string str() {
+	static std::string str(int trailing = 0) {
 		return TypeStr<T>::str();
 	}
 };
@@ -230,3 +231,27 @@ struct TypeNamingStr< Array<T, N> > {
 		return "array_" + TypeNamingStr<T>::str();
 	}
 };
+
+
+enum GLVersion { 
+	GLSL_110, GLSL_120, GLSL_130, GLSL_140, GLSL_150,
+	GLSL_330,
+	GLSL_400, GLSL_410, GLSL_420, GLSL_430, GLSL_440, GLSL_450
+};
+
+template<GLVersion v>
+struct GLVersionStr;
+
+template<GLVersion v>
+std::string gl_version_str() { return GLVersionStr<v>::str(); }
+
+#define GL_VERSION_STR(ver) \
+template<>  struct GLVersionStr<GLSL_ ## ver> { \
+	static std::string str() { return #ver; } \
+}
+
+#define GL_VERSION_IT(r, data, i, elem) GL_VERSION_STR(elem);
+BOOST_PP_SEQ_FOR_EACH_I(GL_VERSION_IT, , \
+	(110) (120) (130) (140) (150) \
+	(330) \
+	(400) (410) (420) (430) (440) (450) );

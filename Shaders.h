@@ -1,4 +1,34 @@
-//#pragma once
+#pragma once
+
+#include "Layouts.h"
+#include "BuiltInFunctions.h"
+#include "Samplers.h"
+
+
+namespace fragment_shader {
+
+	const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
+	const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
+	const In<vec2> gl_PointCoord("gl_PointCoord", DISABLED);
+
+	Out<Float> gl_FragDepth("gl_FragDepth", DISABLED);
+};
+
+
+namespace frag_330 {
+	using namespace fragment_shader;
+	using namespace glsl_330;
+
+	using Shader = ShaderWrapper<GLSL_330>;
+
+}
+namespace frag_450 {
+	using namespace fragment_shader;
+	using namespace glsl_450;
+
+	using Shader = ShaderWrapper<GLSL_450>;
+}
+
 //#include "Context.h"
 //
 //enum ShaderType { VERTEX, FRAGMENT };
