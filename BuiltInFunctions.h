@@ -72,7 +72,7 @@ namespace glsl_130 {
 	> >
 		Vec< SI::scalar_type, 4> texture(S && sampler, P && point, B && ... bias) {
 		return {
-			createFCallExp("texture", EX(S, sampler) , EX(P, point), EX(B, biais)... )
+			createFCallExp("texture", EX(S, sampler) , EX(P, point), EX(B, bias)... )
 		};
 	}
 

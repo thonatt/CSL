@@ -90,3 +90,4 @@ struct Name : public NamedObject<Name> { \
 //#define GL_INTERFACE(Qualifier, name, Name, ...) \
 //			GL_STRUCT(Name, __VA_ARGS__ ); \
 //			Qualifier<Name> name(BOOST_PP_STRINGIZE(name));
+

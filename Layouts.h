@@ -79,6 +79,7 @@ struct Qualifier< qType, T, Layout<LayoutArgs...>>
 	: public T
 {	
 	using UnderlyingType = T;
+	using T::exp;
 	using T::operator=;
 
 	Qualifier(const std::string &s = "", uint flags = 0) : T(s, 0)

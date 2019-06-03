@@ -1680,30 +1680,6 @@ struct IShader : ShaderBase {
 	}
 };
 
-template<GLVersion version>
-struct ShaderWrapper {
-
-	ShaderWrapper() {
-		shader_ptr = std::make_shared<IShader<version>>();
-		listen().currentShader = shader_ptr;
-	}
-
-	template<typename F_Type, typename ... Strings >
-	void main(const F_Type & f, const Strings & ...argnames) {
-		Fun<void, F_Type>("main", f, argnames...);
-	}
-
-	std::string str() {
-		if (shader_ptr) {
-			return shader_ptr->str();
-		} else {
-			return "";
-		}
-	}
-
-	typename IShader<version>::Ptr shader_ptr;
-};
-
 struct MainListener {
 	
 	MainListener() {
@@ -1879,6 +1855,31 @@ MainListener MainListener::overmind = MainListener();
 MainListener & listen() { return MainListener::overmind; }
 
 void lineBreak(int n = 1) { listen().add_blank_line(n); }
+
+template<GLVersion version>
+struct ShaderWrapper
+{
+
+	ShaderWrapper() {
+		shader_ptr = std::make_shared<IShader<version>>();
+		listen().currentShader = shader_ptr;
+	}
+
+	template<typename F_Type, typename ... Strings >
+	void main(const F_Type & f, const Strings & ...argnames) {
+		Fun<void, F_Type>("main", f, argnames...);
+	}
+
+	std::string str() {
+		if (shader_ptr) {
+			return shader_ptr->str();
+		} else {
+			return "";
+		}
+	}
+
+	typename IShader<version>::Ptr shader_ptr;
+};
 
 //specialization of Fun when ReturnType == void
 template<typename F_Type>

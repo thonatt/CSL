@@ -170,12 +170,12 @@ void test_accessor() {
 	using QQ = Uniform<vec3, LL>;
 
 	Uniform<MyStruct> myUniS;
-	In<Float> inF2 = Float(2.0) << "plop"; 
-	In<Float> inF = 3.0;
-	In<Float> inF3;
-	In<Float> inF4 = Float(4.0);
-	vec2 vev = vec2(1);
-	myUniS.f = inF * inF2*inF3*inF4*myUniS.v[x] * vev[y];
+	//In<Float> inF2 = Float(2.0) << "plop"; 
+	//In<Float> inF = 3.0;
+	//In<Float> inF3;
+	//In<Float> inF4 = Float(4.0);
+	//vec2 vev = vec2(1);
+	//myUniS.f = inF * inF2*inF3*inF4*myUniS.v[x] * vev[y];
 
 	Array<QQ, 5> u("myU");
 	u[3] = u[4] + pow(u[0], u[3]);
