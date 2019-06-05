@@ -52,6 +52,20 @@ namespace glsl_110 {
 		Vec<FLOAT, Infos<CT<A>>::rows> mix(A && a, B && b, C && c) {
 		return { createFCallExp("mix", EX(A,a), EX(B,b), EX(C,c)) };
 	}
+
+	template<typename A, typename B, typename = std::enable_if_t <
+		EqualMat<A,vec3> && EqualMat<B, vec3>
+	> >
+		vec3 cross(A && a, B && b) {
+		return { createFCallExp("cross", EX(A,a), EX(B,b)) };
+	}
+
+	template<typename A, typename = std::enable_if_t<
+		IsVecF<A> 
+	> >
+		Vec<FLOAT, Infos<CT<A>>::rows> abs(A && a) {
+		return { createFCallExp("abs", EX(A,a)) };
+	}
 }
 
 namespace glsl_120 {

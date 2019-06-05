@@ -57,11 +57,11 @@ template<ScalarType nType> struct TypePrefixStr {
 	static std::string str();
 };
 
-template<> std::string TypePrefixStr<BOOL>::str() { return "b"; }
-template<> std::string TypePrefixStr<INT>::str() { return "i"; }
-template<> std::string TypePrefixStr<UINT>::str() { return "u"; }
-template<> std::string TypePrefixStr<FLOAT>::str() { return ""; }
-template<> std::string TypePrefixStr<DOUBLE>::str() { return "d"; }
+template<> inline std::string TypePrefixStr<BOOL>::str() { return "b"; }
+template<> inline std::string TypePrefixStr<INT>::str() { return "i"; }
+template<> inline std::string TypePrefixStr<UINT>::str() { return "u"; }
+template<> inline std::string TypePrefixStr<FLOAT>::str() { return ""; }
+template<> inline std::string TypePrefixStr<DOUBLE>::str() { return "d"; }
 
 //helper for sampler types
 
@@ -69,18 +69,18 @@ template<AccessType t>
 struct AccessTypeInfo {
 	static std::string str();
 };
-template<> std::string AccessTypeInfo<SAMPLER>::str() { return "sampler"; }
-template<> std::string AccessTypeInfo<IMAGE>::str() { return "image"; }
+template<> inline std::string AccessTypeInfo<SAMPLER>::str() { return "sampler"; }
+template<> inline std::string AccessTypeInfo<IMAGE>::str() { return "image"; }
 
 template<SamplerType t> 
 struct SamplerTypeInfo {
 	static std::string str();
 };
-template<> std::string SamplerTypeInfo<BASIC>::str() { return ""; }
-template<> std::string SamplerTypeInfo<CUBE>::str() { return "Cube"; }
-template<> std::string SamplerTypeInfo<RECTANGLE>::str() { return "Rect"; }
-template<> std::string SamplerTypeInfo<MULTI_SAMPLE>::str() { return "MS"; }
-template<> std::string SamplerTypeInfo<BUFFER>::str() { return "Buffer"; }
+template<> inline std::string SamplerTypeInfo<BASIC>::str() { return ""; }
+template<> inline std::string SamplerTypeInfo<CUBE>::str() { return "Cube"; }
+template<> inline std::string SamplerTypeInfo<RECTANGLE>::str() { return "Rect"; }
+template<> inline std::string SamplerTypeInfo<MULTI_SAMPLE>::str() { return "MS"; }
+template<> inline std::string SamplerTypeInfo<BUFFER>::str() { return "Buffer"; }
 
 // specialization for glsl types
 
@@ -154,26 +154,26 @@ template<LayoutArgIntType t>
 struct LayoutArgIntStr {
 	static std::string str();
 };
-template<> std::string LayoutArgIntStr<OFFSET>::str() { return "offset"; }
-template<> std::string LayoutArgIntStr<BINDING>::str() { return "binding"; }
-template<> std::string LayoutArgIntStr<LOCATION>::str() { return "location"; }
+template<> inline std::string LayoutArgIntStr<OFFSET>::str() { return "offset"; }
+template<> inline std::string LayoutArgIntStr<BINDING>::str() { return "binding"; }
+template<> inline std::string LayoutArgIntStr<LOCATION>::str() { return "location"; }
 
 template<LayoutArgBoolType t>
 struct LayoutArgBoolStr {
 	static std::string str();
 };
-template<> std::string LayoutArgBoolStr<STD140>::str() { return "std140"; }
-template<> std::string LayoutArgBoolStr<STD430>::str() { return "std430"; }
-template<> std::string LayoutArgBoolStr<SHARED>::str() { return "shared"; }
-template<> std::string LayoutArgBoolStr<PACKED>::str() { return "packed"; }
+template<> inline std::string LayoutArgBoolStr<STD140>::str() { return "std140"; }
+template<> inline std::string LayoutArgBoolStr<STD430>::str() { return "std430"; }
+template<> inline std::string LayoutArgBoolStr<SHARED>::str() { return "shared"; }
+template<> inline std::string LayoutArgBoolStr<PACKED>::str() { return "packed"; }
 
 template<QualifierType t>
 struct QualifierTypeStr {
 	static std::string str();
 };
-template<> std::string QualifierTypeStr<UNIFORM>::str() { return "uniform"; }
-template<> std::string QualifierTypeStr<IN>::str() { return "in" ; }
-template<> std::string QualifierTypeStr<OUT>::str() { return "out"; }
+template<> inline std::string QualifierTypeStr<UNIFORM>::str() { return "uniform"; }
+template<> inline std::string QualifierTypeStr<IN>::str() { return "in" ; }
+template<> inline std::string QualifierTypeStr<OUT>::str() { return "out"; }
 
 template<LayoutArgIntType type, int N>
 struct TypeStr<LayoutArgInt<type,N>> {

@@ -1,4 +1,4 @@
-#pragma once
+#include "frags.h"
 
 #include "../Shaders.h"
 
@@ -124,6 +124,77 @@ std::string ambiantShader() {
 		lineBreak();
 
 		fragColor = ao * (diffuse + specular);
+	});
+
+	return shader.str();
+}
+
+std::string ssaoShader()
+{
+	using namespace all_swizzles;
+	using namespace frag_330;
+
+	Shader shader;
+
+	GL_INTERFACE(In, Interface, (vec2) uv) in("In");
+
+	Uniform<sampler2D, Layout<Binding<0>>> depthTexture("depthTexture");
+	Uniform<sampler2D, Layout<Binding<1>>> normalTexture("normalTexture");
+	Uniform<sampler2D, Layout<Binding<2>>> noiseTexture("noiseTexture");
+
+	Uniform<mat4> projectionMatrix("projectionMatrix");
+	Array<Uniform<vec3>, 24> samples("samples");
+
+	Uniform<Float> radius = Float(0.5) << "radius";
+	
+	Out<Float, Layout<Location<0>>> fragColor("fragColor");
+
+	auto linearizeDepth = makeFun<Float>("linearizeDepth", [&](Float depth) {
+		Float depth2 = 2.0*depth - 1.0 << "depth2";
+		Float viewDepth = -projectionMatrix[3][2] / (depth2 + projectionMatrix[2][2]) << "viewDepth";
+		GL_RETURN(viewDepth);
+	}, "depth");
+
+	auto positionFromUV = makeFun<vec3>("positionFromUV", [&](vec2 uv) {
+		Float depth = texture(depthTexture, uv)[r] << "depth";
+		Float viewDepth = linearizeDepth(depth) << "viewDepth";
+		vec2 ndcPos = 2.0 * uv - 1.0 << "ndcPos";
+		GL_RETURN(vec3(-ndcPos * viewDepth / vec2(projectionMatrix[0][0], projectionMatrix[1][1]), viewDepth));
+	}, "uv");
+
+	shader.main([&]() {
+		vec3 n = normalize(2.0 * texture(normalTexture, in.uv)[r, g, b] - 1.0) << "n";
+
+		GL_IF (length(n) < 0.1) {
+			fragColor = 1.0;
+			GL_RETURN();
+		}
+
+		vec3 randomOrientation = texture(noiseTexture, gl_FragCoord[x, y] / 5.0)[r, g, b] << "randomOrientation";
+
+		vec3 t = normalize(randomOrientation - n * dot(randomOrientation, n)) << "t";
+		vec3 b = normalize(cross(n, t)) << "b";
+		mat3 tbn = mat3(t, b, n) << "tbn";
+
+		vec3 position = positionFromUV(in.uv) << "position";
+
+		Float occlusion = Float(0.0) << "occlusion";
+		GL_FOR(Int i = Int(0) << "i"; i < 24; ++i) {
+
+			vec3 randomSample = position + radius * tbn * samples[i] << "randomSample";
+
+			vec4 sampleClipSpace = projectionMatrix * vec4(randomSample, 1.0) << "sampleClipSpace";
+			vec2 sampleUV = (sampleClipSpace[x, y] / sampleClipSpace[w]) * 0.5 + 0.5 << "sampleUV";
+
+
+			Float sampleDepth = linearizeDepth(texture(depthTexture, sampleUV)[r]) << "sampleDepth";
+			Float isValid = GL_TERNARY(abs(position[z] - sampleDepth) < radius, 1.0, 0.0) << "isValid";
+
+			occlusion += GL_TERNARY(sampleDepth >= randomSample[z], isValid, 0.0);
+		}
+
+		occlusion = 1.0 - (occlusion / 24.0);
+		fragColor = pow(occlusion, 2.0);
 	});
 
 	return shader.str();

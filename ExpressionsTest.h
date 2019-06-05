@@ -12,8 +12,8 @@
 #include "StringHelpers.h"
 #include "FunctionHelpers.h"
 
-struct MainListener;
-MainListener & listen();
+static struct MainListener;
+inline MainListener & listen();
 
 using stringPtr = std::shared_ptr<std::string>;
 
@@ -21,7 +21,7 @@ using stringPtr = std::shared_ptr<std::string>;
 
 #define EX(type, var) getExp(std::forward<type>(var))
 
-stringPtr makeStringPtr(const std::string & s) {
+inline stringPtr makeStringPtr(const std::string & s) {
 	auto str_ptr = std::make_shared<std::string>(s);
 	//std::cout << " str_cv : " <<  (int)(bool)str_ptr << " " << s << std::endl;
 	return str_ptr;
@@ -620,7 +620,7 @@ inline Ex NamedObjectBase::getExTmp() const
 	return exp;
 }
 
-NamedObjectBase::~NamedObjectBase() {
+inline NamedObjectBase::~NamedObjectBase() {
 	if (!isUsed()) {
 		//std::cout << " ~ setTemp " << exp->str() << std::endl;
 		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
@@ -714,7 +714,7 @@ public:
 template<typename T> int NamedObject<T>::counter = 0;
 
 template<typename T>
-Ex getExp(T && t)
+inline Ex getExp(T && t)
 {
 	return std::forward<T>(t).getEx();
 }
@@ -723,43 +723,43 @@ Ex getExp(T && t)
 //	return getExp<T, temp>(t);
 //}
 
-Ex NamedObjectBase::alias() const {
+inline Ex NamedObjectBase::alias() const {
 	return createExp<Alias>(strPtr());
 }
 
-template<> Ex getExp<bool>(bool && b) {
+template<> inline Ex getExp<bool>(bool && b) {
 	return createExp<Litteral<bool>>(b);
 }
-template<> Ex getExp<bool&>(bool & b) {
+template<> inline Ex getExp<bool&>(bool & b) {
 	return createExp<Litteral<bool>>(b);
 }
 
-template<> Ex getExp<int>(int && i) {
+template<> inline Ex getExp<int>(int && i) {
 	return createExp<Litteral<int>>(i);
 }
-template<> Ex getExp<int&>(int & i) {
+template<> inline Ex getExp<int&>(int & i) {
 	return createExp<Litteral<int>>(i);
 }
 
 
-template<> Ex getExp<uint>(uint && i) {
+template<> inline Ex getExp<uint>(uint && i) {
 	return createExp<Litteral<uint>>(i);
 }
-template<> Ex getExp<uint&>(uint & i) {
+template<> inline Ex getExp<uint&>(uint & i) {
 	return createExp<Litteral<uint>>(i);
 }
 
-template<> Ex getExp<float>(float && d) {
+template<> inline Ex getExp<float>(float && d) {
 	return createExp<Litteral<float>>(d);
 }
-template<> Ex getExp<float&>(float & d) {
+template<> inline Ex getExp<float&>(float & d) {
 	return createExp<Litteral<float>>(d);
 }
 
-template<> Ex getExp<double>(double && d) {
+template<> inline Ex getExp<double>(double && d) {
 	return createExp<Litteral<double>>(d);
 }
-template<> Ex getExp<double&>(double & d) {
+template<> inline Ex getExp<double&>(double & d) {
 	return createExp<Litteral<double>>(d);
 }
 
@@ -917,7 +917,7 @@ struct Statement : InstructionBase {
 	Ex ex;
 };
 
-InstructionBase::Ptr toInstruction(const Ex & e) {
+inline InstructionBase::Ptr toInstruction(const Ex & e) {
 	auto statement = std::make_shared<Statement>(e);
 	return std::dynamic_pointer_cast<InstructionBase>(statement);
 }
@@ -1381,20 +1381,6 @@ struct ControllerBase {
 
 struct ForController : virtual ControllerBase {
 
-	struct EndFor {
-		~EndFor();
-
-		explicit operator bool() {
-			if (first) {
-				first = false;
-				return true;
-			}
-			return false;
-		}
-
-		bool first = true;
-	};
-
 	void begin_for() {
 		current_for = std::make_shared<ForInstruction>();
 		currentBlock->push_instruction(current_for);
@@ -1424,16 +1410,6 @@ struct ForController : virtual ControllerBase {
 
 
 struct IfController : virtual ControllerBase {
-
-	struct BeginIf {
-		operator bool() const { return true; }
-		~BeginIf();
-	};
-
-	struct BeginElse {
-		operator bool() const { return false; }
-		~BeginElse();
-	};
 
 	void begin_if(const Ex & ex) {
 
@@ -1490,19 +1466,6 @@ struct IfController : virtual ControllerBase {
 };
 
 struct WhileController : virtual ControllerBase {
-
-	struct BeginWhile {
-		operator bool() const { 
-			//std::cout << " BeginWhile operator bool() const " << first << std::endl;
-			if (first) {
-				first = false;
-				return true;
-			}
-			return false;
-		}
-		mutable bool first = true;
-		~BeginWhile();
-	};
 
 	void begin_while(const Ex & ex) {
 		//std::cout << " begin while " << std::endl;
@@ -1847,14 +1810,63 @@ struct MainListener {
 	//TShader::Ptr shader;
 	ShaderBase::Ptr currentShader;
 	bool isListening = true;
-	static MainListener overmind;
 };
 
-MainListener MainListener::overmind = MainListener();
+inline MainListener & listen() {
+	static MainListener overmind;
+	return overmind; 
+}
 
-MainListener & listen() { return MainListener::overmind; }
+struct BeginWhile {
+	operator bool() const {
+		//std::cout << " BeginWhile operator bool() const " << first << std::endl;
+		if (first) {
+			first = false;
+			return true;
+		}
+		return false;
+	}
+	mutable bool first = true;
 
-void lineBreak(int n = 1) { listen().add_blank_line(n); }
+	~BeginWhile() {
+		listen().end_while();
+	}
+};
+
+struct BeginIf {
+	operator bool() const { return true; }
+	~BeginIf() {
+		listen().end_if_sub_block();
+	}
+};
+
+struct BeginElse {
+	operator bool() const { return false; }
+	~BeginElse() {
+		listen().end_if();
+	}
+};
+
+
+struct EndFor {
+	
+	~EndFor(){
+		listen().end_for();
+	}
+
+	explicit operator bool() {
+		if (first) {
+			first = false;
+			return true;
+		}
+		return false;
+	}
+
+	bool first = true;
+};
+
+
+inline void lineBreak(int n = 1) { listen().add_blank_line(n); }
 
 template<GLVersion version>
 struct ShaderWrapper
@@ -2039,35 +2051,28 @@ void return_statement(Ts && ... ts) {
 #define GL_RETURN return_statement
 #define GL_RETURN_TEST(...) if(false){ return __VA_ARGS__; } return_statement( __VA_ARGS__ )
 
-ForController::EndFor::~EndFor() {
-	listen().end_for();
-}
-
-
 #define GL_FOR(...) listen().begin_for(); listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
 listen().begin_for_args(); __VA_ARGS__;  listen().begin_for_body(); \
-for(ForController::EndFor csl_dummy_for; csl_dummy_for; )
+for(EndFor csl_dummy_for; csl_dummy_for; )
 
 
-IfController::BeginIf::~BeginIf() {
-	listen().end_if_sub_block();
-}
-IfController::BeginElse::~BeginElse() {
-	listen().end_if();
-}
+#define GL_IF(condition) listen().check_begin_if(); listen().begin_if(condition); if(BeginIf csl_begin_if = {})
 
-#define GL_IF(condition) listen().check_begin_if(); listen().begin_if(condition); if(IfController::BeginIf csl_begin_if = {})
+#define GL_ELSE else {} listen().begin_else(); if(BeginElse csl_begin_else = {}) {} else 
 
-#define GL_ELSE else {} listen().begin_else(); if(IfController::BeginElse csl_begin_else = {}) {} else 
-
-#define GL_ELSE_IF(condition) else if(false){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfController::BeginIf csl_begin_else_if = {})
+#define GL_ELSE_IF(condition) else if(false){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(BeginIf csl_begin_else_if = {})
 
 
-WhileController::BeginWhile::~BeginWhile() {
-	listen().end_while();
-}
 
 #define GL_WHILE(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
+
+template<typename B, typename A, typename C, typename I = Infos<CT<A>>, typename = std::enable_if_t<
+	EqualMat<B, Bool> && EqualMat<A, C>
+	>> Matrix< I::scalar_type, I::rows, I::cols > ternary_func(B && b, A && a, C && c) {
+	return { createExp<Ternary>(EX(B,b), EX(A,a), EX(C,c)) };
+}
+
+#define GL_TERNARY(cond,lhs,rhs) ternary_func(cond, lhs, rhs)
 
 //////////////////////////////////////
 

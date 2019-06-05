@@ -10,7 +10,7 @@ include_directories($(.))
 file(GLOB CORE "*.h" "main.cpp" )
 source_group("Src" FILES ${CORE})
 
-file(GLOB SHADERS "shader_suite/*.h" )
-source_group("Src\\shaders" FILES ${SHADERS})
+file(GLOB SHADERS "shader_suite/*.h" "shader_suite/*.cpp")
+source_group("Src\\shader_suite" FILES ${SHADERS})
 
 add_executable(CSL_test ${CORE} ${SHADERS} )

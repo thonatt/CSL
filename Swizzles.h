@@ -38,10 +38,10 @@ public:
 };
 
 namespace rgba {
-	const SwizzlePack<RGBA, 1> r("r");
-	const SwizzlePack<RGBA, 2> g("g");
-	const SwizzlePack<RGBA, 3> b("b");
-	const SwizzlePack<RGBA, 4> a("a");
+	static const SwizzlePack<RGBA, 1> r("r");
+	static const SwizzlePack<RGBA, 2> g("g");
+	static const SwizzlePack<RGBA, 3> b("b");
+	static const SwizzlePack<RGBA, 4> a("a");
 }
 
 namespace xyzw {
@@ -65,21 +65,21 @@ namespace all_swizzles {
 }
 
 namespace v_0 {
-	void f_0() {}
+	inline void f_0() {}
 }
 
 namespace v_1 {
 	using namespace v_0;
-	void f_1() {}
+	inline void f_1() {}
 }
 
 namespace v_2 {
 	using namespace v_1;
-	void f_1(mat2 &) {}
-	void f_2(Float &) {}
+	inline void f_1(mat2 &) {}
+	inline void f_2(Float &) {}
 }
 
-void test_namespaces() {
+static void test_namespaces() {
 	using namespace v_2;
 	f_1();
 	

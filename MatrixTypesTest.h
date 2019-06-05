@@ -306,6 +306,20 @@ template<typename A, typename B,
 	return { createExp<MiddleOperator<RELATIONAL>>(" < ", EX(A, a), EX(B, b)) };
 }
 
+template<typename A, typename B,
+	typename = std::enable_if_t< NoBools<A, B> && IsScalar<A> && IsScalar<B> > >
+	Bool operator<=(A && a, B && b)
+{
+	return { createExp<MiddleOperator<RELATIONAL>>(" <= ", EX(A, a), EX(B, b)) };
+}
+
+template<typename A, typename B,
+	typename = std::enable_if_t< NoBools<A, B> && IsScalar<A> && IsScalar<B> > >
+	Bool operator>=(A && a, B && b)
+{
+	return { createExp<MiddleOperator<RELATIONAL>>(" >= ", EX(A, a), EX(B, b)) };
+}
+
 // + and - operators
 template<typename A, typename B, 
 	typename = std::enable_if_t< NoBools<A, B> && (EqualMat<A, B> || ( IsScalar<A> || IsScalar<B> ) ) > >

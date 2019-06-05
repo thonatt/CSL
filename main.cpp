@@ -9,14 +9,15 @@
 //#include "BuildingBlocks.h"
 //#include "Shaders.h"
 
-#include "BuiltInFunctions.h"
+//#include "BuiltInFunctions.h"
 //#include "Samplers.h"
-#include "MatrixTypesTest.h"
-#include "StructHelpers.h"
-#include "Layouts.h"
+//#include "MatrixTypesTest.h"
+//#include "StructHelpers.h"
+//#include "Layouts.h"
 
-#include "shader_suite/blur.h"
+#include "shader_suite/frags.h"
 
+#include <iostream>
 #include <chrono>
 
 //void srt1();
@@ -24,7 +25,7 @@
 //void srt3();
 //void srt4();
 //void test_pred();
-void test_accessor();
+//void test_accessor();
 
 struct T {
 	void f() & { std::cout << "&" << std::endl; }
@@ -61,134 +62,137 @@ int main()
 
 	auto ambiant_str = ambiantShader();
 
+	auto ssao_str = ssaoShader();
+
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
 	std::cout << blur_str << std::endl;
 	std::cout << ambiant_str << std::endl;
+	std::cout << ssao_str << std::endl;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 
 	return 0;
 }
 
-void test_accessor() {
-	//Array<Bool, 4> bs("bs");
-	//std::cout << getExp(bs[3])->str() << std::endl;
-
-	//Bool bb = bs[0];
-
-	//Float f = Float(1.0, "f");
-	//Bool bb = Bool("b1");
-	//Bool bh = false;
-
-	auto fun = makeFun<vec2>([](Float f) {
-		GL_RETURN(vec2(1.0));
-	});
-
-	auto fun2 = makeFun<void>([]() {
-	});
-
-	GL_STRUCT(
-		MyStruct,
-		(Float) f,
-		(vec2) v
-	);
-
-	GL_STRUCT(
-		MySuperStruct,
-		(MyStruct) s,
-		(Float) f
-	);
-
-	using namespace xyzw;
-
-	auto fun3 = makeFun<MyStruct>("myFun", [](MySuperStruct s) {
-		GL_RETURN(s.s);
-	}, "my");
-
-	MySuperStruct my("mySupStruct");
-
-	MySuperStruct my2 = MySuperStruct(MyStruct(1.0, vec2(2.0)), Float(3));
-
-	Float f = 1.0;
-	Float g = 1;
-	fun2();
-	vec2 vv = vec2(1.0, 2.0) << "vv";
-	vec2 vvvv = vec2(1.0, 1) << "vvvv";
-	vec2 vvv = my.s.f*f*vec2(3.0, 3.0) + my.s.v + vv.length() * g * (mat2(0) + mat2(1))*vv + fun(1.0) << "vvv";
-
-	vec2 pp = vec2(1.0, 2.0) << "lop";
-	pp = pp[x, y] = pp[y, x];
-	pp = pp[y, x];
-	pp[x, y] = pp + pp;
-	pp = vv;
-	pp *= pp + vv;
-	pp[1 + Int(2.0) ];
-	vv[x] = mat4(0)[1][0];
-
-
-	Array<vec3, 5> myA("myArray");
-	myA[1] += myA[2];
-	
-	Array<vec3, 3> myC = Array<vec3, 3>(vec3(0), vec3(1), vec3(2)) << "myC";
-
-	Array<Bool, 2> myB("bools");
-
-	using namespace glsl_450;
-
-	pp = pow(pow(pp, pp)[x, x], vec2(2.0));
-
-	Bool bbb = Bool(true) << "myBool";
-
-	GL_IF(bbb && myB[0]) {
-		listen().add_blank_line(5);
-		GL_FOR(Int i = Int(0) << "i", j = Int(1) << "j"; i < 5; i++) {
-			
-		}
-
-		GL_FOR(;;) {
-		}
-
-		GL_FOR(; bbb;) {
-		}
-
-		GL_FOR(Int m = 0; (m > 5) || !bbb; ) {
-		}
-
-		Int k = Int(0) << "k";
-		GL_FOR(; k == 3; ++k) {
-		}
-		Int kk = Int(0) << "kk";
-		GL_FOR(; ; ++kk) {
-		}
-
-		listen().add_blank_line(5);
-
-	}
-
-	using LL = Layout < Binding<0>, Shared , Location<2> >;
-	using QQ = Uniform<vec3, LL>;
-
-	Uniform<MyStruct> myUniS;
-	//In<Float> inF2 = Float(2.0) << "plop"; 
-	//In<Float> inF = 3.0;
-	//In<Float> inF3;
-	//In<Float> inF4 = Float(4.0);
-	//vec2 vev = vec2(1);
-	//myUniS.f = inF * inF2*inF3*inF4*myUniS.v[x] * vev[y];
-
-	Array<QQ, 5> u("myU");
-	u[3] = u[4] + pow(u[0], u[3]);
-
-	//std::cout << vv.str() << std::endl;
-	//std::cout << "dbg : " << getExp(vec4(vec2(2.0, 2.0), vec2(1.0, 1.0)))->str() << std::endl;
-	//std::cout << "dbg : " << (bool)(getExp(vec2(1.0, 2.0))->flags & PARENTHESIS) << std::endl;
-	//std::cout << "dbg : " << getExp(vv)->str() << std::endl;
-
-
-
-}
-
+//void test_accessor() {
+//	//Array<Bool, 4> bs("bs");
+//	//std::cout << getExp(bs[3])->str() << std::endl;
+//
+//	//Bool bb = bs[0];
+//
+//	//Float f = Float(1.0, "f");
+//	//Bool bb = Bool("b1");
+//	//Bool bh = false;
+//
+//	auto fun = makeFun<vec2>([](Float f) {
+//		GL_RETURN(vec2(1.0));
+//	});
+//
+//	auto fun2 = makeFun<void>([]() {
+//	});
+//
+//	GL_STRUCT(
+//		MyStruct,
+//		(Float) f,
+//		(vec2) v
+//	);
+//
+//	GL_STRUCT(
+//		MySuperStruct,
+//		(MyStruct) s,
+//		(Float) f
+//	);
+//
+//	using namespace xyzw;
+//
+//	auto fun3 = makeFun<MyStruct>("myFun", [](MySuperStruct s) {
+//		GL_RETURN(s.s);
+//	}, "my");
+//
+//	MySuperStruct my("mySupStruct");
+//
+//	MySuperStruct my2 = MySuperStruct(MyStruct(1.0, vec2(2.0)), Float(3));
+//
+//	Float f = 1.0;
+//	Float g = 1;
+//	fun2();
+//	vec2 vv = vec2(1.0, 2.0) << "vv";
+//	vec2 vvvv = vec2(1.0, 1) << "vvvv";
+//	vec2 vvv = my.s.f*f*vec2(3.0, 3.0) + my.s.v + vv.length() * g * (mat2(0) + mat2(1))*vv + fun(1.0) << "vvv";
+//
+//	vec2 pp = vec2(1.0, 2.0) << "lop";
+//	pp = pp[x, y] = pp[y, x];
+//	pp = pp[y, x];
+//	pp[x, y] = pp + pp;
+//	pp = vv;
+//	pp *= pp + vv;
+//	pp[1 + Int(2.0) ];
+//	vv[x] = mat4(0)[1][0];
+//
+//
+//	Array<vec3, 5> myA("myArray");
+//	myA[1] += myA[2];
+//	
+//	Array<vec3, 3> myC = Array<vec3, 3>(vec3(0), vec3(1), vec3(2)) << "myC";
+//
+//	Array<Bool, 2> myB("bools");
+//
+//	using namespace glsl_450;
+//
+//	pp = pow(pow(pp, pp)[x, x], vec2(2.0));
+//
+//	Bool bbb = Bool(true) << "myBool";
+//
+//	GL_IF(bbb && myB[0]) {
+//		listen().add_blank_line(5);
+//		GL_FOR(Int i = Int(0) << "i", j = Int(1) << "j"; i < 5; i++) {
+//			
+//		}
+//
+//		GL_FOR(;;) {
+//		}
+//
+//		GL_FOR(; bbb;) {
+//		}
+//
+//		GL_FOR(Int m = 0; (m > 5) || !bbb; ) {
+//		}
+//
+//		Int k = Int(0) << "k";
+//		GL_FOR(; k == 3; ++k) {
+//		}
+//		Int kk = Int(0) << "kk";
+//		GL_FOR(; ; ++kk) {
+//		}
+//
+//		listen().add_blank_line(5);
+//
+//	}
+//
+//	using LL = Layout < Binding<0>, Shared , Location<2> >;
+//	using QQ = Uniform<vec3, LL>;
+//
+//	Uniform<MyStruct> myUniS;
+//	//In<Float> inF2 = Float(2.0) << "plop"; 
+//	//In<Float> inF = 3.0;
+//	//In<Float> inF3;
+//	//In<Float> inF4 = Float(4.0);
+//	//vec2 vev = vec2(1);
+//	//myUniS.f = inF * inF2*inF3*inF4*myUniS.v[x] * vev[y];
+//
+//	Array<QQ, 5> u("myU");
+//	u[3] = u[4] + pow(u[0], u[3]);
+//
+//	//std::cout << vv.str() << std::endl;
+//	//std::cout << "dbg : " << getExp(vec4(vec2(2.0, 2.0), vec2(1.0, 1.0)))->str() << std::endl;
+//	//std::cout << "dbg : " << (bool)(getExp(vec2(1.0, 2.0))->flags & PARENTHESIS) << std::endl;
+//	//std::cout << "dbg : " << getExp(vv)->str() << std::endl;
+//
+//
+//
+//}
+//
 
 
 //int main()
