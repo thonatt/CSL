@@ -859,7 +859,7 @@ struct ReturnBlockBase : Block {
 		return false;
 	}
 
-	bool hasReturnStatement = false;
+	//bool hasReturnStatement = false;
 };
 
 template<typename ReturnType>
@@ -891,7 +891,7 @@ struct ReturnBlock : ReturnBlockBase {
 struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
 	
-	Statement(const Ex & e) : ex(e) {}
+	Statement(const Ex & e = {}) : ex(e) {}
 
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
 		if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
@@ -914,6 +914,7 @@ struct Statement : InstructionBase {
 	void explore() {
 		ex->explore();
 	}
+
 	Ex ex;
 };
 
@@ -1027,10 +1028,15 @@ struct ForArgsBlock : Block {
 
 };
 
-struct ReturnStatement : Statement {
+struct SpecialStatement : Statement {
+	using Statement::Statement;
+	virtual bool checkStatementValidity(Block::Ptr block) const { return true; }
+};
+
+struct ReturnStatement : SpecialStatement {
 	using Ptr = std::shared_ptr<ReturnStatement>;
 
-	ReturnStatement(const Ex & e) : Statement(e) {}
+	ReturnStatement(const Ex & e = {}) : SpecialStatement(e) {}
 
 	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << internal_str() << instruction_end(opts);
@@ -1038,15 +1044,26 @@ struct ReturnStatement : Statement {
 
 	std::string internal_str() const {
 		std::string s = "return";
-		std::string ex_str = ex->str(0);
-		if (ex_str != "") {
-			s += " " + ex_str;
+		if (ex) {
+			s += " " + ex->str(0);
 		}
 		return s;
 	}
 
 	void explore() {
 		ex->explore();
+	}
+};
+
+struct ContinueStatement : SpecialStatement {
+	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		stream << instruction_begin(trailing, opts) << "continue" << instruction_end(opts);
+	}
+};
+
+struct DiscardeStatement : SpecialStatement {
+	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		stream << instruction_begin(trailing, opts) << "discard" << instruction_end(opts);
 	}
 };
 
@@ -1063,9 +1080,9 @@ template<typename ReturnType>
 void ReturnBlock<ReturnType>::str(std::stringstream & stream, int & trailing, uint opts)
 {
 	Block::str(stream, trailing, opts);
-	if (!std::is_same<ReturnType, void>::value && !ReturnBlockBase::hasReturnStatement) {
-		CommentInstruction("need return statement here").str(stream, trailing, opts);
-	}
+	//if (!std::is_same<ReturnType, void>::value && !ReturnBlockBase::hasReturnStatement) {
+	//	CommentInstruction("need return statement here").str(stream, trailing, opts);
+	//}
 }
 
 struct ForInstruction : InstructionBase {
@@ -1603,35 +1620,46 @@ struct ShaderBase : MainController {
 		return std::dynamic_pointer_cast<ReturnBlockBase>(cBlock);
 	}
 
-	void add_return_statement() {
-		auto return_statement = std::make_shared<ReturnStatement>(EmptyExp::get());
-		if (auto return_block = get_return_block()) {
-			if (return_block->getType().is_void()) {
-				currentBlock->push_instruction(return_statement);
-			} else {
-				currentBlock->push_instruction(
-					std::make_shared<CommentInstruction>("unexpected " + return_statement->internal_str() + "; in non void function ")
-				);
+	template<typename S, typename ... Args>
+	void add_statement(Args ... args) {
+		auto statement = std::make_shared<S>(args...);
+		if (auto st = std::dynamic_pointer_cast<SpecialStatement>(statement)) {
+			if (st->checkStatementValidity(currentBlock)) {
+				currentBlock->push_instruction(statement);
 			}
 		}
+		
 	}
 
-	template<typename R_T>
-	void add_return_statement(R_T && t) {
-		using T = CleanType<R_T>;
-		Ex ex = EX(R_T, t);
-		auto return_statement = std::make_shared<ReturnStatement>(ex);
+	//void add_return_statement() {
+	//	auto return_statement = std::make_shared<ReturnStatement>(EmptyExp::get());
+	//	if (auto return_block = get_return_block()) {
+	//		if (return_block->getType().is_void()) {
+	//			currentBlock->push_instruction(return_statement);
+	//		} else {
+	//			currentBlock->push_instruction(
+	//				std::make_shared<CommentInstruction>("unexpected " + return_statement->internal_str() + "; in non void function ")
+	//			);
+	//		}
+	//	}
+	//}
 
-		if (auto return_block = get_return_block()) {
-			bool same_type = return_block->same_return_type(typeid(T).hash_code());
-			if (same_type || return_block->getType().isConvertibleTo(getRunTimeInfos<T>())) {
-				currentBlock->push_instruction(return_statement);
-				return_block->hasReturnStatement = true;
-			} else {
-				currentBlock->push_instruction(std::make_shared<CommentInstruction>("wrong result type in : return " + ex->str(0)));
-			}
-		}
-	}
+	//template<typename R_T>
+	//void add_return_statement(R_T && t) {
+	//	using T = CleanType<R_T>;
+	//	Ex ex = EX(R_T, t);
+	//	auto return_statement = std::make_shared<ReturnStatement>(ex);
+
+	//	if (auto return_block = get_return_block()) {
+	//		bool same_type = return_block->same_return_type(typeid(T).hash_code());
+	//		if (same_type || return_block->getType().isConvertibleTo(getRunTimeInfos<T>())) {
+	//			currentBlock->push_instruction(return_statement);
+	//			return_block->hasReturnStatement = true;
+	//		} else {
+	//			currentBlock->push_instruction(std::make_shared<CommentInstruction>("wrong result type in : return " + ex->str(0)));
+	//		}
+	//	}
+	//}
 };
 
 template<GLVersion version>
@@ -1672,18 +1700,13 @@ struct MainListener {
 	//	}
 	//}
 
-	void add_return_statement() {
+	template<typename S, typename ... Args>
+	void add_statement(Args && ... args) {
 		if (currentShader) {
-			currentShader->add_return_statement();
+			currentShader->add_statement<S, Args...>(std::move(args)...);
 		}
 	}
 
-	template<typename T>
-	void add_return_statement(T && t) {
-		if (currentShader) {
-			currentShader->add_return_statement(std::forward<T>(t));
-		}
-	}
 
 	/////////////////////////////////////////////////
 
@@ -2025,31 +2048,17 @@ void init_function_declaration( const std::string & fname, const std::function<v
 	listen().end_function();
 }
 
-template<typename ...Ts> struct ReturnStT;
-
-template<typename T>
-struct ReturnStT<T> {
-	static void return_statement(T && t) {
-		//checkForTemp<T>(t);
-		//listen().add_return_statement(getExp<T>(t));
-		listen().add_return_statement(std::forward<T>(t));
+struct ReturnKeyword {
+	ReturnKeyword() {
+		listen().add_statement<ReturnStatement>();
+	}
+	template<typename T> 
+	ReturnKeyword(T && t) {
+		listen().add_statement<ReturnStatement>(EX(T, t));
 	}
 };
 
-template<> struct ReturnStT<> {
-	static void return_statement() {
-		listen().add_return_statement();
-	}
-};
-
-template<typename ...Ts>
-void return_statement(Ts && ... ts) {
-	ReturnStT<Ts...>::return_statement(std::forward<Ts>(ts)...);
-}
-
-
-#define GL_RETURN return_statement
-#define GL_RETURN_TEST(...) if(false){ return __VA_ARGS__; } return_statement( __VA_ARGS__ )
+#define GL_RETURN ReturnKeyword return_statement
 
 #define GL_FOR(...) listen().begin_for(); listen().active() = false; for( __VA_ARGS__ ){break;}  listen().active() = true;  \
 listen().begin_for_args(); __VA_ARGS__;  listen().begin_for_body(); \
@@ -2062,7 +2071,9 @@ for(EndFor csl_dummy_for; csl_dummy_for; )
 
 #define GL_ELSE_IF(condition) else if(false){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(BeginIf csl_begin_else_if = {})
 
+#define GL_CONTINUE listen().add_statement<ContinueStatement>();
 
+#define GL_DISCARD DiscardStatement()
 
 #define GL_WHILE(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
 

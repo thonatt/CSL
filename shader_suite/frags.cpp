@@ -91,7 +91,7 @@ std::string ambiantShader() {
 
 		GL_IF (albedoInfo[a] == 0) {
 			fragColor = albedoInfo[r,g,b];
-			GL_RETURN();
+			GL_RETURN;
 		}
 		lineBreak();
 
@@ -167,7 +167,9 @@ std::string ssaoShader()
 
 		GL_IF (length(n) < 0.1) {
 			fragColor = 1.0;
-			GL_RETURN();
+			GL_RETURN;
+		} GL_ELSE {
+			GL_RETURN;
 		}
 
 		vec3 randomOrientation = texture(noiseTexture, gl_FragCoord[x, y] / 5.0)[r, g, b] << "randomOrientation";
@@ -191,6 +193,8 @@ std::string ssaoShader()
 			Float isValid = GL_TERNARY(abs(position[z] - sampleDepth) < radius, 1.0, 0.0) << "isValid";
 
 			occlusion += GL_TERNARY(sampleDepth >= randomSample[z], isValid, 0.0);
+
+			GL_CONTINUE;
 		}
 
 		occlusion = 1.0 - (occlusion / 24.0);
