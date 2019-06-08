@@ -38,10 +38,10 @@ public:
 };
 
 namespace rgba {
-	static const SwizzlePack<RGBA, 1> r("r");
-	static const SwizzlePack<RGBA, 2> g("g");
-	static const SwizzlePack<RGBA, 3> b("b");
-	static const SwizzlePack<RGBA, 4> a("a");
+	const SwizzlePack<RGBA, 1> r("r");
+	const SwizzlePack<RGBA, 2> g("g");
+	const SwizzlePack<RGBA, 3> b("b");
+	const SwizzlePack<RGBA, 4> a("a");
 }
 
 namespace xyzw {

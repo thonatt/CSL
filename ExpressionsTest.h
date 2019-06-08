@@ -12,7 +12,7 @@
 #include "StringHelpers.h"
 #include "FunctionHelpers.h"
 
-static struct MainListener;
+struct MainListener;
 inline MainListener & listen();
 
 using stringPtr = std::shared_ptr<std::string>;
@@ -374,8 +374,8 @@ struct Constructor<Array<T, N>, M> : Constructor<T,M> {
 		return Constructor<T,M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
 	}
 
-	virtual std::string rhs_type_str(int trailing) const {
-		return getTypeStr<T>(trailing) + TypeStr< Array<T, N> >::array_str();
+	virtual std::string rhs_type_str() const {
+		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
 	}
 };
 
@@ -1900,9 +1900,9 @@ struct ShaderWrapper
 		listen().currentShader = shader_ptr;
 	}
 
-	template<typename F_Type, typename ... Strings >
-	void main(const F_Type & f, const Strings & ...argnames) {
-		Fun<void, F_Type>("main", f, argnames...);
+	template<typename F_Type>
+	void main(const F_Type & f) {
+		Fun<void, F_Type>("main", f);
 	}
 
 	std::string str() {

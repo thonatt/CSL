@@ -363,34 +363,50 @@ template<typename A, typename B,
 
 ////////////////////////////////////
 // Arrrays
+// N == 0 for unspecified size arrays
 
 template<typename T, uint N>
 struct Array : NamedObject<Array<T, N>> {
-	Array(const std::string & _name = "")
-		: NamedObject<Array<T,N>>(_name, IS_TRACKED)
+
+	template<bool b = (N != 0), typename = std::enable_if_t<b> >
+	Array(const std::string & _name = "", uint flags = IS_TRACKED)
+		: NamedObject<Array<T,N>>(_name, flags)
+	{
+	}
+
+	Array(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+		: NamedObject<Array>(_ex, ctor_flags, obj_flags, s)
+	{
+	}
+
+	template<typename ... Us, typename = std::enable_if_t<
+		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) 
+	> >
+		Array(const std::string & name, Us && ... us)
+		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, name, EX(Us, us)...)
 	{
 	}
 
 	template<typename ... Us,
-	typename = std::enable_if_t< AllTrue<EqualMat<Us,T>...> && sizeof...(Us) == N > >
-	Array(Us && ... us)
-		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us,us)... )
-	{		
+		typename = std::enable_if_t< AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) > >
+		Array(Us && ... us)
+		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us, us)...)
+	{
 	}
-	 
+	
 	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) 
 	{
 	}
 
 	template<typename A,  
 	typename = std::enable_if_t< IsInteger<A> > >
-		typename T::UnderlyingType operator[](A && a) & {
+		typename T::UnderlyingType operator[](A && a) const & {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExRef(), EX(A,a)) };
 	}
 
 	template<typename A,
 		typename = std::enable_if_t< IsInteger<A> > >
-		typename T::UnderlyingType operator[](A && a) && {
+		typename T::UnderlyingType operator[](A && a) const && {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExTmp(), EX(A,a)) };
 	}
 };

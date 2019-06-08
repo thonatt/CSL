@@ -168,8 +168,6 @@ std::string ssaoShader()
 		GL_IF (length(n) < 0.1) {
 			fragColor = 1.0;
 			GL_RETURN;
-		} GL_ELSE {
-			GL_RETURN;
 		}
 
 		vec3 randomOrientation = texture(noiseTexture, gl_FragCoord[x, y] / 5.0)[r, g, b] << "randomOrientation";
@@ -203,3 +201,34 @@ std::string ssaoShader()
 
 	return shader.str();
 }
+
+std::string discardFragShader()
+{
+	using namespace all_swizzles;
+	using namespace frag_410;
+
+	Shader shader;
+
+	In<vec3> FrontColor("FrontColor");
+	In<vec3> BackColor("BackColor");
+	In<vec2> TexCoord("TexCoord");
+	
+	Out<vec4, Layout<Location<0>>> FragColor("FragColor");
+
+	shader.main([&]() {
+		Float scale = Float(15.0) << "scale";
+		bvec2 toDiscard = greaterThan(fract(TexCoord*scale), vec2(0.2, 0.2)) << "toDiscard";
+		GL_IF(all(toDiscard)) {
+			GL_DISCARD;
+		} GL_ELSE{
+			GL_IF(gl_FrontFacing) {
+				FragColor = vec4(FrontColor, 1.0);
+			} GL_ELSE {
+				FragColor = vec4(BackColor, 1.0);
+			}
+		}
+	});
+
+	return shader.str();
+}
+

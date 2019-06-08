@@ -7,9 +7,9 @@
 
 namespace frag_all {
 
-	static const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
-	static const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
-	static const In<vec2> gl_PointCoord("gl_PointCoord", DISABLED);
+	const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
+	const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
+	const In<vec2> gl_PointCoord("gl_PointCoord", DISABLED);
 
 	static Out<Float> gl_FragDepth("gl_FragDepth", DISABLED);
 
@@ -21,6 +21,18 @@ namespace frag_all {
 
 namespace vert_all {
 
+	//static GL_INTERFACE(Out, GLperVertex,
+	//	(vec4) gl_Position,
+	//	(Float) gl_PointSize, 
+	//	(Array<Float>) gl_ClipDistance
+	//) gl_PerVertex("gl_PerVertex", DISABLED);
+	
+	static Out<vec4> gl_Position("gl_Position", DISABLED);
+	static Out<Float> gl_PointSize("gl_PointSize", DISABLED);
+	//static Out<Array<Float>> gl_ClipDistance("gl_ClipDistance", DISABLED);
+
+	const In<Int> gl_VertexID("gl_VertexID", DISABLED);
+	const In<Int> gl_InstanceID("gl_InstanceID", DISABLED);
 }
 
 namespace vert_330 {
@@ -37,9 +49,17 @@ namespace frag_330 {
 	using Shader = ShaderWrapper<GLSL_330>;
 }
 
+namespace frag_410 {
+	using namespace frag_all;
+	using namespace glsl_410;
+
+	using Shader = ShaderWrapper<GLSL_410>;
+}
+
 namespace frag_450 {
 	using namespace frag_all;
 	using namespace glsl_450;
 
 	using Shader = ShaderWrapper<GLSL_450>;
 }
+

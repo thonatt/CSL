@@ -49,7 +49,7 @@ template<typename T, typename U, typename ... Ts> struct MultipleTypeStr<T, U, T
 
 // specialization for cpp types
 
-template<> std::string TypeStr<void>::str(int trailing) { return "void"; }
+template<> inline std::string TypeStr<void>::str(int trailing) { return "void"; }
 
 // helper for scalar types prefix
 
@@ -146,7 +146,7 @@ struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
 	}
 };
 
-template<> std::string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
+template<> inline std::string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
 
 // layout types
 
@@ -217,7 +217,7 @@ template<typename T, uint N>
 struct TypeStr< Array<T, N> > {
 
 	static std::string array_str() {
-		return "[" + std::to_string(N) + "]";
+		return "[" +  ( N > 0 ? std::to_string(N)  : "" ) + "]";
 	}
 
 	static std::string str(int trailing = 0) {
@@ -228,7 +228,7 @@ struct TypeStr< Array<T, N> > {
 template<typename T, uint N>
 struct TypeNamingStr< Array<T, N> > {
 	static std::string str() {
-		return "array_" + TypeNamingStr<T>::str();
+		return "array_" + TypeNamingStr<T>::str() + "_" + std::to_string(N);
 	}
 };
 
@@ -252,7 +252,7 @@ template<>  struct GLVersionStr<GLSL_ ## ver> { \
 
 #define GL_VERSION_IT(r, data, i, elem) GL_VERSION_STR(elem);
 BOOST_PP_SEQ_FOR_EACH_I(GL_VERSION_IT, , \
-	(110) (120) (130) (140) (150) \
-	(330) \
-	(400) (410) (420) (430) (440) (450) );
+(110) (120) (130) (140) (150) \
+(330) \
+(400) (410) (420) (430) (440) (450));
 

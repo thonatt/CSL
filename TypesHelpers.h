@@ -74,6 +74,10 @@ using ivec2 = Vec<INT, 2>;
 using ivec3 = Vec<INT, 3>;
 using ivec4 = Vec<INT, 4>;
 
+using bvec2 = Vec<BOOL, 2>;
+using bvec3 = Vec<BOOL, 3>;
+using bvec4 = Vec<BOOL, 4>;
+
 // samplers types forward decalrations
 
 enum AccessType { SAMPLER, IMAGE };
@@ -117,7 +121,7 @@ struct Qualifier;
 
 // arrays
 
-template<typename T, uint N> struct Array;
+template<typename T, uint N = 0> struct Array;
 
 // types infos
 
@@ -292,13 +296,24 @@ template<typename A>
 constexpr bool IsVecF = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == FLOAT;
 
 template<typename A>
-constexpr bool IsInteger = IsScalar<A> && (Infos<CT<A>>::scalar_type == INT || Infos<CT<A>>::scalar_type == UINT);
-
-template<typename ... A>
-constexpr bool IsFloat = false;
+constexpr bool IsVecI = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == INT;
 
 template<typename A>
-constexpr bool IsFloat<A> = IsVecF<A> && Infos<CT<A>>::rows == 1;
+constexpr bool IsVecB = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == BOOL;
+
+
+template<typename A>
+constexpr bool IsInt = IsScalar<A> && Infos<CT<A>>::scalar_type == INT;
+
+template<typename A>
+constexpr bool IsUInt = IsScalar<A> && Infos<CT<A>>::scalar_type == UINT;
+
+template<typename A>
+constexpr bool IsInteger = IsInt<A> || IsUInt<A>;
+
+template<typename A>
+constexpr bool IsFloat = IsScalar<A> && Infos<CT<A>>::scalar_type == FLOAT;
+
 
 
 template<typename A, typename B>

@@ -7,3 +7,5 @@ std::string blurShader();
 std::string ambiantShader();
 
 std::string ssaoShader();
+
+std::string discardFragShader();

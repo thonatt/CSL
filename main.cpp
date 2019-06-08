@@ -16,6 +16,7 @@
 //#include "Layouts.h"
 
 #include "shader_suite/frags.h"
+#include "shader_suite/verts.h"
 
 #include <iostream>
 #include <chrono>
@@ -64,11 +65,17 @@ int main()
 
 	auto ssao_str = ssaoShader();
 
+	auto discard_str = discardFragShader();
+
+	auto transfeedBack_str = transfeedBackVertex();
+
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
-	std::cout << blur_str << std::endl;
-	std::cout << ambiant_str << std::endl;
-	std::cout << ssao_str << std::endl;
+	std::cout << blur_str;
+	std::cout << ambiant_str;
+	std::cout << ssao_str;
+	std::cout << discard_str;
+	std::cout << transfeedBack_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 
