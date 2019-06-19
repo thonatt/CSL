@@ -1,18 +1,18 @@
 #pragma once
 
 #include "MatrixTypesTest.h"
+#include "StructHelpers.h"
 
-
-#define GENTYPE_OP_GENTYPE(name) \
-	template<typename A, typename = std::enable_if_t< IsVecF<A> > > \
-		Vec<FLOAT, Infos<CT<A>>::rows> name(A && a) { \
-		return { createFCallExp(#name, EX(A,a)) };	\
+#define GENTYPE_OP_GENTYPE(r, data, i, elem) \
+template<typename A, typename = std::enable_if_t< IsVecF<A> > > \
+		Vec<FLOAT, Infos<CT<A>>::rows> elem(A && a) { \
+		return { createFCallExp(BOOST_PP_STRINGIZE(elem), EX(A,a)) };	\
 	} 
 
-#define RELATIONAL_GENTYPE_OP(name) \
-	template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > > \
-		Vec<BOOL, Infos<CT<A>>::rows> name(A && a, B && b) { \
-		return { createFCallExp(#name, EX(A,a), EX(B,b) ) };	\
+#define RELATIONAL_GENTYPE_OP(r, data, i, elem) \
+template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > > \
+		Vec<BOOL, Infos<CT<A>>::rows> elem(A && a, B && b) { \
+		return { createFCallExp(BOOST_PP_STRINGIZE(elem), EX(A,a), EX(B,b) ) };	\
 	} 
 
 #define BOOL_OP(name) \
@@ -20,6 +20,8 @@ template<typename A, typename = std::enable_if_t< IsVecB<A> > > \
 	Bool name(A && a) { \
 		return { createFCallExp(#name, EX(A,a)) };	\
 	}
+
+#define OP_ITERATE(macro, ...) BOOST_PP_SEQ_FOR_EACH_I(macro, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) 
 
 namespace glsl_110 {
 
@@ -82,27 +84,9 @@ namespace glsl_110 {
 		return { createFCallExp("clamp", EX(A,x), EX(B,minVal), EX(C, maxVal)) };
 	}
 
-	GENTYPE_OP_GENTYPE(abs);
-	GENTYPE_OP_GENTYPE(sin);
-	GENTYPE_OP_GENTYPE(cos);
-	GENTYPE_OP_GENTYPE(tan);
-	GENTYPE_OP_GENTYPE(exp);
-	GENTYPE_OP_GENTYPE(log);
-	GENTYPE_OP_GENTYPE(sqrt);
-	GENTYPE_OP_GENTYPE(ceil);
-	GENTYPE_OP_GENTYPE(floor);
-	GENTYPE_OP_GENTYPE(fract);
-	GENTYPE_OP_GENTYPE(exp2);
-	GENTYPE_OP_GENTYPE(log2);
+	OP_ITERATE(GENTYPE_OP_GENTYPE, abs, sin, cos, tan, exp, log, sqrt, ceil, floor, fract, exp2, log2, normalize);
 
-	GENTYPE_OP_GENTYPE(normalize);
-
-	RELATIONAL_GENTYPE_OP(greaterThan);
-	RELATIONAL_GENTYPE_OP(lessThan);
-	RELATIONAL_GENTYPE_OP(greaterThanEqual);
-	RELATIONAL_GENTYPE_OP(lessThenEqual);
-	RELATIONAL_GENTYPE_OP(equal);
-	RELATIONAL_GENTYPE_OP(notEqual);
+	OP_ITERATE(RELATIONAL_GENTYPE_OP, greaterThan, lessThan, greaterThanEqual, lessThenEqual, equal, notEqual);
 
 	BOOL_OP(any);
 	BOOL_OP(all);
@@ -164,13 +148,7 @@ namespace glsl_130 {
 		};
 	}
 
-	GENTYPE_OP_GENTYPE(sinh);
-	GENTYPE_OP_GENTYPE(cosh);
-	GENTYPE_OP_GENTYPE(tanh);
-	GENTYPE_OP_GENTYPE(inversesqrt);
-
-	GENTYPE_OP_GENTYPE(sign);
-	GENTYPE_OP_GENTYPE(round);
+	OP_ITERATE(GENTYPE_OP_GENTYPE, sinh, cosh, tanh, inversesqrt, sign, round);
 }
 
 namespace glsl_140 {
@@ -229,3 +207,5 @@ namespace glsl_450 {
 }
 
 #undef GENTYPE_OP_GENTYPE
+#undef RELATIONAL_GENTYPE_OP
+#undef BOOL_OP

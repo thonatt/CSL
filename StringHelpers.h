@@ -4,6 +4,8 @@
 #include "TypesHelpers.h"
 #include <boost/preprocessor/seq/for_each_i.hpp>
 
+using stringPtr = std::shared_ptr<std::string>;
+
 template<typename T>
 struct TypeStr {
 	static std::string str(int trailing = 0) { return T::typeStr(trailing); }
@@ -250,8 +252,8 @@ template<>  struct GLVersionStr<GLSL_ ## ver> { \
 	static std::string str() { return #ver; } \
 }
 
-#define GL_VERSION_IT(r, data, i, elem) GL_VERSION_STR(elem);
-BOOST_PP_SEQ_FOR_EACH_I(GL_VERSION_IT, , \
+#define GL_VERSION_STR_IT(r, data, i, elem) GL_VERSION_STR(elem);
+BOOST_PP_SEQ_FOR_EACH_I(GL_VERSION_STR_IT, , \
 (110) (120) (130) (140) (150) \
 (330) \
 (400) (410) (420) (430) (440) (450));

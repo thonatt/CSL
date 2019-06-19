@@ -10,8 +10,6 @@ std::string blurShader()
 	
 	Shader shader;
 
-	//GL_STRUCT(Interface, (vec2) uv);
-	//In<Interface> in("In");
 	GL_INTERFACE(In, Interface, (vec2) uv) in("In");
 
 	Uniform<sampler2D, Layout<Binding<0> >> sceenTexture("screenTexture");
@@ -20,7 +18,7 @@ std::string blurShader()
 	GL_DECLARE(fragColor, Out<vec3> );
 	//Out<vec3> fragColor("fragColor");
 
-	shader.main([&]() {
+	shader.main([&] {
 
 		vec3 col = texture(sceenTexture, in.uv)[r, g, b] * Float(5.0) / 16.0 << "col";
 		col += texture(sceenTexture, in.uv - fetchOffset)[r, g, b] * Float(5.0) / 16.0;
@@ -162,7 +160,7 @@ std::string ssaoShader()
 		GL_RETURN(vec3(-ndcPos * viewDepth / vec2(projectionMatrix[0][0], projectionMatrix[1][1]), viewDepth));
 	}, "uv");
 
-	shader.main([&]() {
+	shader.main([&]{
 		vec3 n = normalize(2.0 * texture(normalTexture, in.uv)[r, g, b] - 1.0) << "n";
 
 		GL_IF (length(n) < 0.1) {
@@ -186,13 +184,10 @@ std::string ssaoShader()
 			vec4 sampleClipSpace = projectionMatrix * vec4(randomSample, 1.0) << "sampleClipSpace";
 			vec2 sampleUV = (sampleClipSpace[x, y] / sampleClipSpace[w]) * 0.5 + 0.5 << "sampleUV";
 
-
 			Float sampleDepth = linearizeDepth(texture(depthTexture, sampleUV)[r]) << "sampleDepth";
 			Float isValid = GL_TERNARY(abs(position[z] - sampleDepth) < radius, 1.0, 0.0) << "isValid";
 
 			occlusion += GL_TERNARY(sampleDepth >= randomSample[z], isValid, 0.0);
-
-			GL_CONTINUE;
 		}
 
 		occlusion = 1.0 - (occlusion / 24.0);
@@ -223,7 +218,8 @@ std::string discardFragShader()
 		} GL_ELSE{
 			GL_IF(gl_FrontFacing) {
 				FragColor = vec4(FrontColor, 1.0);
-			} GL_ELSE {
+			}
+		GL_ELSE {
 				FragColor = vec4(BackColor, 1.0);
 			}
 		}
@@ -232,3 +228,32 @@ std::string discardFragShader()
 	return shader.str();
 }
 
+void test()
+{
+
+	Int i = 0;
+	Double d;
+	int j;
+	j = i;
+
+	GL_SWITCH(i) {
+		GL_CASE(1) : 
+
+		GL_CASE(2) :
+
+		GL_DEFAULT : {}
+	}
+
+	//GL_SWITCH(i) {
+	//	GL_CASE(i) {}
+	//	GL_DEFAULT {}
+	//}
+
+	//vec3;
+	//Uni<vec3>;
+	//Array<vec3, 4>;
+	//Uni<Array<vec3, 2>>::v;
+	//Uni<Layout<Binding<0>>, vec3>::v;
+	//Uni<Layout<Binding<0>>, Array<vec3, 4>>::v;
+	//Uni<Layout<Binding<0>>>::v;
+}

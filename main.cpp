@@ -71,6 +71,8 @@ int main()
 
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
+	test();
+
 	std::cout << blur_str;
 	std::cout << ambiant_str;
 	std::cout << ssao_str;
@@ -78,6 +80,24 @@ int main()
 	std::cout << transfeedBack_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
+
+	struct M {
+		operator int() const {
+			++count;
+			return count > 2 ? 0 : 69;
+		}
+		bool listening() const { return count == 2; }
+		mutable int count = 0;
+	};
+
+	auto f = [](const M & m, const std::string & s) { if (m.listening()) { std::cout << s << std::endl; } };
+
+	switch (M a = {})while (a) {	
+	case 42: { f(a,"42");  }
+	case 111: { f(a,"111"); }
+	default: { f(a,"def"); }
+	}
+
 
 	return 0;
 }

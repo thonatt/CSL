@@ -28,10 +28,10 @@ using samplerCubeArray = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_ARRAY >;
 using sampler1DShadow = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_SHADOW >;
 using sampler2DShadow = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_SHADOW >;
 using sampler2DRectShadow = Sampler < SAMPLER, FLOAT, 2, RECTANGLE, IS_SHADOW> ;
-using sampler1DArrayShadow = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_ARRAY & IS_SHADOW >;
-using sampler2DArrayShadow = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_ARRAY & IS_SHADOW >;
+using sampler1DArrayShadow = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_ARRAY | IS_SHADOW >;
+using sampler2DArrayShadow = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_ARRAY | IS_SHADOW >;
 using samplerCubeShadow = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_SHADOW >;
-using samplerCubeArrayShadow = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_ARRAY & IS_SHADOW >;
+using samplerCubeArrayShadow = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_ARRAY | IS_SHADOW >;
 
 using isampler1D = Sampler < SAMPLER, INT, 1 >;
 using isampler2D = Sampler < SAMPLER, INT, 2 >;

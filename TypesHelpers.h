@@ -109,6 +109,10 @@ struct GetTemplateQualifierT {
 	static const QualifierType value = NOT_QUALIFIER;
 };
 
+template<typename T, template<typename U, typename Layout> class Q, uint S>
+struct GeneralType {
+};
+
 template<LayoutArgBoolType layoutArg, bool b> struct LayoutArgBool;
 template<LayoutArgIntType layoutArg, int N> struct LayoutArgInt;
 
@@ -121,7 +125,9 @@ struct Qualifier;
 
 // arrays
 
-template<typename T, uint N = 0> struct Array;
+struct NoArray {};
+
+template<typename T = NoArray, uint N = 0> struct Array;
 
 // types infos
 

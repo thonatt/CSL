@@ -9,494 +9,13 @@
 #include <algorithm> //for std::replace
 #include <iomanip> // for std::setprecision
 
-#include "StringHelpers.h"
 #include "FunctionHelpers.h"
-
-struct MainListener;
-inline MainListener & listen();
-
-using stringPtr = std::shared_ptr<std::string>;
-
-//#define EX(type,var) getE(std::forward<type>(var))
 
 #define EX(type, var) getExp(std::forward<type>(var))
 
-inline stringPtr makeStringPtr(const std::string & s) {
-	auto str_ptr = std::make_shared<std::string>(s);
-	//std::cout << " str_cv : " <<  (int)(bool)str_ptr << " " << s << std::endl;
-	return str_ptr;
-}
+#include "Operators.h"
 
-
-struct OperatorBase;
-using Ex = std::shared_ptr<OperatorBase>;
-
-//enum NamedObjectTracking { NOT_TRACKED, TRACKED };
-//enum NamedObjectInit { NO_INIT, INIT };
-
-enum NamedObjectFlags : uint {
-	IS_USED = 1 << 1,
-	IS_INIT = 1 << 2,
-	IS_TRACKED = 1 << 3,
-	ALWAYS_EXP = 1 << 4
-};
-
-enum CtorStatus { DECLARATION, INITIALISATION, TEMP, FORWARD };
-enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIND };
-//enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
-//enum CtorTypeDisplay { DISPLAY, HIDE};
-enum class CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
-
-enum OpFlags : uint {
-	DISABLED = 1 << 1,
-	DISPLAY_TYPE = 1 << 2,
-	MULTIPLE_INITS = 1 <<3,
-	PARENTHESIS = 1 << 4,
-	MAIN_BLOCK = 1 << 5
-};
-
-class NamedObjectBase;
-
-template<typename T>
-struct NamedObjectInit {
-	NamedObjectInit(const Ex & _exp, const std::string & s) : exp(_exp), name(s) {}
-	Ex exp;
-	std::string name;
-};
-
-template<typename T, typename ... Args>
-Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args);
-
-template<typename T, typename ... Args>
-Ex createDeclaration(const stringPtr & name, uint ctor_flags, const Args &... args);
-
-template<typename T>
-class NamedObject;
-
-enum OperatorPrecedence {
-
-	ALIAS = 1,
-	INITIALIZER_LIST = 1,
-
-	ARRAY_SUBSCRIPT = 2,
-	FUNCTION_CALL = 2,
-	FIELD_SELECTOR = 2,
-	MEMBER_SELECTOR = 2,
-	SWIZZLE = 2,
-	POSTFIX = 2,
-	
-	PREFIX = 3,
-	UNARY = 3,
-	NEGATION = 3,
-	ONES_COMPLEMENT = 3,
-
-	MULTIPLY = 4,
-	DIVISION = 4,
-	MODULO = 4,
-
-	ADDITION = 5,
-	SUBSTRACTION = 5,
-
-	BITWISE_SHIFT = 6,
-
-	RELATIONAL = 7,
-
-	EQUALITY = 8,
-
-	BITWISE_AND = 9,
-
-	BITWISE_XOR = 10,
-
-	BITWISE_OR = 11,
-
-	LOGICAL_AND = 12,
-
-	LOGICAL_XOR = 13,
-
-	LOGICAL_OR = 14,
-
-	TERNARY = 15,
-
-	ASSIGNMENT = 16,
-
-	SEQUENCE = 17
-};
-
-struct OperatorBase;
-using Ex = std::shared_ptr<OperatorBase>;
-
-struct OperatorBase {
-	//OperatorBase(stringPtr _op_str_ptr = {}) : op_str_ptr(_op_str_ptr) {
-	//	if (!op_str_ptr) {
-	//		op_str_ptr = std::make_shared<std::string>(" >no_str< ");
-	//	}
-	//}
-
-	OperatorBase(uint _flags = 0) : flags(_flags)
-	{
-
-	}
-
-	virtual std::string str(int trailing) const {
-		return "no_str";
-	}
-
-	//std::string op_str() const {
-	//	return *op_str_ptr;
-	//}
-
-	std::string explore() const {
-		return "no_exploration";
-	}
-
-	virtual uint rank() const {
-		return 0;
-	}
-
-	const bool inversion(Ex other) const {
-		return rank() < other->rank();
-	}
-
-	std::string checkForParenthesis(Ex exp) const {
-		if (inversion(exp)) {
-			//return exp->str();
-			return "(" + exp->str(0) + ")";
-		} 
-		return exp->str(0);
-	}
-
-	void disable() {
-		flags = flags | DISABLED;
-	}
-
-	bool disabled() const {
-		return flags & DISABLED;
-	}
-
-	//stringPtr op_str_ptr;
-	uint flags = 0;
-};
-
-template<typename Operator, typename ... Args>
-Ex createExp(const Args &... args) {
-	return std::static_pointer_cast<OperatorBase>(std::make_shared<Operator>(args...));
-}
-
-struct NamedOperator {
-
-	NamedOperator(const std::string & str) : operator_str(str) {}
-
-	std::string op_str() const { return operator_str; }
-
-	std::string operator_str;
-};
-
-template<OperatorPrecedence precedence>
-struct Precedence : OperatorBase {
-	//Precedence(stringPtr _op_str_ptr = {}) : OperatorBase(_op_str_ptr) {}
-
-	virtual uint rank() const { return (uint)precedence; }
-};
-
-struct Alias : Precedence<ALIAS> {
-	Alias(stringPtr _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
-	//Alias( const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
-	std::string str(int trailing) const { return *obj_str_ptr; }
-	//virtual std::string str() const { return "Alias[" + *obj_str_ptr + "]"; }
-	
-	stringPtr obj_str_ptr;
-}; 
-
-template<OperatorPrecedence precedence>
-struct MiddleOperator : Precedence<precedence>, NamedOperator {
-	MiddleOperator(const std::string & op_str, Ex _lhs, Ex _rhs)
-		: NamedOperator(op_str), lhs(_lhs), rhs(_rhs) {
-		//std::cout << "middle op : " << op_str << " " << *OperatorBase::op_str_ptr << std::endl;
- 	}
-
-	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(lhs) + NamedOperator::op_str() + OperatorBase::checkForParenthesis(rhs);
-	}
-
-	Ex lhs, rhs;
-};
-
-template<uint N>
-struct ArgsCall {
-
-	template<typename ... Args>
-	ArgsCall(const Args & ... _args) : args{ _args... } {}
-
-	std::string args_str_body() const {
-		std::string out = "";
-		for (uint i = 0; i < N; ++i) {
-			out += args[i]->str(0) + ((i == N - 1) ? "" : ", ");
-		}
-		return out;
-	}
-
-	std::string args_str() const {
-		return "(" + args_str_body() + ")";
-	}
-
-	std::array<Ex, N> args;
-	//std::vector<Ex> args;
-};
-
-template<uint N>
-struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
-
-	template<typename ... Args>
-	FunctionCall(const std::string & s, const Args & ... _args)
-		: NamedOperator(s), ArgsCall<N>(_args...) {
-	}
-
-	std::string str(int trailing) const {
-		return op_str() + ArgsCall<N>::args_str();
-	}
-};
-
-template<typename ... Args>
-Ex createFCallExp(const std::string & f_name, const Args & ... args) {
-	return createExp<FunctionCall<sizeof...(Args)>>(f_name, args...);
-}
-
-struct ConstructorBase : OperatorBase {
-	ConstructorBase(CtorStatus _status = INITIALISATION, uint _flags = 0) 
-		: ctor_status(_status), OperatorBase(_flags) { }
-
-	CtorPosition position() const {
-		if (flags & MAIN_BLOCK) {
-			return CtorPosition::MAIN_BLOCK;
-		} else {
-			return CtorPosition::INSIDE_BLOCK;
-		}
-	}
-
-	void setTemp() {
-		if (status() == INITIALISATION) {
-			ctor_status = TEMP;
-		}
-	}
-	void setInit() {
-		if (status() == FORWARD) {
-			ctor_status = INITIALISATION;
-		}
-	}
-
-	CtorStatus status() const {
-		return ctor_status;
-	}
-
-	virtual bool is_bool_ctor() const {
-		return false;
-	}
-
-	CtorStatus ctor_status;
-};
-
-template<typename T, uint N = 0>
-struct Constructor : ArgsCall<N>, ConstructorBase {
-
-	virtual uint rank() const {
-		if (N == 0) {
-			return (uint)FUNCTION_CALL;
-		} 
-		return ArgsCall<N>::args[0]->rank();
-	}
-
-	template<typename ... Args>
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint _flags, const Args & ...  _args)
-		: ArgsCall<N>(_args...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
-	{
-	}
-
-	std::string obj_name() const {
-		return *obj_name_ptr;
-	}
-
-	std::string lhs_type_str(int trailing) const {
-		if (flags & MULTIPLE_INITS) {
-			return "";
-		}
-		return getTypeStr<T>(trailing);
-	}
-
-	virtual std::string rhs_type_str() const {
-		return getTypeStr<T>();
-	}
-
-	virtual std::string lhs_str(int trailing) const {
-		return lhs_type_str(trailing) + " " + obj_name();
-	}
-
-	std::string rhs_str() const {
-		std::string str;
-		if (flags & DISPLAY_TYPE) {
-			str += rhs_type_str();
-		}
-		if (flags & PARENTHESIS) {
-			str += ArgsCall<N>::args_str();
-		} else {
-			str += ArgsCall<N>::args_str_body();
-		}
-		return str;
-	}
-
-	virtual std::string str(int trailing) const {
-		if (status() == INITIALISATION) {
-			return lhs_str(trailing) + " = " + rhs_str();
-		} else if (status() == DECLARATION) {
-			return lhs_str(trailing);
-		} else if (status() == FORWARD) {
-			return ArgsCall<N>::args[0]->str(0);
-		} else {
-			return rhs_str();
-		}
-	}
-
-	virtual bool is_bool_ctor() const {
-		return IsSameType<T, Bool>;
-	}
-
-	stringPtr obj_name_ptr;
-};
-
-template<typename T, uint N, uint M>
-struct Constructor<Array<T, N>, M> : Constructor<T,M> {
-	
-	template<typename ... Args>
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags, const Args & ...  _args)
-		: Constructor<T,M>(_obj_name_ptr, _status, flags, _args...) {
-	}
-
-	virtual std::string lhs_str(int trailing) const {
-		return Constructor<T,M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
-	}
-
-	virtual std::string rhs_type_str() const {
-		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
-	}
-};
-
-struct MemberAccessor : Precedence<FIELD_SELECTOR> {
-	MemberAccessor(const Ex & _obj, stringPtr member_str)
-		: member_str_ptr(member_str), obj(_obj) {
-	}
-	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
-	}
-	Ex obj;
-	stringPtr member_str_ptr;
-};
-
-template<uint N>
-struct MemberFunctionAccessor : FunctionCall<N> {
-	template<typename ...Args>
-	MemberFunctionAccessor(const Ex & _obj, const std::string & fun_name, const Args & ... _args)
-		: FunctionCall<N>(fun_name, _args...), obj(_obj) {
-	}
-
-	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str(0);
-	}
-
-	Ex obj;
-};
-
-struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
-	ArraySubscript(Ex _obj, Ex _arg) : obj(_obj), arg(_arg) {
-	}
-
-	std::string str(int trailing) const {
-		//std::cout << " array_sub" << std::endl;
-		return OperatorBase::checkForParenthesis(obj) + "[" + arg->str(0) + "]";
-	}
-
-	Ex obj, arg;
-};
-
-struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
-
-	PrefixUnary(const std::string & op_str, Ex _obj)
-		: NamedOperator(op_str), obj(_obj) {
-	}
-
-	std::string str(int trailing) const {
-		return op_str() + OperatorBase::checkForParenthesis(obj);
-	}
-
-	Ex obj;
-};
-
-struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
-	
-	PostfixUnary(const std::string & op_str, Ex _obj)
-		: NamedOperator(op_str), obj(_obj) {
-	}
-
-	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(obj) + op_str();
-	}
-
-	Ex obj;
-};
-
-struct Ternary : Precedence<TERNARY> {
-	Ternary(Ex _condition, Ex _first, Ex _second)  
-		: condition(_condition), first(_first), second(_second) {
-	}
-
-	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(condition) + " ? " + OperatorBase::checkForParenthesis(first) + " : " + OperatorBase::checkForParenthesis(second);
-	}
-
-	Ex condition, first, second;
-};
-
-template<uint N>
-struct InitializerList : Precedence<INITIALIZER_LIST>, ArgsCall<N>
-{
-	template<typename ... Args>
-	InitializerList(const Args & ... args) : ArgsCall<N>(args...) 
-	{ 
-	}
-
-	virtual std::string str(int trailing) const {
-		return "{ " + ArgsCall<N>::args_str_body() + " }";
-	}
-};
-
-struct EmptyExp : OperatorBase {
-	static Ex get() { return std::static_pointer_cast<OperatorBase>(std::make_shared<EmptyExp>()); }
-
-	std::string str(int trailing) const {
-		return "";
-	}
-};
-
-template<typename T>
-struct Litteral : OperatorBase {
-	Litteral(const T & _i) : i(_i) {}
-
-	virtual std::string str(int trailing) const {
-		std::stringstream ss;
-		ss << std::fixed << std::setprecision(1) << i;
-		return ss.str();
-		//return std::to_string(i); 
-	}
-	T i;
-};
-
-template<> struct Litteral<bool> : OperatorBase {
-	Litteral(const bool & _b) : b(_b) {}
-	virtual std::string str(int trailing) const { return b ? "true" : "false"; }
-	bool b;
-};
-
-template<typename T> Ex getE(T && t) {
-	return std::forward<T>(t).getEx();
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class NamedObjectBase {
 public:
@@ -506,8 +25,6 @@ public:
 		namePtr = std::make_shared<std::string>(_name);
 		//std::cout << " end check" << std::endl;
 	}
-
-	~NamedObjectBase();
 
 	bool isUsed() const {
 		return flags & IS_USED;
@@ -521,26 +38,76 @@ public:
 		flags = flags & ~(IS_USED);
 	}
 
-	Ex alias() const;
+	Ex alias() const {
+		return createExp<Alias>(strPtr());
+	}
 
-	Ex getEx() &;
-	Ex getEx() const &;
-	Ex getEx() && ;
-	Ex getEx() const &&;
+	Ex getExRef()
+	{
+		if (flags & ALWAYS_EXP) {
+			return getExTmp();
+		}
+		flags = flags | IS_USED;
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+			ctor->setInit();
+		}
+		return alias();
+	}
 
-	Ex getExRef();
-	Ex getExRef() const;
-	Ex getExTmp();
-	Ex getExTmp() const;
+	Ex getExRef() const
+	{
+		if (flags & ALWAYS_EXP) {
+			return getExTmp();
+		}
+		flags = flags | IS_USED;
+		return alias();
+	}
 
-	void checkDisabling();
+	Ex getExTmp() 
+	{
+		flags = flags | IS_USED;
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+			ctor->setTemp();
+			ctor->disable();
+		}
+		return exp;
+	}
 
+	Ex getExTmp() const 
+	{
+		flags = flags | IS_USED;
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+			ctor->setTemp();
+			ctor->disable();
+		}
+		return exp;
+	}
+
+	Ex getEx() &			{ return getExRef(); }
+	Ex getEx() const &		{ return getExRef(); }
+	Ex getEx() &&			{ return getExTmp(); }
+	Ex getEx() const &&		{ return getExTmp(); }
+
+	void checkDisabling()
+	{
+		if (!(flags & IS_TRACKED)) {
+			//std::cout << "disabling " << str() << std::endl;
+			exp->disable();
+		}
+	}
+
+	~NamedObjectBase()
+	{
+		if (!isUsed()) {
+			//std::cout << " ~ setTemp " << exp->str() << std::endl;
+			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
+				ctor->setTemp();
+			}
+		}
+		//should check inside scope
+	}
 
 	static std::string typeStr() { return "dummyT"; }
-
-	//mutable bool isUsed = true;
-	//NamedObjectBase * parent = nullptr;
-	//NamedObjectTracking tracked = TRACKED;
 
 protected:
 	stringPtr namePtr;
@@ -559,86 +126,18 @@ public:
 
 };
 
-inline Ex NamedObjectBase::getEx() &
-{
-	return getExRef();
-}
+template<typename T>
+struct NamedObjectInit {
+	NamedObjectInit(const Ex & _exp, const std::string & s) : exp(_exp), name(s) {}
+	Ex exp;
+	std::string name;
+};
 
-inline Ex NamedObjectBase::getEx() const &
-{
-	return getExRef();
-}
+template<typename T, typename ... Args>
+Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args);
 
-inline Ex NamedObjectBase::getEx() &&
-{
-	return getExTmp();
-}
-
-inline Ex NamedObjectBase::getEx() const &&
-{
-	return getExTmp();
-}
-
-inline Ex NamedObjectBase::getExRef()
-{
-	if (flags & ALWAYS_EXP) {
-		return getExTmp();
-	}
-	flags = flags | IS_USED;
-	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-		ctor->setInit();
-	}
-	return alias();
-}
-
-inline Ex NamedObjectBase::getExTmp()
-{
-	flags = flags | IS_USED;
-	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-		ctor->setTemp();
-		ctor->disable();
-	}
-	return exp;
-}
-
-inline Ex NamedObjectBase::getExRef() const
-{
-	if (flags & ALWAYS_EXP) {
-		return getExTmp();
-	}
-	flags = flags | IS_USED;
-	return alias();
-}
-
-inline Ex NamedObjectBase::getExTmp() const
-{
-	flags = flags | IS_USED;
-	if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-		ctor->setTemp();
-		ctor->disable();
-	}
-	return exp;
-}
-
-inline NamedObjectBase::~NamedObjectBase() {
-	if (!isUsed()) {
-		//std::cout << " ~ setTemp " << exp->str() << std::endl;
-		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-			ctor->setTemp();
-		}
-	}
-	//should check inside scope
-
-}
-
-inline void NamedObjectBase::checkDisabling()
-{
-	if (!(flags & IS_TRACKED)) {
-		//std::cout << "disabling " << str() << std::endl;
-		exp->disable();
-	}
-}
-
+template<typename T, typename ... Args>
+Ex createDeclaration(const stringPtr & name, uint ctor_flags, const Args &... args);
 
 template<typename T>
 class NamedObject : public NamedObjectBase {
@@ -719,14 +218,6 @@ inline Ex getExp(T && t)
 	return std::forward<T>(t).getEx();
 }
 
-//template<bool temp, typename T> Ex getExpForced(const T &t) {
-//	return getExp<T, temp>(t);
-//}
-
-inline Ex NamedObjectBase::alias() const {
-	return createExp<Alias>(strPtr());
-}
-
 template<> inline Ex getExp<bool>(bool && b) {
 	return createExp<Litteral<bool>>(b);
 }
@@ -763,7 +254,7 @@ template<> inline Ex getExp<double&>(double & d) {
 	return createExp<Litteral<double>>(d);
 }
 
-/////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 enum StatementOptions : uint {
 	SEMICOLON = 1 << 0,
@@ -817,11 +308,6 @@ struct Block {
 		instructions.push_back(i);
 	}
 
-	//template<typename S>
-	//void push_statement(const S & s) {
-	//	push_instruction(std::static_pointer_cast<InstructionBase>(s));
-	//}
-
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
 		for (const auto & inst : instructions) {
 			inst->str(stream, trailing, opts);
@@ -844,7 +330,6 @@ struct Block {
 
 struct MainBlock : Block {
 	using Ptr = std::shared_ptr<MainBlock>;
-	int dummy;
 };
 
 struct ReturnBlockBase : Block {
@@ -883,10 +368,6 @@ struct ReturnBlock : ReturnBlockBase {
 	//virtual void cout(int & trailing, uint opts = DEFAULT);
 };
 
-//struct IfBlockT : Block {
-//	using Ptr = std::shared_ptr<IfBlockT>;
-//	using Block::Block;
-//};
 
 struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
@@ -1143,12 +624,12 @@ struct IfInstruction : InstructionBase {
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
 		const int numBodies = (int)bodies.size();
 		for (int i = 0; i < numBodies; ++i) {
-			if (i == 0) {
-				stream << instruction_begin(trailing, opts) << "if( ";
-				bodies[0].condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
-				stream << " ) {\n";
-			} else if(bodies[i].condition) {
-				stream << "else if( ";
+			if (bodies[i].condition) {
+				if (i == 0) {
+					stream << instruction_begin(trailing, opts) << "if( ";
+				} else {
+					stream << "else if( ";
+				}
 				bodies[i].condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
 				stream << " ) {\n";
 			} else {
@@ -1165,6 +646,40 @@ struct IfInstruction : InstructionBase {
 	std::vector<IfBody> bodies;
 	IfInstruction::Ptr parent_if;
 	bool waiting_for_else = false;
+};
+
+struct SwitchInstruction : InstructionBase {
+	using Ptr = std::shared_ptr<SwitchInstruction>;
+
+	struct SwitchCase {
+		Statement::Ptr label;
+		Block::Ptr body;
+	};
+
+	SwitchInstruction(const Ex & ex, const Block::Ptr & parent) {
+		condition = std::make_shared<Statement>(ex);
+	}
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << "while( ";
+		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+		stream << " ){\n";
+		++trailing;
+		for (const SwitchCase & _case : cases) {
+			stream << "case ";
+			_case.label->str(stream, trailing, NOTHING | IGNORE_TRAILING);
+			stream << " : {\n";
+			++trailing;
+			_case.body->str(stream, trailing, DEFAULT);
+			--trailing;
+			stream << "}\n";
+		}
+		--trailing;
+		stream << instruction_begin(trailing, opts) << "}\n";
+	}
+
+	Statement::Ptr condition;
+	std::vector<SwitchCase> cases;
 };
 
 enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
@@ -1241,10 +756,6 @@ struct InterfaceDeclaration : InstructionBase {
 	}
 	
 };
-//template<int N, typename ... Strings>
-//std::array<std::string,N> fill_args_names(const Strings & ... _argnames) {
-//	return std::array<std::string, N>{_argnames...};
-//}
 
 template <typename ReturnType, typename... Args, typename ... Strings>
 void init_function_declaration( const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
@@ -1274,8 +785,6 @@ template <typename List, typename ReturnType, typename ... Args>
 void checkArgsType(const std::function<ReturnType(Args...)>& f){
 	static_assert(SameTypeList < List, ArgTypeList<Args...> >, "arg types do not match function signature, or no implicit conversion available");
 }
-
-//template<typename Lambda>
 
 struct FunBase : NamedObject<FunBase> {
 	FunBase( const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
@@ -1366,6 +875,8 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 struct ControllerBase {
 
 	void queueEvent(const Ex & e) {
@@ -1382,15 +893,7 @@ struct ControllerBase {
 			}
 		}
 
-		//if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(e)) {
-		//	if (ctor->position == MAIN_BLOCK) {
-		//		std::cout << "main_block : " << ctor->str() << std::endl;
-		//	}
-		//}
-
 		currentBlock->push_instruction(toInstruction(e));
-
-		//currentBlock->instructions.push_back(toInstruction(e));
 	}
 
 	Block::Ptr currentBlock;
@@ -1525,21 +1028,17 @@ struct MainController : virtual ForController, virtual WhileController, virtual 
 	}
 
 	void handleEvent(const Ex & e) {
-	
-		//if (for_status != NONE) {
-		//	if (feed_for(e)) {
-		//		return;
-		//	}
-		//} 
-
 		check_end_if();
-
 		queueEvent(e);
 	}
 };
 
 struct ShaderBase : MainController {
 	using Ptr = std::shared_ptr<ShaderBase>;
+
+	MainBlock::Ptr declarations;
+	std::vector<InstructionBase::Ptr> structs;
+	std::vector<InstructionBase::Ptr> functions;
 
 	ShaderBase() {
 		declarations = std::make_shared<MainBlock>();
@@ -1550,12 +1049,7 @@ struct ShaderBase : MainController {
 	}
 
 	virtual std::string header() const { return ""; }
-
-	MainBlock::Ptr declarations;
-	std::vector<InstructionBase::Ptr> structs; 
-	std::vector<InstructionBase::Ptr> functions;
 	
-
 	std::string str() const {
 		int trailing = 1;
 
@@ -1870,6 +1364,14 @@ struct BeginElse {
 	}
 };
 
+struct BeginSwitch {	
+	operator int() const {
+		++count;
+		return count > 2 ? 0 : -69;
+	}
+	bool listening() const { return count == 2; }
+	mutable int count = 0;
+};
 
 struct EndFor {
 	
@@ -1932,15 +1434,6 @@ struct Fun<void, F_Type> : FunBase {
 	F_Type f;
 };
 
-//template<typename T, CtorTypeDisplay tRule, OperatorDisplayRule  dRule, ParenthesisRule pRule, CtorStatus status, typename ... Args>
-//Ex createInit(const stringPtr & name, const Args &... args)
-//{
-//	auto ctor = std::make_shared<Ctor<T, dRule, pRule, tRule>>(name, (sizeof...(args) != 0), status);
-//	Ex expr = std::make_shared<Exp>(std::static_pointer_cast<OpBase>(ctor), std::vector<Ex>{args...});
-//	listen().addEvent(expr);
-//	return expr;
-//}
-
 template<typename T, typename ... Args>
 Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args) 
 {
@@ -1951,64 +1444,11 @@ Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const 
 	return expr;
 }
 
-template<typename T>
-struct CreateDeclaration {
-	
-	template<typename ... Args>
-	static Ex run(
-		const stringPtr & name,	CtorStatus status, uint flags, const Args &... args)
-	{
-		return createInit<T, Args...>(name, status, flags, args...);
-	}
-};
-
-//template<QualifierType type, typename T, typename L>
-//struct CreateDeclaration<Qualifier<type, T, L>> {
-//	template<typename ... Args>
-//	static Ex run(const stringPtr & name, const Args &... args) {
-//		Ex e = createInit<Qualifier<type, T, L>, DISPLAY, USE_PARENTHESIS, DECLARATION, MAIN_BLOCK, Args...>(name, args...);
-//		std::cout << "mb" << e->str() << std::endl;
-//		return e;
-//	}
-//};
 
 template<typename T, typename ... Args>
 Ex createDeclaration(const stringPtr & name, uint flags, const Args &... args) {
-	return CreateDeclaration<T>::run(name, DECLARATION, flags, args...);
+	return createInit<T, Args...>(name, DECLARATION, flags, args...);
 }
-
-//template<typename T>
-//struct CreateArrayDeclaration {	
-//	static Ex run(const stringPtr & name, int n) {
-//		auto ctor = std::make_shared<Constructor<Array<T>>>(name, DECLARATION, n);
-//		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-//		listen().addEvent(expr);
-//		return expr;
-//	}
-//};
-//
-//template<typename T>
-//Ex createArrayDeclaration(const stringPtr & name, int n) {
-//	return CreateArrayDeclaration<T>::run(name, n);
-//}
-
-//template<QualifierType type, typename T, typename L>
-//struct CreateArrayDeclaration<Qualifier<type, T, L>> {
-//
-//	static Ex run(const stringPtr & name) {
-//		auto ctor = std::make_shared<Constructor<Qualifier<type, T, L>,0,DISPLAY,USE_PARENTHESIS,MAIN_BLOCK>>(name, DECLARATION);
-//		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-//		std::cout << "mb" << expr->str() << std::endl;
-//		listen().addEvent(expr);
-//		return expr;
-//	}
-//};
-//
-
-
-
-//enum class Matrix_Track { UNTRACKED };
-
 
 template<unsigned int S, typename... Args> struct TupleBuilder;
 
@@ -2075,7 +1515,11 @@ for(EndFor csl_dummy_for; csl_dummy_for; )
 
 #define GL_DISCARD DiscardStatement()
 
-#define GL_WHILE(condition) listen().begin_while(condition); for(WhileController::BeginWhile csl_begin_while = {}; csl_begin_while; )
+#define GL_WHILE(condition) listen().begin_while(condition); for(BeginWhile csl_begin_while = {}; csl_begin_while; )
+
+#define GL_SWITCH(condition) switch(condition){ case 1 : {} default : {} } switch(BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
+#define GL_CASE(value) listen(); case value 
+#define GL_DEFAULT listen(); default
 
 template<typename B, typename A, typename C, typename I = Infos<CT<A>>, typename = std::enable_if_t<
 	EqualMat<B, Bool> && EqualMat<A, C>

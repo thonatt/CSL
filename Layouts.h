@@ -49,8 +49,10 @@ struct GetLayoutArg<type, T, Ts...> {
 
 template<typename ... LayoutCleanedArgs> struct LayoutCleanedArg {};
 
+struct LayoutBase {};
+
 template<typename ... LayoutArgs>
-struct Layout {
+struct Layout : LayoutBase {
 	
 	static constexpr int offset = GetLayoutArg<OFFSET, LayoutArgs...>::value;
 	static constexpr int binding = GetLayoutArg<BINDING, LayoutArgs...>::value;
@@ -154,6 +156,23 @@ template<> struct GetTemplateQualifierT<Out> {
 	static const QualifierType value = OUT;
 };
 
+
+template<QualifierType q, typename ... T> struct Quali;
+
+template<QualifierType q, typename T, typename ... Q>
+struct Quali<q, T, Layout<Q...>> {};
+
+template<typename ... T> struct Uni;
+
+template<typename T> struct Uni<T> : Uni<Layout<> , T> {};
+
+template<typename L, typename T> struct Uni<L, T> : Quali<IN, T, L> {
+	static const bool v = false;
+};
+
+template<typename ... Q> struct Uni<Layout<Q...>> {
+	static const bool v = true;
+};
 
 //
 //#include "Algebra.h"

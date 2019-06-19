@@ -267,6 +267,11 @@ public:
 		//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
 		return false;
 	}
+
+	operator int() const {
+		static_assert((type == INT) && NC == 1 && NR == 1, "must switch over an Int");
+		return 0;
+	}
 };
 
 // Bool operators
@@ -359,7 +364,6 @@ template<typename A, typename B,
 {
 	return { createExp<MiddleOperator<DIVISION>>("/", EX(A, a), EX(B, b)) };
 }
-
 
 ////////////////////////////////////
 // Arrrays
