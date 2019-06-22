@@ -295,6 +295,7 @@ struct InstructionBase {
 		return out;
 	}
 
+	virtual ~InstructionBase() = default;
 	virtual void str(std::stringstream & stream, int & trailing, uint otps) { }
 	virtual void cout(int & trailing, uint otps = DEFAULT) {}
 	virtual void explore() {}
@@ -302,7 +303,10 @@ struct InstructionBase {
 
 struct Block {
 	using Ptr = std::shared_ptr<Block>;
+	
 	Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
+
+	virtual ~Block() = default;
 
 	virtual void push_instruction(const InstructionBase::Ptr & i) {
 		instructions.push_back(i);
@@ -336,6 +340,7 @@ struct ReturnBlockBase : Block {
 	using Ptr = std::shared_ptr<ReturnBlockBase>;
 	using Block::Block;
 
+	virtual ~ReturnBlockBase() = default;
 	virtual RunTimeInfos getType() const {
 		return getRunTimeInfos<void>();
 	}
@@ -352,7 +357,8 @@ struct ReturnBlock : ReturnBlockBase {
 	using Ptr = std::shared_ptr<ReturnBlock<ReturnType>>;
 
 	ReturnBlock(const Block::Ptr & _parent = {} ) : ReturnBlockBase(_parent) {}
-	
+	virtual ~ReturnBlock() = default;
+
 	virtual RunTimeInfos getType() const {
 		return getRunTimeInfos<ReturnType>();
 	}
@@ -373,6 +379,7 @@ struct Statement : InstructionBase {
 	using Ptr = std::shared_ptr<Statement>;
 	
 	Statement(const Ex & e = {}) : ex(e) {}
+	virtual ~Statement() = default;
 
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
 		if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
@@ -409,13 +416,13 @@ inline InstructionBase::Ptr toInstruction(const Ex & e) {
 
 struct EmptyStatement : Statement {
 
-	EmptyStatement(uint _flags = 0) : flags(_flags), Statement(Ex()) {}
+	EmptyStatement(uint _flags = 0) : Statement(Ex()), flags(_flags) {}
 
 	static InstructionBase::Ptr create(uint _flags = 0) { 
 		return std::static_pointer_cast<InstructionBase>(std::make_shared<EmptyStatement>(_flags)); 
 	}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		if (flags != 0) {
 			stream << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
 		} else {
@@ -423,7 +430,7 @@ struct EmptyStatement : Statement {
 		}
 	}
 
-	virtual void cout(int & trailing, uint opts = 0) {
+	void cout(int & trailing, uint opts = 0) {
 		if (flags != 0) {
 			std::cout << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
 		} else {
@@ -444,7 +451,7 @@ struct ForArgsBlock : Block {
 	Status status = INIT;
 	Ex stacked_condition;
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		
 		std::vector<InstructionBase::Ptr> inits, conditions, loops;
 		Status status = INIT;
@@ -516,6 +523,8 @@ struct ForArgsBlock : Block {
 
 struct SpecialStatement : Statement {
 	using Statement::Statement;
+	virtual ~SpecialStatement() = default;
+
 	virtual bool checkStatementValidity(Block::Ptr block) const { return true; }
 };
 
@@ -524,7 +533,7 @@ struct ReturnStatement : SpecialStatement {
 
 	ReturnStatement(const Ex & e = {}) : SpecialStatement(e) {}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+	void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << internal_str() << instruction_end(opts);
 	}
 
@@ -542,19 +551,19 @@ struct ReturnStatement : SpecialStatement {
 };
 
 struct ContinueStatement : SpecialStatement {
-	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+	void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << "continue" << instruction_end(opts);
 	}
 };
 
 struct DiscardStatement : SpecialStatement {
-	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+	void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << "discard" << instruction_end(opts);
 	}
 };
 
 struct BreakStatement : SpecialStatement {
-	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+	void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << "break" << instruction_end(opts);
 	}
 };
@@ -562,7 +571,7 @@ struct BreakStatement : SpecialStatement {
 struct CommentInstruction : InstructionBase {
 	CommentInstruction(const std::string & s) : comment(s) {}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint otps = DEFAULT) {
+	void str(std::stringstream & stream, int & trailing, uint otps = DEFAULT) {
 		stream << instruction_begin(trailing) << "//" << comment << std::endl;
 	}
 	std::string comment;
@@ -585,7 +594,7 @@ struct ForInstruction : InstructionBase {
 		body = std::make_shared<Block>();
 	}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << instruction_begin(trailing, opts) << "for( ";
 		args->str(stream, trailing, IGNORE_TRAILING );
 		stream << "){\n";
@@ -610,7 +619,7 @@ struct IfInstruction : InstructionBase {
 
 	IfInstruction(std::shared_ptr<IfInstruction> _parent = {}) : parent_if(_parent) {}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		const int numBodies = (int)bodies.size();
 		for (int i = 0; i < numBodies; ++i) {
 			if (bodies[i].condition) {
@@ -645,7 +654,7 @@ struct WhileInstruction : InstructionBase {
 		body = std::make_shared<Block>(parent);
 	}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << instruction_begin(trailing, opts) << "while( ";
 		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
 		stream << " ){\n";
@@ -669,7 +678,7 @@ struct SwitchCase : InstructionBase {
 		body = std::make_shared<Block>(parent);
 	}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		if (label) {
 			stream << instruction_begin(trailing, opts) << "case ";
 			label->str(stream, trailing, NOTHING | IGNORE_TRAILING);
@@ -702,7 +711,7 @@ struct SwitchInstruction : InstructionBase {
 		currentBlock = current_case->body;
 	}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << instruction_begin(trailing, opts) << "switch( ";
 		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
 		stream << " ){\n";
@@ -766,7 +775,7 @@ struct StructDeclaration : InstructionBase {
 	StructDeclaration(const std::string & _name, const Strings &... _names) : 
 		name(_name), member_names{ _names... } {}
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << instruction_begin(trailing, opts) << "struct " << name << " {\n";
 		++trailing;
 		stream << memberDeclarations<SEP_AFTER_ALL,Args...>(member_names, trailing, ";\n");
@@ -856,6 +865,7 @@ Fun<ReturnType, F_Type> makeFun(const F_Type & f, const Strings & ...argnames) {
 
 struct FunctionDeclarationBase : InstructionBase {
 	virtual Block::Ptr getBody() { return {}; }
+	virtual ~FunctionDeclarationBase() = default;
 };
 
 template<typename ReturnType>
@@ -863,6 +873,9 @@ struct FunctionDeclarationRTBase : FunctionDeclarationBase {
 	FunctionDeclarationRTBase() {
 		body = std::make_shared<ReturnBlock<ReturnType>>();
 	}
+
+	virtual ~FunctionDeclarationRTBase() = default;
+
 	virtual Block::Ptr getBody() { return std::static_pointer_cast<Block>(body); }
 
 	typename ReturnBlock<ReturnType>::Ptr body;
@@ -883,7 +896,7 @@ struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT,Args...> {
 	using Base = FunctionDeclarationArgs<ReturnT, Args...>;
 	using Base::Base;
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << InstructionBase::instruction_begin(trailing, opts) << ReturnT::typeStr() << " " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
 		stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
@@ -900,7 +913,7 @@ struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void,Args...
 	using Base = FunctionDeclarationArgs<void, Args...>;
 	using Base::Base;
 
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << InstructionBase::instruction_begin(trailing, opts) << "void " << Base::name << "(" <<
 			memberDeclarationsTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
 		stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
@@ -1092,6 +1105,11 @@ struct MainController :
 		WhileController::end_while();
 	}
 
+	virtual void end_switch() {
+		check_end_if();
+		SwitchController::end_switch();
+	}
+
 	void handleEvent(const Ex & e) {
 		check_end_if();
 		queueEvent(e);
@@ -1139,9 +1157,6 @@ struct ShaderBase : MainController {
 
 	void explore() {
 		declarations->explore();
-		for (const auto & struc : structs) {
-			//struc->cout();
-		}
 	}
 
 	template<typename ...Args, typename ... Strings> 
@@ -1275,7 +1290,7 @@ struct MainListener {
 		}
 	}
 
-	void begin_for_args() {
+	virtual void begin_for_args() {
 		if (currentShader) {
 			currentShader->begin_for_args();
 		}

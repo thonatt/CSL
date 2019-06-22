@@ -82,24 +82,13 @@ struct OperatorBase;
 using Ex = std::shared_ptr<OperatorBase>;
 
 struct OperatorBase {
-	//OperatorBase(stringPtr _op_str_ptr = {}) : op_str_ptr(_op_str_ptr) {
-	//	if (!op_str_ptr) {
-	//		op_str_ptr = std::make_shared<std::string>(" >no_str< ");
-	//	}
-	//}
 
-	OperatorBase(uint _flags = 0) : flags(_flags)
-	{
-
-	}
+	OperatorBase(uint _flags = 0) : flags(_flags) {}
+	virtual ~OperatorBase() = default;
 
 	virtual std::string str(int trailing) const {
 		return "no_str";
 	}
-
-	//std::string op_str() const {
-	//	return *op_str_ptr;
-	//}
 
 	std::string explore() const {
 		return "no_exploration";
@@ -150,7 +139,7 @@ struct NamedOperator {
 template<OperatorPrecedence precedence>
 struct Precedence : OperatorBase {
 	//Precedence(stringPtr _op_str_ptr = {}) : OperatorBase(_op_str_ptr) {}
-
+	virtual ~Precedence() = default;
 	virtual uint rank() const { return (uint)precedence; }
 };
 
@@ -219,7 +208,9 @@ Ex createFCallExp(const std::string & f_name, const Args & ... args) {
 
 struct ConstructorBase : OperatorBase {
 	ConstructorBase(CtorStatus _status = INITIALISATION, uint _flags = 0)
-		: ctor_status(_status), OperatorBase(_flags) { }
+		: OperatorBase(_flags), ctor_status(_status) { }
+
+	virtual ~ConstructorBase() = default;
 
 	CtorPosition position() const {
 		if (flags & MAIN_BLOCK) {
@@ -266,6 +257,8 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		: ArgsCall<N>(_args...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
 	{
 	}
+
+	virtual ~Constructor() = default;
 
 	std::string obj_name() const {
 		return *obj_name_ptr;
@@ -337,7 +330,7 @@ struct Constructor<Array<T, N>, M> : Constructor<T, M> {
 
 struct MemberAccessor : Precedence<FIELD_SELECTOR> {
 	MemberAccessor(const Ex & _obj, stringPtr member_str)
-		: member_str_ptr(member_str), obj(_obj) {
+		: obj(_obj), member_str_ptr(member_str) {
 	}
 	std::string str(int trailing) const {
 		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
