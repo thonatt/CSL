@@ -14,8 +14,8 @@ namespace frag_all {
 	static Out<Float> gl_FragDepth("gl_FragDepth", DISABLED);
 
 
-	inline void DiscardStatement() {
-		listen().add_statement<DiscardeStatement>();
+	inline void Discard() {
+		listen().add_statement<DiscardStatement>();
 	}
 }
 

@@ -14,9 +14,7 @@ std::string blurShader()
 
 	Uniform<sampler2D, Layout<Binding<0> >> sceenTexture("screenTexture");
 	Uniform<vec2> fetchOffset("fetchOffset");
-
-	GL_DECLARE(fragColor, Out<vec3> );
-	//Out<vec3> fragColor("fragColor");
+	Out<vec3> fragColor("fragColor");
 
 	shader.main([&] {
 
@@ -223,6 +221,31 @@ std::string discardFragShader()
 				FragColor = vec4(BackColor, 1.0);
 			}
 		}
+
+		Uint i = Uint(0u) << "i";
+		GL_SWITCH(i) {
+			GL_CASE(1u) : { 
+				++i;
+				GL_FOR(Int j = 0; j < 5; ++j) {
+					i += 2;
+				} 
+				GL_IF(i > 6) {
+					GL_SWITCH(i) {
+						GL_CASE(12) : {
+							GL_BREAK;
+						}
+						GL_DEFAULT: {}
+					}
+				} GL_ELSE {
+					--i;
+				}
+				GL_BREAK;
+			}
+
+			GL_CASE(2u) : { --i; }
+
+			GL_DEFAULT: { i += 2; }
+		}
 	});
 
 	return shader.str();
@@ -231,18 +254,7 @@ std::string discardFragShader()
 void test()
 {
 
-	Int i = 0;
-	Double d;
-	int j;
-	j = i;
 
-	GL_SWITCH(i) {
-		GL_CASE(1) : 
-
-		GL_CASE(2) :
-
-		GL_DEFAULT : {}
-	}
 
 	//GL_SWITCH(i) {
 	//	GL_CASE(i) {}

@@ -81,24 +81,6 @@ int main()
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 
-	struct M {
-		operator int() const {
-			++count;
-			return count > 2 ? 0 : 69;
-		}
-		bool listening() const { return count == 2; }
-		mutable int count = 0;
-	};
-
-	auto f = [](const M & m, const std::string & s) { if (m.listening()) { std::cout << s << std::endl; } };
-
-	switch (M a = {})while (a) {	
-	case 42: { f(a,"42");  }
-	case 111: { f(a,"111"); }
-	default: { f(a,"def"); }
-	}
-
-
 	return 0;
 }
 

@@ -65,6 +65,11 @@ template<> inline std::string TypePrefixStr<UINT>::str() { return "u"; }
 template<> inline std::string TypePrefixStr<FLOAT>::str() { return ""; }
 template<> inline std::string TypePrefixStr<DOUBLE>::str() { return "d"; }
 
+template<ScalarType nType> struct LitteralSufffixStr {
+	static std::string str() { return ""; }
+};
+template<> inline std::string LitteralSufffixStr<UINT>::str() { return "u"; }
+
 //helper for sampler types
 
 template<AccessType t>

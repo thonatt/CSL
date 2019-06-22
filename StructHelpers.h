@@ -85,7 +85,7 @@ struct Name : public NamedObject<Name> { \
 	} \
 }
 
-#define GL_DECLARE(name, ...) __VA_ARGS__  name(BOOST_PP_STRINGIZE(name))
+//#define GL_DECLARE(name, ...) __VA_ARGS__  name(BOOST_PP_STRINGIZE(name))
 
 //#define GL_INTERFACE(Qualifier, name, Name, ...) \
 //			GL_STRUCT(Name, __VA_ARGS__ ); \

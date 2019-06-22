@@ -164,6 +164,14 @@ template<> struct Infos<int> {
 	static const ScalarType scalar_type = INT;
 };
 
+template<> struct Infos<uint> {
+	static const bool is_numeric_type = true;
+	static const bool is_glsl_type = false;
+	static const uint rows = 1;
+	static const uint cols = 1;
+	static const ScalarType scalar_type = UINT;
+};
+
 template<> struct Infos<bool> {
 	static const bool is_numeric_type = true;
 	static const bool is_glsl_type = false;

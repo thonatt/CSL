@@ -269,7 +269,7 @@ public:
 	}
 
 	operator int() const {
-		static_assert((type == INT) && NC == 1 && NR == 1, "must switch over an Int");
+		static_assert( IsInteger<Matrix> , "must switch over an Int or Uint");
 		return 0;
 	}
 };

@@ -437,7 +437,7 @@ struct Litteral : OperatorBase {
 
 	virtual std::string str(int trailing) const {
 		std::stringstream ss;
-		ss << std::fixed << std::setprecision(1) << i;
+		ss << std::fixed << std::setprecision(1) << i << LitteralSufffixStr<Infos<T>::scalar_type>::str();
 		return ss.str();
 		//return std::to_string(i); 
 	}

@@ -11,9 +11,9 @@
 
 #include "FunctionHelpers.h"
 
-#define EX(type, var) getExp(std::forward<type>(var))
-
 #include "Operators.h"
+
+#define EX(type, var) getExp(std::forward<type>(var))
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -376,10 +376,13 @@ struct Statement : InstructionBase {
 
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) { 
 		if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
-			stream <<
-				((opts & NEW_LINE) ? instruction_begin(trailing, opts) : "")
-				<< ex->str(trailing)
-				<< instruction_end(opts);
+			stream << ((opts & NEW_LINE) ? instruction_begin(trailing, opts) : "");
+			if ((opts & IGNORE_TRAILING)) {
+				stream << ex->str(0);
+			} else {
+				stream << ex->str(trailing);
+			}			
+			stream << instruction_end(opts);
 		}
 	}
 
@@ -478,6 +481,8 @@ struct ForArgsBlock : Block {
 					if (status == LOOP) {
 						loops.push_back(*it);
 					}
+				} else {
+					///
 				}
 			}
 			++it;
@@ -542,9 +547,15 @@ struct ContinueStatement : SpecialStatement {
 	}
 };
 
-struct DiscardeStatement : SpecialStatement {
+struct DiscardStatement : SpecialStatement {
 	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
 		stream << instruction_begin(trailing, opts) << "discard" << instruction_end(opts);
+	}
+};
+
+struct BreakStatement : SpecialStatement {
+	virtual void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+		stream << instruction_begin(trailing, opts) << "break" << instruction_end(opts);
 	}
 };
 
@@ -589,28 +600,6 @@ struct ForInstruction : InstructionBase {
 	Block::Ptr body;
 };
 
-struct WhileInstruction : InstructionBase {
-	using Ptr = std::shared_ptr<WhileInstruction>;
-
-	WhileInstruction(const Ex & ex, const Block::Ptr & parent ) {
-		condition = std::make_shared<Statement>(ex);
-		body = std::make_shared<Block>(parent);
-	}
-
-	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
-		stream << instruction_begin(trailing, opts) << "while( ";
-		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
-		stream << " ){\n";
-		++trailing;
-		body->str(stream, trailing, opts);
-		--trailing;
-		stream << instruction_begin(trailing, opts) << "}\n";
-	}
-
-	Statement::Ptr condition;
-	Block::Ptr body;	
-};
-
 struct IfInstruction : InstructionBase {
 	using Ptr = std::shared_ptr<IfInstruction>;
 
@@ -648,16 +637,12 @@ struct IfInstruction : InstructionBase {
 	bool waiting_for_else = false;
 };
 
-struct SwitchInstruction : InstructionBase {
-	using Ptr = std::shared_ptr<SwitchInstruction>;
+struct WhileInstruction : InstructionBase {
+	using Ptr = std::shared_ptr<WhileInstruction>;
 
-	struct SwitchCase {
-		Statement::Ptr label;
-		Block::Ptr body;
-	};
-
-	SwitchInstruction(const Ex & ex, const Block::Ptr & parent) {
+	WhileInstruction(const Ex & ex, const Block::Ptr & parent ) {
 		condition = std::make_shared<Statement>(ex);
+		body = std::make_shared<Block>(parent);
 	}
 
 	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
@@ -665,21 +650,72 @@ struct SwitchInstruction : InstructionBase {
 		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
 		stream << " ){\n";
 		++trailing;
-		for (const SwitchCase & _case : cases) {
-			stream << "case ";
-			_case.label->str(stream, trailing, NOTHING | IGNORE_TRAILING);
-			stream << " : {\n";
-			++trailing;
-			_case.body->str(stream, trailing, DEFAULT);
-			--trailing;
-			stream << "}\n";
-		}
+		body->str(stream, trailing, opts);
 		--trailing;
 		stream << instruction_begin(trailing, opts) << "}\n";
 	}
 
 	Statement::Ptr condition;
-	std::vector<SwitchCase> cases;
+	Block::Ptr body;	
+};
+
+struct SwitchCase : InstructionBase {
+	using Ptr = std::shared_ptr<SwitchCase>;
+
+	SwitchCase(const Ex & ex, const Block::Ptr & parent) {
+		if (ex) {
+			label = std::make_shared<Statement>(ex);
+		}
+		body = std::make_shared<Block>(parent);
+	}
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		if (label) {
+			stream << instruction_begin(trailing, opts) << "case ";
+			label->str(stream, trailing, NOTHING | IGNORE_TRAILING);
+		} else {
+			stream << instruction_begin(trailing, opts) << "default";
+		}
+		stream << " : {\n";
+		++trailing;
+		body->str(stream, trailing, DEFAULT);
+		--trailing;
+		stream << instruction_begin(trailing, opts) << "}\n";
+	}
+
+	Statement::Ptr label;
+	Block::Ptr body;
+};
+
+struct SwitchInstruction : InstructionBase {
+	using Ptr = std::shared_ptr<SwitchInstruction>;
+
+	SwitchInstruction(const Ex & ex, const Block::Ptr & parent, const SwitchInstruction::Ptr & _parent_switch = {}) {
+		condition = std::make_shared<Statement>(ex);
+		body = std::make_shared<Block>(parent);
+		parent_switch = _parent_switch;
+	}
+
+	void add_case(const Ex & ex, Block::Ptr & currentBlock) {
+		current_case = std::make_shared<SwitchCase>(ex, body);
+		body->push_instruction(current_case);
+		currentBlock = current_case->body;
+	}
+
+	virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << "switch( ";
+		condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+		stream << " ){\n";
+		++trailing;
+		body->str(stream, trailing, opts);
+		--trailing;
+		stream << instruction_begin(trailing, opts) << "}\n";
+	}
+
+	Statement::Ptr condition;
+	Block::Ptr body;
+	SwitchCase::Ptr current_case;
+	SwitchInstruction::Ptr parent_switch;
 };
 
 enum SeparatorRule { SEP_IN_BETWEEN, SEP_AFTER_ALL };
@@ -995,12 +1031,41 @@ struct WhileController : virtual ControllerBase {
 	}
 
 	virtual void end_while() {
-		//std::cout << " end while " << std::endl;
 		currentBlock = currentBlock->parent;
 	}
 };
 
-struct MainController : virtual ForController, virtual WhileController, virtual IfController {
+struct SwitchController : virtual ControllerBase {
+	void begin_switch(const Ex & ex) {
+		current_switch = std::make_shared<SwitchInstruction>(ex, currentBlock, current_switch);
+		currentBlock->push_instruction(current_switch);
+		currentBlock = current_switch->body;
+	}
+
+	void add_case(const Ex & ex) {
+		current_switch->add_case(ex, currentBlock);
+	}
+	void end_case() {
+		currentBlock = currentBlock->parent;
+	}
+
+	virtual void end_switch() {
+		if (current_switch->current_case) {
+			currentBlock = currentBlock->parent;
+		}
+		currentBlock = currentBlock->parent;
+		current_switch = current_switch->parent_switch;
+	}
+
+	SwitchInstruction::Ptr current_switch;
+};
+
+struct MainController : 
+	virtual ForController,
+	virtual WhileController,
+	virtual IfController,
+	virtual SwitchController
+{
 	using Ptr = std::shared_ptr<MainController>;
 	
 	void add_blank_line(int n = 0) {
@@ -1115,7 +1180,7 @@ struct ShaderBase : MainController {
 	}
 
 	template<typename S, typename ... Args>
-	void add_statement(Args ... args) {
+	void add_statement(Args && ... args) {
 		auto statement = std::make_shared<S>(args...);
 		if (auto st = std::dynamic_pointer_cast<SpecialStatement>(statement)) {
 			if (st->checkStatementValidity(currentBlock)) {
@@ -1197,7 +1262,7 @@ struct MainListener {
 	template<typename S, typename ... Args>
 	void add_statement(Args && ... args) {
 		if (currentShader) {
-			currentShader->add_statement<S, Args...>(std::move(args)...);
+			currentShader->add_statement<S, Args...>(std::forward<Args>(args)...);
 		}
 	}
 
@@ -1291,6 +1356,35 @@ struct MainListener {
 
 	/////////////////////////////////////////////////
 
+	template<typename C, typename = std::enable_if_t< IsInteger<C> > >
+	void begin_switch(C && cond) {
+		if (currentShader) {
+			currentShader->begin_switch(EX(C,cond));
+		}
+	}
+
+	template<typename C>
+	void begin_switch_case(C && _case) {
+		if (currentShader) {
+			currentShader->add_case(EX(C,_case));
+		}
+	}
+	void begin_switch_case() {
+		if (currentShader) {
+			currentShader->add_case(Ex());
+		}
+	}
+
+
+	void end_switch() {
+		if (currentShader) {
+			currentShader->end_switch();
+		}
+	}
+
+	//////////////////////////////
+
+
 	template<bool dummy, typename ...Args, typename ... Strings>
 	void add_struct(const std::string & name, const Strings & ... names) {
 		if (currentShader) {
@@ -1364,12 +1458,20 @@ struct BeginElse {
 	}
 };
 
-struct BeginSwitch {	
+struct BeginSwitch {
 	operator int() const {
 		++count;
+		if (count == 1) {
+			listen().active() = false;
+		} else if (count == 2) {
+			listen().active() = true;
+		}
 		return count > 2 ? 0 : -69;
 	}
-	bool listening() const { return count == 2; }
+	
+	~BeginSwitch() {
+		listen().end_switch();
+	}
 	mutable int count = 0;
 };
 
@@ -1513,13 +1615,15 @@ for(EndFor csl_dummy_for; csl_dummy_for; )
 
 #define GL_CONTINUE listen().add_statement<ContinueStatement>();
 
-#define GL_DISCARD DiscardStatement()
+#define GL_DISCARD listen().add_statement<DiscardStatement>();
+
+#define GL_BREAK if(false){break;} listen().add_statement<BreakStatement>();
 
 #define GL_WHILE(condition) listen().begin_while(condition); for(BeginWhile csl_begin_while = {}; csl_begin_while; )
 
-#define GL_SWITCH(condition) switch(condition){ case 1 : {} default : {} } switch(BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
-#define GL_CASE(value) listen(); case value 
-#define GL_DEFAULT listen(); default
+#define GL_SWITCH(condition) switch(condition){ case 1 : {} default : {} } listen().begin_switch(condition); switch(BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
+#define GL_CASE(value) listen().begin_switch_case(value); case value 
+#define GL_DEFAULT listen().begin_switch_case(); default
 
 template<typename B, typename A, typename C, typename I = Infos<CT<A>>, typename = std::enable_if_t<
 	EqualMat<B, Bool> && EqualMat<A, C>
