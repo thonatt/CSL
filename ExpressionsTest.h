@@ -1311,6 +1311,7 @@ struct MainListener {
 	void stack_for_condition(const Ex & ex) {
 		if (currentShader) {
 			currentShader->stack_for_condition(ex);
+			std::cout << "stacked for arg : " << ex->str(0) << std::endl;
 		}
 	}
 

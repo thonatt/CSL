@@ -3,10 +3,34 @@
 #include "ExpressionsTest.h"
 #include "Swizzles.h"
 
+template<typename T>
+struct MatrixConvertor { };
+
+template<> struct MatrixConvertor<Int> {
+	operator int() {
+		return 0;
+	}
+};
+
+template<> struct MatrixConvertor<Uint> {
+	operator uint() {
+		return 0;
+	}
+};
+
+template<> struct MatrixConvertor<Bool> {
+	operator bool() &; 
+
+	operator bool() && {
+		//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
+		return false;
+	}
+};
+
 /// matrix class
 
 template<ScalarType type, uint NR, uint NC>
-class Matrix : public NamedObject<Matrix<type, NR, NC>> {
+class Matrix : public NamedObject<Matrix<type, NR, NC>>, public MatrixConvertor<Matrix<type, NR, NC>> {
 
 public:
 	using UnderlyingType = Matrix;
@@ -65,16 +89,16 @@ public:
 
 
 	// matXY(int/float) and matXY(matWZ)
-	template<typename R_T, typename T = CleanType<R_T>, typename = std::enable_if_t< 
+	template<typename T, typename = std::enable_if_t< 
 		AreValid<T> && (
 			isScalar || IsScalar<T>  || //matXY(int/float)
 		(!isBool && (NC != 1 || NR != 1) &&  (Infos<T>::cols != 1 || Infos<T>::rows != 1) ) //matXY(matWZ)
 			) > >
-	Matrix( R_T && x)
+	Matrix( T && x)
 		: NamedObject<Matrix>(
 			EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
 			IS_TRACKED, "",
-			EX(R_T, x))
+			EX(T, x))
 	{
 	}
 
@@ -253,26 +277,46 @@ public:
 	//	typename = std::enable_if_t< NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
 	//	void operator*=(R_A&& a) const && = delete;
 
-	// needed for loops
-	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	operator bool() & {
-		//std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
-		//needed as any [variable;] in GL_FOR wont generate any instruction
-		listen().stack_for_condition(NamedObjectBase::getExRef());
-		return false;
-	}
+	//template<bool b = (type == UINT) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	//operator uint() {
+	//	static_assert(type == UINT, "must switch over an Int or Uint");
+	//	return 0;
+	//}
 
-	template<bool b = isBool && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	operator bool() && {
-		//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
-		return false;
-	}
+	//template<bool b = (type ==INT) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	//operator int() {
+	//	static_assert(type == INT || type == UINT, "must switch over an Int or Uint");
+	//	return 0;
+	//}
 
-	operator int() const {
-		static_assert( IsInteger<Matrix> , "must switch over an Int or Uint");
-		return 0;
-	}
+	//// needed for loops
+	//template<bool b = (type == BOOL) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	//operator bool() & {
+	//	//std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
+
+	//	static_assert(type == BOOL, "bool");
+	//	//needed as any [variable;] in GL_FOR wont generate any instruction
+	//	listen().stack_for_condition(NamedObjectBase::getExRef());
+	//	return false;
+	//}
+
+	//template<bool b = (type == BOOL) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
+	//operator bool() && {
+	//	//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
+	//	static_assert(type == BOOL, "bool");
+	//	return false;
+	//}
+
 };
+
+inline MatrixConvertor<Bool>::operator bool() &
+{
+	//needed as any [variable;] in GL_FOR wont generate any instruction
+	//listen().stack_for_condition(NamedObjectBase::getExRef());
+
+	listen().stack_for_condition(static_cast<Bool &>(*this).getExRef());
+	return false;
+}
 
 // Bool operators
 template<typename A, typename B,

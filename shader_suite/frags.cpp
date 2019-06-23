@@ -230,7 +230,7 @@ std::string discardFragShader()
 					i += 2;
 				} 
 				GL_IF(i > 6) {
-					GL_SWITCH(i) {
+					GL_SWITCH(j) {
 						GL_CASE(12) : {
 							GL_BREAK;
 						}
@@ -245,6 +245,11 @@ std::string discardFragShader()
 			GL_CASE(2u) : { --i; }
 
 			GL_DEFAULT: { i += 2; }
+		}
+
+		Bool bb("bb");
+		GL_FOR(Int k = Int(0) << "k"; bb; ++k) {
+			k *= 2;
 		}
 	});
 
