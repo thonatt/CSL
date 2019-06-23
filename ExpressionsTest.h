@@ -946,6 +946,9 @@ struct ControllerBase {
 	}
 
 	Block::Ptr currentBlock;
+	
+	virtual ~ControllerBase() = default;
+	
 };
 
 struct ForController : virtual ControllerBase {
