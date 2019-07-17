@@ -9,6 +9,7 @@
 #include <boost/preprocessor/variadic/elem.hpp>
 #include <boost/preprocessor/seq/pop_front.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
+#include <boost/preprocessor/facilities/is_empty.hpp>
 
 #include "ExpressionsTest.h"
 
