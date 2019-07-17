@@ -45,10 +45,8 @@ struct GetLayoutArg<type, T, Ts...> {
 
 template<typename ... LayoutCleanedArgs> struct LayoutCleanedArg {};
 
-struct LayoutBase {};
-
 template<typename ... LayoutArgs>
-struct Layout : LayoutBase {
+struct Layout {
 	
 	static constexpr int offset = GetLayoutArg<OFFSET, LayoutArgs...>::value;
 	static constexpr int binding = GetLayoutArg<BINDING, LayoutArgs...>::value;
@@ -91,22 +89,22 @@ struct Qualifier : T
 };
 
 
-template<QualifierType qType, typename ... T> 
+template<QualifierType _qType, typename ... T> 
 struct QualiPH;
 
 //placeholder
-template<QualifierType qType1>
-struct QualiPH<qType1> {
-	static const QualifierType qType = qType1;
-	using Layout = Layout<>;
+template<QualifierType _qType>
+struct QualiPH<_qType> {
+	static const QualifierType qType = _qType;
+	using LayoutType = Layout<>;
 	using Type = QualiPH;
 };
 
 //placeholder
-template<QualifierType qType1, typename ... Q>
-struct QualiPH<qType1, Layout<Q...>> {
-	static const QualifierType qType = qType1;
-	using Layout = Layout<Q...>;
+template<QualifierType _qType, typename ... Q>
+struct QualiPH<_qType, Layout<Q...>> {
+	static const QualifierType qType = _qType;
+	using LayoutType = Layout<Q...>;
 	using Type = QualiPH;
 };
 
@@ -140,5 +138,5 @@ struct GetQualifier<T> {
 
 template<typename QualifierPH, typename T>
 struct GetQualifier<QualifierPH, T> {
-	using Type = Qualifier<QualifierPH::qType, T, typename QualifierPH::Layout>;
+	using Type = Qualifier<QualifierPH::qType, T, typename QualifierPH::LayoutType>;
 };
