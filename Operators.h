@@ -221,7 +221,7 @@ struct ConstructorBase : OperatorBase {
 	}
 
 	void setTemp() {
-		if (status() == INITIALISATION) {
+		if (status() == INITIALISATION ) { // || status() == DECLARATION || status() == FORWARD ) {
 			ctor_status = TEMP;
 		}
 	}
@@ -238,6 +238,12 @@ struct ConstructorBase : OperatorBase {
 	virtual bool is_bool_ctor() const {
 		return false;
 	}
+
+	virtual std::string obj_name() const {
+		return "base_ctor_obj_name";
+	}
+
+	virtual Ex firstArg() { return {}; }
 
 	CtorStatus ctor_status;
 };
@@ -260,7 +266,7 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 
 	virtual ~Constructor() = default;
 
-	std::string obj_name() const {
+	virtual std::string obj_name() const {
 		return *obj_name_ptr;
 	}
 
@@ -272,11 +278,11 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	}
 
 	virtual std::string rhs_type_str() const {
-		return getTypeStr<T>();
+		return TypeStrRHS<T>::str();
 	}
 
 	virtual std::string lhs_str(int trailing) const {
-		return lhs_type_str(trailing) + " " + obj_name();
+		return DeclarationStr<T>::str(obj_name(), trailing); // lhs_type_str(trailing) + " " + obj_name();
 	}
 
 	std::string rhs_str() const {
@@ -308,35 +314,61 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 		return IsSameType<T, Bool>;
 	}
 
+	virtual Ex firstArg() {
+		if (N > 0) {
+			return ArgsCall<N>::args[0];
+		} else {
+			return {};
+		}
+	}
+
 	stringPtr obj_name_ptr;
 };
 
-template<typename T, uint N, uint M>
-struct Constructor<Array<T, N>, M> : Constructor<T, M> {
-
-	template<typename ... Args>
-	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags, const Args & ...  _args)
-		: Constructor<T, M>(_obj_name_ptr, _status, flags, _args...) {
-	}
-
-	virtual std::string lhs_str(int trailing) const {
-		return Constructor<T, M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
-	}
-
-	virtual std::string rhs_type_str() const {
-		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
-	}
-};
+//template<typename T, uint N, uint M>
+//struct Constructor<Array<T, N>, M> : Constructor<T, M> {
+//
+//	template<typename ... Args>
+//	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags, const Args & ...  _args)
+//		: Constructor<T, M>(_obj_name_ptr, _status, flags, _args...) {
+//	}
+//
+//	virtual std::string lhs_str(int trailing) const {
+//		return Constructor<T, M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
+//	}
+//
+//	virtual std::string rhs_type_str() const {
+//		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
+//	}
+//};
 
 struct MemberAccessor : Precedence<FIELD_SELECTOR> {
-	MemberAccessor(const Ex & _obj, stringPtr member_str)
-		: obj(_obj), member_str_ptr(member_str) {
+	MemberAccessor(const Ex & _obj, const std::string & _member_str)
+		: obj(_obj), member_str(_member_str) {
 	}
 	std::string str(int trailing) const {
-		return OperatorBase::checkForParenthesis(obj) + "." + *member_str_ptr;
+		std::string obj_str;
+		if (obj_is_temp) {
+			obj_str = OperatorBase::checkForParenthesis(obj);
+		} else {
+			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(obj)) {
+				obj_str = ctor->obj_name();
+			}
+		}
+		return obj_str + "." + member_str;
 	}
+
+	void make_obj_tmp() {
+		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(obj)) {
+			ctor->setTemp();
+			ctor->disable();
+		}
+		obj_is_temp = true;
+	}
+
 	Ex obj;
-	stringPtr member_str_ptr;
+	std::string member_str;
+	bool obj_is_temp = false;
 };
 
 template<uint N>

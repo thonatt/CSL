@@ -8,7 +8,7 @@ using stringPtr = std::shared_ptr<std::string>;
 
 template<typename T>
 struct TypeStr {
-	static std::string str(int trailing = 0) { return T::typeStr(trailing); }
+	static std::string str(int trailing) { return T::typeStr(trailing); }
 };
 
 template<typename T>
@@ -18,13 +18,26 @@ std::string getTypeStr(int trailing = 0) {
 
 template<typename T>
 struct TypeNamingStr {
-	static std::string str() { return TypeStr<T>::str(); }
+	static std::string str(int trailing = 0) { return T::typeNamingStr(trailing); }
 };
 
 template<typename T>
 std::string getTypeNamingStr() {
 	return TypeNamingStr<T>::str();
 }
+
+template<typename T>
+struct TypeStrRHS {
+	static std::string str() { return getTypeStr<T>(); }
+};
+
+template<uint N>
+std::string arrayStr() { return "[" + (N > 0 ? std::to_string(N) : "") + "]"; }
+
+template<typename T, uint N>
+struct TypeStrRHS<Array<T,N>> {
+	static std::string str() { return getTypeStr<T>() + arrayStr<N>() ; }
+};
 
 template<typename ... Ts> struct MultipleTypeStr {
 	static std::string str() {
@@ -107,6 +120,11 @@ struct TypeStr< Matrix<type, N, M> > {
 	}
 };
 
+template<ScalarType type, uint N, uint M>
+struct TypeNamingStr<Matrix<type, N, M>> {
+	static std::string str(int trailing = 0) { return TypeStr<Matrix<type, N, M>>::str(trailing); }
+};
+
 template<> struct TypeStr<Bool> {
 	static std::string str(int trailing = 0) { return "bool"; }
 };
@@ -154,6 +172,11 @@ struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
 };
 
 template<> inline std::string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
+
+template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+struct TypeNamingStr<Sampler<aType, nType, N, sType, flags>> {
+	static std::string str(int trailing = 0) { return TypeStr<Sampler<aType, nType, N, sType, flags>>::str(trailing); }
+};
 
 // layout types
 
@@ -215,22 +238,28 @@ struct TypeStr< LayoutCleanedArg<LayoutArgs... > > {
 template<QualifierType qType, typename T, typename ... LayoutArgs>
 struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 	static std::string str(int trailing = 0) {
-		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str();
+		return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str(trailing);
 	}
 };
+
+template<QualifierType qType, typename T, typename ... LayoutArgs>
+struct TypeNamingStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
+	static std::string str(int trailing = 0) { return TypeStr<T>::str(trailing); }
+};
+
 
 //array 
-template<typename T, uint N>
-struct TypeStr< Array<T, N> > {
-
-	static std::string array_str() {
-		return "[" +  ( N > 0 ? std::to_string(N)  : "" ) + "]";
-	}
-
-	static std::string str(int trailing = 0) {
-		return TypeStr<T>::str();
-	}
-};
+//template<typename T, uint N>
+//struct TypeStr< Array<T, N> > {
+//
+//	static std::string array_str() {
+//		return "[" +  ( N > 0 ? std::to_string(N)  : "" ) + "]";
+//	}
+//
+//	static std::string str(int trailing = 0) {
+//		return TypeStr<T>::str();
+//	}
+//};
 
 template<typename T, uint N>
 struct TypeNamingStr< Array<T, N> > {
@@ -238,6 +267,27 @@ struct TypeNamingStr< Array<T, N> > {
 		return "array_" + TypeNamingStr<T>::str() + "_" + std::to_string(N);
 	}
 };
+
+
+template<typename T>
+struct DeclarationStr {
+	static std::string str(const std::string & name, int trailing = 0) { return getTypeStr<T>(trailing) + " " + name; }
+};
+
+template<QualifierType qType, typename T, typename Layout>
+struct DeclarationStr<Qualifier<qType, T, Layout> > {
+	static std::string str(const std::string & name, int trailing = 0) { 
+		return TypeStr<Qualifier<qType, T, Layout >>::str(trailing) + " " + name;
+	}
+};
+
+template<typename T, uint N>
+struct DeclarationStr<Array<T, N>> {
+	static std::string str(const std::string & name, int trailing = 0) {
+		return DeclarationStr<T>::str(name, trailing) + arrayStr<N>();
+	}	
+};
+
 
 
 enum GLVersion { 

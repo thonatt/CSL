@@ -41,7 +41,7 @@ protected:
 
 public:
 
-	static const std::string typeStr() { return TypeStr<Matrix>::str(); }
+	static const std::string typeStr(int trailing = 0) { return TypeStr<Matrix>::str(); }
 
 	explicit Matrix(const std::string & _name = "", uint flags = IS_TRACKED)
 		: NamedObject<Matrix>(_name, flags)
@@ -127,28 +127,28 @@ public:
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &&
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr()) };
 	}
 
 	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
 		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &&
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr()) };
 	}
 
 	// array subscript accessor
@@ -395,7 +395,7 @@ template<typename A,typename B,
 
 // cwise multiplication
 template<typename A, typename B,
-	typename = std::enable_if_t< NoBools<A, B> && ( EqualDim<A,B> || IsScalar<A> || IsScalar<B>) > >
+	typename = std::enable_if_t< NoBools<A, B> && (IsScalar<A> || IsScalar<B> || (!ValidForMatMultiplication<A, B> && EqualDim<A,B>)) > >
 	ArithmeticBinaryReturnType<A, B> operator*(A && a, B && b)
 {
 	return { createExp<MiddleOperator<MULTIPLY>>("*", EX(A, a), EX(B, b)) };
@@ -430,7 +430,7 @@ struct Array : NamedObject<Array<T, N>> {
 	template<typename ... Us, typename = std::enable_if_t<
 		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) 
 	> >
-		Array(const std::string & name, Us && ... us)
+		Array(const std::string & name = "", Us && ... us)
 		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, name, EX(Us, us)...)
 	{
 	}

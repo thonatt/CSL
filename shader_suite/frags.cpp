@@ -10,18 +10,19 @@ std::string blurShader()
 	
 	Shader shader;
 
-	GL_INTERFACE(In, Interface, (vec2) uv) in("In");
+	GL_INTERFACE_BLOCK(In<>, Interface, In, ,
+		(vec2) uv
+	);
 
-	Uniform<sampler2D, Layout<Binding<0> >> sceenTexture("screenTexture");
+	Uniform<sampler2D, Layout<Binding<0>>> sceenTexture("screenTexture");
 	Uniform<vec2> fetchOffset("fetchOffset");
 	Out<vec3> fragColor("fragColor");
 
 	shader.main([&] {
-
-		vec3 col = texture(sceenTexture, in.uv)[r, g, b] * Float(5.0) / 16.0 << "col";
-		col += texture(sceenTexture, in.uv - fetchOffset)[r, g, b] * Float(5.0) / 16.0;
-		col += texture(sceenTexture, in.uv + fetchOffset)[r, g, b] * Float(5.0) / 16.0;
-		fragColor = col;
+		vec3 col = texture(sceenTexture, In.uv)[r, g, b] * Float(5.0) / 16.0 << "col";
+		col += texture(sceenTexture, In.uv - fetchOffset)[r, g, b] * Float(5.0) / 16.0;
+		col += texture(sceenTexture, In.uv + fetchOffset)[r, g, b] * Float(5.0) / 16.0;
+		fragColor = col;;
 		
 	});
 
@@ -42,7 +43,9 @@ std::string ambiantShader() {
 	uint SAMPLES_COUNT = 16u;
 	int MAX_LOD = 5;
 
-	GL_INTERFACE(In, Interface, (vec2) uv) in("In");
+	//GL_INTERFACE(In<>, Interface, (vec2) uv) in("In");
+
+	GL_INTERFACE_BLOCK(In<>, Interface, In, , (vec2) uv);
 
 	Uniform<sampler2D, Layout<Binding<0> > > albedoTexture("albedoTexture"); 
 	Uniform<sampler2D, Layout<Binding<1> > > normalTexture("normalTexture");
@@ -60,10 +63,14 @@ std::string ambiantShader() {
 
 	auto positionFromDepth = makeFun<vec3>("positionFromDepth", [&](Float depth) {
 		Float depth2 = 2.0 * depth - 1.0 << "depth2";
-		vec2 ndcPos = 2.0 * in.uv - 1.0 << "ndcPos";
+		vec2 ndcPos = 2.0 * In.uv - 1.0 << "ndcPos";
 		Float viewDepth = -projectionMatrix[w] / (depth2 + projectionMatrix[z]) << "viewDepth";
 		GL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
 	}, "depth");
+
+	SamplerInfos<decltype(brdfPrecalc)>::is_sampler;
+	SamplerInfos<sampler2D>::is_sampler;
+	SamplerInfos<Uniform<sampler2D>>::is_sampler;
 
 	auto ggx = makeFun<vec3>("ggx", [&](vec3 n, vec3 v, vec3 F0, Float roughness) {
 		Float NdotV = max(0.0, dot(v, n)) << "NdotV";
@@ -83,7 +90,7 @@ std::string ambiantShader() {
 	}, "wn");
 
 	shader.main([&] {
-		vec4 albedoInfo = texture(albedoTexture, in.uv) << "albedoInfo";
+		vec4 albedoInfo = texture(albedoTexture, In.uv) << "albedoInfo";
 
 		GL_IF (albedoInfo[a] == 0) {
 			fragColor = albedoInfo[r,g,b];
@@ -92,18 +99,18 @@ std::string ambiantShader() {
 		lineBreak();
 
 		vec3 baseColor = albedoInfo[r, g, b] << "baseColor";
-		vec3 infos = texture(effectsTexture, in.uv)[r, g, b] << "infos";
+		vec3 infos = texture(effectsTexture, In.uv)[r, g, b] << "infos";
 		Float roughness = max(0.045, infos[r]) << "roughness";
 		Float metallic = infos[g] << "metallic";
-		Float depth = texture(depthTexture, in.uv)[r] << "depth";
+		Float depth = texture(depthTexture, In.uv)[r] << "depth";
 		vec3 position = positionFromDepth(depth) << "position";
-		vec3 n = normalize(2.0 * texture(normalTexture, in.uv)[r, g, b] - 1.0) << "n";
+		vec3 n = normalize(2.0 * texture(normalTexture, In.uv)[r, g, b] - 1.0) << "n";
 		vec3 v = normalize(-position) << "v";
 		
 		lineBreak();
 
 		Float precomputedAO = infos[b] << "precomputedAP";
-		Float realtimeAO = texture(ssaoTexture, in.uv)[r] << "realtimeAO";
+		Float realtimeAO = texture(ssaoTexture, In.uv)[r] << "realtimeAO";
 		Float ao = realtimeAO * precomputedAO << "ao";
 
 		lineBreak();
@@ -115,7 +122,7 @@ std::string ambiantShader() {
 
 		vec3 diffuse = (1.0 - metallic) * baseColor * (1.0 - F0) * envLighting << "diffuse";
 
-		vec3 specular = ggx(n, v, F0, roughness) << "speclar";
+		vec3 specular = ggx(n, v, F0, roughness) << "specular";
 
 		lineBreak();
 
@@ -132,7 +139,7 @@ std::string ssaoShader()
 
 	Shader shader;
 
-	GL_INTERFACE(In, Interface, (vec2) uv) in("In");
+	GL_INTERFACE_BLOCK(In<>, Interface, in, , (vec2) uv);
 
 	Uniform<sampler2D, Layout<Binding<0>>> depthTexture("depthTexture");
 	Uniform<sampler2D, Layout<Binding<1>>> normalTexture("normalTexture");
@@ -221,56 +228,7 @@ std::string discardFragShader()
 				FragColor = vec4(BackColor, 1.0);
 			}
 		}
-
-		Uint i = Uint(0u) << "i";
-		GL_SWITCH(i) {
-			GL_CASE(1u) : { 
-				++i;
-				GL_FOR(Int j = 0; j < 5; ++j) {
-					i += 2;
-				} 
-				GL_IF(i > 6) {
-					GL_SWITCH(j) {
-						GL_CASE(12) : {
-							GL_BREAK;
-						}
-						GL_DEFAULT: {}
-					}
-				} GL_ELSE {
-					--i;
-				}
-				GL_BREAK;
-			}
-
-			GL_CASE(2u) : { --i; }
-
-			GL_DEFAULT: { i += 2; }
-		}
-
-		Bool bb("bb");
-		GL_FOR(Int k = Int(0) << "k"; bb; ++k) {
-			k *= 2;
-		}
 	});
 
 	return shader.str();
-}
-
-void test()
-{
-
-
-
-	//GL_SWITCH(i) {
-	//	GL_CASE(i) {}
-	//	GL_DEFAULT {}
-	//}
-
-	//vec3;
-	//Uni<vec3>;
-	//Array<vec3, 4>;
-	//Uni<Array<vec3, 2>>::v;
-	//Uni<Layout<Binding<0>>, vec3>::v;
-	//Uni<Layout<Binding<0>>, Array<vec3, 4>>::v;
-	//Uni<Layout<Binding<0>>>::v;
 }

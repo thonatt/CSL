@@ -44,33 +44,25 @@ public:
 
 	Ex getExRef()
 	{
+		return static_cast<const NamedObjectBase*>(this)->getExRef();
+	}
+
+	Ex getExRef() const
+	{
+		flags = flags | IS_USED; 
 		if (flags & ALWAYS_EXP) {
-			return getExTmp();
+			return exp;
+			//return getExTmp();
 		}
-		flags = flags | IS_USED;
 		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
 			ctor->setInit();
 		}
 		return alias();
 	}
 
-	Ex getExRef() const
-	{
-		if (flags & ALWAYS_EXP) {
-			return getExTmp();
-		}
-		flags = flags | IS_USED;
-		return alias();
-	}
-
 	Ex getExTmp() 
 	{
-		flags = flags | IS_USED;
-		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
-			ctor->setTemp();
-			ctor->disable();
-		}
-		return exp;
+		return static_cast<const NamedObjectBase*>(this)->getExTmp();
 	}
 
 	Ex getExTmp() const 
@@ -79,6 +71,12 @@ public:
 		if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
 			ctor->setTemp();
 			ctor->disable();
+
+			if(auto arg = ctor->firstArg()){
+				if (auto accessor = std::dynamic_pointer_cast<MemberAccessor>(arg)) {
+					accessor->make_obj_tmp();
+				}
+			}
 		}
 		return exp;
 	}
@@ -734,7 +732,8 @@ template<SeparatorRule s, int N, typename ... Ts> struct DisplayDeclaration;
 template<SeparatorRule s, int N, typename T, typename ... Ts>
 struct DisplayDeclaration<s, N, T, Ts...> {
 	static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
-		return InstructionBase::instruction_begin(trailing) + T::typeStr() + " " + v[v.size() - N] + 
+		return 
+			InstructionBase::instruction_begin(trailing) + DeclarationStr<T>::str(v[v.size() - N], trailing)  +
 			 ( (s==SEP_AFTER_ALL || ( s==SEP_IN_BETWEEN && N!=1) ) ? separator : "" ) + 
 			DisplayDeclaration<s, N - 1, Ts...>::str(v, trailing, separator);
 	}
@@ -753,8 +752,8 @@ std::string memberDeclarations(const std::vector<std::string> & v, int & trailin
 template<SeparatorRule s, int N, typename ... Ts>
 struct DisplayDeclarationTuple {
 	static std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
-		return std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> >::typeStr() + " " + 
-			std::get<sizeof...(Ts) - N>(v).str() +
+		std::get<sizeof...(Ts) - N>(v).str();
+		return DeclarationStr<std::tuple_element_t<sizeof...(Ts) - N,std::tuple<Ts...> > >::str(std::get<sizeof...(Ts) - N>(v).str()) +
 			((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
 			DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, separator);
 	}
@@ -787,19 +786,37 @@ struct StructDeclaration : InstructionBase {
 	std::string name;
 };
 
-template<QualifierType qType, typename ... Args>
-struct InterfaceDeclaration : InstructionBase {
+template<typename T,typename ... Args>
+struct UnNamedInterfaceDeclaration : InstructionBase {
 	
 	template<typename ... Strings>
-	static std::string str(const std::string & name, int trailing, const Strings &... member_names) {
-		std::string out;
-		int member_trailing = trailing + 1;
-		out += QualifierTypeStr<qType>::str() + " " + name + " { \n";
-		out += memberDeclarations<SEP_AFTER_ALL, Args...>({ member_names... }, member_trailing, ";\n");
-		out += Statement::instruction_begin(trailing) + "}";
+	UnNamedInterfaceDeclaration(const Strings &... _names) :
+		member_names{ _names... } {}
+
+	void str(std::stringstream & stream, int & trailing, uint opts) {
+		stream << instruction_begin(trailing, opts) << getTypeStr<T>() << " {\n";
+		++trailing;
+		stream << memberDeclarations<SEP_AFTER_ALL, Args...>(member_names, trailing, ";\n");
+		--trailing;
+		stream << instruction_begin(trailing, opts) << "};\n";
+	}
+
+	std::vector<std::string> member_names;
+};
+
+template<typename T, typename ... Args>
+struct InterfaceDeclarationStr {
+
+	template<typename ... Strings>
+	static std::string str(int trailing, const Strings & ... member_names) {
+		std::string out = " {\n";
+		++trailing;
+		out += memberDeclarations<SEP_AFTER_ALL, Args...>({ member_names... }, trailing, ";\n");
+		--trailing;
+		out += InstructionBase::instruction_begin(trailing) + "}";
 		return out;
 	}
-	
+
 };
 
 template <typename ReturnType, typename... Args, typename ... Strings>
@@ -834,6 +851,7 @@ void checkArgsType(const std::function<ReturnType(Args...)>& f){
 struct FunBase : NamedObject<FunBase> {
 	FunBase( const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
 	static std::string typeStr(int trailing = 0) { return "function"; }
+	static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 };
 
 template<typename ReturnType, typename F_Type>
@@ -1124,6 +1142,7 @@ struct ShaderBase : MainController {
 
 	MainBlock::Ptr declarations;
 	std::vector<InstructionBase::Ptr> structs;
+	std::vector<InstructionBase::Ptr> unnamed_interface_blocks;
 	std::vector<InstructionBase::Ptr> functions;
 
 	ShaderBase() {
@@ -1148,6 +1167,10 @@ struct ShaderBase : MainController {
 			out << "\n";
 		}
 
+		for (const auto & interface_block : unnamed_interface_blocks) {
+			interface_block->str(out, trailing, DEFAULT);
+			out << "\n";
+		}
 		declarations->str(out, trailing, DEFAULT);
 		out << "\n";
 		for (const auto & fun : functions) {
@@ -1166,6 +1189,12 @@ struct ShaderBase : MainController {
 	void add_struct(const std::string & name, const Strings & ... names) {
 		auto struct_declaration = std::make_shared < StructDeclaration<Args...> >(name, names...);
 		structs.push_back(std::static_pointer_cast<InstructionBase>(struct_declaration));
+	}
+
+	template<typename T, typename ...Args, typename ... Strings>
+	void add_unnamed_interface_block(const Strings & ... names) {
+		auto interface_declaration = std::make_shared<UnNamedInterfaceDeclaration<T, Args...> >(names...);
+		unnamed_interface_blocks.push_back(interface_declaration);
 	}
 
 	template<typename ReturnT, typename ...Args>
@@ -1403,11 +1432,17 @@ struct MainListener {
 
 	//////////////////////////////
 
-
 	template<bool dummy, typename ...Args, typename ... Strings>
 	void add_struct(const std::string & name, const Strings & ... names) {
 		if (currentShader) {
 			currentShader->add_struct<Args...>(name, names...);
+		}
+	}
+
+	template<typename T, typename ...Args, typename ... Strings>
+	void add_unnamed_interface_block(const std::string & dummy, Strings & ... names) {
+		if (currentShader) {
+			currentShader->add_unnamed_interface_block<T, Args...>(names...);
 		}
 	}
 

@@ -124,10 +124,7 @@ template<QualifierType qType, typename T, typename L>
 struct Qualifier;
 
 // arrays
-
-struct NoArray {};
-
-template<typename T = NoArray, uint N = 0> struct Array;
+template<typename T, uint N = 0> struct Array;
 
 // types infos
 

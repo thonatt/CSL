@@ -9,5 +9,3 @@ std::string ambiantShader();
 std::string ssaoShader();
 
 std::string discardFragShader();
-
-void test();

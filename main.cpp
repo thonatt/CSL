@@ -17,6 +17,7 @@
 
 #include "shader_suite/frags.h"
 #include "shader_suite/verts.h"
+#include "shader_suite/tests.h"
 
 #include <iostream>
 #include <chrono>
@@ -71,7 +72,7 @@ int main()
 
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
-	test();
+	testStructsMacros();
 
 	std::cout << blur_str;
 	std::cout << ambiant_str;
@@ -80,7 +81,7 @@ int main()
 	std::cout << transfeedBack_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
-
+	
 	return 0;
 }
 
