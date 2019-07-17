@@ -772,7 +772,7 @@ template<typename ... Args>
 struct StructDeclaration : InstructionBase {
 	template<typename ... Strings>
 	StructDeclaration(const std::string & _name, const Strings &... _names) : 
-		name(_name), member_names{ _names... } {}
+		member_names{ _names... }, name(_name) {}
 
 	void str(std::stringstream & stream, int & trailing, uint opts) {
 		stream << instruction_begin(trailing, opts) << "struct " << name << " {\n";
