@@ -95,17 +95,17 @@ template<QualifierType qType, typename ... T>
 struct QualiPH;
 
 //placeholder
-template<QualifierType qType>
-struct QualiPH<qType> {
-	static const QualifierType qType = qType;
+template<QualifierType qType1>
+struct QualiPH<qType1> {
+	static const QualifierType qType = qType1;
 	using Layout = Layout<>;
 	using Type = QualiPH;
 };
 
 //placeholder
-template<QualifierType qType, typename ... Q>
-struct QualiPH<qType, Layout<Q...>> {
-	static const QualifierType qType = qType;
+template<QualifierType qType1, typename ... Q>
+struct QualiPH<qType1, Layout<Q...>> {
+	static const QualifierType qType = qType1;
 	using Layout = Layout<Q...>;
 	using Type = QualiPH;
 };
