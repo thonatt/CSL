@@ -430,17 +430,15 @@ struct Array : NamedObject<Array<T, N>> {
 	template<typename ... Us, typename = std::enable_if_t<
 		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) 
 	> >
-		Array(const std::string & name = "", Us && ... us)
+		Array(const std::string & name, Us && ... us)
 		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, name, EX(Us, us)...)
 	{
 	}
 
-	template<typename ... Us,
-		typename = std::enable_if_t< AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) > >
-		Array(Us && ... us)
-		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us, us)...)
-	{
-	}
+	template<typename ... Us, typename = std::enable_if_t<
+		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N)
+	> >
+		Array( Us && ... us) : Array("", us...){ }
 	
 	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) 
 	{
