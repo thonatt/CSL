@@ -4,3 +4,4 @@
 
 std::string transfeedBackVertex();
 
+std::string dolphinVertex();

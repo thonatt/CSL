@@ -419,6 +419,9 @@ struct Array : NamedObject<Array<T, N>> {
 		T operator[](A && a) const && {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExTmp(), EX(A,a)) };
 	}
+
+	//TODO why compilation fails without it ? should never be called
+	static std::string typeStr(int trailing = 0) { return "dummyArrayStr"; }
 };
 
 } //namespace csl

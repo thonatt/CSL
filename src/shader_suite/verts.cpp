@@ -90,3 +90,56 @@ std::string transfeedBackVertex()
 
 	return shader.str();
 }
+
+std::string dolphinVertex() {
+
+	using namespace csl::vert_330;
+	using namespace csl::swizzles::all;
+
+	Shader shader;
+
+	GL_STRUCT(Light,
+		(ivec4) color,
+		(vec4) cosatt,
+		(vec4) distatt,
+		(vec4) pos,
+		(vec4) dir
+	);
+
+	using VSBlockQualifier = Uniform<Layout<Binding<2>, std140>>;
+	GL_INTERFACE_BLOCK(VSBlockQualifier, VSBLock, , ,
+		(Uint) components,
+		(Uint) xfmem_dualTexInfo,
+		(Uint) xfmem_numColorChans,
+		(GetArray<vec4>::Size<6>) cpnmtx,
+		(GetArray<vec4>::Size<4>) cproj,
+		(GetArray<ivec4>::Size<6>) cmtrl,
+		(GetArray<Light>::Size<8>) clights,
+		(GetArray<vec4>::Size<24>) ctexmtx,
+		(GetArray<vec4>::Size<64>) ctrmtx,
+		(GetArray<vec4>::Size<32>) cnmtx,
+		(GetArray<vec4>::Size<64>) cpostmtx,
+		(vec4) cpixelcenter,
+		(vec2) cviewport,
+		(GetArray<uvec4>::Size<8>) xfmem_pack1
+	);
+
+	GL_STRUCT(VS_OUTPUT,
+		(vec4) pos,
+		(vec4) colors_0,
+		(vec4) colors_1,
+		(vec3) tex0,
+		(vec3) tex1,
+		(vec4) clipPos,
+		(Float) clipDist0,
+		(Float) clipDist1
+	);
+
+	auto CalculateLighting = makeFunc<ivec4>("CalculateLighting", [](Uint index, Uint attnfunc, Uint diffusefunc, vec3 pos, vec3 normal) {
+		vec3 ldir("ldir"), h("h"), cosAttn("cosAttn"), distAttn("distAttn");
+		Float dist("dist"), dist2("dist2"), attn("attn");
+		GL_RETURN(dist*dist2*attn *(ldir + h + cosAttn + distAttn));
+	}, "index", "attnfunc", "diffusefunc", "pos", "normal" );
+
+	return shader.str();
+}

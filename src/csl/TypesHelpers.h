@@ -65,6 +65,10 @@ namespace csl {
 	using ivec3 = Vec<INT, 3>;
 	using ivec4 = Vec<INT, 4>;
 
+	using uvec2 = Vec<UINT, 2>;
+	using uvec3 = Vec<UINT, 3>;
+	using uvec4 = Vec<UINT, 4>;
+
 	using bvec2 = Vec<BOOL, 2>;
 	using bvec3 = Vec<BOOL, 3>;
 	using bvec4 = Vec<BOOL, 4>;
@@ -134,8 +138,15 @@ namespace csl {
 		using Type = typename TypeMerger<typename TypeMerger<A, B>::Type, typename TypeMerger<As...>::Type >::Type;
 	};
 
+
 	// arrays
 	template<typename T, uint N = 0> struct Array;
+
+	template<typename T> struct GetArray {
+		template<uint N> using Size = Array<T, N>;
+	};
+
+	GetArray<vec3>::Size<12>;
 
 	// types infos
 

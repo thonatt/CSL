@@ -6,13 +6,13 @@
 #define GENTYPE_OP_GENTYPE(r, data, i, elem) \
 template<typename A, typename = std::enable_if_t< IsVecF<A> > > \
 		Vec<FLOAT, Infos<CT<A>>::rows> elem(A && a) { \
-		return { createFCallExp(BOOST_PP_STRINGIZE(elem), EX(A,a)) };	\
+		return { createFCallExp(CSL_PP_STR(elem), EX(A,a)) };	\
 	} 
 
 #define RELATIONAL_GENTYPE_OP(r, data, i, elem) \
 template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > > \
 		Vec<BOOL, Infos<CT<A>>::rows> elem(A && a, B && b) { \
-		return { createFCallExp(BOOST_PP_STRINGIZE(elem), EX(A,a), EX(B,b) ) };	\
+		return { createFCallExp(CSL_PP_STR(elem), EX(A,a), EX(B,b) ) };	\
 	} 
 
 #define BOOL_OP(name) \

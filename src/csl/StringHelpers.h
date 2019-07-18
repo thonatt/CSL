@@ -264,6 +264,13 @@ namespace csl {
 		static std::string str(const std::string & name, int trailing = 0) { return getTypeStr<T>(trailing) + " " + name; }
 	};
 
+	template<QualifierType qType, typename T, uint N, typename Layout>
+	struct DeclarationStr<Qualifier<qType, Array<T, N>, Layout> > {
+		static std::string str(const std::string & name, int trailing = 0) {
+			return DeclarationStr<Array<Qualifier<qType, T, Layout >, N>>::str(name, trailing);
+		}
+	};
+
 	template<QualifierType qType, typename T, typename Layout>
 	struct DeclarationStr<Qualifier<qType, T, Layout> > {
 		static std::string str(const std::string & name, int trailing = 0) {

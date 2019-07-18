@@ -61,6 +61,23 @@ namespace csl {
 		using Shader = ShaderWrapper<GLSL_410>;
 	}
 
+
+	namespace vert_430 {
+		using namespace csl;
+		using namespace vert_all;
+		using namespace glsl_430;
+
+		using Shader = ShaderWrapper<GLSL_430>;
+	}
+
+	namespace frag_430 {
+		using namespace csl;
+		using namespace frag_all;
+		using namespace glsl_430;
+
+		using Shader = ShaderWrapper<GLSL_430>;
+	}
+
 	namespace frag_450 {
 		using namespace csl;
 		using namespace frag_all;

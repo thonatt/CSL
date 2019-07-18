@@ -45,6 +45,8 @@ int main()
 
 	auto transfeedBack_str = transfeedBackVertex();
 
+	auto dolphin_vertex_str = dolphinVertex();
+
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
 	testStructsMacros();
@@ -54,6 +56,7 @@ int main()
 	std::cout << ssao_str;
 	std::cout << discard_str;
 	std::cout << transfeedBack_str;
+	std::cout << dolphin_vertex_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 	
