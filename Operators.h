@@ -313,7 +313,7 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	}
 
 	virtual bool is_bool_ctor() const {
-		return std::is_same_v<T, Bool>;
+		return is_same_v<T, Bool>;
 	}
 
 	virtual Ex firstArg() {

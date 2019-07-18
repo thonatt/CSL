@@ -1,10 +1,12 @@
 #pragma once
 
 namespace csl {
-
+	
 	// cpp helpers
 	using uint = unsigned int;
-
+	template< class T, class U >
+	constexpr bool is_same_v = std::is_same<T, U>::value;
+	
 	template<uint A, uint B>
 	constexpr uint MaxUint = A > B ? A : B;
 
@@ -378,7 +380,7 @@ namespace csl {
 	};
 
 	template<typename T, typename ... Ts>
-	constexpr bool ContainsType = AnyTrue<std::is_same_v<T, Ts>...>;
+	constexpr bool ContainsType = AnyTrue<is_same_v<T, Ts>...>;
 
 	template<typename ...Ts> struct AreValidT {
 		static const bool value = AllTrue<IsValid<Ts>...>;

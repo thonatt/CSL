@@ -27,7 +27,7 @@ namespace csl {
 		static const int value = -1;
 	};
 
-	template<LayoutArgIntType type, template <LayoutArgIntType, int> typename T, int N>
+	template<LayoutArgIntType type, template <LayoutArgIntType, int> class T, int N>
 	struct ExtractInt<type, T<type, N>> {
 		static const int value = N;
 	};
