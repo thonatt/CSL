@@ -2,6 +2,8 @@
 
 #include "ExpressionsTest.h"
 
+namespace csl {
+
 template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint sFlags> // SamplerIsArray isArray, SamplerIsShadow isShadow>
 class Sampler : public NamedObject<Sampler<aType,nType,N,sType,sFlags>> {
 public:
@@ -92,6 +94,8 @@ using uimageBuffer = Sampler < IMAGE, UINT, 0, BUFFER >;
 using uimage2DMS = Sampler < IMAGE, UINT, 2, MULTI_SAMPLE >;
 using uimage2DMSArray = Sampler < IMAGE, UINT, 2, MULTI_SAMPLE, IS_ARRAY>;
 using uimageCubeArray = Sampler < IMAGE, UINT, 0, CUBE, IS_ARRAY >;
+
+} //namespace csl
 
 //
 //template<ScalarType type> struct IsSamplerType {

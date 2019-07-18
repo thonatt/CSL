@@ -5,8 +5,8 @@
 
 std::string transfeedBackVertex()
 {
-	using namespace all_swizzles;
-	using namespace vert_330;
+	using namespace csl::vert_330;
+	using namespace csl::swizzles::all;
 
 	double pi = 3.14159265359;
 

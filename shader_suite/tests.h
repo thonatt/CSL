@@ -6,3 +6,5 @@
 void testSwitch();
 
 void testStructsMacros();
+
+void testArgCleaning();

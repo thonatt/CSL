@@ -4,9 +4,8 @@
 
 std::string blurShader()
 {
-
-	using namespace all_swizzles;
-	using namespace frag_450;
+	using namespace csl::frag_450;
+	using namespace csl::swizzles::all;
 	
 	Shader shader;
 
@@ -29,10 +28,10 @@ std::string blurShader()
 	return shader.str();
 }
 
-std::string ambiantShader() {
-
-	using namespace all_swizzles;
-	using namespace frag_330;
+std::string ambiantShader() 
+{
+	using namespace csl::frag_450;
+	using namespace csl::swizzles::all;
 
 	Shader shader;
 
@@ -67,10 +66,6 @@ std::string ambiantShader() {
 		Float viewDepth = -projectionMatrix[w] / (depth2 + projectionMatrix[z]) << "viewDepth";
 		GL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
 	}, "depth");
-
-	SamplerInfos<decltype(brdfPrecalc)>::is_sampler;
-	SamplerInfos<sampler2D>::is_sampler;
-	SamplerInfos<Uniform<sampler2D>>::is_sampler;
 
 	auto ggx = makeFun<vec3>("ggx", [&](vec3 n, vec3 v, vec3 F0, Float roughness) {
 		Float NdotV = max(0.0, dot(v, n)) << "NdotV";
@@ -134,8 +129,8 @@ std::string ambiantShader() {
 
 std::string ssaoShader()
 {
-	using namespace all_swizzles;
-	using namespace frag_330;
+	using namespace csl::frag_330;
+	using namespace csl::swizzles::all;
 
 	Shader shader;
 
@@ -204,8 +199,8 @@ std::string ssaoShader()
 
 std::string discardFragShader()
 {
-	using namespace all_swizzles;
-	using namespace frag_410;
+	using namespace csl::frag_410;
+	using namespace csl::swizzles::all;
 
 	Shader shader;
 

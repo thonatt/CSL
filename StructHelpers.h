@@ -82,7 +82,6 @@
 
 #define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
 	struct Typename : public NamedObject<Typename> { \
-		using UnderlyingType = Typename;	\
 		\
 		CSL_PP_ITERATE(CSL_PP_DECLARE_MEMBER_IT, __VA_ARGS__ ) \
 		\
@@ -121,7 +120,6 @@
 				CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	\
 	struct StructTypename : public NamedObject<StructTypename> { \
-		using UnderlyingType = StructTypename;	\
 		using NamedObject<StructTypename>::exp; \
 		\
 		CSL_PP_ITERATE(CSL_PP_DECLARE_MEMBER_IT, __VA_ARGS__) \

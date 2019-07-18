@@ -2,6 +2,8 @@
 
 #include "ExpressionsTest.h"
 
+namespace csl {
+
 enum SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 enum SwizzeStatus : uint { NON_REPEATED = 0, REPEATED = 1 };
 
@@ -37,31 +39,34 @@ public:
 	stringPtr s;
 };
 
-namespace rgba {
-	const SwizzlePack<RGBA, 1> r("r");
-	const SwizzlePack<RGBA, 2> g("g");
-	const SwizzlePack<RGBA, 3> b("b");
-	const SwizzlePack<RGBA, 4> a("a");
-}
+namespace swizzles {
+	
+	namespace rgba {
+		const SwizzlePack<RGBA, 1> r("r");
+		const SwizzlePack<RGBA, 2> g("g");
+		const SwizzlePack<RGBA, 3> b("b");
+		const SwizzlePack<RGBA, 4> a("a");
+	}
 
-namespace xyzw {
-	const SwizzlePack<XYZW, 1> x("x");
-	const SwizzlePack<XYZW, 2> y("y");
-	const SwizzlePack<XYZW, 3> z("z");
-	const SwizzlePack<XYZW, 4> w("w");
-}
+	namespace xyzw {
+		const SwizzlePack<XYZW, 1> x("x");
+		const SwizzlePack<XYZW, 2> y("y");
+		const SwizzlePack<XYZW, 3> z("z");
+		const SwizzlePack<XYZW, 4> w("w");
+	}
 
-namespace stpq {
-	const SwizzlePack<STPQ, 1> s("s");
-	const SwizzlePack<STPQ, 2> t("t");
-	const SwizzlePack<STPQ, 3> p("p");
-	const SwizzlePack<STPQ, 4> q("q");
-}
+	namespace stpq {
+		const SwizzlePack<STPQ, 1> s("s");
+		const SwizzlePack<STPQ, 2> t("t");
+		const SwizzlePack<STPQ, 3> p("p");
+		const SwizzlePack<STPQ, 4> q("q");
+	}
 
-namespace all_swizzles {
-	using namespace rgba;
-	using namespace xyzw;
-	using namespace stpq;
+	namespace all {
+		using namespace rgba;
+		using namespace xyzw;
+		using namespace stpq;
+	}
 }
 
 namespace v_0 {
@@ -84,3 +89,5 @@ static void test_namespaces() {
 	f_1();
 	
 }
+
+} //namespace csl

@@ -3,6 +3,8 @@
 #include "ExpressionsTest.h"
 #include "Swizzles.h"
 
+namespace csl {
+
 template<typename T>
 struct MatrixConvertor { };
 
@@ -33,15 +35,12 @@ template<ScalarType type, uint NR, uint NC>
 class Matrix : public NamedObject<Matrix<type, NR, NC>>, public MatrixConvertor<Matrix<type, NR, NC>> {
 
 public:
-	using UnderlyingType = Matrix;
 
 protected:
 	static const bool isBool = (type == BOOL);
 	static const bool isScalar = (NC == 1 && NR == 1);
 
 public:
-
-	static const std::string typeStr(int trailing = 0) { return TypeStr<Matrix>::str(); }
 
 	explicit Matrix(const std::string & _name = "", uint flags = IS_TRACKED)
 		: NamedObject<Matrix>(_name, flags)
@@ -272,41 +271,6 @@ public:
 	}
 	
 	Int length() && = delete; 
-
-	//template<typename R_A, typename A = CleanType<R_A>,
-	//	typename = std::enable_if_t< NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
-	//	void operator*=(R_A&& a) const && = delete;
-
-	//template<bool b = (type == UINT) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	//operator uint() {
-	//	static_assert(type == UINT, "must switch over an Int or Uint");
-	//	return 0;
-	//}
-
-	//template<bool b = (type ==INT) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	//operator int() {
-	//	static_assert(type == INT || type == UINT, "must switch over an Int or Uint");
-	//	return 0;
-	//}
-
-	//// needed for loops
-	//template<bool b = (type == BOOL) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	//operator bool() & {
-	//	//std::cout << " bool const & " << NamedObjectBase::getExRef()->str() << std::endl;
-
-	//	static_assert(type == BOOL, "bool");
-	//	//needed as any [variable;] in GL_FOR wont generate any instruction
-	//	listen().stack_for_condition(NamedObjectBase::getExRef());
-	//	return false;
-	//}
-
-	//template<bool b = (type == BOOL) && NC == 1 && NR == 1, typename = std::enable_if_t<b> >
-	//operator bool() && {
-	//	//std::cout << " bool const && " << NamedObjectBase::getExTmp()->str() << std::endl;
-	//	static_assert(type == BOOL, "bool");
-	//	return false;
-	//}
-
 };
 
 inline MatrixConvertor<Bool>::operator bool() &
@@ -446,13 +410,15 @@ struct Array : NamedObject<Array<T, N>> {
 
 	template<typename A,  
 	typename = std::enable_if_t< IsInteger<A> > >
-		typename T::UnderlyingType operator[](A && a) const & {
+		T operator[](A && a) const & {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExRef(), EX(A,a)) };
 	}
 
 	template<typename A,
 		typename = std::enable_if_t< IsInteger<A> > >
-		typename T::UnderlyingType operator[](A && a) const && {
+		T operator[](A && a) const && {
 		return { createExp<ArraySubscript>(NamedObjectBase::getExTmp(), EX(A,a)) };
 	}
 };
+
+} //namespace csl

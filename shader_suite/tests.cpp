@@ -3,8 +3,9 @@
 
 void testSwitch()
 {
-	using namespace all_swizzles;
-	using namespace frag_410;
+	using namespace csl;
+	using namespace csl::frag_410;
+	using namespace csl::swizzles::all;
 
 	Uint i = Uint(0u) << "i";
 	GL_SWITCH(i) {
@@ -39,8 +40,9 @@ void testSwitch()
 
 void testStructsMacros()
 {
-	using namespace frag_450;
-	using namespace xyzw;
+	using namespace csl;
+	using namespace csl::frag_450;
+	using namespace csl::swizzles::xyzw;
 
 	Shader shader;
 
@@ -61,4 +63,12 @@ void testStructsMacros()
 	});
 
 	std::cout << shader.str() << std::endl;
+}
+
+void testArgCleaning()
+{
+	using namespace csl;
+
+	//TypeMerger< TypeList<float>, TypeList<>, TypeList<double> >::Type;
+	//TypeMerger< TypeList<>, TypeList<>, TypeList<double>, TypeList<>, TypeList<float> >::Type;
 }

@@ -5,6 +5,8 @@
 #include "BuiltInFunctions.h"
 #include "StructHelpers.h"
 
+namespace csl {
+
 namespace frag_all {
 
 	const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
@@ -36,6 +38,7 @@ namespace vert_all {
 }
 
 namespace vert_330 {
+	using namespace csl;
 	using namespace vert_all;
 	using namespace glsl_330;
 
@@ -43,6 +46,7 @@ namespace vert_330 {
 }
 
 namespace frag_330 {
+	using namespace csl;
 	using namespace frag_all;
 	using namespace glsl_330;
 
@@ -50,6 +54,7 @@ namespace frag_330 {
 }
 
 namespace frag_410 {
+	using namespace csl;
 	using namespace frag_all;
 	using namespace glsl_410;
 
@@ -57,9 +62,11 @@ namespace frag_410 {
 }
 
 namespace frag_450 {
+	using namespace csl;
 	using namespace frag_all;
 	using namespace glsl_450;
 
 	using Shader = ShaderWrapper<GLSL_450>;
 }
 
+} //namespace csl

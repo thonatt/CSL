@@ -2,6 +2,8 @@
 
 #include "StringHelpers.h"
 
+namespace csl {
+
 inline stringPtr makeStringPtr(const std::string & s) {
 	auto str_ptr = std::make_shared<std::string>(s);
 	//std::cout << " str_cv : " <<  (int)(bool)str_ptr << " " << s << std::endl;
@@ -311,7 +313,7 @@ struct Constructor : ArgsCall<N>, ConstructorBase {
 	}
 
 	virtual bool is_bool_ctor() const {
-		return IsSameType<T, Bool>;
+		return std::is_same_v<T, Bool>;
 	}
 
 	virtual Ex firstArg() {
@@ -461,11 +463,19 @@ struct Litteral : OperatorBase {
 	Litteral(const T & _i) : i(_i) {}
 
 	virtual std::string str(int trailing) const {
+		// std::to_string(i);
+		//s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+		//s.erase(s.find_last_not_of('.') + 1, std::string::npos);
+		//return s;
+	
 		std::stringstream ss;
-		ss << std::fixed << std::setprecision(1) << i << LitteralSufffixStr<Infos<T>::scalar_type>::str();
-		return ss.str();
+		ss << std::setprecision(8) << std::showpoint << i << LitteralSufffixStr<Infos<T>::scalar_type>::str();
+		std::string out = ss.str();
+		return out;
+		//return ss.str();
 		//return std::to_string(i); 
 	}
+
 	T i;
 };
 
@@ -474,3 +484,5 @@ template<> struct Litteral<bool> : OperatorBase {
 	virtual std::string str(int trailing) const { return b ? "true" : "false"; }
 	bool b;
 };
+
+} //namespace csl
