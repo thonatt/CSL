@@ -1,6 +1,6 @@
 #include "frags.h"
 
-#include "../Shaders.h"
+#include <csl/Shaders.h>
 
 std::string blurShader()
 {
@@ -60,14 +60,14 @@ std::string ambiantShader()
 
 	Out<vec3, Layout<Location<0>> > fragColor("fragColor");
 
-	auto positionFromDepth = makeFun<vec3>("positionFromDepth", [&](Float depth) {
+	auto positionFromDepth = makeFunc<vec3>("positionFromDepth", [&](Float depth) {
 		Float depth2 = 2.0 * depth - 1.0 << "depth2";
 		vec2 ndcPos = 2.0 * In.uv - 1.0 << "ndcPos";
 		Float viewDepth = -projectionMatrix[w] / (depth2 + projectionMatrix[z]) << "viewDepth";
 		GL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
 	}, "depth");
 
-	auto ggx = makeFun<vec3>("ggx", [&](vec3 n, vec3 v, vec3 F0, Float roughness) {
+	auto ggx = makeFunc<vec3>("ggx", [&](vec3 n, vec3 v, vec3 F0, Float roughness) {
 		Float NdotV = max(0.0, dot(v, n)) << "NdotV";
 		vec3 ref = -reflect(v, n) << "r";
 		ref = normalize((inverseV * vec4(ref, 0.0))[x,y,z]);
@@ -77,7 +77,7 @@ std::string ambiantShader()
 	}, "n", "v", "F0", "roughness");
 
 
-	auto applySH = makeFun<vec3>("applySH", [&](vec3 wn) {
+	auto applySH = makeFunc<vec3>("applySH", [&](vec3 wn) {
 		GL_RETURN((shCoeffs[7] * wn[z] + shCoeffs[4] * wn[y] + shCoeffs[8] * wn[x] + shCoeffs[3]) * wn[x] +
 			(shCoeffs[5] * wn[z] - shCoeffs[8] * wn[y] + shCoeffs[1]) * wn[y] +
 			(shCoeffs[6] * wn[z] + shCoeffs[2]) * wn[z] +
@@ -147,13 +147,13 @@ std::string ssaoShader()
 	
 	Out<Float, Layout<Location<0>>> fragColor("fragColor");
 
-	auto linearizeDepth = makeFun<Float>("linearizeDepth", [&](Float depth) {
+	auto linearizeDepth = makeFunc<Float>("linearizeDepth", [&](Float depth) {
 		Float depth2 = 2.0*depth - 1.0 << "depth2";
 		Float viewDepth = -projectionMatrix[3][2] / (depth2 + projectionMatrix[2][2]) << "viewDepth";
 		GL_RETURN(viewDepth);
 	}, "depth");
 
-	auto positionFromUV = makeFun<vec3>("positionFromUV", [&](vec2 uv) {
+	auto positionFromUV = makeFunc<vec3>("positionFromUV", [&](vec2 uv) {
 		Float depth = texture(depthTexture, uv)[r] << "depth";
 		Float viewDepth = linearizeDepth(depth) << "viewDepth";
 		vec2 ndcPos = 2.0 * uv - 1.0 << "ndcPos";

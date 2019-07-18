@@ -1,6 +1,6 @@
 #include "verts.h"
 
-#include "../Shaders.h"
+#include <csl/Shaders.h>
 
 
 std::string transfeedBackVertex()
@@ -49,7 +49,7 @@ std::string transfeedBackVertex()
 	
 	const Array<vec2> texCoords = { "texCoords", vec2(0,0), vec2(1,0), vec2(1,1), vec2(0,0), vec2(1,1), vec2(0,1) };
 
-	auto randomInitialVelocity = makeFun<vec3>( "randomInitialVelocity", [&] {
+	auto randomInitialVelocity = makeFunc<vec3>( "randomInitialVelocity", [&] {
 		Float theta = mix(0.0, pi / 8.0, texelFetch(RandomTex, 3 * gl_VertexID, 0)[r]) << "theta";
 		Float phi = mix(0.0, 2.0 * pi, texelFetch(RandomTex, 3 * gl_VertexID + 1, 0)[r]) << "phi";
 		Float velocity = mix(1.25, 1.5, texelFetch(RandomTex, 3 * gl_VertexID + 2, 0)[r]) << "velocity";
@@ -57,7 +57,7 @@ std::string transfeedBackVertex()
 		GL_RETURN(normalize(EmitterBasis * v) * velocity);
 	});
 
-	auto update = makeFun<void>("update", [&] {
+	auto update = makeFunc<void>("update", [&] {
 		GL_IF (VertexAge < 0 || VertexAge > ParticleLifetime) {
 			Position = Emitter;
 			Velocity = randomInitialVelocity();
@@ -70,7 +70,7 @@ std::string transfeedBackVertex()
 		}
 	});
 
-	auto render = makeFun<void>("render", [&] {
+	auto render = makeFunc<void>("render", [&] {
 		Transp = 0.0;
 		vec3 posCam = vec3(0.0) << "posCam";
 		GL_IF (VertexAge >= 0.0) {

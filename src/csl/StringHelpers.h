@@ -2,6 +2,7 @@
 
 #include <string>
 #include "TypesHelpers.h"
+
 #include <boost/preprocessor/seq/for_each_i.hpp>
 
 namespace csl {

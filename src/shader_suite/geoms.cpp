@@ -1,6 +1,6 @@
 #include "geoms.h"
 
-#include "../Shaders.h"
+#include <csl/Shaders.h>
 
 std::string testGeom()
 {

@@ -794,17 +794,17 @@ namespace csl {
 		static_assert(SameTypeList < List, ArgTypeList<Args...> >, "arg types do not match function signature, or no implicit conversion available");
 	}
 
-	struct FunBase : NamedObject<FunBase> {
-		FunBase(const std::string & s = "") : NamedObject<FunBase>(s, 0) {}
+	struct FuncBase : NamedObject<FuncBase> {
+		FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, 0) {}
 		static std::string typeStr(int trailing = 0) { return "function"; }
 		static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 	};
 
 	template<typename ReturnType, typename F_Type>
-	struct Fun : FunBase {
+	struct Func : FuncBase {
 
 		template<typename ... Strings>
-		Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+		Func(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FuncBase(_name), f(_f) {
 			init_function_declaration<ReturnType>(str(), functionFromLambda(_f), _argnames...);
 		}
 
@@ -818,12 +818,12 @@ namespace csl {
 	};
 
 	template<typename ReturnType, typename F_Type, typename ... Strings >
-	Fun<ReturnType, F_Type> makeFun(const std::string & name, const F_Type & f, const Strings & ...argnames) {
-		return Fun<ReturnType, F_Type>(name, f, argnames...);
+	Func<ReturnType, F_Type> makeFunc(const std::string & name, const F_Type & f, const Strings & ...argnames) {
+		return Func<ReturnType, F_Type>(name, f, argnames...);
 	}
 	template<typename ReturnType, typename F_Type, typename ... Strings, typename = std::enable_if_t<!std::is_convertible<F_Type, std::string>::value > >
-	Fun<ReturnType, F_Type> makeFun(const F_Type & f, const Strings & ...argnames) {
-		return Fun<ReturnType, F_Type>("", f, argnames...);
+	Func<ReturnType, F_Type> makeFunc(const F_Type & f, const Strings & ...argnames) {
+		return Func<ReturnType, F_Type>("", f, argnames...);
 	}
 
 	struct FunctionDeclarationBase : InstructionBase {
@@ -1557,7 +1557,7 @@ namespace csl {
 
 		template<typename F_Type>
 		void main(const F_Type & f) {
-			Fun<void, F_Type>("main", f);
+			Func<void, F_Type>("main", f);
 		}
 
 		std::string str() {
@@ -1573,9 +1573,9 @@ namespace csl {
 
 	//specialization of Fun when ReturnType == void
 	template<typename F_Type>
-	struct Fun<void, F_Type> : FunBase {
+	struct Func<void, F_Type> : FuncBase {
 		template<typename ... Strings>
-		Fun(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FunBase(_name), f(_f) {
+		Func(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FuncBase(_name), f(_f) {
 			init_function_declaration<void>(NamedObjectBase::str(), functionFromLambda(_f), _argnames...);
 		}
 		template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >

@@ -1,33 +1,8 @@
-//#include <iostream>
-//#include <cmath>
+#include "frags.h"
+#include "verts.h"
+#include "tests.h"
 
-
-
-//#include "AlgebraFunctions.h"
-//#include "Layouts.h"
-//#include "Samplers.h"
-//#include "BuildingBlocks.h"
-//#include "Shaders.h"
-
-//#include "BuiltInFunctions.h"
-//#include "Samplers.h"
-//#include "MatrixTypesTest.h"
-//#include "StructHelpers.h"
-//#include "Layouts.h"
-
-#include "shader_suite/frags.h"
-#include "shader_suite/verts.h"
-#include "shader_suite/tests.h"
-
-#include <iostream>
 #include <chrono>
-
-//void srt1();
-//void srt2();
-//void srt3();
-//void srt4();
-//void test_pred();
-//void test_accessor();
 
 struct T {
 	void f() & { std::cout << "&" << std::endl; }
