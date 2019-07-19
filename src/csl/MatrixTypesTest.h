@@ -122,32 +122,32 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// swizzles accessors
 
-	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
-		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
+	template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
+		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
 	}
 
-	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
-		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
+	template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
+		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &
 	{
 		return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
 	}
 
-	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
-		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
+	template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
+		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &&
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr(), MemberAccessor::ObjStatus::TEMP) };
 	}
 
-	template<uint Dim, SwizzleSet Set, uint Bytes, uint Size,
-		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR && Size <= NR > >
+	template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
+		typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 		Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &&
 	{
-		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr()) };
+		return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr(), MemberAccessor::ObjStatus::TEMP) };
 	}
 
 	// array subscript accessor
@@ -282,7 +282,7 @@ inline MatrixConvertor<Bool>::operator bool() &
 	return false;
 }
 
-// Bool operators
+// logical binary operators
 template<typename A, typename B,
 	typename = std::enable_if_t< EqualMat<A, Bool> &&  EqualMat<B, Bool> > >
 	Bool operator&&(A && a, B && b)
@@ -302,6 +302,44 @@ template<typename A, typename B,
 	Bool operator==(A && a, B && b)
 {
 	return { createExp<MiddleOperator<EQUALITY>>(" == ", EX(A, a), EX(B, b)) };
+}
+
+
+template<typename A, typename B,
+	typename = std::enable_if_t< NoBools<A, B> && EqualDim<A, B> > >
+	Bool operator!=(A && a, B && b)
+{
+	return { createExp<MiddleOperator<EQUALITY>>(" != ", EX(A, a), EX(B, b)) };
+}
+
+
+// bitwise operators
+template<typename A, typename B, typename C = Infos<CT<A>>, typename = 
+	std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && SameScalarType<A,B> && ( IsScalar<A> || IsScalar<B> ||  EqualDim<A,B> ) > >
+	Vec<C::scalar_type, C::rows> operator&(A && a, B && b)
+{
+	return { createExp<MiddleOperator<BITWISE_AND>>(" & ", EX(A, a), EX(B, b)) };
+}
+
+template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && SameScalarType<A, B> && (IsScalar<A> || IsScalar<B> || EqualDim<A, B>) > >
+	Vec<C::scalar_type, C::rows> operator|(A && a, B && b)
+{
+	return { createExp<MiddleOperator<BITWISE_OR>>(" | ", EX(A, a), EX(B, b)) };
+}
+
+template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && ( (IsScalar<A> && IsScalar<B>) || IsScalar<B> || EqualDim<A, B>) > >
+	Vec<C::scalar_type, C::rows> operator<<(A && a, B && b)
+{
+	return { createExp<MiddleOperator<BITWISE_SHIFT>>(" << ", EX(A, a), EX(B, b)) };
+}
+
+template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && ((IsScalar<A> && IsScalar<B>) || IsScalar<B> || EqualDim<A, B>) > >
+	Vec<C::scalar_type, C::rows> operator>>(A && a, B && b)
+{
+	return { createExp<MiddleOperator<BITWISE_SHIFT>>(" >> ", EX(A, a), EX(B, b)) };
 }
 
 // > and < operators
@@ -380,7 +418,8 @@ template<typename A, typename B,
 template<typename T, uint N>
 struct Array : NamedObject<Array<T, N>> {
 
-	template<bool b = (N != 0), typename = std::enable_if_t<b> >
+	//template<bool b = (N != 0), typename = std::enable_if_t<b> > should be here but prevents gl_ClipDistance
+	
 	Array(const std::string & _name = "", uint flags = IS_TRACKED)
 		: NamedObject<Array<T,N>>(_name, flags)
 	{

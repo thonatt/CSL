@@ -56,10 +56,20 @@ void testStructsMacros()
 	using MyArray = Array<InnerBlock, 12>;
 	GL_INTERFACE_BLOCK(Out<>, BasicBlock, basic, 7,
 		(vec3) myVec3,
-		(MyArray) myInnerBlocks
+		(MyArray) myInnerBlocks,
+		(GetArray<uvec4>::Size<8>) uintsArray
 	);
 
+	Array<Uniform<uvec4>, 8> myArray("myArray");
 	shader.main([&] {
+		Uint chan = Uint(0u) << "chan";
+		Uint uu = myArray[3][z];
+		chan = uu;
+
+		Uint uuu = basic[3].uintsArray[chan][z];
+		chan = uuu; 
+	
+		
 		basic[3].myInnerBlocks[3].mats[2][4][y] = 3.14;
 	});
 

@@ -29,7 +29,12 @@ namespace csl {
 		Float length(A && a) {
 			return { createFCallExp("length", EX(A,a)) };
 		}
-
+		
+		template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > >
+		Float distance(A && a, B && b) {
+			return { createFCallExp("distance", EX(A,a), EX(B,b)) };
+		}
+		
 		template<typename A, typename B, typename = std::enable_if_t<
 			NoBools<A, B> && IsConvertibleTo<A, Vec<FLOAT, Infos<CT<B>>::rows>> && IsConvertibleTo<B, Vec<FLOAT, Infos<CT<A>>::rows>>
 		> >
@@ -57,6 +62,20 @@ namespace csl {
 			Vec<FLOAT, Infos<CT<A>>::rows> max(A && a, B && b) {
 			return { createFCallExp("max", EX(A,a), EX(B,b)) };
 		}
+		
+		template<typename A, typename B, typename = std::enable_if_t<
+		IsVecF<A> && (EqualMat<A, B> || IsFloat<B>)
+		> >
+		Vec<FLOAT, Infos<CT<A>>::rows> min(A && a, B && b) {
+			return { createFCallExp("min", EX(A,a), EX(B,b)) };
+		}
+		
+		template<typename A, typename B, typename = std::enable_if_t<
+		IsVecF<A> && (EqualMat<A, B> || IsFloat<B>)
+		> >
+		Vec<FLOAT, Infos<CT<A>>::rows> mod(A && a, B && b) {
+			return { createFCallExp("mod", EX(A,a), EX(B,b)) };
+		}
 
 		template<typename A, typename B, typename C, typename = std::enable_if_t<
 			IsVecF<A> && EqualMat<A, B> && (EqualMat<A, C> || IsFloat<C>)
@@ -82,6 +101,13 @@ namespace csl {
 		> >
 			Vec<FLOAT, Infos<CT<A>>::rows> clamp(A && x, B && minVal, C && maxVal) {
 			return { createFCallExp("clamp", EX(A,x), EX(B,minVal), EX(C, maxVal)) };
+		}
+		
+		template<typename A, typename B, typename C, typename = std::enable_if_t<
+		IsVecF<C> && EqualMat<B, A> && (EqualMat<A, C> || IsConvertibleTo<A, Float>)
+		> >
+		Vec<FLOAT, Infos<CT<C>>::rows> smoothstep(A && edge0, B && edge1, C && x) {
+			return { createFCallExp("smoothstep", EX(A,edge0), EX(B,edge1), EX(C, x)) };
 		}
 
 		CSL_PP_ITERATE(GENTYPE_OP_GENTYPE, abs, sin, cos, tan, exp, log, sqrt, ceil, floor, fract, exp2, log2, normalize);
@@ -148,6 +174,13 @@ namespace csl {
 			};
 		}
 
+		template<typename A, typename B, typename C, typename IA = Infos<CT<A>>, typename = std::enable_if_t<
+			IsVecInteger<A> && EqualMat<B, C> && (EqualMat<A, B> || IsConvertibleTo<B, Vec<IA::scalar_type,1>>)
+		> >
+			Vec<IA::scalar_type, IA::rows> clamp(A && x, B && minVal, C && maxVal) {
+			return { createFCallExp("clamp", EX(A,x), EX(B,minVal), EX(C, maxVal)) };
+		}
+
 		CSL_PP_ITERATE(GENTYPE_OP_GENTYPE, sinh, cosh, tanh, inversesqrt, sign, round);
 	}
 
@@ -174,6 +207,14 @@ namespace csl {
 			return Float(createFCallExp("length", getExp<R_A>(v)));
 		}
 
+		template<typename R_A, typename R_B, typename A = CleanType<R_A>, typename B = CleanType<R_B>,
+		typename = std::enable_if_t<
+		Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE && Infos<B>::cols == 1 && Infos<B>::scalar_type == DOUBLE
+		> >
+		Float distance(R_A && a, R_B && b) {
+			return Float(createFCallExp("distance", getExp<R_A>(a), getExp<R_B>(b)));
+		}
+		
 		template<typename S, typename P, typename L, typename SI = SamplerInfos<CT<S>>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == CUBE) && (SI::flags & IS_ARRAY) &&
@@ -183,6 +224,13 @@ namespace csl {
 			return {
 				createFCallExp("textureLod", EX(S, sampler) , EX(P, point), EX(L, lod))
 			};
+		}
+
+		template<typename A, typename B, typename C, typename IA = Infos<CT<A>>, typename =
+			std::enable_if_t< IsVecInteger<A> && EqualMat<B,Int> && EqualMat <C,Int> > >
+			Vec<IA::scalar_type, IA::rows> bitfieldExtract(A && value, B && offset, C && bits)
+		{
+			return { createFCallExp("bitfieldExtract", EX(A, value) , EX(B, offset), EX(C, bits)) };
 		}
 	}
 

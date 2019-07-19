@@ -146,8 +146,6 @@ namespace csl {
 		template<uint N> using Size = Array<T, N>;
 	};
 
-	GetArray<vec3>::Size<12>;
-
 	// types infos
 
 	template<typename T> struct Infos {
@@ -332,8 +330,13 @@ namespace csl {
 	constexpr bool IsVecI = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == INT;
 
 	template<typename A>
+	constexpr bool IsVecU = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == UINT;
+
+	template<typename A>
 	constexpr bool IsVecB = Infos<CT<A>>::cols == 1 && Infos<CT<A>>::scalar_type == BOOL;
 
+	template<typename A>
+	constexpr bool IsVecInteger = IsVecU<A> || IsVecI<A>;
 
 	template<typename A>
 	constexpr bool IsInt = IsScalar<A> && Infos<CT<A>>::scalar_type == INT;

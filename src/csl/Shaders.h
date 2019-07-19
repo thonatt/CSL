@@ -7,7 +7,7 @@
 
 namespace csl {
 
-	namespace frag_all {
+	namespace frag_common {
 
 		const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
 		const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
@@ -21,7 +21,7 @@ namespace csl {
 		}
 	}
 
-	namespace vert_all {
+	namespace vert_common {
 
 		//static GL_INTERFACE(Out, GLperVertex,
 		//	(vec4) gl_Position,
@@ -31,7 +31,7 @@ namespace csl {
 
 		static Out<vec4> gl_Position("gl_Position", DISABLED);
 		static Out<Float> gl_PointSize("gl_PointSize", DISABLED);
-		//static Out<Array<Float>> gl_ClipDistance("gl_ClipDistance", DISABLED);
+		static Out<Array<Float>> gl_ClipDistance("gl_ClipDistance", DISABLED);
 
 		const In<Int> gl_VertexID("gl_VertexID", DISABLED);
 		const In<Int> gl_InstanceID("gl_InstanceID", DISABLED);
@@ -39,7 +39,7 @@ namespace csl {
 
 	namespace vert_330 {
 		using namespace csl;
-		using namespace vert_all;
+		using namespace vert_common;
 		using namespace glsl_330;
 
 		using Shader = ShaderWrapper<GLSL_330>;
@@ -47,7 +47,7 @@ namespace csl {
 
 	namespace frag_330 {
 		using namespace csl;
-		using namespace frag_all;
+		using namespace frag_common;
 		using namespace glsl_330;
 
 		using Shader = ShaderWrapper<GLSL_330>;
@@ -55,7 +55,7 @@ namespace csl {
 
 	namespace frag_410 {
 		using namespace csl;
-		using namespace frag_all;
+		using namespace frag_common;
 		using namespace glsl_410;
 
 		using Shader = ShaderWrapper<GLSL_410>;
@@ -64,7 +64,7 @@ namespace csl {
 
 	namespace vert_430 {
 		using namespace csl;
-		using namespace vert_all;
+		using namespace vert_common;
 		using namespace glsl_430;
 
 		using Shader = ShaderWrapper<GLSL_430>;
@@ -72,7 +72,7 @@ namespace csl {
 
 	namespace frag_430 {
 		using namespace csl;
-		using namespace frag_all;
+		using namespace frag_common;
 		using namespace glsl_430;
 
 		using Shader = ShaderWrapper<GLSL_430>;
@@ -80,7 +80,7 @@ namespace csl {
 
 	namespace frag_450 {
 		using namespace csl;
-		using namespace frag_all;
+		using namespace frag_common;
 		using namespace glsl_450;
 
 		using Shader = ShaderWrapper<GLSL_450>;

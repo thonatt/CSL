@@ -7,12 +7,12 @@ namespace csl {
 	enum SwizzleSet { RGBA, XYZW, STPQ, MIXED_SET };
 	enum SwizzeStatus : uint { NON_REPEATED = 0, REPEATED = 1 };
 
-	template<SwizzleSet Set, uint Dim, uint Bytes = (2 << Dim), uint Size = 1, SwizzeStatus Status = NON_REPEATED>
+	template<SwizzleSet Set, uint Dim, uint Bytes = (1 << (Dim-1)), uint Size = 1, SwizzeStatus Status = NON_REPEATED>
 	class SwizzlePack;
 
 	template<SwizzleSet S1, SwizzleSet S2, uint D1, uint D2, uint B1, uint B2, uint Size, SwizzeStatus status>
 	using OutSwizzle = SwizzlePack<
-		S1 == S2 ? S1 : MIXED_SET,
+		(S1 == S2 ? S1 : MIXED_SET),
 		MaxUint<D1, D2>,
 		(B1 | B2),
 		Size + 1,
@@ -24,9 +24,9 @@ namespace csl {
 	public:
 		SwizzlePack(const std::string & _s) : s(std::make_shared<std::string>(_s)) { }
 
-		template<uint Dim_, SwizzleSet Set_, uint Bytes_>
-		OutSwizzle<Set, Set_, Dim, Dim_, Bytes, Bytes_, Size, Status>
-			operator,(const SwizzlePack<Set_, Dim_, Bytes_, 1> & other) const
+		template<SwizzleSet _Set, uint _Dim, uint _Bytes>
+		OutSwizzle<Set, _Set, Dim, _Dim, Bytes, _Bytes, Size, Status>
+			operator,(const SwizzlePack<_Set, _Dim, _Bytes, 1> & other) const
 		{
 			return { *s + *other.s };
 		}

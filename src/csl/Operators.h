@@ -345,8 +345,10 @@ namespace csl {
 	//};
 
 	struct MemberAccessor : Precedence<FIELD_SELECTOR> {
-		MemberAccessor(const Ex & _obj, const std::string & _member_str)
-			: obj(_obj), member_str(_member_str) {
+		enum ObjStatus { NOT_TEMP = 0, TEMP = 1 };
+
+		MemberAccessor(const Ex & _obj, const std::string & _member_str, ObjStatus _obj_is_temp = NOT_TEMP)
+			: obj(_obj), member_str(_member_str), obj_is_temp(_obj_is_temp) {
 		}
 		std::string str(int trailing) const {
 			std::string obj_str;
@@ -365,12 +367,12 @@ namespace csl {
 				ctor->setTemp();
 				ctor->disable();
 			}
-			obj_is_temp = true;
+			obj_is_temp = MemberAccessor::ObjStatus::TEMP;
 		}
 
 		Ex obj;
 		std::string member_str;
-		bool obj_is_temp = false;
+		ObjStatus obj_is_temp;
 	};
 
 	template<uint N>

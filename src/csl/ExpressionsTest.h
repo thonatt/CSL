@@ -968,7 +968,7 @@ namespace csl {
 
 	struct ForController : virtual ControllerBase {
 
-		void begin_for() {
+		virtual void begin_for() {
 			current_for = std::make_shared<ForInstruction>();
 			currentBlock->push_instruction(current_for);
 		}
@@ -1073,12 +1073,12 @@ namespace csl {
 			currentBlock = current_switch->body;
 		}
 
-		void add_case(const Ex & ex) {
+		virtual void add_case(const Ex & ex) {
 			current_switch->add_case(ex, currentBlock);
 		}
-		void end_case() {
-			currentBlock = currentBlock->parent;
-		}
+		//void end_case() {
+		//	currentBlock = currentBlock->parent;
+		//}
 
 		virtual void end_switch() {
 			if (current_switch->current_case) {
@@ -1108,9 +1108,9 @@ namespace csl {
 			}
 		}
 
-		virtual void begin_for_args() {
+		virtual void begin_for() {
 			check_end_if();
-			ForController::begin_for_args();
+			ForController::begin_for();
 		}
 
 		virtual void end_for() {
@@ -1121,6 +1121,11 @@ namespace csl {
 		virtual void end_while() {
 			check_end_if();
 			WhileController::end_while();
+		}
+
+		virtual void add_case(const Ex & ex) {
+			check_end_if();
+			SwitchController::add_case(ex);
 		}
 
 		virtual void end_switch() {
@@ -1305,7 +1310,7 @@ namespace csl {
 
 		template<typename S, typename ... Args>
 		void add_statement(Args && ... args) {
-			if (currentShader) {
+			if (currentShader && active() ) {
 				currentShader->add_statement<S, Args...>(std::forward<Args>(args)...);
 			}
 		}
@@ -1517,14 +1522,16 @@ namespace csl {
 			} else if (count == 2) {
 				listen().active() = true;
 			}
-			return count > 2 ? 0 : -69;
+			return count > 2 ? 0 : unlikely_case;
 		}
 
 		~BeginSwitch() {
 			listen().end_switch();
 		}
 		mutable int count = 0;
+		int unlikely_case = 696969;
 	};
+	
 
 	struct EndFor {
 
@@ -1679,7 +1686,7 @@ namespace csl {
 	listen().begin_while(condition); for(BeginWhile csl_begin_while = {}; csl_begin_while; )
 
 #define GL_SWITCH(condition) \
-	switch(condition){ case 1 : {} default : {} } listen().begin_switch(condition); switch(BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
+	listen().begin_switch(condition); switch(BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
 
 #define GL_CASE(value) \
 	listen().begin_switch_case(value); case value 

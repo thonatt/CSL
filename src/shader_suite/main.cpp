@@ -33,6 +33,8 @@ int main()
 {
 	//test_accessor();
 
+	//testStructsMacros();
+
 	auto start = std::chrono::steady_clock::now();
 
 	auto blur_str = blurShader();
@@ -44,18 +46,20 @@ int main()
 	auto discard_str = discardFragShader();
 
 	auto transfeedBack_str = transfeedBackVertex();
+	
+	auto eightiesShader_str = eightiesShader();
 
 	auto dolphin_vertex_str = dolphinVertex();
 
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
-	testStructsMacros();
 
 	std::cout << blur_str;
 	std::cout << ambiant_str;
 	std::cout << ssao_str;
 	std::cout << discard_str;
 	std::cout << transfeedBack_str;
+	std::cout << eightiesShader_str;
 	std::cout << dolphin_vertex_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
