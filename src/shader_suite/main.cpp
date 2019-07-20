@@ -1,7 +1,10 @@
-#include "frags.h"
-#include "verts.h"
-#include "tests.h"
+#include <shaders/80_s_shader.h>
+#include <shaders/dolphin.h>
+#include <shaders/kosua_compilation.h>
+#include <shaders/ogl4_sl_cookbook.h>
+#include <shaders/examples.h>
 
+#include <iostream>
 #include <chrono>
 
 struct T {
@@ -43,7 +46,7 @@ int main()
 
 	auto ssao_str = ssaoShader();
 
-	auto discard_str = discardFragShader();
+	auto discard_str = discardFrag();
 
 	auto transfeedBack_str = transfeedBackVertex();
 	

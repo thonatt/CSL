@@ -2,6 +2,4 @@
 
 #include <string>
 
-
-std::string testGeom();
-
+std::string eightiesShader();

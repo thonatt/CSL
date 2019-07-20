@@ -1,95 +1,6 @@
-#include "verts.h"
+#include "dolphin.h"
 
 #include <csl/Shaders.h>
-
-
-std::string transfeedBackVertex()
-{
-	using namespace csl::vert_330;
-	using namespace csl::swizzles::all;
-
-	double pi = 3.14159265359;
-
-	Shader shader;
-
-	In<vec3, Layout<Location<0>>> VertexPosition("VertexPosition");
-	In<vec3, Layout<Location<1>>> VertexVelocity("VertexVelocity");
-	In<Float, Layout<Location<2>>> VertexAge("VertexAge");
-	lineBreak();
-
-	Uniform<Int> Pass("Pass");
-	lineBreak();
-
-	Out<vec3> Position("Position");
-	Out<vec3> Velocity("Velocity");
-	Out<Float> Age("Age");
-	Out<Float> Transp("Transp");
-	Out<vec2> TexCoord("TexCoord");
-	lineBreak();
-
-	Uniform<Float> Time("Time");
-	Uniform<Float> DeltaT("DeltaT");
-	Uniform<vec3> Accel("Accel");
-	Uniform<Float> ParticleLifetime("ParticleLifetime");
-	Uniform<vec3> Emitter = vec3(0) << "Emitter";
-	Uniform<mat3> EmitterBasis("EmitterBasis");
-	Uniform<Float> ParticleSize("ParticleSize");
-	lineBreak();
-
-	Uniform<mat4> MV("MV");
-	Uniform<mat4> Proj("Proj");
-	lineBreak();
-
-	Uniform<sampler1D> RandomTex("RandomTex");
-	lineBreak();
-
-	const Array<vec3> offsets = { "offsets", vec3(-0.5,-0.5,0), vec3(0.5,-0.5,0), vec3(0.5,0.5,0),
-							  vec3(-0.5,-0.5,0), vec3(0.5,0.5,0), vec3(-0.5,0.5,0) };
-	lineBreak();
-	
-	const Array<vec2> texCoords = { "texCoords", vec2(0,0), vec2(1,0), vec2(1,1), vec2(0,0), vec2(1,1), vec2(0,1) };
-
-	auto randomInitialVelocity = makeFunc<vec3>( "randomInitialVelocity", [&] {
-		Float theta = mix(0.0, pi / 8.0, texelFetch(RandomTex, 3 * gl_VertexID, 0)[r]) << "theta";
-		Float phi = mix(0.0, 2.0 * pi, texelFetch(RandomTex, 3 * gl_VertexID + 1, 0)[r]) << "phi";
-		Float velocity = mix(1.25, 1.5, texelFetch(RandomTex, 3 * gl_VertexID + 2, 0)[r]) << "velocity";
-		vec3 v = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) << "v";
-		GL_RETURN(normalize(EmitterBasis * v) * velocity);
-	});
-
-	auto update = makeFunc<void>("update", [&] {
-		GL_IF (VertexAge < 0 || VertexAge > ParticleLifetime) {
-			Position = Emitter;
-			Velocity = randomInitialVelocity();
-			GL_IF (VertexAge < 0) Age = VertexAge + DeltaT;
-			GL_ELSE Age = (VertexAge - ParticleLifetime) + DeltaT;
-		} GL_ELSE {
-			Position = VertexPosition + VertexVelocity * DeltaT;
-			Velocity = VertexVelocity + Accel * DeltaT;
-			Age = VertexAge + DeltaT;
-		}
-	});
-
-	auto render = makeFunc<void>("render", [&] {
-		Transp = 0.0;
-		vec3 posCam = vec3(0.0) << "posCam";
-		GL_IF (VertexAge >= 0.0) {
-			posCam = (MV * vec4(VertexPosition, 1))[x,y,z] + offsets[gl_VertexID] * ParticleSize;
-			Transp = clamp(1.0 - VertexAge / ParticleLifetime, 0, 1);
-		}
-		TexCoord = texCoords[gl_VertexID];
-		gl_Position = Proj * vec4(posCam, 1);
-	});
-
-	shader.main([&] {
-		GL_IF (Pass == 1)
-			update();
-		GL_ELSE
-			render();
-	});
-
-	return shader.str();
-}
 
 std::string dolphinVertex() {
 
@@ -141,10 +52,10 @@ std::string dolphinVertex() {
 
 		GL_SWITCH(attnfunc) {
 			// LIGNTATTN_NONE
-			GL_CASE(0u) : { } 
-			
+			GL_CASE(0u) : { }
+
 			// LIGHTATTN_DIR
-			GL_CASE(2u) : { 
+			GL_CASE(2u) : {
 				ldir = normalize(clights[index].pos[x, y, z] - pos[x, y, z]);
 				attn = 1.0;
 				GL_IF(length(ldir) == 0.0)
@@ -176,10 +87,10 @@ std::string dolphinVertex() {
 				GL_BREAK;
 			}
 
-			GL_DEFAULT : {
-				attn = 1.0;
-				ldir = normal;
-				GL_BREAK;
+		GL_DEFAULT: {
+			attn = 1.0;
+			ldir = normal;
+			GL_BREAK;
 			}
 		}
 
@@ -197,12 +108,12 @@ std::string dolphinVertex() {
 			GL_CASE(2u) : {
 				GL_RETURN(ivec4(round(attn * max(0.0, dot(ldir, normal)) * vec4(clights[index].color))));
 			}
-			
-			GL_DEFAULT : {
-				GL_RETURN(ivec4(0, 0, 0, 0));
+
+		GL_DEFAULT: {
+			GL_RETURN(ivec4(0, 0, 0, 0));
 			}
 		}
-	}, "index", "attnfunc", "diffusefunc", "pos", "normal" );
+	}, "index", "attnfunc", "diffusefunc", "pos", "normal");
 
 	In<vec4> rawpos("rawpos");
 	In<uvec4> posmtx("posmtx");
@@ -230,7 +141,7 @@ std::string dolphinVertex() {
 		// Normal matrix
 		vec3 N0, N1, N2;
 
-		GL_IF ((components & 2u) != 0u) {// VB_HAS_POSMTXIDX
+		GL_IF((components & 2u) != 0u) {// VB_HAS_POSMTXIDX
 			// Vertex format has a per-vertex matrix
 			Int posidx = Int(posmtx[r]);
 			P0 = ctrmtx[posidx];
@@ -238,10 +149,10 @@ std::string dolphinVertex() {
 			P2 = ctrmtx[posidx + 2];
 
 			Int normidx = GL_TERNARY(posidx >= 32, (posidx - 32), posidx);
-			N0 = cnmtx[normidx][x,y,z];
+			N0 = cnmtx[normidx][x, y, z];
 			N1 = cnmtx[normidx + 1][x, y, z];
 			N2 = cnmtx[normidx + 2][x, y, z];
-		} GL_ELSE {
+		} GL_ELSE{
 			// One shared matrix
 			P0 = cpnmtx[0];
 			P1 = cpnmtx[1];
@@ -256,25 +167,25 @@ std::string dolphinVertex() {
 
 		// Only the first normal gets normalized (TODO: why?)
 		vec3 _norm0 = vec3(0.0, 0.0, 0.0);
-		GL_IF ((components & 1024u) != 0u) // VB_HAS_NRM0
+		GL_IF((components & 1024u) != 0u) // VB_HAS_NRM0
 			_norm0 = normalize(vec3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));
 
 		vec3 _norm1 = vec3(0.0, 0.0, 0.0);
-		GL_IF ((components & 2048u) != 0u) // VB_HAS_NRM1
+		GL_IF((components & 2048u) != 0u) // VB_HAS_NRM1
 			_norm1 = vec3(dot(N0, rawnorm1), dot(N1, rawnorm1), dot(N2, rawnorm1));
 
 		vec3 _norm2 = vec3(0.0, 0.0, 0.0);
-		GL_IF ((components & 4096u) != 0u) // VB_HAS_NRM2
+		GL_IF((components & 4096u) != 0u) // VB_HAS_NRM2
 			_norm2 = vec3(dot(N0, rawnorm2), dot(N1, rawnorm2), dot(N2, rawnorm2));
 
 		// Lighting
-		GL_FOR (Uint chan = Uint(0u) << "chan"; chan < xfmem_numColorChans; chan++) {
+		GL_FOR(Uint chan = Uint(0u) << "chan"; chan < xfmem_numColorChans; chan++) {
 			Uint colorreg = (xfmem_pack1[(chan)][z]);
 			Uint alphareg = (xfmem_pack1[(chan)][w]);
 			ivec4 mat = cmtrl[chan + 2u];
 			ivec4 lacc = ivec4(255, 255, 255, 255);
 
-			GL_IF (bitfieldExtract(colorreg, 0, 1) != 0u) {
+			GL_IF(bitfieldExtract(colorreg, 0, 1) != 0u) {
 				GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
 					mat[x, y, z] = ivec3(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
 				GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
@@ -283,39 +194,39 @@ std::string dolphinVertex() {
 					mat[x, y, z] = ivec3(255, 255, 255);
 			}
 
-			GL_IF (bitfieldExtract(alphareg, 0, 1) != 0u) {
-				GL_IF ((components & (8192u << chan)) != 0u) // VB_HAS_COL0
+			GL_IF(bitfieldExtract(alphareg, 0, 1) != 0u) {
+				GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
 					mat[w] = Int(round(ternary(chan == 0u, rawcolor0[w], rawcolor1[w]) * 255.0));
-				GL_ELSE_IF ((components & 8192u) != 0u) // VB_HAS_COLO0
+				GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 					mat[w] = Int(round(rawcolor0[w] * 255.0));
 				GL_ELSE
 					mat[w] = 255;
-			} GL_ELSE {
+			} GL_ELSE{
 				mat[w] = cmtrl[chan + 2u][w];
 			}
 
-			GL_IF (bitfieldExtract(colorreg, 1, 1) != 0u) {
+				GL_IF(bitfieldExtract(colorreg, 1, 1) != 0u) {
 				GL_IF(bitfieldExtract(colorreg, 6, 1) != 0u) {
 					GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
 						lacc[x, y, z] = ivec3(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
-					GL_ELSE_IF ((components & 8192u) != 0u) // VB_HAS_COLO0
+					GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 						lacc[x, y, z] = ivec3(round(rawcolor0[x, y, z] * 255.0));
 					GL_ELSE
 						lacc[x, y, z] = ivec3(255, 255, 255);
-				} GL_ELSE {
+				} GL_ELSE{
 					lacc[x, y, z] = cmtrl[chan][x, y, z];
 				}
 
 				Uint light_mask = bitfieldExtract(colorreg, 2, 4) | (bitfieldExtract(colorreg, 11, 4) << 4u);
 				Uint attnfunc = bitfieldExtract(colorreg, 9, 2);
 				Uint diffusefunc = bitfieldExtract(colorreg, 7, 2);
-				GL_FOR (Uint light_index = 0u; light_index < 8u; light_index++) {
-					GL_IF ((light_mask & (1u << light_index)) != 0u)
+				GL_FOR(Uint light_index = 0u; light_index < 8u; light_index++) {
+					GL_IF((light_mask & (1u << light_index)) != 0u)
 						lacc[x, y, z] += CalculateLighting(light_index, attnfunc, diffusefunc, pos[x, y, z], _norm0)[x, y, z];
 				}
 			}
 
-			GL_IF (bitfieldExtract(alphareg, 1, 1) != 0u) {
+			GL_IF(bitfieldExtract(alphareg, 1, 1) != 0u) {
 				GL_IF(bitfieldExtract(alphareg, 6, 1) != 0u) {
 					GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
 						lacc[w] = Int(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
@@ -330,7 +241,7 @@ std::string dolphinVertex() {
 				Uint light_mask = bitfieldExtract(alphareg, 2, 4) | (bitfieldExtract(alphareg, 11, 4) << 4u);
 				Uint attnfunc = bitfieldExtract(alphareg, 9, 2);
 				Uint diffusefunc = bitfieldExtract(alphareg, 7, 2);
-				GL_FOR (Uint light_index = 0u; light_index < 8u; light_index++) {
+				GL_FOR(Uint light_index = 0u; light_index < 8u; light_index++) {
 					GL_IF((light_mask & (1u << light_index)) != 0u)
 						lacc[w] += CalculateLighting(light_index, attnfunc, diffusefunc, pos[x, y, z], _norm0)[w];
 				}
@@ -340,14 +251,14 @@ std::string dolphinVertex() {
 
 			// Hopefully GPUs that can support dynamic indexing will optimize this.
 			vec4 lit_color = vec4((mat * (lacc + (lacc >> 7))) >> 8) / 255.0;
-			GL_SWITCH (chan) {
+			GL_SWITCH(chan) {
 				GL_CASE(0u) : { o.colors_0 = lit_color; GL_BREAK; }
 				GL_CASE(1u) : { o.colors_1 = lit_color; GL_BREAK; }
-				GL_DEFAULT : { }
+			GL_DEFAULT: { }
 			}
 		}
 
-		GL_IF (xfmem_numColorChans < 2u && (components & 16384u) == 0u)
+		GL_IF(xfmem_numColorChans < 2u && (components & 16384u) == 0u)
 			o.colors_1 = o.colors_0;
 
 		o.tex0 = vec3(0.0, 0.0, 0.0);
@@ -395,11 +306,11 @@ std::string dolphinVertex() {
 				GL_CASE(12u) : // XF_SRCTEX7_INROW
 					coord[x, y, z] = ternary(((components & 4194304u /* VB_HAS_UV7 */) != 0u), vec4(rawtex7[x], rawtex7[y], 1.0, 1.0), coord); GL_BREAK;
 
-				GL_DEFAULT : {}
+			GL_DEFAULT: {}
 			}
 
 			// Input form of AB11 sets z element to 1.0
-			GL_IF (bitfieldExtract(texMtxInfo, 2, 1) == 0u) // inputform == XF_TEXINPUT_AB11
+			GL_IF(bitfieldExtract(texMtxInfo, 2, 1) == 0u) // inputform == XF_TEXINPUT_AB11
 				coord[z] = 1.0;
 
 			// first transformation
@@ -414,15 +325,15 @@ std::string dolphinVertex() {
 					GL_SWITCH(source) {
 						GL_CASE(0u) : { output_tex[x, y, z] = o.tex0; GL_BREAK; }
 						GL_CASE(1u) : { output_tex[x, y, z] = o.tex1; GL_BREAK; }
-						GL_DEFAULT: { output_tex[x, y, z] = vec3(0.0, 0.0, 0.0); GL_BREAK; }
+					GL_DEFAULT: { output_tex[x, y, z] = vec3(0.0, 0.0, 0.0); GL_BREAK; }
 					}
-					GL_IF ((components & 6144u) != 0u) { // VB_HAS_NRM1 | VB_HAS_NRM2
+					GL_IF((components & 6144u) != 0u) { // VB_HAS_NRM1 | VB_HAS_NRM2
 						vec3 ldir = normalize(clights[light].pos[x, y, z] - pos[x, y, z]);
 						output_tex[x, y, z] += vec3(dot(ldir, _norm1), dot(ldir, _norm2), 0.0);
 					}
 					GL_BREAK;
 				}
-				
+
 				GL_CASE(2u) : // XF_TEXGEN_COLOR_STRGBC0
 				{
 					output_tex[x, y, z] = vec3(o.colors_0[x], o.colors_0[y], 1.0);
@@ -435,7 +346,7 @@ std::string dolphinVertex() {
 					GL_BREAK;
 				}
 
-				GL_DEFAULT:  // Also XF_TEXGEN_REGULAR
+			GL_DEFAULT:  // Also XF_TEXGEN_REGULAR
 				{
 					GL_IF((components & (4u /* VB_HAS_TEXMTXIDX0 */ << texgen)) != 0u) {
 						// This is messy, due to dynamic indexing of the input texture coordinates.
@@ -472,14 +383,14 @@ std::string dolphinVertex() {
 
 			}
 
-			GL_IF (xfmem_dualTexInfo != 0u) {
+			GL_IF(xfmem_dualTexInfo != 0u) {
 				Uint postMtxInfo = (xfmem_pack1[(texgen)][y]);
 				Uint base_index = bitfieldExtract(postMtxInfo, 0, 6);
 				vec4 P0 = cpostmtx[base_index & 0x3fu];
 				vec4 P1 = cpostmtx[(base_index + 1u) & 0x3fu];
 				vec4 P2 = cpostmtx[(base_index + 2u) & 0x3fu];
 
-				GL_IF (bitfieldExtract(postMtxInfo, 8, 1) != 0u)
+				GL_IF(bitfieldExtract(postMtxInfo, 8, 1) != 0u)
 					output_tex[x, y, z] = normalize(output_tex[x, y, z]);
 
 				// multiply by postmatrix
@@ -492,10 +403,10 @@ std::string dolphinVertex() {
 				output_tex[x, y] = clamp(output_tex[x, y] / 2.0, vec2(-1.0, -1.0), vec2(1.0, 1.0));
 
 			// Hopefully GPUs that can support dynamic indexing will optimize this.
-			GL_SWITCH (texgen) {
+			GL_SWITCH(texgen) {
 				GL_CASE(0u) : { o.tex0 = output_tex; GL_BREAK; }
 				GL_CASE(1u) : { o.tex1 = output_tex; GL_BREAK; }
-				GL_DEFAULT : { }
+			GL_DEFAULT: { }
 			}
 		}
 
@@ -504,9 +415,9 @@ std::string dolphinVertex() {
 		o.clipDist0 = clipDepth + o.pos[w];
 		o.clipDist1 = -clipDepth;
 		o.pos[z] = o.pos[w] * cpixelcenter[w] - o.pos[z] * cpixelcenter[z];
-		o.pos[x,y] *= sign(cpixelcenter[x,y] * vec2(1.0, -1.0));
+		o.pos[x, y] *= sign(cpixelcenter[x, y] * vec2(1.0, -1.0));
 		o.pos[x, y] = o.pos[x, y] - o.pos[w] * cpixelcenter[x, y];
-		GL_IF (o.pos[w] == 1.0)
+		GL_IF(o.pos[w] == 1.0)
 		{
 			Float ss_pixel_x = ((o.pos[x] + 1.0) * (cviewport[x] * 0.5));
 			Float ss_pixel_y = ((o.pos[y] + 1.0) * (cviewport[y] * 0.5));
