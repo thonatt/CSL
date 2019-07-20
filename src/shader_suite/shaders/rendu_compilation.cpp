@@ -1,4 +1,4 @@
-#include "kosua_compilation.h"
+#include "rendu_compilation.h"
 
 #include <csl/Shaders.h>
 
