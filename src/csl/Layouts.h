@@ -8,8 +8,11 @@ namespace csl {
 	////////////////////////////////////////////////////////////////
 	// Merge sort helpers for LayoutQualifiers
 
-	template<typename A, typename B> struct Concat;
-	template<typename A, typename ...Bs> struct Concat<TList<A>, TList<Bs...>> {
+	template<typename A, typename B> struct ConcatImpl;
+	template<typename A, typename B> 
+	using Concat = typename ConcatImpl<A, B>::Type;
+
+	template<typename A, typename ...Bs> struct ConcatImpl<TList<A>, TList<Bs...>> {
 		using Type = TList<A, Bs...>;
 	};
 
@@ -21,19 +24,19 @@ namespace csl {
 	struct MergeImpl<TList<As...>, TList<>, Comp> {
 		using Type = TList<As...>;
 	};
-	template<typename ...Bs, template<typename, typename> class Comp>
+	template<template<typename, typename> class Comp, typename ...Bs>
 	struct MergeImpl<TList<>, TList<Bs...>, Comp> {
 		using Type = TList<Bs...>;
 	};
-	template<typename A, typename B, template<typename, typename> class Comp, typename ... As, typename ... Bs>
-	struct MergeImpl<TList<A, As...>, TList<B, Bs...>, Comp> {
+	template<template<typename, typename> class Comp, typename A, typename B, typename ... As, typename ... Bs>
+	struct MergeImpl<TList<A,As...>, TList<B,Bs...>, Comp> {
 		using Type = std::conditional_t <
 			(Comp<A, B>::value == 0),
 			Merge<TList<As...>, TList<B, Bs...>, Comp>,
 			std::conditional_t <
 				(Comp<A, B>::value < 0),
-				typename Concat<TList<A>, Merge<TList<As...>, TList<B, Bs...>, Comp>>::Type,
-				typename Concat<TList<B>, Merge<TList<A, As...>, TList<Bs...>, Comp>>::Type
+				Concat<TList<A>, Merge<TList<As...>, TList<B, Bs...>, Comp>>,
+				Concat<TList<B>, Merge<TList<A, As...>, TList<Bs...>, Comp>>
 			>
 		>;
 	};

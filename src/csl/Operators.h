@@ -465,21 +465,19 @@ namespace csl {
 		Litteral(const T & _i) : i(_i) {}
 
 		virtual std::string str(int trailing) const {
-			// std::to_string(i);
-			//s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-			//s.erase(s.find_last_not_of('.') + 1, std::string::npos);
-			//return s;
-
-			std::stringstream ss;
-			ss << std::setprecision(8) << std::showpoint << i << LitteralSufffixStr<Infos<T>::scalar_type>::str();
-			std::string out = ss.str();
-			return out;
-			//return ss.str();
-			//return std::to_string(i); 
+			std::string s = std::to_string(i);
+			if (!std::is_integral_v<T>) {
+				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+				if (static_cast<T>(std::round(i)) == i) {
+					s += "0";
+				}
+			}
+			return s;
 		}
 
 		T i;
 	};
+
 
 	template<> struct Litteral<bool> : OperatorBase {
 		Litteral(const bool & _b) : b(_b) {}
