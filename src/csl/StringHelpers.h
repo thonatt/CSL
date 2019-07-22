@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include "TypesHelpers.h"
 
 #include <boost/preprocessor/seq/for_each_i.hpp>
@@ -12,11 +13,6 @@ namespace csl {
 	template<typename T>
 	struct TypeStr {
 		static std::string str(int trailing) { return T::typeStr(trailing); }
-	};
-
-	template<>
-	struct TypeStr<TypeList<>> {
-		static std::string str(int trailing = 0) { return ""; }
 	};
 
 	template<typename T>
@@ -186,22 +182,19 @@ namespace csl {
 
 	// layout types
 
-	template<LayoutArgIntType t>
-	struct LayoutArgIntStr {
-		static std::string str();
+	static std::map<LayoutQualifier, std::string> layoutQualifiersKeywords = {
+		{SHARED, "shared"}, {PACKED, "packed"} , {STD140, "std140"}, {STD430, "std430"},
+		{ROW_MAJOR,"row_major"}, {COLUMN_MAJOR, "column_major"},
+		{BINDING, "binding"},
+		{LOCATION, "location"},
+		{POINTS, "points"},{LINES, "lines"},{TRIANGLES, "triangles"},
+		{LINE_STRIP, "line_strip"},{TRIANGLE_STRIP, "triangle_strip"},
+		{MAX_VERTICES, "max_vertices"}
 	};
-	template<> inline std::string LayoutArgIntStr<OFFSET>::str() { return "offset"; }
-	template<> inline std::string LayoutArgIntStr<BINDING>::str() { return "binding"; }
-	template<> inline std::string LayoutArgIntStr<LOCATION>::str() { return "location"; }
 
-	template<LayoutArgBoolType t>
-	struct LayoutArgBoolStr {
-		static std::string str();
-	};
-	template<> inline std::string LayoutArgBoolStr<STD140>::str() { return "std140"; }
-	template<> inline std::string LayoutArgBoolStr<STD430>::str() { return "std430"; }
-	template<> inline std::string LayoutArgBoolStr<SHARED>::str() { return "shared"; }
-	template<> inline std::string LayoutArgBoolStr<PACKED>::str() { return "packed"; }
+	static const std::string & layoutQualifierKeyword(LayoutQualifier layoutQualifier) {
+		return layoutQualifiersKeywords[layoutQualifier];
+	}
 
 	template<QualifierType t>
 	struct QualifierTypeStr {
@@ -211,26 +204,21 @@ namespace csl {
 	template<> inline std::string QualifierTypeStr<IN>::str() { return "in"; }
 	template<> inline std::string QualifierTypeStr<OUT>::str() { return "out"; }
 
-	template<LayoutArgIntType type, int N>
-	struct TypeStr<LayoutArgInt<type, N>> {
-		static std::string str(int trailing = 0) {
-			if (N < 0) {
-				return "";
-			} else {
-				return LayoutArgIntStr<type>::str() + " = " + std::to_string(N);
-			}
+	template<LayoutQualifier lq>
+	struct TypeStr<LayoutQArg<lq>> {
+		static std::string str() { return layoutQualifierKeyword(lq); }
+	};
+
+	template<LayoutQualifier lq, uint N>
+	struct TypeStr<LayoutQArgValue<lq, N> > {
+		static std::string str() {
+			return layoutQualifierKeyword(lq) + " = " + std::to_string(N);
 		}
 	};
 
-	template<LayoutArgBoolType type, bool b>
-	struct TypeStr<LayoutArgBool<type, b>> {
-		static std::string str(int trailing = 0) {
-			return b ? LayoutArgBoolStr<type>::str() : std::string("");
-		}
-	};
 
 	template< typename ... LayoutArgs>
-	struct TypeStr< TypeList<LayoutArgs... > > {
+	struct TypeStr< TList<LayoutArgs... > > {
 		static std::string str() {
 			if (sizeof...(LayoutArgs) == 0) {
 				return "";
@@ -243,7 +231,7 @@ namespace csl {
 	template<QualifierType qType, typename T, typename ... LayoutArgs>
 	struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 		static std::string str(int trailing = 0) {
-			return TypeStr<typename Layout<LayoutArgs...>::CleanedArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str(trailing);
+			return TypeStr<typename Layout<LayoutArgs...>::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str(trailing);
 		}
 	};
 

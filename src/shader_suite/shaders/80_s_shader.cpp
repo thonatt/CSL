@@ -15,7 +15,7 @@ std::string eightiesShader() {
 	Out<vec4, Layout<Location<0>>> fragColor("fragColor");
 
 	/// Noise helpers.
-	auto noise1D = makeFunc<Float>([&](Float p) {
+	auto noise1D = makeFunc<Float>([](Float p) {
 		Float fl = floor(p);
 		Float fc = fract(p);
 		Float rand0 = fract(sin(fl) * 43758.5453123);
@@ -23,7 +23,7 @@ std::string eightiesShader() {
 		GL_RETURN(mix(rand0, rand1, fc));
 	});
 
-	auto noise4D = makeFunc<vec4>([&](vec4 p) {
+	auto noise4D = makeFunc<vec4>([](vec4 p) {
 		vec4 fl = floor(p);
 		vec4 fc = fract(p);
 		vec4 rand0 = fract(sin(fl) * 43758.5453123);
@@ -31,7 +31,7 @@ std::string eightiesShader() {
 		GL_RETURN(mix(rand0, rand1, fc));
 	});
 
-	auto hash = makeFunc<Float>([&](vec2 p) {
+	auto hash = makeFunc<Float>([](vec2 p) {
 		vec3 p3 = fract(p[x, y, x] * 0.2831);
 		p3 += dot(p3, p3[y, z, x] + 19.19);
 		GL_RETURN(fract((p3[x] + p3[y]) * p3[z]));
@@ -48,7 +48,7 @@ std::string eightiesShader() {
 		GL_RETURN(smoothstep(startsTh, 0.0, length(fract(p) - 0.5)) * brightness);
 	});
 
-	auto segmentDistance = makeFunc<Float>([&](vec2 p, vec2 a, vec2 b) {
+	auto segmentDistance = makeFunc<Float>([](vec2 p, vec2 a, vec2 b) {
 		// Project the point on the segment.
 		vec2 dir = b - a;
 		Float len2 = dot(dir, dir);
@@ -90,7 +90,7 @@ std::string eightiesShader() {
 		GL_RETURN(accum / 9.0);
 	});
 
-	auto textGradient = makeFunc<vec3>([&](Float interior, Float top, vec2 alphas) {
+	auto textGradient = makeFunc<vec3>([](Float interior, Float top, vec2 alphas) {
 		// Use squared blend for the interior gradients.
 		vec2 alphas2 = alphas * alphas;
 		// Generate the four possible gradients (interior/edge x upper/lower)

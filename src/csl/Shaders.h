@@ -15,23 +15,28 @@ namespace csl {
 
 		static Out<Float> gl_FragDepth("gl_FragDepth", DISABLED);
 
-
 		inline void Discard() {
 			listen().add_statement<DiscardStatement>();
 		}
 	}
 
+	namespace geom_common {
+
+		CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
+			(vec4) gl_Position,
+			(Float) gl_PointSize,
+			(GetArray<Float>::Size<0>) gl_ClipDistance
+		);
+
+	}
+
 	namespace vert_common {
 
-		//static GL_INTERFACE(Out, GLperVertex,
-		//	(vec4) gl_Position,
-		//	(Float) gl_PointSize, 
-		//	(Array<Float>) gl_ClipDistance
-		//) gl_PerVertex("gl_PerVertex", DISABLED);
-
-		static Out<vec4> gl_Position("gl_Position", DISABLED);
-		static Out<Float> gl_PointSize("gl_PointSize", DISABLED);
-		static Out<Array<Float>> gl_ClipDistance("gl_ClipDistance", DISABLED);
+		CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertex, , ,
+			(vec4) gl_Position,
+			(Float) gl_PointSize,
+			(GetArray<Float>::Size<0>) gl_ClipDistance
+		);
 
 		const In<Int> gl_VertexID("gl_VertexID", DISABLED);
 		const In<Int> gl_InstanceID("gl_InstanceID", DISABLED);

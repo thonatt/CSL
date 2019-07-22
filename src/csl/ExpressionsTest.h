@@ -193,6 +193,7 @@ namespace csl {
 		void checkName()
 		{
 			if (*namePtr == "") {
+
 				namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counter));
 				std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
 

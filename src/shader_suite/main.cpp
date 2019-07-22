@@ -54,6 +54,10 @@ int main()
 
 	auto dolphin_vertex_str = dolphinVertex();
 
+	auto phongShading_str = phongShading();
+
+	auto phongShading_autonaming_str = phongShading_automatic_naming();
+
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
 
@@ -64,6 +68,8 @@ int main()
 	std::cout << transfeedBack_str;
 	std::cout << eightiesShader_str;
 	std::cout << dolphin_vertex_str;
+	std::cout << phongShading_str;
+	std::cout << phongShading_autonaming_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 	

@@ -69,18 +69,30 @@
 	CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
 	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), DISABLED);
 
+#define CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
+	CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
+	static CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), DISABLED);
+
 //internal macros for named/unnamed interface blocks
-#define CSL_PP_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
+
+#define CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, ... ) \
 	struct Typename : NamedObject<Typename> { \
 		static_assert(CSL_PP_IS_EMPTY(ArraySize), "unnamed interface block cant be array"); \
 		Typename() = delete; \
 		static std::string typeStr(int trailing) { return CSL_PP_STR(Typename); } \
-	}; \
+	}; 
+
+#define CSL_PP_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
+	CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
 	listen().add_unnamed_interface_block<CSL_PP_QUALI_TYPENAME(Qualifier, Typename) CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) >( \
 			"" CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	CSL_PP_ITERATE_1(Qualifier, CSL_PP_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ ) 
 
-#define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
+#define CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
+	CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
+	CSL_PP_ITERATE_1(Qualifier, CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ )
+
+#define CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, ...) \
 	struct Typename : public NamedObject<Typename> { \
 		\
 		CSL_PP_ITERATE(CSL_PP_DECLARE_MEMBER_IT, __VA_ARGS__ ) \
@@ -102,10 +114,19 @@
 		static std::string typeNamingStr(int trailing) { \
 			return CSL_PP_STR(Typename); \
 		} \
-	}; \
-	CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name)); listen().add_blank_line(1);
+	}; 
+
+#define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
+	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
+	CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name)); 
+	//listen().add_blank_line(1);
+
+#define CSL_PP_BUILT_IN_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ...) \
+	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
+	static CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name), DISABLED); 
 
 //actual macros
+
 #define GL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, ... ) \
 	static_assert(CSL_PP_NOT_EMPTY(Qualifier), "interface block must have In, Out or Uniform qualifier"); \
 	CSL_PP_IF_EMPTY(Name, \

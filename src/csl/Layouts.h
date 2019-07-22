@@ -1,80 +1,132 @@
 #pragma once
 
 #include "MatrixTypesTest.h"
+#include <tuple>
 
 namespace csl {
 
-	template<LayoutArgBoolType layoutArg, bool b>
-	struct LayoutArgBool {
-		using Type = std::conditional_t<b, TypeList<LayoutArgBool>, TypeList<> >;
+	////////////////////////////////////////////////////////////////
+	// Merge sort helpers for LayoutQualifiers
+
+	template<typename A, typename B> struct Concat;
+	template<typename A, typename ...Bs> struct Concat<TList<A>, TList<Bs...>> {
+		using Type = TList<A, Bs...>;
 	};
 
-	using Shared = LayoutArgBool<SHARED, true>;
-	using Packed = LayoutArgBool<PACKED, true>;
-	using std140 = LayoutArgBool<STD140, true>;
-	using std430 = LayoutArgBool<STD430, true>;
+	template<typename A, typename B, template<typename,typename> class Comp> struct MergeImpl;
+	template<typename A, typename B, template<typename, typename> class Comp> 
+	using Merge = typename MergeImpl<A, B, Comp>::Type;
 
-	template<LayoutArgIntType layoutArg, int N>
-	struct LayoutArgInt {
-		using Type = std::conditional_t< (N >= 0), TypeList<LayoutArgInt>, TypeList<> >;
+	template<template<typename, typename> class Comp, typename ...As>
+	struct MergeImpl<TList<As...>, TList<>, Comp> {
+		using Type = TList<As...>;
+	};
+	template<typename ...Bs, template<typename, typename> class Comp>
+	struct MergeImpl<TList<>, TList<Bs...>, Comp> {
+		using Type = TList<Bs...>;
+	};
+	template<typename A, typename B, template<typename, typename> class Comp, typename ... As, typename ... Bs>
+	struct MergeImpl<TList<A, As...>, TList<B, Bs...>, Comp> {
+		using Type = std::conditional_t <
+			(Comp<A, B>::value == 0),
+			Merge<TList<As...>, TList<B, Bs...>, Comp>,
+			std::conditional_t <
+				(Comp<A, B>::value < 0),
+				typename Concat<TList<A>, Merge<TList<As...>, TList<B, Bs...>, Comp>>::Type,
+				typename Concat<TList<B>, Merge<TList<A, As...>, TList<Bs...>, Comp>>::Type
+			>
+		>;
 	};
 
-	template<int N> using Offset = LayoutArgInt<OFFSET, N>;
-	template<int N> using Binding = LayoutArgInt<BINDING, N>;
-	template<int N> using Location = LayoutArgInt<LOCATION, N>;
+	template<typename A, size_t first, typename Range>
+	struct SubsetImpl;
 
-	template<LayoutArgIntType type, typename T> struct ExtractInt {
-		static const int value = -1;
+	template<typename A, size_t first, size_t last>
+	using Subset = typename SubsetImpl<A, first, std::make_index_sequence<last - first>>::Type;
+
+	template<size_t first, size_t ... Is, typename ... Ts>
+	struct SubsetImpl< TList<Ts...>, first, std::index_sequence<Is...> > {
+		using Type = TList<std::tuple_element_t<first + Is, std::tuple<Ts...>> ...>;
 	};
 
-	template<LayoutArgIntType type, template <LayoutArgIntType, int> class T, int N>
-	struct ExtractInt<type, T<type, N>> {
-		static const int value = N;
+	template<typename T, template<typename, typename> class Comp> struct SortImpl;
+	template<typename T, template<typename, typename> class Comp>
+	using Sort = typename SortImpl<T, Comp>::Type;
+
+	template<template<typename, typename> class Comp>
+	struct SortImpl<TList<>, Comp> {
+		using Type = TList<>;
+	};
+	template<typename T, template<typename, typename> class Comp>
+	struct SortImpl<TList<T>, Comp> {
+		using Type = TList<T>;
 	};
 
-	template<LayoutArgIntType type, typename ...Ts> struct GetLayoutArg;
-
-	template<LayoutArgIntType type>
-	struct GetLayoutArg<type> {
-		static const int value = -1;
+	template<template<typename, typename> class Comp, typename T, typename U, typename ... Ts>
+	struct SortImpl<TList<T, U, Ts...>, Comp> {
+		constexpr static size_t N = 2 + sizeof...(Ts);
+		using M = TList<T, U, Ts...>;
+		using Type = Merge<
+			Sort<Subset<M, 0, N / 2>, Comp>,
+			Sort<Subset<M, N / 2, N>, Comp>,
+			Comp
+		>;
 	};
 
-	template<LayoutArgIntType type, typename T>
-	struct GetLayoutArg<type, T> {
-		static const int value = ExtractInt<type, T>::value;
+	//template<typename A, typename B> struct SizeOfComparator {
+	//	constexpr static int value = sizeof(A) - sizeof(B);
+	//};
+
+	//template<typename A, typename B> struct SizeOfComparatorReverse {
+	//	constexpr static int value = -SizeOfComparator<A, B>::value;
+	//};
+
+	//using LL = TList<double, char, double, double, double, float, short, double>;
+
+	//using S = Sort<LL, SizeOfComparator>;
+	//using RS = Sort<LL, SizeOfComparatorReverse>;
+	//
+	//static constexpr bool bbbb = std::is_same_v<S, TList<char, short, float, double>>;
+	//static constexpr bool bbb = std::is_same_v<RS, TList<double, float, short, char>>;
+
+	template<LayoutQualifier lq> 
+	struct LayoutQArg {
+		static constexpr size_t sort_value = static_cast<size_t>(lq) / 8;
 	};
 
-	template<LayoutArgIntType type, typename T, typename ... Ts>
-	struct GetLayoutArg<type, T, Ts...> {
-		static const int value = Last<GetLayoutArg<type, T>::value, GetLayoutArg<type, Ts...>::value>;
+	template<LayoutQualifier lq, uint N>
+	struct LayoutQArgValue {
+		static constexpr size_t sort_value = static_cast<size_t>(lq) / 8;
 	};
 
-	template<typename ... Ts>
-	using LayoutArgsCleaning = typename TypeMerger<typename Ts::Type... >::Type;
+	template<typename A, typename B> struct LayoutQualifierSort {
+		constexpr static int value = (A::sort_value - B::sort_value);
+	};
 
+	using Shared = LayoutQArg<SHARED>;
+	using Packed = LayoutQArg<PACKED>;
+	using Std140 = LayoutQArg<STD140>;
+	using Std430 = LayoutQArg<STD430>;
+
+	template<int N> using Offset = LayoutQArgValue<OFFSET, N>;
+	template<int N> using Binding = LayoutQArgValue<BINDING, N>;
+	template<int N> using Location = LayoutQArgValue<LOCATION, N>;
+
+	namespace geom_common {
+		using Points = LayoutQArg<POINTS>;
+		using Lines = LayoutQArg<LINES>;
+		using Triangles = LayoutQArg<TRIANGLES>;
+
+		using Line_strip = LayoutQArg<LINE_STRIP>;
+		using Triangle_strip = LayoutQArg<TRIANGLE_STRIP>;
+
+		template<int N> using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
+	}
+
+	
 	template<typename ... LayoutArgs>
 	struct Layout {
-
-		static constexpr int offset = GetLayoutArg<OFFSET, LayoutArgs...>::value;
-		static constexpr int binding = GetLayoutArg<BINDING, LayoutArgs...>::value;
-		static constexpr int location = GetLayoutArg<LOCATION, LayoutArgs...>::value;
-
-		static constexpr bool is_std140 = ContainsType<std140, LayoutArgs...>;
-		static constexpr bool is_std430 = ContainsType<std430, LayoutArgs...>;
-		static constexpr bool is_packed = ContainsType<Packed, LayoutArgs...>;
-		static constexpr bool is_shared = ContainsType<Shared, LayoutArgs...>;
-
-		using CleanedArgs = LayoutArgsCleaning<
-			Offset<offset>,
-			Binding<binding>,
-			Location<location>,
-			LayoutArgBool<STD140, is_std140>,
-			LayoutArgBool<STD430, is_std430>,
-			LayoutArgBool<PACKED, is_packed>,
-			LayoutArgBool<SHARED, is_shared>
-		>;
-
-		static constexpr bool empty = (offset < 0) && (binding < 0) && (location < 0) && !(is_std140 || is_std430 || is_shared || is_packed);
+		using CleanupArgs = Sort<TList<LayoutArgs...>, LayoutQualifierSort>;
 	};
 
 	template<QualifierType q, typename T, typename L>

@@ -95,21 +95,29 @@ namespace csl {
 
 	// layout types forward declarations
 
-	enum LayoutArgBoolType { SHARED, PACKED, STD140, STD430 };
-	enum LayoutArgIntType { OFFSET, BINDING, LOCATION };
-	enum QualifierType { IN, OUT, UNIFORM, NOT_QUALIFIER };
+	enum LayoutQualifier : uint {
+		SHARED = 8 * 0, PACKED, STD140, STD430,
+		ROW_MAJOR = 8 * 1, COLUMN_MAJOR,
+		BINDING = 8 * 2,
+		OFFSET = 8 * 3,
+		LOCATION = 8 * 4,
+		POINTS = 8 * 5, LINES, TRIANGLES,
+		LINE_STRIP = 8 * 6, TRIANGLE_STRIP,
+		MAX_VERTICES = 8 * 7
+	};
+
+	template<LayoutQualifier lq> struct LayoutQArg;
+	template<LayoutQualifier lq, uint N> struct LayoutQArgValue;
+
+	enum QualifierType { 
+		IN, OUT, UNIFORM, NOT_QUALIFIER
+	};
 
 	template<template<typename T, typename Layout> class Quali>
 	struct GetTemplateQualifierT {
 		static const QualifierType value = NOT_QUALIFIER;
 	};
 
-	template<typename T, template<typename U, typename Layout> class Q, uint S>
-	struct GeneralType {
-	};
-
-	template<LayoutArgBoolType layoutArg, bool b> struct LayoutArgBool;
-	template<LayoutArgIntType layoutArg, int N> struct LayoutArgInt;
 
 	template<typename ... LayoutCleanedArgs> struct LayoutCleanedArg;
 
@@ -119,25 +127,8 @@ namespace csl {
 	struct Qualifier;
 
 	//helpers for clean LayoutArgs
-	template<typename ... Ts> struct TypeList {};
 
-	template<typename ... Ts> struct TypeMerger;
-
-	template<typename ...As> 
-	struct TypeMerger<TypeList<As...> > {
-		using Type = TypeList<As...>;
-	};
-
-	template<typename ...As, typename ... Bs>
-	struct TypeMerger< TypeList<As...>, TypeList<Bs...> > {
-		using Type = TypeList<As..., Bs...>;
-	};
-
-	template<typename A, typename B, typename ... As>
-	struct TypeMerger< A, B, As... > {
-		using Type = typename TypeMerger<typename TypeMerger<A, B>::Type, typename TypeMerger<As...>::Type >::Type;
-	};
-
+	template<typename ...> struct TList {};
 
 	// arrays
 	template<typename T, uint N = 0> struct Array;
@@ -281,7 +272,19 @@ namespace csl {
 	constexpr ScalarType LowerType = LowerScalarType<Infos<CT<A>>::scalar_type, Infos<CT<B>>::scalar_type>;
 
 	template<typename A, typename B>
-	constexpr bool EqualType = Infos<CT<A>>::scalar_type == Infos<CT<B>>::scalar_type;
+	constexpr bool EqualType = (Infos<CT<A>>::scalar_type != INVALID) && Infos<CT<A>>::scalar_type == Infos<CT<B>>::scalar_type;
+
+	template<typename A, typename ...Bs> struct EqualTypesT;
+	template<typename A, typename ...Bs> constexpr bool EqualTypes = EqualTypesT<A, Bs...>::value; 
+	
+	template<typename A> struct EqualTypesT<A> {
+		static constexpr bool value = true;
+	};
+
+	template<typename A, typename B, typename ...Bs> 
+	struct EqualTypesT<A, B, Bs...> {
+		static constexpr bool value = EqualType<A, B> && EqualTypes<A, Bs...>;
+	};
 
 	template<typename A>
 	constexpr bool IsValid = Infos<CT<A>>::scalar_type != INVALID;

@@ -17,7 +17,7 @@ std::string dolphinVertex() {
 		(vec4) dir
 	);
 
-	using VSBlockQualifier = Uniform<Layout<Binding<2>, std140>>;
+	using VSBlockQualifier = Uniform<Layout<Binding<2>, Std140>>;
 	GL_INTERFACE_BLOCK(VSBlockQualifier, VSBLock, , ,
 		(Uint) components,
 		(Uint) xfmem_dualTexInfo,

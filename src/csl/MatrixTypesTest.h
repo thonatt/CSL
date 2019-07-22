@@ -47,26 +47,26 @@ public:
 	{	
 	}
 
-	template <std::size_t N>
-	explicit Matrix(const char(&s)[N], uint flags = IS_TRACKED)
-		: NamedObject<Matrix>(s)
-	{
-	}
+	//template <std::size_t N>
+	//explicit Matrix(const char(&s)[N], uint flags = IS_TRACKED)
+	//	: NamedObject<Matrix>(s)
+	//{
+	//}
 
 	Matrix(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
 		: NamedObject<Matrix>(_ex, ctor_flags, obj_flags, s)
 	{
 	}
 
-	// constructor from cpp types (bool, int, and double)
-	template<typename U, typename = std::enable_if_t<IsValid<U> && !Infos<U>::is_glsl_type && isScalar && !isBool > >
-	Matrix(U && u, const std::string & s)
-		: NamedObject<Matrix>(
-			EqualMat<U,Matrix> ? 0 : ( DISPLAY_TYPE | PARENTHESIS),
-			IS_TRACKED , s,
-			EX(U,u) )
-	{
-	}
+	//// constructor from cpp types (bool, int, and double)
+	//template<typename U, typename = std::enable_if_t<IsValid<U> && !Infos<U>::is_glsl_type && isScalar && !isBool > >
+	//Matrix(U && u, const std::string & s)
+	//	: NamedObject<Matrix>(
+	//		EqualMat<U,Matrix> ? 0 : ( DISPLAY_TYPE | PARENTHESIS),
+	//		IS_TRACKED , s,
+	//		EX(U,u) )
+	//{
+	//}
 
 	Matrix(const NamedObjectInit<Matrix> & obj) : NamedObject<Matrix>(obj) {}
 
@@ -77,17 +77,17 @@ public:
 	//glsl constructors
 
 	// matXY(a,b,...)
-	template<typename R_U, typename R_V, typename ...R_Us,
-		typename = std::enable_if_t < AreValid<CT<R_U>, CT<R_V>, CT<R_Us>... > && MatElements<CT<R_U>, CT<R_V>, CT<R_Us>... > == NR * NC > >
-		explicit Matrix(R_U && u, R_V && v, R_Us && ...us)
+	template<typename U, typename V, typename ...Us,
+		typename = std::enable_if_t < AreValid<U,V,Us...> && MatElements<U,V,Us... > == NR * NC > >
+		explicit Matrix(U && u, V && v, Us && ...us)
 		: NamedObject<Matrix>(
 			PARENTHESIS | DISPLAY_TYPE, IS_TRACKED, "",
-			EX(R_U, u), EX(R_V, v), EX(R_Us, us)...)
+			EX(U, u), EX(V, v), EX(Us, us)...)
 	{
 	}
 
 
-	// matXY(int/float) and matXY(matWZ)
+	// matXY(cpp types) and matXY(matWZ)
 	template<typename T, typename = std::enable_if_t< 
 		AreValid<T> && (
 			isScalar || IsScalar<T>  || //matXY(int/float)
@@ -421,7 +421,7 @@ struct Array : NamedObject<Array<T, N>> {
 	//template<bool b = (N != 0), typename = std::enable_if_t<b> > should be here but prevents gl_ClipDistance
 	
 	Array(const std::string & _name = "", uint flags = IS_TRACKED)
-		: NamedObject<Array<T,N>>(_name, flags)
+		: NamedObject<Array>(_name, flags)
 	{
 	}
 
@@ -431,7 +431,7 @@ struct Array : NamedObject<Array<T, N>> {
 	}
 
 	template<typename ... Us, typename = std::enable_if_t<
-		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N) 
+		AllTrue<EqualMat<Us, T>...> && ( N == 0 || sizeof...(Us) == N )
 	> >
 		Array(const std::string & name, Us && ... us)
 		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, name, EX(Us, us)...)
@@ -439,7 +439,7 @@ struct Array : NamedObject<Array<T, N>> {
 	}
 
 	template<typename ... Us, typename = std::enable_if_t<
-		sizeof...(Us) != 0 && AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N)
+		AllTrue<EqualMat<Us, T>...> && ( N == 0 || sizeof...(Us) == N )
 	> >
 		Array( Us && ... us) : Array("", us...){ }
 	
