@@ -192,7 +192,7 @@ namespace csl {
 		{MAX_VERTICES, "max_vertices"}
 	};
 
-	static const std::string & layoutQualifierKeyword(LayoutQualifier layoutQualifier) {
+	static inline const std::string & layoutQualifierKeyword(LayoutQualifier layoutQualifier) {
 		return layoutQualifiersKeywords[layoutQualifier];
 	}
 
