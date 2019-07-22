@@ -91,16 +91,16 @@ namespace csl {
 
 	template<LayoutQualifier lq> 
 	struct LayoutQArg {
-		static constexpr size_t sort_value = static_cast<size_t>(lq) / 8;
+		static constexpr int sort_value = static_cast<int>(lq) / 8;
 	};
 
 	template<LayoutQualifier lq, uint N>
 	struct LayoutQArgValue {
-		static constexpr size_t sort_value = static_cast<size_t>(lq) / 8;
+		static constexpr int sort_value = static_cast<int>(lq) / 8;
 	};
 
 	template<typename A, typename B> struct LayoutQualifierSort {
-		constexpr static int value = (A::sort_value - B::sort_value);
+		constexpr static int value = A::sort_value - B::sort_value;
 	};
 
 	using Shared = LayoutQArg<SHARED>;

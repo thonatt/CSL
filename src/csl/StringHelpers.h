@@ -108,6 +108,12 @@ namespace csl {
 
 	//algebra types
 
+	//template<> struct TypeStr<EmptyType> {
+	//	static std::string str(int trailing = 0) {
+	//		return "";
+	//	}
+	//};
+
 	template<ScalarType type, uint N>
 	struct TypeStr<Vec<type, N>> {
 		static std::string str(int trailing = 0) {
@@ -200,9 +206,10 @@ namespace csl {
 	struct QualifierTypeStr {
 		static std::string str();
 	};
-	template<> inline std::string QualifierTypeStr<UNIFORM>::str() { return "uniform"; }
-	template<> inline std::string QualifierTypeStr<IN>::str() { return "in"; }
-	template<> inline std::string QualifierTypeStr<OUT>::str() { return "out"; }
+	template<> inline std::string QualifierTypeStr<UNIFORM>::str() { return "uniform "; }
+	template<> inline std::string QualifierTypeStr<IN>::str() { return "in "; }
+	template<> inline std::string QualifierTypeStr<OUT>::str() { return "out "; }
+	template<> inline std::string QualifierTypeStr<EMPTY_QUALIFIER>::str() { return ""; }
 
 	template<LayoutQualifier lq>
 	struct TypeStr<LayoutQArg<lq>> {
@@ -231,7 +238,7 @@ namespace csl {
 	template<QualifierType qType, typename T, typename ... LayoutArgs>
 	struct TypeStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 		static std::string str(int trailing = 0) {
-			return TypeStr<typename Layout<LayoutArgs...>::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + " " + TypeStr<T>::str(trailing);
+			return TypeStr<typename Layout<LayoutArgs...>::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str(trailing);
 		}
 	};
 
@@ -252,17 +259,14 @@ namespace csl {
 		static std::string str(const std::string & name, int trailing = 0) { return getTypeStr<T>(trailing) + " " + name; }
 	};
 
-	template<QualifierType qType, typename T, uint N, typename Layout>
-	struct DeclarationStr<Qualifier<qType, Array<T, N>, Layout> > {
-		static std::string str(const std::string & name, int trailing = 0) {
-			return DeclarationStr<Array<Qualifier<qType, T, Layout >, N>>::str(name, trailing);
-		}
+	template<> struct DeclarationStr<EmptyType> {
+		static std::string str(const std::string & name, int trailing = 0) { return name; }
 	};
 
 	template<QualifierType qType, typename T, typename Layout>
 	struct DeclarationStr<Qualifier<qType, T, Layout> > {
 		static std::string str(const std::string & name, int trailing = 0) {
-			return TypeStr<Qualifier<qType, T, Layout >>::str(trailing) + " " + name;
+			return TypeStr<typename Layout::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + DeclarationStr<T>::str(name, trailing);
 		}
 	};
 
@@ -273,6 +277,12 @@ namespace csl {
 		}
 	};
 
+	template<QualifierType qType, typename T, uint N, typename Layout>
+	struct DeclarationStr<Qualifier<qType, Array<T, N>, Layout> > {
+		static std::string str(const std::string & name, int trailing = 0) {
+			return DeclarationStr<Array<Qualifier<qType, T, Layout >, N>>::str(name, trailing);
+		}
+	};
 
 
 	enum GLVersion {

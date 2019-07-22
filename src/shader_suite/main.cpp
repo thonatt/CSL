@@ -58,6 +58,8 @@ int main()
 
 	auto phongShading_autonaming_str = phongShading_automatic_naming();
 
+	auto per_tri_normal_str = per_triangle_normal_geom();
+
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
 
@@ -70,6 +72,7 @@ int main()
 	std::cout << dolphin_vertex_str;
 	std::cout << phongShading_str;
 	std::cout << phongShading_autonaming_str;
+	std::cout << per_tri_normal_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 	

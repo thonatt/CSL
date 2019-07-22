@@ -73,6 +73,8 @@ namespace csl {
 	using bvec3 = Vec<BOOL, 3>;
 	using bvec4 = Vec<BOOL, 4>;
 
+	using EmptyType = Matrix<FLOAT, 0, 0>;
+
 	// samplers types forward decalrations
 
 	enum AccessType { SAMPLER, IMAGE };
@@ -110,12 +112,12 @@ namespace csl {
 	template<LayoutQualifier lq, uint N> struct LayoutQArgValue;
 
 	enum QualifierType { 
-		IN, OUT, UNIFORM, NOT_QUALIFIER
+		IN, OUT, UNIFORM, EMPTY_QUALIFIER
 	};
 
 	template<template<typename T, typename Layout> class Quali>
 	struct GetTemplateQualifierT {
-		static const QualifierType value = NOT_QUALIFIER;
+		static const QualifierType value = EMPTY_QUALIFIER;
 	};
 
 

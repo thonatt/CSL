@@ -54,3 +54,33 @@ std::string phongShading_automatic_naming()
 
 	return shader.str();
 }
+
+std::string per_triangle_normal_geom()
+{
+	using namespace csl::geom_330;
+	using namespace csl::swizzles::xyzw;
+
+	Shader shader;
+
+	in<Layout<Triangles>>();
+	out<Layout<Line_strip, Max_vertices<2>>>();
+
+	Uniform<mat4> MVP("MVP");
+	Uniform<Float> size("size");
+
+	shader.main([&] {
+		vec3 v_1 = gl_in[0].gl_Position[x, y, z] << "a";
+		vec3 v_2 = gl_in[1].gl_Position[x, y, z] << "b";
+		vec3 v_3 = gl_in[2].gl_Position[x, y, z] << "c";
+
+		vec3 center = (v_1 + v_2 + v_3) / 3.0 << "center";
+		vec3 normal = normalize(cross(v_2 - v_1, v_3 - v_2)) << "normal";
+		gl_Position = MVP * vec4(center, 1.0);
+		EmitVertex();
+		gl_Position = MVP * vec4(center + size * normal, 1.0);
+		EmitVertex();
+		EndPrimitive();
+	});
+
+	return shader.str();
+}

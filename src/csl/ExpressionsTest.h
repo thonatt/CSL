@@ -568,10 +568,22 @@ namespace csl {
 	struct CommentInstruction : InstructionBase {
 		CommentInstruction(const std::string & s) : comment(s) {}
 
-		void str(std::stringstream & stream, int & trailing, uint otps = DEFAULT) {
+		void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
 			stream << instruction_begin(trailing) << "//" << comment << std::endl;
 		}
 		std::string comment;
+	};
+
+	struct EmitVertexInstruction : InstructionBase {
+		void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
+			stream << instruction_begin(trailing) << "EmitVertex()" << instruction_end(opts);
+		}
+	};
+
+	struct EndPrimitiveInstruction : InstructionBase {
+		void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
+			stream << instruction_begin(trailing) << "EndPrimitive()" << instruction_end(opts);
+		}
 	};
 
 	template<typename ReturnType>
@@ -1233,11 +1245,11 @@ namespace csl {
 		void add_statement(Args && ... args) {
 			auto statement = std::make_shared<S>(args...);
 			if (auto st = std::dynamic_pointer_cast<SpecialStatement>(statement)) {
-				if (st->checkStatementValidity(currentBlock)) {
-					currentBlock->push_instruction(statement);
+				if (!st->checkStatementValidity(currentBlock)) {
+					return;
 				}
 			}
-
+			currentBlock->push_instruction(statement);
 		}
 
 		//void add_return_statement() {
