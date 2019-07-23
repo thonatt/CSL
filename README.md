@@ -1,14 +1,77 @@
 # C++ integrated Shading Language
 
-CSL is a C++ header-only library for writing OpenGL shaders directly inside computer graphics applications code. 
+CSL is a C++ header-only library for writing OpenGL shaders directly inside computer graphics applications code. The key idea is that you can write shaders in a C++ environment. Correctness is checked at compile-time while a string corresponding to the shader code is produced as run-time. CSL allows convenient and maintainable shader writing thanks to :
 
-+ Synthax as close as possible to GLSL
-+ Most of the GLSL specification compliance is checked at compile-time
-+ Having all the code in one place
-+ C++ as meta language for more versatile shader generation
++ Having a syntax as close as possible to GLSL
++ GLSL specification compliance being checked mostly at compile-time
++ The possibility to use C++ as meta language for clean shader generation
 
-Using tools from the C++ coding environement such as intelligent code-completion from dedicated IDEs or compile-time  GLSL specificationsynthax checks, CSL allows fast and correct shader writing.
-Code in one place. It also makes possible to use C++ as meta language for more versatile shader generation.
+By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `src\core\` if the Boost Preprocessor is already available from elsewhere.
 
-Compliance with respect to the GLSL specification .
-This project aims to keep the synthax as close as possible to GLSL.
+# How to
+
+As CSL is a header-only library, a simple include of the core file `src\csl\core.hpp` is enough to us it. Here is a simple example, with its corresponding output.
+
+<details>
+    <summary>Code test</summary>
+  
+  ```cpp
+#include <csl/core.hpp>
+#include <iostream>
+
+int main() {
+      using namespace csl::vert_330;  
+      Shader shader;
+
+      In<vec3, Layout<Location<0>> position;
+
+      shader.main([&]{
+            gl_Position = vec4(position, 1.0);
+      });
+
+      std::cout << shader.str() << std::endl;
+}
+```
+</details>
+
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+#include <csl/core.hpp>
+#include <iostream>
+
+int main() {
+      using namespace csl::vert_330;  
+      Shader shader;
+
+      In<vec3, Layout<Location<0>> position;
+
+      shader.main([&]{
+            gl_Position = vec4(position, 1.0);
+      });
+
+      std::cout << shader.str() << std::endl;
+}
+```
+   </td>
+    <td>
+  
+```cpp
+   #version 330
+
+   layout(location = 0) in vec3 position;
+
+   void main()
+   {
+      gl_Position = vec4(position, 1.0);
+   }
+```
+   </td> 
+  </tr>
+</table>
