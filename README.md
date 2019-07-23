@@ -1,10 +1,10 @@
 # C++ integrated Shading Language
 
-CSL is a C++ header-only library for writing OpenGL shaders directly inside computer graphics applications code. The key idea is that you can write shaders in a C++ environment. Correctness is checked at compile-time while a string corresponding to the shader code is produced as run-time. CSL allows convenient and maintainable shader writing thanks to :
+CSL is a C++ header-only library for writing OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time while a string corresponding to the GLSL code is produced at run-time. CSL aims to provide convenient and maintainable shader writing thanks to :
 
-+ Having a syntax as close as possible to GLSL
-+ GLSL specification compliance being checked mostly at compile-time
-+ The possibility to use C++ as meta language for clean shader generation
++ Having a syntax as close as possible to GLSL.
++ Checking GLSL specification compliance at compile-time as much as possible.
++ The possibility to use C++ as meta language for clean shader generation.
 
 By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `src\core\` if the Boost Preprocessor is already available from elsewhere.
 

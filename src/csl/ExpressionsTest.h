@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream> 
 
+#include <set> //for storing counters
+
 #include <algorithm> //for std::replace
 #include <iomanip> // for std::setprecision
 
@@ -16,6 +18,12 @@
 #define EX(type, var) getExp(std::forward<type>(var))
 
 namespace csl {
+
+
+	struct CounterData {
+		size_t value = 0;
+		bool is_tracked = false;
+	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -190,24 +198,15 @@ namespace csl {
 			exp = createInit<T>(strPtr(), INITIALISATION, 0, obj_init.exp);
 		}
 
-		void checkName()
-		{
-			if (*namePtr == "") {
+		void checkName();
 
-				namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counter));
-				std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
-
-				//std::cout << "created " << str() << std::endl;
-				++counter;
-			}
-		}
-
-		static int counter;
+		static CounterData counterData;
 
 	public:
 
 	};
-	template<typename T> int NamedObject<T>::counter = 0;
+
+	template<typename T> CounterData NamedObject<T>::counterData = {};
 
 	template<typename T>
 	inline Ex getExp(T && t)
@@ -1485,16 +1484,49 @@ namespace csl {
 			}
 		}
 
+		void reset_counters() {
+			for (CounterData * counter_ptr : counter_ptrs) {
+				*counter_ptr = CounterData();
+			}
+			counter_ptrs.clear();
+		}
+
+		void add_active_counter(CounterData & counter) {
+			counter_ptrs.insert(&counter);
+		}
+
 		bool & active() { return isListening; }
 
 		//TShader::Ptr shader;
 		ShaderBase::Ptr currentShader;
+
+		std::set<CounterData *> counter_ptrs;
 		bool isListening = true;
 	};
 
 	inline MainListener & listen() {
 		static MainListener overmind;
 		return overmind;
+	}
+
+
+	template<typename T>
+	inline void NamedObject<T>::checkName() {
+
+		if (*namePtr == "") {
+
+			namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counterData.value));
+			std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
+
+			++counterData.value;
+
+			if (!counterData.is_tracked) {
+				listen().add_active_counter(counterData);
+				counterData.is_tracked = true;
+			}
+			
+		}
+
 	}
 
 	struct BeginWhile {
@@ -1573,6 +1605,7 @@ namespace csl {
 		ShaderWrapper() {
 			shader_ptr = std::make_shared<IShader<version>>();
 			listen().currentShader = shader_ptr;
+			listen().reset_counters();
 		}
 
 		template<typename F_Type>
