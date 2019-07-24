@@ -63,6 +63,16 @@ For readability purposes, all examples assume named variables. See the [naming v
 
 ## CSL syntax
 
++ [Shader setup](#shader-setup)
++ [Basic and Sampler types](#basic-and-sampler-types)
++ [Naming variables](#naming-variables)
++ [Operators and Swizzles](#operators-and-swizzles)
++ [Memory and Layout qualifiers](#memory-and-layout-qualifiers)
++ [Arrays and Functions](#arrays-and-functions)
++ [Code structure](#code-structure)
++ [Structs and Interface blocks](#structs-and-interface-blocks)
+
+
 ### Shader setup
 
 Shader type and GLSL version are setup using the corresponding namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function as argument. The second one is `Shader::str`which retrieves the `std::string` associated to the shader.
@@ -249,6 +259,9 @@ out[a] = col[b, a, r][b, g][g];
 </table>
 </details>
 
+### Memory and Layout qualifiers
+
+
 ### Arrays and Functions
 
 Arrays in CSL are a template class with the internal type and the size as parameters. Unspecified or zero size are used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multi dimensional arrays are supported as nested arrays. 
@@ -357,11 +370,10 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 </table>
 </details>
 
-### Memory and Layout qualifiers
+### Code structure
 
 ### Structs and Interface blocks
 
-### Code structure
 
 ### Built-in functions and variables
 
