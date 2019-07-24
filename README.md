@@ -69,7 +69,7 @@ Shader type and GLSL version are setup using the corresponding namespace. For ex
 
 ### Basic and Sampler types
 
-CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. Therefore, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are types `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep some consistency.
+CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
 
 Constructors and declarations are identical to GLSL. CSL and C++ basic types can also be mixed.
 
@@ -105,10 +105,10 @@ Constructors and declarations are identical to GLSL. CSL and C++ basic types can
 
 ### Naming variables
 
-Because C++ objects do not have names, it is not possible to forward directly the CSL variable names to the GLSL output. As a consequence, CSL will perfom automatic variable naming. **This has no effect when actually compiling the shader on the GPU**. Still, it may have a big impact on the shader readability.
+Because C++ objects do not have names, it is not possible to forward directly the CSL variable names to the GLSL output. As a consequence, CSL will perfom automatic variable naming. **It has no effect when actually compiling the shader on the GPU**. Still, it has a big impact on the shader readability.
 
 <details>
-    <summary>Show example</summary>
+    <summary>Automatic naming example</summary>
 <table>
   <tr>
     <th>Code with automatic naming</th>
@@ -153,10 +153,10 @@ shader.main([&] {
 </table>
 </details>
 
-Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Such manual naming is rather cumbersome, but it might be helpful to name locally some variables when debugging.
+Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally some variables when debugging.
 
 <details>
-    <summary>Show example</summary>
+    <summary>Manual naming example</summary>
 <table>
   <tr>
     <th>Code with manual naming</th>
@@ -205,6 +205,49 @@ void main()
 </details>
 
 ### Operators and Swizzles
+
+As C++ and GLSL share a common C base syntax, most of the operators keywords are identical and can be used as is. This includes for example:
++ `+`, `-`, `*`, `/` and their assignment operator counterparts,
++ `==`, `<`, `>` , `&&` and other binary relational or bitwise operators,
++ `[int]` for component or row access
+
+One exception is the ternary operator. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a global function `ternary` with 3 arguments.
+
+Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x` `y` `z` or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x];`. To prevent namespace pollution, each of these swizzle variable belongs to a specific namespace corresponding to its swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq` and `csl::swizzles::all` which includes the previous three.
+
+<details>
+    <summary>Swizzle examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+using namespace csl::swizzles::rgba;
+vec4 col;
+vec4 out;
+out[b, g, r] = col[r, g, b];
+
+//can you guess what is actually assigned ?
+out[a] = col[b, a, r][b, g][g];
+```
+</td>
+    <td>
+  
+```cpp
+   vec4 col;
+   vec4 out;
+   out.bgr = col.rgb;
+   out.a = col.bar.bg.g;
+
+```
+</td> 
+  </tr>
+</table>
+</details>
 
 ### Arrays and Functions
 
