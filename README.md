@@ -6,9 +6,9 @@ CSL is a C++ header-only library for writing OpenGL shaders directly inside comp
 + Checking GLSL specification compliance at compile-time as much as possible.
 + The possibility to use C++ as meta language for clean shader generation.
 
-CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite) which includes several shaders, from didactic examples to shaders used in complex graphics applications.
-
 By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `\src\core\` if the Boost Preprocessor is already available from elsewhere.
+
+CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite) which includes several shaders, from didactic examples to shaders used in complex graphics applications.
 
 # How to
 
@@ -153,7 +153,7 @@ shader.main([&] {
 </table>
 </details>
 
-Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally some variables when debugging.
+Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally variables when debugging.
 
 <details>
     <summary>Manual naming example</summary>
@@ -211,7 +211,7 @@ As C++ and GLSL share a common C base syntax, most of the operators keywords are
 + `==`, `<`, `>` , `&&` and other binary relational or bitwise operators,
 + `[int]` for component or row access
 
-One exception is the ternary operator. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a global function `ternary` with 3 arguments.
+One exception is the ternary operator ` ? : `. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a global function `ternary` with the 3 arguments.
 
 Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x` `y` `z` or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x];`. To prevent namespace pollution, each of these swizzle variable belongs to a specific namespace corresponding to its swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq` and `csl::swizzles::all` which includes the previous three.
 
@@ -250,6 +250,112 @@ out[a] = col[b, a, r][b, g][g];
 </details>
 
 ### Arrays and Functions
+
+Arrays in CSL are a template class with the internal type and the size as parameters. Unspecified or zero size are used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multi dimensional arrays are supported as nested arrays. 
+
+<details>
+    <summary>Array examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+//array declaration with size
+Array<vec3, 5> vec3A("myVec3A");
+
+//unspecified array initialisation
+Array<Float> floatA = Array<Float>(0.0, 1.0, 2.0) << "floatA";
+
+//multi dimensionnal array
+Array<Array<mat3, 2>, 2> matA = Array<Array<mat3, 2>, 2>(
+	Array<mat3, 2>(mat3(0), mat3(1)),
+	Array<mat3, 2>(mat3(2), mat3(3))
+	) << "matA";
+
+//array accessors
+vec3A[0] = floatA[1] * matA[0][0]* vec3A[1];
+```
+</td>
+    <td>
+  
+```cpp
+vec3 myVec3A[5];
+float floatA[] = float[](0.0, 1.0, 2.0);
+mat3 matA[2][2] = mat3[2][2](mat3[2](mat3(0), mat3(1)), mat3[2](mat3(2), mat3(3)));
+myVec3A[0] = floatA[1]*matA[0][0]*myVec3A[1];
+
+```
+</td> 
+  </tr>
+</table>
+</details>
+
+Functions in CSL are objects that can be created using the `makeFunc` template function. The return type must be explicitely specified as template parameter. The function can then be called later in the code using the usual `()` operator. Functions overloading in not possible in CSL.
+
+<details>
+    <summary>Function examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	//empty function
+	auto fun = makeFunc<void>([]() {
+		GL_RETURN;
+	});
+
+	//named function with named parameters
+	auto add = makeFunc<vec3>("add", [](vec3 a, vec3 b) {
+		GL_RETURN(a + b);
+	}, "a", "b");
+
+	//function with some named parameters
+	auto addI = makeFunc<Int>([](Int a, Int b) {
+		GL_RETURN(a + b);
+	}, "a");
+
+	//function calling another function
+	auto sub = makeFunc<vec3>([&](vec3 a, vec3 b) {
+		GL_RETURN(add(a, -b));
+	});
+```
+</td>
+    <td>
+  
+```cpp
+   void function_0()
+   {
+      return;
+   }
+
+   vec3 add(vec3 a, vec3 b)
+   {
+      return a + b;
+   }
+
+   int function_1(int a, int int_0)
+   {
+      return a + int_0;
+   }
+
+   vec3 function_2(vec3 vec3_2, vec3 vec3_1)
+   {
+      return add(vec3_2, -vec3_1);
+   }
+
+```
+</td> 
+  </tr>
+</table>
+</details>
 
 ### Memory and Layout qualifiers
 
