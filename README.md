@@ -72,7 +72,6 @@ For readability purposes, all examples assume named variables. See the [naming v
 + [Code structure](#code-structure)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
 
-
 ### Shader setup
 
 Shader type and GLSL version are setup using the corresponding namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function as argument. The second one is `Shader::str`which retrieves the `std::string` associated to the shader.
@@ -371,6 +370,11 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 </details>
 
 ### Code structure
+
+Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`. Their behavior is mostly identical to to C++ and GLSL. Here are the few limitations:
++ A `GL_SWITCH` **must** contain a `GL_DEFAULT` case.
++ Syntax for `case value :` is `GL_CASE(value) :`.
++ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement.
 
 ### Structs and Interface blocks
 
