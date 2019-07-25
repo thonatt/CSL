@@ -505,7 +505,7 @@ GL_FOR(;;) { GL_BREAK; }
 
 ### Structs and Interface blocks
 
-CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use reflection, based on some C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(TypeA) member1, (TypeB) other_member, ...`
+CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(TypeA) member1, (TypeB) other_member, ...`
 
 <details>
     <summary>Struct examples</summary>
@@ -518,19 +518,19 @@ CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list
     <td>
         
   ```cpp
-  	\\struct declaration
+	//struct declaration
 	GL_STRUCT(MyBlock,
 		(mat4) mvp,
 		(vec4) center
 	);
 
-	\\nested struct
+	//nested struct
 	GL_STRUCT(MyBigBlock,
 		(MyBlock) innerBlock,
 		(vec4) center
 	);
-	
-	\\usage
+
+	//usage
 	MyBigBlock bigBlock("block");
 	MyBlock block = MyBlock(mat4(1), vec3(0)) << "block";
 
@@ -559,6 +559,84 @@ CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list
 </table>
 </details>
 
+Interface block are similar to structs with syntax `GL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, member list ... );`. `Name` and `ArraySize` are optionnal. `Qualifier` refers to the memory and layout qualifiers associated to the block. The syntax is identical to other variables except there is no need to specify the type. `Name` is name of the variable associated to the block. In case it is empty, it declares an unnamed interface block and the members belong directly to the current scope. If not empty, `ArraySize` refers to the size of the declared array. Again, a size of 0 is used to declare an implicitely sized array.  
+
+<details>
+    <summary>Interface block examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	//unnamed interface
+	GL_INTERFACE_BLOCK(In<>, SimpleInterface, , ,
+		(Float) current_time
+	);
+
+	//named array interface with qualifiers
+	GL_INTERFACE_BLOCK(Out<Layout<Binding<0>>>, Output, out, 3,
+		(vec3) position,
+		(Float) velocity
+	);
+
+	out[0].position += current_time * out[0].velocity;
+```
+</td>
+    <td>
+  
+```cpp
+   in SimpleInterface {
+      float current_time;
+   };
+
+   layout(binding = 0) out Output {
+      vec3 position;
+      float velocity;
+   } out[3];
+   
+   out[0].position += current_time*out[0].velocity;
+```
+</td> 
+  </tr>
+</table>
+</details>
+
 Since the `member list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, it is possible to either create an alias, or, in the case of Arrays, to use the class helper `GetArray<T>::Size<N>` as an alias for `Array<T,N>`.
+
+<details>
+    <summary>Type alias examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	using Quali = Uniform<Layout<Binding<0>, Std140>>;
+	using vec4A = Array<vec4, 16>;
+	GL_INTERFACE_BLOCK(Quali, MyInterface, vars, 2,
+		(vec4A) myVecs,
+		(GetArray<mat4>::Size<4>) myMats
+	);
+```
+</td>
+    <td>
+  
+```cpp
+   layout(std140, binding = 0) uniform MyInterface {
+      vec4 myVecs[16];
+      mat4 myMats[4];
+   } vars[2];
+```
+</td> 
+  </tr>
+</table>
+</details>
 
 ALso since CSL must rely on a macro for structs and interface blocks, it means it can directly forward the members name (and interface block variable names). Therefore there is no need for either automatic or manual naming in those cases. 
