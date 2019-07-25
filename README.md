@@ -69,7 +69,7 @@ For readability purposes, all examples assume named variables. See the [naming v
 + [Operators and Swizzles](#operators-and-swizzles)
 + [Memory and Layout qualifiers](#memory-and-layout-qualifiers)
 + [Arrays and Functions](#arrays-and-functions)
-+ [Code structure](#code-structure)
++ [Building blocks](#building-blocks)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
 
 ### Shader setup
@@ -220,7 +220,7 @@ As C++ and GLSL share a common C base syntax, most of the operators keywords are
 + `==`, `<`, `>` , `&&` and other binary relational or bitwise operators,
 + `[int]` for component or row access
 
-One exception is the ternary operator ` ? : `. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a global function `ternary` with the 3 arguments.
+One exception is the ternary operator ` ? : `. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a macro `GL_TERNARY` with the 3 arguments.
 
 Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x` `y` `z` or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x];`. To prevent namespace pollution, each of these swizzle variable belongs to a specific namespace corresponding to its swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq` and `csl::swizzles::all` which includes the previous three.
 
@@ -260,10 +260,45 @@ out[a] = col[b, a, r][b, g][g];
 
 ### Memory and Layout qualifiers
 
+Memory qualifiers are available in CSL in the form of template class. Template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unisgned int in case it requires a value. CSL layout qualifiers are identical to GLSL, except for begining with an uppercase.
+
+<details>
+    <summary>Qualifier and layout examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	Out<vec4> color;
+	In<vec3, Layout<Location<4>>> position;
+	Uniform<Array<sampler2DArray, 8>, Layout<Binding<0>>> samplers;
+
+	//in case of multiple occurences, last one prevails
+	Uniform<mat4, Layout<Location<0>, Row_major, Location<1>> > mvp;
+```
+</td>
+    <td>
+  
+```cpp
+   out vec4 color;
+   layout(location = 4) in vec3 position;
+   layout(binding = 0) uniform sampler2DArray samplers[8];
+   layout(row_major, location = 1) uniform mat4 mvp;
+
+```
+</td> 
+  </tr>
+</table>
+</details>
+
 
 ### Arrays and Functions
 
-Arrays in CSL are a template class with the internal type and the size as parameters. Unspecified or zero size are used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multi dimensional arrays are supported as nested arrays. 
+Arrays in CSL are a template class similar to `std::array`, with parameters the internal type and the size. Unspecified or zero size are used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multi dimensional arrays are supported as nested arrays. 
 
 <details>
     <summary>Array examples</summary>
@@ -306,7 +341,7 @@ myVec3A[0] = floatA[1]*matA[0][0]*myVec3A[1];
 </table>
 </details>
 
-Functions in CSL are objects that can be created using the `makeFunc` template function. The return type must be explicitely specified as template parameter. The function can then be called later in the code using the usual `()` operator. Functions overloading in not possible in CSL.
+Functions in CSL are objects that can be created using the `makeFunc` template function with a C++ lambda as parameter. The return type must be explicitely specified as template parameter. Returns are declared using the `GL_RETURN;` or `GL_RETURN(expression)` syntax. The function can then be called later in the code using the usual `()` operator. Functions overloading in not possible in CSL.
 
 <details>
     <summary>Function examples</summary>
@@ -319,8 +354,8 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
     <td>
         
   ```cpp
-	//empty function
-	auto fun = makeFunc<void>([]() {
+	//empty function without arguments
+	auto fun = makeFunc<void>([]{
 		GL_RETURN;
 	});
 
@@ -334,8 +369,9 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 		GL_RETURN(a + b);
 	}, "a");
 
-	//function calling another function
+	//function calling another functions
 	auto sub = makeFunc<vec3>([&](vec3 a, vec3 b) {
+		fun();
 		GL_RETURN(add(a, -b));
 	});
 ```
@@ -360,6 +396,7 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 
    vec3 function_2(vec3 vec3_2, vec3 vec3_1)
    {
+      function_0();
       return add(vec3_2, -vec3_1);
    }
 
@@ -369,14 +406,105 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 </table>
 </details>
 
-### Code structure
+### Building blocks
 
-Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`. Their behavior is mostly identical to to C++ and GLSL. Here are the few limitations:
-+ A `GL_SWITCH` **must** contain a `GL_DEFAULT` case.
-+ Syntax for `case value :` is `GL_CASE(value) :`.
-+ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement.
+Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`, namely `GL_FOR`, `GL_CONTINUE`, `GL_BREAK`, `GL_WHILE`, `GL_IF`, `GL_ELSE`, `GL_ELSE_IF`, `GL_SWITCH`, `GL_CASE` and `GL_DEFAULT`. Their behavior is mostly identical to to C++ and GLSL. Here are some comments and the few limitations:
++ A `GL_SWITCH` **must** contain a `GL_DEFAULT` case, even if it is empty.
++ CSL syntax for `case value :` is `GL_CASE(value) :`.
++ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. There is no limit for the number of initialisatoin in the init-expression. All these expressions can also be empty.
++ Variables declared in `GL_FOR` args expressions outlive the scope of the `for` body. It is possible to prevent that by putting explicitly the for in a scope.
++ Statements can be nested
+
+<details>
+    <summary>Building blocks examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+//empty for
+GL_FOR(;;) { GL_BREAK; }
+
+//named function with named parameters
+	GL_FOR(Int i = 0; i < 5; ++i) {
+		GL_IF(i == 3) {
+			++i;
+			GL_CONTINUE;
+		} GL_ELSE_IF(i < 3) {
+			i += 3;
+		} GL_ELSE {
+			GL_FOR(; i > 1;)
+				--i;
+		}
+	}
+	//Not possible as i is still in the scope
+	//Int i; 
+
+	{
+		GL_FOR(Int j = 0; j < 5;) {
+			GL_WHILE(j != 3) {
+				++j;
+			}
+		}
+	}
+	//OK since previous for was put in a scope
+	Int j;
+
+	GL_SWITCH(j) {
+		GL_CASE(0) : { GL_BREAK; }
+		GL_CASE(2) : { j = 3; }
+		GL_DEFAULT: { j = 2; }
+	}
+```
+</td>
+    <td>
+  
+```cpp
+   for( ; ; ){
+      break;
+   }
+   for( int i = 0; i < 5; ++i){
+      if( i == 3 ) {
+         ++i;
+         continue;
+      } else if( i < 3 ) {
+         i += 3;
+      } else {
+         for( ; i > 1; ){
+            --i;
+         }
+      }
+   }
+   for( int j = 0; j < 5; ){
+      while( j != 3 ){
+         ++j;
+      }
+   }
+   int j;
+   switch( j ){
+      case 0 : {
+         break;
+      }
+      case 2 : {
+         j = 3;
+      }
+      default : {
+         j = 2;
+      }
+   }
+
+```
+</td> 
+  </tr>
+</table>
+</details>
 
 ### Structs and Interface blocks
+
 
 
 ### Built-in functions and variables
