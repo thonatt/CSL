@@ -74,7 +74,7 @@ For readability purposes, all examples assume named variables. See the [naming v
 
 ### Shader setup
 
-Shader type and GLSL version are setup using the corresponding namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function as argument. The second one is `Shader::str`which retrieves the `std::string` associated to the shader.
+Shader type and GLSL version are setup using the corresponding namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`which retrieves the `std::string` associated to the shader.
 
 ### Basic and Sampler types
 
@@ -408,10 +408,10 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 
 ### Building blocks
 
-Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`, namely `GL_FOR`, `GL_CONTINUE`, `GL_BREAK`, `GL_WHILE`, `GL_IF`, `GL_ELSE`, `GL_ELSE_IF`, `GL_SWITCH`, `GL_CASE` and `GL_DEFAULT`. Their behavior is mostly identical to to C++ and GLSL. Here are some comments and the few limitations:
-+ A `GL_SWITCH` **must** contain a `GL_DEFAULT` case, even if it is empty.
+Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`, namely `GL_FOR`, `GL_CONTINUE`, `GL_BREAK`, `GL_WHILE`, `GL_IF`, `GL_ELSE`, `GL_ELSE_IF`, `GL_SWITCH`, `GL_CASE` and `GL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and the few limitations:
++ A `GL_SWITCH` **must** contain a `GL_DEFAULT` case, even if it happens to be empty.
 + CSL syntax for `case value :` is `GL_CASE(value) :`.
-+ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. There is no limit for the number of initialisatoin in the init-expression. All these expressions can also be empty.
++ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. There is no limit about the number of initialisation in the init-expression. All these expressions can also be empty.
 + Variables declared in `GL_FOR` args expressions outlive the scope of the `for` body. It is possible to prevent that by putting explicitly the for in a scope.
 + Statements can be nested
 
@@ -505,9 +505,60 @@ GL_FOR(;;) { GL_BREAK; }
 
 ### Structs and Interface blocks
 
+CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use reflection, based on some C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(TypeA) member1, (TypeB) other_member, ...`
 
+<details>
+    <summary>Struct examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+  	\\struct declaration
+	GL_STRUCT(MyBlock,
+		(mat4) mvp,
+		(vec4) center
+	);
 
-### Built-in functions and variables
+	\\nested struct
+	GL_STRUCT(MyBigBlock,
+		(MyBlock) innerBlock,
+		(vec4) center
+	);
+	
+	\\usage
+	MyBigBlock bigBlock("block");
+	MyBlock block = MyBlock(mat4(1), vec3(0)) << "block";
 
+	block.center = bigBlock.innerBlock.mvp*block.center;
+```
+</td>
+    <td>
+  
+```cpp
+   struct MyBlock {
+      mat4 mvp;
+      vec4 center;
+   }
 
+   struct MyBigBlock {
+      MyBlock innerBlock;
+      vec4 center;
+   }
+   
+   MyBigBlock bigBlock;
+   MyBlock block = MyBlock(mat4(1), vec4(vec3(0)));
+   block.center = bigBlock.innerBlock.mvp*bigBlock.center;
+```
+</td> 
+  </tr>
+</table>
+</details>
 
+Since the `member list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, it is possible to either create an alias, or, in the case of Arrays, to use the class helper `GetArray<T>::Size<N>` as an alias for `Array<T,N>`.
+
+ALso since CSL must rely on a macro for structs and interface blocks, it means it can directly forward the members name (and interface block variable names). Therefore there is no need for either automatic or manual naming in those cases. 
