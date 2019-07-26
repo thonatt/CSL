@@ -1403,10 +1403,10 @@ namespace csl {
 
 		/////////////////////////////////////////////////
 
-		template<typename R_B, typename = std::enable_if_t< EqualType<CleanType<R_B>, Bool> > >
-		void begin_while(R_B && b) {
+		template<typename B, typename = std::enable_if_t< EqualType<B, Bool> > >
+		void begin_while(B && b) {
 			if (currentShader) {
-				currentShader->begin_while(getExp<R_B>(b));
+				currentShader->begin_while(EX(B, b));
 			}
 		}
 
@@ -1742,11 +1742,11 @@ namespace csl {
 
 	template<typename B, typename A, typename C, typename I = Infos<CT<A>>, typename = std::enable_if_t<
 		EqualMat<B, Bool> && EqualMat<A, C>
-		>> Matrix< I::scalar_type, I::rows, I::cols > ternary(B && b, A && a, C && c) {
-		return { createExp<Ternary>(EX(B,b), EX(A,a), EX(C,c)) };
+		>> Matrix< I::scalar_type, I::rows, I::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
+		return { createExp<Ternary>(EX(B,condition), EX(A,lhs), EX(C,rhs)) };
 	}
 
-#define GL_TERNARY(cond,lhs,rhs) ternary(cond, lhs, rhs)
+#define GL_TERNARY(...) csl_ternary( __VA_ARGS__ )
 
 	//////////////////////////////////////
 

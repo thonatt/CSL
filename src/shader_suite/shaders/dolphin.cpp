@@ -66,7 +66,7 @@ std::string dolphinVertex() {
 			// LIGHTATTN_SPEC
 			GL_CASE(1u) : {
 				ldir = normalize(clights[index].pos[x, y, z] - pos[x, y, z]);
-				attn = ternary(dot(normal, ldir) >= 0.0, max(0.0, dot(normal, clights[index].dir[x, y, z])), 0.0);
+				attn = GL_TERNARY(dot(normal, ldir) >= 0.0, max(0.0, dot(normal, clights[index].dir[x, y, z])), 0.0);
 				cosAttn = clights[index].cosatt[x, y, z];
 				GL_IF(diffusefunc == 0u) // LIGHTDIF_NONE
 					distAttn = clights[index].distatt[x, y, z];
@@ -187,7 +187,7 @@ std::string dolphinVertex() {
 
 			GL_IF(bitfieldExtract(colorreg, 0, 1) != 0u) {
 				GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
-					mat[x, y, z] = ivec3(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
+					mat[x, y, z] = ivec3(round(GL_TERNARY(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
 				GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 					mat[x, y, z] = ivec3(round(rawcolor0[x, y, z] * 255.0));
 				GL_ELSE
@@ -196,7 +196,7 @@ std::string dolphinVertex() {
 
 			GL_IF(bitfieldExtract(alphareg, 0, 1) != 0u) {
 				GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
-					mat[w] = Int(round(ternary(chan == 0u, rawcolor0[w], rawcolor1[w]) * 255.0));
+					mat[w] = Int(round(GL_TERNARY(chan == 0u, rawcolor0[w], rawcolor1[w]) * 255.0));
 				GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 					mat[w] = Int(round(rawcolor0[w] * 255.0));
 				GL_ELSE
@@ -208,7 +208,7 @@ std::string dolphinVertex() {
 				GL_IF(bitfieldExtract(colorreg, 1, 1) != 0u) {
 				GL_IF(bitfieldExtract(colorreg, 6, 1) != 0u) {
 					GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
-						lacc[x, y, z] = ivec3(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
+						lacc[x, y, z] = ivec3(round(GL_TERNARY(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
 					GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 						lacc[x, y, z] = ivec3(round(rawcolor0[x, y, z] * 255.0));
 					GL_ELSE
@@ -229,7 +229,7 @@ std::string dolphinVertex() {
 			GL_IF(bitfieldExtract(alphareg, 1, 1) != 0u) {
 				GL_IF(bitfieldExtract(alphareg, 6, 1) != 0u) {
 					GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
-						lacc[w] = Int(round(ternary(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
+						lacc[w] = Int(round(GL_TERNARY(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
 					GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
 						lacc[w] = Int(round(rawcolor0[x, y, z] * 255.0));
 					GL_ELSE
@@ -274,37 +274,37 @@ std::string dolphinVertex() {
 					coord[x, y, z] = rawpos[x, y, z]; GL_BREAK;
 
 				GL_CASE(1u) : // XF_SRCNORMAL_INROW
-					coord[x, y, z] = ternary(((components & 1024u /* VB_HAS_NRM0 */) != 0u), rawnorm0[x, y, z], coord[x, y, z]); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 1024u /* VB_HAS_NRM0 */) != 0u, rawnorm0[x, y, z], coord[x, y, z]); GL_BREAK;
 
 				GL_CASE(3u) : // XF_SRCBINORMAL_T_INROW
-					coord[x, y, z] = ternary(((components & 2048u /* VB_HAS_NRM1 */) != 0u), rawnorm1[x, y, z], coord[x, y, z]); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 2048u /* VB_HAS_NRM1 */) != 0u, rawnorm1[x, y, z], coord[x, y, z]); GL_BREAK;
 
 				GL_CASE(4u) : // XF_SRCBINORMAL_B_INROW
-					coord[x, y, z] = ternary(((components & 4096u /* VB_HAS_NRM2 */) != 0u), rawnorm2[x, y, z], coord[x, y, z]); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 4096u /* VB_HAS_NRM2 */) != 0u, rawnorm2[x, y, z], coord[x, y, z]); GL_BREAK;
 
 				GL_CASE(5u) : // XF_SRCTEX0_INROW
-					coord[x, y, z] = ternary(((components & 32768u /* VB_HAS_UV0 */) != 0u), vec4(rawtex0[x], rawtex0[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 32768u /* VB_HAS_UV0 */) != 0u, vec4(rawtex0[x], rawtex0[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(6u) :  // XF_SRCTEX1_INROW
-					coord[x, y, z] = ternary(((components & 65536u /* VB_HAS_UV1 */) != 0u), vec4(rawtex1[x], rawtex1[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 65536u /* VB_HAS_UV1 */) != 0u, vec4(rawtex1[x], rawtex1[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(7u) : // XF_SRCTEX2_INROW
-					coord[x, y, z] = ternary(((components & 131072u /* VB_HAS_UV2 */) != 0u), vec4(rawtex2[x], rawtex2[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 131072u /* VB_HAS_UV2 */) != 0u, vec4(rawtex2[x], rawtex2[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(8u) : // XF_SRCTEX3_INROW
-					coord[x, y, z] = ternary(((components & 262144u /* VB_HAS_UV3 */) != 0u), vec4(rawtex3[x], rawtex3[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 262144u /* VB_HAS_UV3 */) != 0u, vec4(rawtex3[x], rawtex3[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(9u) : // XF_SRCTEX4_INROW
-					coord[x, y, z] = ternary(((components & 524288u /* VB_HAS_UV4 */) != 0u), vec4(rawtex4[x], rawtex4[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 524288u /* VB_HAS_UV4 */) != 0u, vec4(rawtex4[x], rawtex4[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(10u) : // XF_SRCTEX5_INROW
-					coord[x, y, z] = ternary(((components & 1048576u /* VB_HAS_UV5 */) != 0u), vec4(rawtex5[x], rawtex5[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 1048576u /* VB_HAS_UV5 */) != 0u, vec4(rawtex5[x], rawtex5[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(11u) : // XF_SRCTEX6_INROW
-					coord[x, y, z] = ternary(((components & 2097152u /* VB_HAS_UV6 */) != 0u), vec4(rawtex6[x], rawtex6[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 2097152u /* VB_HAS_UV6 */) != 0u, vec4(rawtex6[x], rawtex6[y], 1.0, 1.0), coord); GL_BREAK;
 
 				GL_CASE(12u) : // XF_SRCTEX7_INROW
-					coord[x, y, z] = ternary(((components & 4194304u /* VB_HAS_UV7 */) != 0u), vec4(rawtex7[x], rawtex7[y], 1.0, 1.0), coord); GL_BREAK;
+					coord[x, y, z] = GL_TERNARY((components & 4194304u /* VB_HAS_UV7 */) != 0u, vec4(rawtex7[x], rawtex7[y], 1.0, 1.0), coord); GL_BREAK;
 
 			GL_DEFAULT: {}
 			}

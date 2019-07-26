@@ -110,10 +110,13 @@ namespace csl {
 	using Packed = LayoutQArg<PACKED>;
 	using Std140 = LayoutQArg<STD140>;
 	using Std430 = LayoutQArg<STD430>;
+	using Row_major = LayoutQArg<ROW_MAJOR>;
+	using Column_major = LayoutQArg<COLUMN_MAJOR>;
 
-	template<int N> using Offset = LayoutQArgValue<OFFSET, N>;
-	template<int N> using Binding = LayoutQArgValue<BINDING, N>;
-	template<int N> using Location = LayoutQArgValue<LOCATION, N>;
+
+	template<uint N> using Offset = LayoutQArgValue<OFFSET, N>;
+	template<uint N> using Binding = LayoutQArgValue<BINDING, N>;
+	template<uint N> using Location = LayoutQArgValue<LOCATION, N>;
 
 	namespace geom_common {
 		using Points = LayoutQArg<POINTS>;
@@ -123,7 +126,7 @@ namespace csl {
 		using Line_strip = LayoutQArg<LINE_STRIP>;
 		using Triangle_strip = LayoutQArg<TRIANGLE_STRIP>;
 
-		template<int N> using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
+		template<uint N> using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
 	}
 
 	

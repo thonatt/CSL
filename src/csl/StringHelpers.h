@@ -40,7 +40,7 @@ namespace csl {
 
 	template<typename T, uint N>
 	struct TypeStrRHS<Array<T, N>> {
-		static std::string str() { return getTypeStr<T>() + arrayStr<N>(); }
+		static std::string str() { return TypeStrRHS<T>::str() + arrayStr<N>(); }
 	};
 
 	template<typename ... Ts> struct MultipleTypeStr;

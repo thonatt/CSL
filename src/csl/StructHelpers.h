@@ -153,6 +153,10 @@
 			: NamedObject<StructTypename>(_ex, ctor_flags, obj_flags, s)	\
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
+		StructTypename(const NamedObjectInit<StructTypename> & obj) \
+			: NamedObject<StructTypename>(obj)	\
+			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
+		\
 		StructTypename(CSL_PP_ITERATE(CSL_PP_MEMBER_ARG_IT,__VA_ARGS__) bool dummy = false) \
 			: NamedObject<StructTypename>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED, "" CSL_PP_ITERATE(CSL_PP_MEMBER_ARG_EX_IT, __VA_ARGS__)) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \

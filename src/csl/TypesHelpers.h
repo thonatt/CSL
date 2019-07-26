@@ -146,6 +146,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 0;
 		static const uint cols = 0;
+		static const uint array_size = 0;
 		static const ScalarType scalar_type = INVALID;
 	};
 
@@ -155,7 +156,19 @@ namespace csl {
 		static const bool is_glsl_type = true;
 		static const uint rows = Nrows;
 		static const uint cols = Ncols;
+		static const uint array_size = 1;
 		static const ScalarType scalar_type = type;
+	};
+
+
+	template<typename T, uint N> 
+	struct Infos<Array<T, N>> {
+		static const bool is_numeric_type = Infos<T>::is_numeric_type;
+		static const bool is_glsl_type = Infos<T>::is_glsl_type;
+		static const uint rows = Infos<T>::rows;
+		static const uint cols = Infos<T>::cols;
+		static const uint array_size = N;
+		static const ScalarType scalar_type = Infos<T>::scalar_type;
 	};
 
 	template<> struct Infos<double> {
@@ -163,6 +176,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 1;
 		static const uint cols = 1;
+		static const uint array_size = 1;
 		static const ScalarType scalar_type = FLOAT;
 	};
 
@@ -171,6 +185,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 1;
 		static const uint cols = 1;
+		static const uint array_size = 1;
 		static const ScalarType scalar_type = INT;
 	};
 
@@ -179,6 +194,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 1;
 		static const uint cols = 1;
+		static const uint array_size = 1;
 		static const ScalarType scalar_type = UINT;
 	};
 
@@ -187,6 +203,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 1;
 		static const uint cols = 1;
+		static const uint array_size = 1;
 		static const ScalarType scalar_type = BOOL;
 	};
 
@@ -195,6 +212,7 @@ namespace csl {
 		static const bool is_glsl_type = false;
 		static const uint rows = 0;
 		static const uint cols = 0;
+		static const uint array_size = 0;
 		static const ScalarType scalar_type = VOID;
 
 	};
@@ -361,7 +379,7 @@ namespace csl {
 	constexpr bool SuperiorType = Infos<CT<B>>::scalar_type >= Infos<CT<A>>::scalar_type;
 
 	template<typename A, typename B>
-	constexpr bool EqualDim = (Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols);
+	constexpr bool EqualDim = (Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols) && (Infos<CT<A>>::array_size == Infos<CT<B>>::array_size);
 
 	template<typename A, typename B>
 	constexpr bool EqualMat = EqualType<A, B> && EqualDim<A, B>;

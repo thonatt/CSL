@@ -261,6 +261,18 @@ public:
 		Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" *= ", NamedObjectBase::getExTmp(), EX(A, a)));
 	}
 
+	template<typename A,
+		typename = std::enable_if_t<NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
+		void operator/=(A && a)  & {
+		Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" /= ", NamedObjectBase::getExRef(), EX(A, a)));
+	}
+
+	template<typename A,
+		typename = std::enable_if_t<NotBool<A> && (EqualMat<Matrix, A> || IsScalar<A>)  >  >
+		void operator/=(A && a) && {
+		Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" /= ", NamedObjectBase::getExTmp(), EX(A, a)));
+	}
+
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	// member functions
@@ -433,15 +445,10 @@ struct Array : NamedObject<Array<T, N>> {
 	template<typename ... Us, typename = std::enable_if_t<
 		AllTrue<EqualMat<Us, T>...> && ( N == 0 || sizeof...(Us) == N )
 	> >
-		Array(const std::string & name, Us && ... us)
-		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, name, EX(Us, us)...)
+		Array( Us && ... us) 
+		: NamedObject<Array<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us, us)...) 
 	{
 	}
-
-	template<typename ... Us, typename = std::enable_if_t<
-		AllTrue<EqualMat<Us, T>...> && ( N == 0 || sizeof...(Us) == N )
-	> >
-		Array( Us && ... us) : Array("", us...){ }
 	
 	Array(const NamedObjectInit<Array> & obj) : NamedObject<Array>(obj) 
 	{

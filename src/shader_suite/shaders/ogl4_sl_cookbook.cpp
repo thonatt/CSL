@@ -42,11 +42,11 @@ std::string transfeedBackVertex()
 	Uniform<sampler1D> RandomTex("RandomTex");
 	lineBreak();
 
-	const Array<vec3> offsets = { "offsets", vec3(-0.5,-0.5,0), vec3(0.5,-0.5,0), vec3(0.5,0.5,0),
-							  vec3(-0.5,-0.5,0), vec3(0.5,0.5,0), vec3(-0.5,0.5,0) };
+	const Array<vec3> offsets = Array<vec3>(vec3(-0.5,-0.5,0), vec3(0.5,-0.5,0), vec3(0.5,0.5,0),
+							  vec3(-0.5,-0.5,0), vec3(0.5,0.5,0), vec3(-0.5,0.5,0)) << "offsets";
 	lineBreak();
 
-	const Array<vec2> texCoords = { "texCoords", vec2(0,0), vec2(1,0), vec2(1,1), vec2(0,0), vec2(1,1), vec2(0,1) };
+	const Array<vec2> texCoords = Array<vec2>(vec2(0,0), vec2(1,0), vec2(1,1), vec2(0,0), vec2(1,1), vec2(0,1)) << "texCoords";
 
 	auto randomInitialVelocity = makeFunc<vec3>("randomInitialVelocity", [&] {
 		Float theta = mix(0.0, pi / 8.0, texelFetch(RandomTex, 3 * gl_VertexID, 0)[r]) << "theta";

@@ -120,6 +120,8 @@ namespace csl {
 			return flags & DISABLED;
 		}
 
+		virtual Ex firstArg() { return Ex(); }
+
 		//stringPtr op_str_ptr;
 		uint flags = 0;
 	};
@@ -245,7 +247,7 @@ namespace csl {
 			return "base_ctor_obj_name";
 		}
 
-		virtual Ex firstArg() { return {}; }
+		virtual Ex firstArg() override { return Ex(); }
 
 		CtorStatus ctor_status;
 	};
@@ -316,11 +318,11 @@ namespace csl {
 			return is_same_v<T, Bool>;
 		}
 
-		virtual Ex firstArg() {
+		virtual Ex firstArg() override {
 			if (N > 0) {
 				return ArgsCall<N>::args[0];
 			} else {
-				return {};
+				return Ex();
 			}
 		}
 
@@ -356,7 +358,11 @@ namespace csl {
 				obj_str = OperatorBase::checkForParenthesis(obj);
 			} else {
 				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(obj)) {
-					obj_str = ctor->obj_name();
+					if (auto accessor = std::dynamic_pointer_cast<MemberAccessor>(obj->firstArg())) {
+						obj_str = OperatorBase::checkForParenthesis(accessor);
+					} else {
+						obj_str = ctor->obj_name();
+					}	
 				}
 			}
 			return obj_str + "." + member_str;

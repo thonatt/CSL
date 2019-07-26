@@ -69,6 +69,8 @@ void testStructsMacros()
 		Uint uuu = basic[3].uintsArray[chan][z];
 		chan = uuu; 
 	
+		Array<Array<vec3, 2>, 2>  myQrray = { Array<vec3, 2>(vec3(0), vec3(1)),  Array<vec3, 2>(vec3(2), vec3(3)) };
+		myQrray[5][2] = vec3(1.0);
 		
 		basic[3].myInnerBlocks[3].mats[2][4][y] = 3.14;
 	});
@@ -79,6 +81,17 @@ void testStructsMacros()
 void testArgCleaning()
 {
 	using namespace csl;
+
+	Uint counter = 0;
+	vec2 uv = vec2(1.0, 2.0);
+	vec4 color = vec4(0.0, uv, Float(counter));
+	bvec3 m = bvec3(true, false, false);
+
+	using namespace csl::swizzles::xyzw;
+	using namespace csl::swizzles::rgba;
+	using namespace csl::swizzles::stpq;
+
+	using namespace csl::swizzles::all;
 
 	//TypeMerger< TypeList<float>, TypeList<>, TypeList<double> >::Type;
 	//TypeMerger< TypeList<>, TypeList<>, TypeList<double>, TypeList<>, TypeList<float> >::Type;
