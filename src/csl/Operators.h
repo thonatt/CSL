@@ -255,7 +255,7 @@ namespace csl {
 	template<typename T, uint N = 0>
 	struct Constructor : ArgsCall<N>, ConstructorBase {
 
-		virtual uint rank() const {
+		virtual uint rank() const override {
 			if (N == 0) {
 				return (uint)FUNCTION_CALL;
 			}
@@ -270,7 +270,7 @@ namespace csl {
 
 		virtual ~Constructor() = default;
 
-		virtual std::string obj_name() const {
+		virtual std::string obj_name() const override {
 			return *obj_name_ptr;
 		}
 
@@ -302,7 +302,7 @@ namespace csl {
 			return str;
 		}
 
-		virtual std::string str(int trailing) const {
+		virtual std::string str(int trailing) const override {
 			if (status() == INITIALISATION) {
 				return lhs_str(trailing) + " = " + rhs_str();
 			} else if (status() == DECLARATION) {
@@ -314,7 +314,7 @@ namespace csl {
 			}
 		}
 
-		virtual bool is_bool_ctor() const {
+		virtual bool is_bool_ctor() const override {
 			return is_same_v<T, Bool>;
 		}
 
@@ -472,9 +472,9 @@ namespace csl {
 
 		virtual std::string str(int trailing) const {
 			std::string s = std::to_string(i);
-			if (!std::is_integral_v<T>) {
+			if (!is_integral_v<T>) {
 				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-				if (static_cast<T>(std::round(i)) == i) {
+				if (static_cast<T>((i)) == i) {
 					s += "0";
 				}
 			}
