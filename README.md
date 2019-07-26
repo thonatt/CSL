@@ -6,16 +6,16 @@ CSL is a C++ header-only library for writing OpenGL shaders directly inside comp
 + Checking GLSL specification compliance at compile-time as much as possible.
 + The possibility to use C++ as meta language for clean shader generation.
 
-By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `\src\core\` if the Boost Preprocessor is already available from elsewhere.
+By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `\src\csl\` if the Boost Preprocessor is already available from elsewhere.
 
 CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite) which includes several shaders, from didactic examples to shaders used in complex graphics applications.
 
-# How to
+**Disclaimer** : This project is a work in progress. The current coverage of the GLSL specification, while already quite advanced, is only partial. The guideline is to add remaining operators/functions/features as soon as they needed in a CSL shader. In particular, the goal is to first make possible what is legal in GLSL. In a second time, the goal will be to make impossible what is not valid in GLSL. 
 
-As CSL is a header-only library, a simple include of the file `<csl\core.hpp>` is enough to use it. Here is a simple vertex shader example, with its corresponding output.
+# Setup
 
-<details>
-    <summary>Show example</summary>
+As CSL is a header-only library, a simple include of the file `<csl\core.hpp>` is enough to use it. Here is small program, showing a vertex shader example and its corresponding output. CSL syntax is described in more detail in the [syntax section](#csl-syntax).
+
 <table>
   <tr>
     <th>Code</th>
@@ -30,7 +30,7 @@ As CSL is a header-only library, a simple include of the file `<csl\core.hpp>` i
 
 int main() {
       using namespace csl::vert_330;  
-      Shader shader;
+      Shader myShader;
 
       In<vec3, Layout<Location<0>> position;
 
@@ -38,7 +38,7 @@ int main() {
             gl_Position = vec4(position, 1.0);
       });
 
-      std::cout << shader.str() << std::endl;
+      std::cout << myShader.str() << std::endl;
 }
 ```
    </td>
@@ -57,13 +57,13 @@ int main() {
    </td> 
   </tr>
 </table>
-</details>
 
-For readability purposes, all examples assume named variables. See the [naming variables](#naming-variables) section for more details.
+For readability purposes, all outputs are shown as if the code used named variables. See the [naming variables](#naming-variables) section for more details about the actual output.
 
-## CSL syntax
+# CSL syntax
 
-+ [Shader setup](#shader-setup)
+As GLSL and C++ share a common C base language, their syntax are quite similar. However, the goal of CSL is to write C++ code that can performs introspection, while keeping a syntax close to GLSL, meaning that some tradeoffs had to be made. This section covers the subtleties of the CSL syntax (hopefully nothing too repulsive !). It is also a summary of what is possible in CSL (and maybe in GLSL too considering how easy it is to forgot):
++ [Setup a shader](#shader-setup)
 + [Basic and Sampler types](#basic-and-sampler-types)
 + [Naming variables](#naming-variables)
 + [Operators and Swizzles](#operators-and-swizzles)
@@ -71,12 +71,15 @@ For readability purposes, all examples assume named variables. See the [naming v
 + [Arrays and Functions](#arrays-and-functions)
 + [Building blocks](#building-blocks)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
++ [Subroutines](#subroutines)
 
-### Shader setup
+## Shader setup
 
-Shader type and GLSL version are setup using the corresponding namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`which retrieves the `std::string` associated to the shader.
+Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Starting a new shader requires to create a novel variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`, which retrieves the `std::string` associated to the shader that can be sent to the GPU. See the [previous section](#setup) for en example.
 
-### Basic and Sampler types
+CSL currently assumes instructions are called sequentially so it is not thread-safe.
+
+## Basic and Sampler types
 
 CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
 
@@ -112,16 +115,16 @@ Constructors and declarations are identical to GLSL. CSL and C++ basic types can
 </table>
 </details>
 
-### Naming variables
+## Naming variables
 
-Because C++ objects do not have names, it is not possible to forward directly the CSL variable names to the GLSL output. As a consequence, CSL will perfom automatic variable naming. **It has no effect when actually compiling the shader on the GPU**. Still, it has a big impact on the shader readability.
+Because C++ objects do not have names, it is not possible to forward directly the CSL variable names to the GLSL output. As a consequence, CSL will perfom automatic variable naming, which has a significant impact on the output shader readability.
 
 <details>
     <summary>Automatic naming example</summary>
 <table>
   <tr>
     <th>Code with automatic naming</th>
-    <th>Output</th> 
+    <th>Actual output</th> 
   </tr>
   <tr>
     <td>
@@ -162,10 +165,10 @@ shader.main([&] {
 </table>
 </details>
 
-Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally variables when debugging.
+Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator.  Since the way variables are named should have **no impact on the shader validity or usage once compiled on the GPU**, you are not expected to name variables other than for debugging purposes. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally variables when debugging.
 
 <details>
-    <summary>Manual naming example</summary>
+    <summary>Same example with manual naming</summary>
 <table>
   <tr>
     <th>Code with manual naming</th>
@@ -213,7 +216,7 @@ void main()
 </table>
 </details>
 
-### Operators and Swizzles
+## Operators and Swizzles
 
 As C++ and GLSL share a common C base syntax, most of the operators keywords are identical and can be used as is. This includes for example:
 + `+`, `-`, `*`, `/` and their assignment operator counterparts,
@@ -258,7 +261,7 @@ out[a] = col[b, a, r][b, g][g];
 </table>
 </details>
 
-### Memory and Layout qualifiers
+## Memory and Layout qualifiers
 
 Memory qualifiers are available in CSL in the form of template class. Template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unisgned int in case it requires a value. CSL layout qualifiers are identical to GLSL, except for begining with an uppercase.
 
@@ -296,7 +299,7 @@ Memory qualifiers are available in CSL in the form of template class. Template p
 </details>
 
 
-### Arrays and Functions
+## Arrays and Functions
 
 Arrays in CSL are a template class similar to `std::array`, with parameters the internal type and the size. Unspecified or zero size are used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multi dimensional arrays are supported as nested arrays. 
 
@@ -406,7 +409,7 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
 </table>
 </details>
 
-### Building blocks
+## Building blocks
 
 Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`, namely `GL_FOR`, `GL_CONTINUE`, `GL_BREAK`, `GL_WHILE`, `GL_IF`, `GL_ELSE`, `GL_ELSE_IF`, `GL_SWITCH`, `GL_CASE` and `GL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and the few limitations:
 + A `GL_SWITCH` **must** contain a `GL_DEFAULT` case, even if it happens to be empty.
@@ -503,7 +506,7 @@ GL_FOR(;;) { GL_BREAK; }
 </table>
 </details>
 
-### Structs and Interface blocks
+## Structs and Interface blocks
 
 CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(TypeA) member1, (TypeB) other_member, ...`
 
@@ -639,4 +642,8 @@ Since the `member list` is parsed by the preprocessor, **members typename must n
 </table>
 </details>
 
-ALso since CSL must rely on a macro for structs and interface blocks, it means it can directly forward the members name (and interface block variable names). Therefore there is no need for either automatic or manual naming in those cases. 
+Also since CSL must rely on a macro for structs and interface blocks, it means it can directly forward the members name (and interface block variable names). Therefore there is no need for either automatic or manual naming in those cases. 
+
+## Subroutines
+
+Not yet implemented.
