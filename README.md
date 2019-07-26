@@ -6,7 +6,8 @@ CSL is a C++ header-only library for writing OpenGL shaders directly inside comp
 + Checking GLSL specification compliance at compile-time as much as possible.
 + The possibility to use C++ as meta language for clean shader generation.
 
-By default, CSL does not require any dependency as it relies on the STL and some Boost Preprocessor files that are present in the repo. *Optionnaly*, it is possible to only clone `\src\csl\` if the Boost Preprocessor is already available from elsewhere.
+CSL requires a C++14 compiler. It was tested on Visual Studio 2017, GCC 8.3.0 and Clang (Apple LLVM version 10.0.1).
+CSL does not require any dependency as it only relies on the STL and some Boost Preprocessor files that are included in the repo. *Optionnaly*, it is possible to only clone `\src\csl\` if the Boost Preprocessor is already available from elsewhere.
 
 CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite) which includes several shaders, from didactic examples to shaders used in complex graphics applications.
 
