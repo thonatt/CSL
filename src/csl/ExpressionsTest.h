@@ -623,12 +623,12 @@ namespace csl {
 			uint opts, const std::string & fname, const std::vector<OverloadData> & funcs) {
 			
 			stream << InstructionBase::instruction_begin(trailing, opts) <<
-				 getTypeStr<typename ReturnTList::GetType<it>>() << " " << fname << "(";
+			getTypeStr<typename ReturnTList::template GetType<it>>() << " " << fname << "(";
 
 			int dummy_trailing = 0;
 			const auto & args = funcs[it].args->instructions;
-			for (int it = static_cast<int>(args.size()) - 1; it >= 0; --it) {
-				args[it]->str(stream, dummy_trailing, (it == 0 ? 0 : COMMA | ADD_SPACE) );
+			for (int it0 = static_cast<int>(args.size()) - 1; it0 >= 0; --it0) {
+				args[it0]->str(stream, dummy_trailing, (it0 == 0 ? 0 : COMMA | ADD_SPACE) );
 			}
 
 			stream << ") {\n";
