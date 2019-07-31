@@ -1,6 +1,6 @@
 # C++ integrated Shading Language
 
-CSL is a C++ header-only library for writing OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time while a string corresponding to the GLSL code is produced at run-time. CSL aims to provide convenient and maintainable shader writing thanks to :
+CSL is a C++ header-only library, self-transpiling into GLSL, which allows to write OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time while a string corresponding to the GLSL code is produced at run-time. CSL aims to provide convenient and maintainable shader writing thanks to :
 
 + Having a syntax as close as possible to GLSL.
 + Checking GLSL specification compliance at compile-time as much as possible.
@@ -63,7 +63,8 @@ For readability purposes, all outputs are shown as if the code used named variab
 
 # CSL syntax
 
-As GLSL and C++ share a common C base language, their syntax are quite similar. However, the goal of CSL is to write C++ code that can performs introspection, while keeping a syntax close to GLSL, meaning that some tradeoffs had to be made. This section covers the subtleties of the CSL syntax (hopefully nothing too repulsive !). It is also a summary of what is possible in CSL (and maybe in GLSL too considering how easy it is to forgot):
+As GLSL and C++ share a common C base language, their syntax are quite similar. However, the goal of CSL is to write C++ code that can perform introspection, while keeping a syntax close to GLSL, meaning that some tradeoffs had to be made. This section covers the subtleties of the CSL syntax (hopefully nothing too repulsive !). It is also a summary of what is possible in CSL:
+
 + [Setup a shader](#shader-setup)
 + [Basic and Sampler types](#basic-and-sampler-types)
 + [Naming variables](#naming-variables)
@@ -82,7 +83,7 @@ CSL currently assumes instructions are called sequentially so it is not thread-s
 
 ## Basic and Sampler types
 
-CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
+CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `void`, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
 
 Constructors and declarations are identical to GLSL. CSL and C++ basic types can also be mixed.
 
@@ -264,7 +265,7 @@ out[a] = col[b, a, r][b, g][g];
 
 ## Memory and Layout qualifiers
 
-Memory qualifiers are available in CSL in the form of template class. Template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unisgned int in case it requires a value. CSL layout qualifiers are identical to GLSL, except for begining with an uppercase.
+Memory qualifiers are available in CSL in the form of template classes. Template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unsigned int when it requires a value. CSL layout qualifiers are identical to GLSL, except for beginning with an uppercase.
 
 <details>
     <summary>Qualifier and layout examples</summary>
@@ -345,7 +346,7 @@ myVec3A[0] = floatA[1]*matA[0][0]*myVec3A[1];
 </table>
 </details>
 
-Functions in CSL are objects that can be created using the `makeFunc` template function with a C++ lambda as parameter. The return type must be explicitely specified as template parameter. Returns are declared using the `GL_RETURN;` or `GL_RETURN(expression)` syntax. The function can then be called later in the code using the usual `()` operator. Functions overloading in not possible in CSL.
+Functions in CSL are objects that can be created using the `declareFunc` template function with a C++ lambda as parameter. The return type must be explicitely specified as template parameter. Returns are declared using the `GL_RETURN;` or `GL_RETURN(expression)` syntax. Parameters are named using default argument values. The function can be called later in the code using the usual `()` operator. Function overloading is possible in CSL by providing multiple return types and lambdas.
 
 <details>
     <summary>Function examples</summary>
@@ -358,52 +359,72 @@ Functions in CSL are objects that can be created using the `makeFunc` template f
     <td>
         
   ```cpp
-	//empty function without arguments
-	auto fun = makeFunc<void>([]{
-		GL_RETURN;
-	});
-
 	//named function with named parameters
-	auto add = makeFunc<vec3>("add", [](vec3 a, vec3 b) {
-		GL_RETURN(a + b);
-	}, "a", "b");
+	auto add = declareFunc<vec3>("add",
+		[](vec3 a = "a", vec3 b = "b") {
+			GL_RETURN(a + b);
+		}
+	);
 
 	//function with some named parameters
-	auto addI = makeFunc<Int>([](Int a, Int b) {
-		GL_RETURN(a + b);
-	}, "a");
+	auto addI = declareFunc<Int>(
+		[](Int a, Int b = "b", Int c = "") {
+			GL_RETURN(a + b + c);
+		}
+	);
 
-	//function calling another functions
-	auto sub = makeFunc<vec3>([&](vec3 a, vec3 b) {
+	//function calling another function
+	auto sub = declareFunc<vec3>([&](vec3 a, vec3 b) {
 		fun();
 		GL_RETURN(add(a, -b));
 	});
+
+	//named function with overload
+	auto square = declareFunc<vec3, ivec3, void>( "square",
+		[](vec3 a = "a") {
+			GL_RETURN(a*a);
+		}, 
+		[](ivec3 b = "b") {
+			GL_RETURN(b*b);
+		},
+		[] { GL_RETURN; }
+	);
 ```
 </td>
     <td>
   
 ```cpp
-   void function_0()
-   {
-      return;
+   void function_0() {
    }
 
-   vec3 add(vec3 a, vec3 b)
-   {
+
+   vec3 add(vec3 a, vec3 b) {
       return a + b;
    }
 
-   int function_1(int a, int int_0)
-   {
-      return a + int_0;
+
+   int function_1(int int_1, int b, int int_0) {
+      return int_1 + b + int_0;
    }
 
-   vec3 function_2(vec3 vec3_2, vec3 vec3_1)
-   {
+
+   vec3 function_2(vec3 vec3_2, vec3 vec3_1) {
       function_0();
       return add(vec3_2, -vec3_1);
    }
 
+
+   vec3 square(vec3 a) {
+      return a*a;
+   }
+
+   ivec3 square(ivec3 b) {
+      return b*b;
+   }
+
+   void square() {
+      return;
+   }
 ```
 </td> 
   </tr>
