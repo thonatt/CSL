@@ -106,25 +106,38 @@ void functions_example()
 	Shader shader;
 
 	//empty function
-	auto fun = makeFunc<void>([]() {
-		GL_RETURN;
-	});
+	auto fun = declareFunc<void>([] { });
 
 	//named function with named parameters
-	auto add = makeFunc<vec3>("add", [](vec3 a, vec3 b) {
-		GL_RETURN(a + b);
-	}, "a", "b");
+	auto add = declareFunc<vec3>("add",
+		[](vec3 a = "a", vec3 b = "b") {
+			GL_RETURN(a + b);
+		}
+	);
 
 	//function with some named parameters
-	auto addI = makeFunc<Int>([](Int a, Int b) {
-		GL_RETURN(a + b);
-	}, "a");
+	auto addI = declareFunc<Int>(
+		[](Int a, Int b = "b", Int c = "") {
+			GL_RETURN(a + b + c);
+		}
+	);
 
-	//function calling another function
-	auto sub = makeFunc<vec3>([&](vec3 a, vec3 b) {
+	////function calling another function
+	auto sub = declareFunc<vec3>([&](vec3 a, vec3 b) {
 		fun();
 		GL_RETURN(add(a, -b));
 	});
+
+	//named function with overload
+	auto square = declareFunc<vec3, ivec3, void>( "square",
+		[](vec3 a = "a") {
+			GL_RETURN(a*a);
+		}, 
+		[](ivec3 b = "b") {
+			GL_RETURN(b*b);
+		},
+		[] { GL_RETURN; }
+	);
 
 	std::cout << shader.str() << std::endl;
 }

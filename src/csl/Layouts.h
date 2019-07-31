@@ -41,17 +41,6 @@ namespace csl {
 		>;
 	};
 
-	template<typename A, size_t first, typename Range>
-	struct SubsetImpl;
-
-	template<typename A, size_t first, size_t last>
-	using Subset = typename SubsetImpl<A, first, std::make_index_sequence<last - first>>::Type;
-
-	template<size_t first, size_t ... Is, typename ... Ts>
-	struct SubsetImpl< TList<Ts...>, first, std::index_sequence<Is...> > {
-		using Type = TList<std::tuple_element_t<first + Is, std::tuple<Ts...>> ...>;
-	};
-
 	template<typename T, template<typename, typename> class Comp> struct SortImpl;
 	template<typename T, template<typename, typename> class Comp>
 	using Sort = typename SortImpl<T, Comp>::Type;

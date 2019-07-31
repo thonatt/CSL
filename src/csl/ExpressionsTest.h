@@ -370,7 +370,6 @@ namespace csl {
 		//virtual void cout(int & trailing, uint opts = DEFAULT);
 	};
 
-
 	struct Statement : InstructionBase {
 		using Ptr = std::shared_ptr<Statement>;
 
@@ -594,6 +593,77 @@ namespace csl {
 		//}
 	}
 
+	struct OverloadData {
+		OverloadData() {
+			args = std::make_shared<Block>();
+			body = std::make_shared<Block>();
+		}
+		Block::Ptr args, body;
+	};
+
+	template<typename ReturnTList, size_t it, typename ... Fs>
+	struct FDeclImpl;
+
+	template<typename ReturnTList, size_t it>
+	struct FDeclImpl<ReturnTList, it> {
+		static void str(std::stringstream & stream, int & trailing, uint opts,
+			const std::string & fname, const std::vector<OverloadData> & funcs) { }
+	};
+
+	template<typename ReturnTList, size_t it, typename F, typename ... Fs>
+	struct FDeclImpl<ReturnTList, it, F, Fs...> {
+		static void str(std::stringstream & stream, int & trailing,
+			uint opts, const std::string & fname, const std::vector<OverloadData> & funcs) {
+			
+			stream << InstructionBase::instruction_begin(trailing, opts) <<
+				 getTypeStr<typename ReturnTList::GetType<it>>() << " " << fname << "(";
+
+			int dummy_trailing = 0;
+			const auto & args = funcs[it].args->instructions;
+			for (int it = static_cast<int>(args.size()) - 1; it >= 0; --it) {
+				args[it]->str(stream, dummy_trailing, (it == 0 ? 0 : COMMA | ADD_SPACE) );
+			}
+
+			stream << ") {\n";
+			++trailing;
+
+			funcs[it].body->str(stream, trailing, opts);
+			
+			--trailing;
+			stream << InstructionBase::instruction_begin(trailing, opts) << "}\n\n";
+
+			FDeclImpl<ReturnTList, it+1, Fs...>::str(stream, trailing, opts, fname, funcs);
+
+		}
+	};
+
+	struct FuncDeclarationInstructionBase : InstructionBase {
+		using Ptr = std::shared_ptr<FuncDeclarationInstructionBase>;
+
+		FuncDeclarationInstructionBase(const std::string & name) : func_name(name) {
+		}
+
+		std::vector<OverloadData> overloads;
+		std::string func_name;
+	};
+
+	template<typename ReturnTList, typename ... Fs>
+	struct FuncDeclarationInstruction : FuncDeclarationInstructionBase {
+		using Ptr = std::shared_ptr<FuncDeclarationInstruction>;
+
+		FuncDeclarationInstruction(const std::string & name) 
+		: FuncDeclarationInstructionBase(name) {
+			FuncDeclarationInstructionBase::overloads.resize(sizeof...(Fs));
+		}
+	
+		virtual void str(std::stringstream & stream, int & trailing, uint opts) override {
+			FDeclImpl<ReturnTList, 0, Fs...>::str(stream, trailing, opts, 
+				FuncDeclarationInstructionBase::func_name,
+				FuncDeclarationInstructionBase::overloads
+			);
+		}
+	};
+
 	struct ForInstruction : InstructionBase {
 		using Ptr = std::shared_ptr<ForInstruction>;
 
@@ -758,146 +828,45 @@ namespace csl {
 		return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 	}
 
-	template<SeparatorRule s, int N, typename ... Ts>
-	struct DisplayDeclarationTuple {
-		static std::string str(const std::tuple<Ts...> & v, const std::string & separator) {
-			std::get<sizeof...(Ts) - N>(v).str();
-			return DeclarationStr<std::tuple_element_t<sizeof...(Ts) - N, std::tuple<Ts...> > >::str(std::get<sizeof...(Ts) - N>(v).str()) +
-				((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
-				DisplayDeclarationTuple<s, N - 1, Ts...>::str(v, separator);
-		}
-	};
-	template<SeparatorRule s, typename ... Ts>
-	struct DisplayDeclarationTuple<s, 0, Ts...> {
-		static std::string str(const std::tuple<Ts...> & v, const std::string & separator) { return ""; }
-	};
-
-	template<SeparatorRule s, typename ... Ts>
-	std::string declarationFromTuple(const std::tuple<Ts...> & v, const std::string & separator) {
-		return DisplayDeclarationTuple<s, sizeof...(Ts), Ts...>::str(v, separator);
-	}
-
-	template <typename ReturnType, typename... Args, typename ... Strings>
-	void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name);
-
-	template<typename T> struct FunctionReturnType;
-	template<typename Lambda> typename FunctionReturnType<decltype(&Lambda::operator())>::type functionFromLambda(const Lambda &func);
-
-	template<typename ...Args> struct ArgTypeList {};
-	template<typename Arg, typename Arg2, typename ...Args> struct ArgTypeList<Arg, Arg2, Args...> {
-		using first = ArgTypeList<Arg>;
-		using rest = ArgTypeList<Arg2, Args...>;
-	};
-
-	template <typename ...Ts> constexpr bool SameTypeList = false;
-
-	template <>
-	constexpr bool SameTypeList<ArgTypeList<>, ArgTypeList<> > = true;
-
-	template <typename Input, typename Target>
-	constexpr bool SameTypeList<ArgTypeList<Input>, ArgTypeList<Target> > = IsConvertibleTo<Input, Target>; //EqualMat<Arg, ArgM>;
-
-	template <typename LA, typename LB>
-	constexpr bool SameTypeList<LA, LB> =
-		SameTypeList<typename LA::first, typename LB::first> && SameTypeList<typename LA::rest, typename LB::rest>;
-
-	template <typename List, typename ReturnType, typename ... Args>
-	void checkArgsType(const std::function<ReturnType(Args...)>& f) {
-		static_assert(SameTypeList < List, ArgTypeList<Args...> >, "arg types do not match function signature, or no implicit conversion available");
-	}
-
 	struct FuncBase : NamedObject<FuncBase> {
 		FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, 0) {}
 		static std::string typeStr(int trailing = 0) { return "function"; }
 		static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 	};
 
-	template<typename ReturnType, typename F_Type>
-	struct Func : FuncBase {
+	template<typename ReturnTList, typename FuncTList>
+	struct Function : FuncBase {
+		static_assert(ReturnTList::size == FuncTList::size, "numbers of overload and return type dont match");
 
-		template<typename ... Strings>
-		Func(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FuncBase(_name), f(_f) {
-			init_function_declaration<ReturnType>(str(), functionFromLambda(_f), _argnames...);
+		template<typename ... Fs>
+		Function(const std::string & _name, const Fs & ... _fs) : FuncBase(_name) {
+			init_function_declaration<ReturnTList>(str(), _fs ...);
 		}
 
-		template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
-		ReturnType operator()(R_Args &&  ... args) {
-			checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
-			return { createFCallExp(str(), EX(R_Args, args)...) };
-		}
+		template<typename ... Args>
+		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<Args...>>;
 
-		F_Type f;
+		template<typename ... Args>
+		ReturnType<Args...> operator()(Args && ...args) {
+			//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
+			if (std::is_same<ReturnType<Args...>, void>::value) {
+				listen().addEvent(createFCallExp(str(), EX(Args, args)...));
+			}
+		
+			return ReturnType<Args...>(createFCallExp(str(), EX(Args, args)...));
+		}
 	};
 
-	template<typename ReturnType, typename F_Type, typename ... Strings >
-	Func<ReturnType, F_Type> makeFunc(const std::string & name, const F_Type & f, const Strings & ...argnames) {
-		return Func<ReturnType, F_Type>(name, f, argnames...);
+
+	template<typename ... ReturnTypes, typename F, typename ... Fs >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const std::string & name, const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >(name, f, fs...);
 	}
-	template<typename ReturnType, typename F_Type, typename ... Strings, typename = std::enable_if_t<!std::is_convertible<F_Type, std::string>::value > >
-	Func<ReturnType, F_Type> makeFunc(const F_Type & f, const Strings & ...argnames) {
-		return Func<ReturnType, F_Type>("", f, argnames...);
+
+	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible<F, std::string>::value > >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >("", f, fs...);
 	}
-
-	struct FunctionDeclarationBase : InstructionBase {
-		virtual Block::Ptr getBody() { return {}; }
-		virtual ~FunctionDeclarationBase() = default;
-	};
-
-	template<typename ReturnType>
-	struct FunctionDeclarationRTBase : FunctionDeclarationBase {
-		FunctionDeclarationRTBase() {
-			body = std::make_shared<ReturnBlock<ReturnType>>();
-		}
-
-		virtual ~FunctionDeclarationRTBase() = default;
-
-		virtual Block::Ptr getBody() { return std::static_pointer_cast<Block>(body); }
-
-		typename ReturnBlock<ReturnType>::Ptr body;
-	};
-
-	template<typename ReturnType, typename ... Args>
-	struct FunctionDeclarationArgs : FunctionDeclarationRTBase<ReturnType> {
-
-		FunctionDeclarationArgs(const std::string & _name, const std::tuple<Args...> & _args) : name(_name), args(_args) {
-		}
-
-		std::string name;
-		std::tuple<Args...> args;
-	};
-
-	template<typename ReturnT, typename ... Args>
-	struct FunctionDeclaration : FunctionDeclarationArgs<ReturnT, Args...> {
-		using Base = FunctionDeclarationArgs<ReturnT, Args...>;
-		using Base::Base;
-
-		void str(std::stringstream & stream, int & trailing, uint opts) {
-			stream << InstructionBase::instruction_begin(trailing, opts) << TypeStr<ReturnT>::str() << " " << Base::name << "(" <<
-				declarationFromTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-			stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
-			++trailing;
-			Base::getBody()->str(stream, trailing, DEFAULT);
-			--trailing;
-			stream << InstructionBase::instruction_begin(trailing, opts) << "}" << std::endl;
-		}
-	};
-
-	//specialization for ReturnT == void
-	template<typename ... Args>
-	struct FunctionDeclaration<void, Args...> : FunctionDeclarationArgs<void, Args...> {
-		using Base = FunctionDeclarationArgs<void, Args...>;
-		using Base::Base;
-
-		void str(std::stringstream & stream, int & trailing, uint opts) {
-			stream << InstructionBase::instruction_begin(trailing, opts) << "void " << Base::name << "(" <<
-				declarationFromTuple<SEP_IN_BETWEEN, Args...>(Base::args, ", ") << ") \n";
-			stream << InstructionBase::instruction_begin(trailing, opts) << "{" << std::endl;
-			++trailing;
-			Base::getBody()->str(stream, trailing, DEFAULT);
-			--trailing;
-			stream << InstructionBase::instruction_begin(trailing, opts) << "}" << std::endl;
-		}
-	};
 
 	template<typename ... Args>
 	struct StructDeclaration : InstructionBase {
@@ -976,6 +945,58 @@ namespace csl {
 
 		virtual ~ControllerBase() = default;
 
+	};
+
+	struct FunctionController : virtual ControllerBase {
+		
+		template<typename ReturnTList, typename ... Fs>
+		void begin_func_internal(const std::string & name) {
+			current_func = std::make_shared<FuncDeclarationInstruction<ReturnTList, Fs...>>(name);
+			current_func_num_args = { GetArgTList<Fs>::size ... };
+			current_func_parent = currentBlock; 
+			current_func_overload = -1;
+			next_overload();
+		}
+
+		void checkNumArgs() {
+			if (current_func && current_func_arg_counter == current_func_num_args[current_func_overload]) {
+				currentBlock = current_func->overloads[current_func_overload].body;
+				feedingArgs = false;
+			}
+		}
+
+		void checkFuncArgs() {
+			if (current_func && feedingArgs) {
+				checkNumArgs();
+				++current_func_arg_counter;			
+			}
+		}
+
+		void next_overload() {
+			if (current_func) {
+				++current_func_overload;
+				current_func_arg_counter = 0;
+				feedingArgs = true;
+				if (current_func_overload < current_func->overloads.size()) {
+					currentBlock = current_func->overloads[current_func_overload].args;
+					checkNumArgs();
+				}
+			}
+		}
+
+		void end_func() {
+			currentBlock = current_func_parent;
+			current_func_parent = {};
+			current_func = {};
+		}
+
+
+		FuncDeclarationInstructionBase::Ptr current_func;
+		Block::Ptr current_func_parent;
+		std::vector<size_t> current_func_num_args;
+		int current_func_overload;
+		size_t current_func_arg_counter = 0;
+		bool feedingArgs = true;
 	};
 
 	struct ForController : virtual ControllerBase {
@@ -1104,6 +1125,7 @@ namespace csl {
 	};
 
 	struct MainController :
+		virtual FunctionController,
 		virtual ForController,
 		virtual WhileController,
 		virtual IfController,
@@ -1120,33 +1142,34 @@ namespace csl {
 			}
 		}
 
-		virtual void begin_for() {
+		virtual void begin_for() override {
 			check_end_if();
 			ForController::begin_for();
 		}
 
-		virtual void end_for() {
+		virtual void end_for() override {
 			check_end_if();
 			ForController::end_for();
 		}
 
-		virtual void end_while() {
+		virtual void end_while() override  {
 			check_end_if();
 			WhileController::end_while();
 		}
 
-		virtual void add_case(const Ex & ex) {
+		virtual void add_case(const Ex & ex) override  {
 			check_end_if();
 			SwitchController::add_case(ex);
 		}
 
-		virtual void end_switch() {
+		virtual void end_switch() override {
 			check_end_if();
 			SwitchController::end_switch();
 		}
 
 		void handleEvent(const Ex & e) {
 			check_end_if();
+			checkFuncArgs();
 			queueEvent(e);
 		}
 	};
@@ -1211,18 +1234,10 @@ namespace csl {
 			unnamed_interface_blocks.push_back(interface_declaration);
 		}
 
-		template<typename ReturnT, typename ...Args>
-		void begin_function(const std::string & name, const std::tuple<Args...> & args) {
-			auto function_declaration = std::make_shared < FunctionDeclaration<ReturnT, Args...> >(name, args);
-			functions.push_back(std::static_pointer_cast<InstructionBase>(function_declaration));
-			function_declaration->body->parent = currentBlock;
-			//std::cout << "begin_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
-			currentBlock = std::static_pointer_cast<Block>(function_declaration->body);
-			//std::cout << " in_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
-		}
-		void end_function() {
-			currentBlock = std::static_pointer_cast<FunctionDeclarationBase>(functions.back())->getBody()->parent;
-			//std::cout << " end_function : " << (bool)(std::dynamic_pointer_cast<MainBlock>(currentBlock)) << std::endl;
+		template<typename ReturnTList, typename ... Fs>
+		void begin_func(const std::string & name, const Fs & ... fs) {
+			begin_func_internal<ReturnTList, Fs...>(name);
+			functions.push_back(current_func);
 		}
 
 		ReturnBlockBase::Ptr get_return_block() {
@@ -1248,6 +1263,7 @@ namespace csl {
 					return;
 				}
 			}
+
 			currentBlock->push_instruction(statement);
 		}
 
@@ -1462,15 +1478,22 @@ namespace csl {
 
 		/////////////////////////////////////////////////
 
-		template<typename ReturnT, typename ...Args>
-		void begin_function(const std::string & name, const std::tuple<Args...> & args) {
+		template<typename ReturnTList, typename ... Fs>
+		void begin_func(const std::string & name, const Fs & ... fs) {
 			if (currentShader) {
-				currentShader->begin_function<ReturnT, Args...>(name, args);
+				currentShader->begin_func<ReturnTList>(name, fs...);
 			}
 		}
-		void end_function() {
+
+		void end_func() {
 			if (currentShader) {
-				currentShader->end_function();
+				currentShader->end_func();
+			}
+		}
+
+		void next_overload() {
+			if (currentShader) {
+				currentShader->next_overload();
 			}
 		}
 
@@ -1610,7 +1633,7 @@ namespace csl {
 
 		template<typename F_Type>
 		void main(const F_Type & f) {
-			Func<void, F_Type>("main", f);
+			Function<TList<void>, TList<F_Type>>("main", f);
 		}
 
 		std::string str() {
@@ -1625,20 +1648,20 @@ namespace csl {
 	};
 
 	//specialization of Fun when ReturnType == void
-	template<typename F_Type>
-	struct Func<void, F_Type> : FuncBase {
-		template<typename ... Strings>
-		Func(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FuncBase(_name), f(_f) {
-			init_function_declaration<void>(NamedObjectBase::str(), functionFromLambda(_f), _argnames...);
-		}
-		template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
-		void operator()(R_Args &&  ... args) {
-			checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
-			listen().addEvent(createFCallExp(NamedObjectBase::str(), EX(R_Args, args)...));
-		}
+	//template<typename F_Type>
+	//struct Func<void, F_Type> : FuncBase {
+	//	template<typename ... Strings>
+	//	Func(const std::string & _name, const F_Type  & _f, const Strings & ... _argnames) : FuncBase(_name), f(_f) {
+	//		init_function_declaration<void>(NamedObjectBase::str(), functionFromLambda(_f), _argnames...);
+	//	}
+	//	template<typename ... R_Args, typename = std::result_of_t<F_Type(CleanType<R_Args>...)> >
+	//	void operator()(R_Args &&  ... args) {
+	//		checkArgsType<ArgTypeList<CleanType<R_Args>...> >(functionFromLambda(f));
+	//		listen().addEvent(createFCallExp(NamedObjectBase::str(), EX(R_Args, args)...));
+	//	}
 
-		F_Type f;
-	};
+	//	F_Type f;
+	//};
 
 	template<typename T, typename ... Args>
 	Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args)
@@ -1656,40 +1679,28 @@ namespace csl {
 		return createInit<T, Args...>(name, DECLARATION, flags, args...);
 	}
 
-	template<unsigned int S, typename... Args> struct TupleBuilder;
 
-	template<unsigned int S, typename... Args> std::tuple<Args...> getTuple(const std::array<std::string, S> & names) {
-		return TupleBuilder<S, Args...>::tup(names);
-	}
-	template<unsigned int S> struct TupleBuilder<S> {
-		static std::tuple<> tup(const std::array<std::string, S> & names) {
-			return std::tuple<>();
+	template<typename FList> struct CallFuncs;
+
+	template<> struct CallFuncs<TList<>> {
+		static void run() {}
+	};
+
+	template<typename F, typename ...Fs > 
+	struct CallFuncs<TList<F, Fs...>> {
+		static void run(const F & f, const Fs & ... fs ) {
+			call_with_only_non_default_args(f);
+			listen().next_overload();
+			CallFuncs<TList<Fs...>>::run(fs...);
 		}
 	};
 
-	template<unsigned int S, typename Arg, typename... Args>
-	struct TupleBuilder<S, Arg, Args...> {
-		static std::tuple<Arg, Args...> tup(const std::array<std::string, S> & names) {
-			return std::tuple_cat(
-				std::tuple<Arg>(Arg(names[S - sizeof...(Args) - 1], 0)),
-				getTuple<S, Args...>(names)
-			);
-		}
-	};
-
-
-	template <typename ReturnType, typename... Args, typename ... Strings>
-	void init_function_declaration(const std::string & fname, const std::function<void(Args...)>& f, const Strings & ... args_name)
+	template<typename ReturnTList, typename ... Fs>
+	void init_function_declaration(const std::string & fname, const Fs & ...fs)
 	{
-		static_assert(sizeof...(Strings) <= sizeof...(Args), "too many string arguments for function declaration");
-
-		std::tuple<Args...> args = getTuple<sizeof...(Args), Args...>({ args_name... });
-
-		listen().begin_function<ReturnType, Args...>(fname, args);
-
-		call_from_tuple(f, args);
-
-		listen().end_function();
+		listen().begin_func<ReturnTList>(fname, fs...);
+		CallFuncs<TList<Fs...>>::run(fs...);
+		listen().end_func();
 	}
 
 	struct ReturnKeyword {

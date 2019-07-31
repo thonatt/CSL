@@ -48,7 +48,7 @@ std::string transfeedBackVertex()
 
 	const Array<vec2> texCoords = Array<vec2>(vec2(0,0), vec2(1,0), vec2(1,1), vec2(0,0), vec2(1,1), vec2(0,1)) << "texCoords";
 
-	auto randomInitialVelocity = makeFunc<vec3>("randomInitialVelocity", [&] {
+	auto randomInitialVelocity = declareFunc<vec3>("randomInitialVelocity", [&] {
 		Float theta = mix(0.0, pi / 8.0, texelFetch(RandomTex, 3 * gl_VertexID, 0)[r]) << "theta";
 		Float phi = mix(0.0, 2.0 * pi, texelFetch(RandomTex, 3 * gl_VertexID + 1, 0)[r]) << "phi";
 		Float velocity = mix(1.25, 1.5, texelFetch(RandomTex, 3 * gl_VertexID + 2, 0)[r]) << "velocity";
@@ -56,7 +56,7 @@ std::string transfeedBackVertex()
 		GL_RETURN(normalize(EmitterBasis * v) * velocity);
 	});
 
-	auto update = makeFunc<void>("update", [&] {
+	auto update = declareFunc<void>("update", [&] {
 		GL_IF(VertexAge < 0 || VertexAge > ParticleLifetime) {
 			Position = Emitter;
 			Velocity = randomInitialVelocity();
@@ -69,7 +69,7 @@ std::string transfeedBackVertex()
 		}
 	});
 
-	auto render = makeFunc<void>("render", [&] {
+	auto render = declareFunc<void>("render", [&] {
 		Transp = 0.0;
 		vec3 posCam = vec3(0.0) << "posCam";
 		GL_IF(VertexAge >= 0.0) {
@@ -111,8 +111,7 @@ std::string discardFrag()
 		} GL_ELSE{
 			GL_IF(gl_FrontFacing) {
 				FragColor = vec4(FrontColor, 1.0);
-			}
-		GL_ELSE {
+			} GL_ELSE {
 				FragColor = vec4(BackColor, 1.0);
 			}
 		}

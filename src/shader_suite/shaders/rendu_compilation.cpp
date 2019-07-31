@@ -42,8 +42,6 @@ std::string ambiantShader()
 	uint SAMPLES_COUNT = 16u;
 	int MAX_LOD = 5;
 
-	//GL_INTERFACE(In<>, Interface, (vec2) uv) in("In");
-
 	GL_INTERFACE_BLOCK(In<>, Interface, In, ,
 		(vec2) uv
 	);
@@ -62,29 +60,31 @@ std::string ambiantShader()
 
 	Out<vec3, Layout<Location<0>> > fragColor("fragColor");
 
-	auto positionFromDepth = makeFunc<vec3>("positionFromDepth", [&](Float depth) {
+	auto positionFromDepth = declareFunc<vec3>("positionFromDepth", 
+		[&](Float depth = "depth") {
 		Float depth2 = 2.0 * depth - 1.0 << "depth2";
 		vec2 ndcPos = 2.0 * In.uv - 1.0 << "ndcPos";
 		Float viewDepth = -projectionMatrix[w] / (depth2 + projectionMatrix[z]) << "viewDepth";
 		GL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
-	}, "depth");
+	});
 
-	auto ggx = makeFunc<vec3>("ggx", [&](vec3 n, vec3 v, vec3 F0, Float roughness) {
+	auto ggx = declareFunc<vec3>("ggx", 
+		[&](vec3 n = "n", vec3 v = "v", vec3 F0 = "F0", Float roughness = "roughness") {
 		Float NdotV = max(0.0, dot(v, n)) << "NdotV";
 		vec3 ref = -reflect(v, n) << "r";
 		ref = normalize((inverseV * vec4(ref, 0.0))[x, y, z]);
 		vec2 brdfParams = texture(brdfPrecalc, vec2(NdotV, roughness))[r, g] << "brdfParams";
 		vec3 specularColor = textureLod(textureCubeMap, ref, MAX_LOD * roughness)[r, g, b] << "specularColor";
 		GL_RETURN(specularColor * (brdfParams[x] * F0 + brdfParams[y]));
-	}, "n", "v", "F0", "roughness");
+	});
 
 
-	auto applySH = makeFunc<vec3>("applySH", [&](vec3 wn) {
+	auto applySH = declareFunc<vec3>("applySH", [&](vec3 wn = "wn") {
 		GL_RETURN((shCoeffs[7] * wn[z] + shCoeffs[4] * wn[y] + shCoeffs[8] * wn[x] + shCoeffs[3]) * wn[x] +
 			(shCoeffs[5] * wn[z] - shCoeffs[8] * wn[y] + shCoeffs[1]) * wn[y] +
 			(shCoeffs[6] * wn[z] + shCoeffs[2]) * wn[z] +
 			shCoeffs[0]);
-	}, "wn");
+	});
 
 	shader.main([&] {
 		vec4 albedoInfo = texture(albedoTexture, In.uv) << "albedoInfo";
@@ -103,7 +103,6 @@ std::string ambiantShader()
 		vec3 position = positionFromDepth(depth) << "position";
 		vec3 n = normalize(2.0 * texture(normalTexture, In.uv)[r, g, b] - 1.0) << "n";
 		vec3 v = normalize(-position) << "v";
-
 		lineBreak();
 
 		Float precomputedAO = infos[b] << "precomputedAP";
@@ -151,18 +150,18 @@ std::string ssaoShader()
 
 	Out<Float, Layout<Location<0>>> fragColor("fragColor");
 
-	auto linearizeDepth = makeFunc<Float>("linearizeDepth", [&](Float depth) {
+	auto linearizeDepth = declareFunc<Float>("linearizeDepth", [&](Float depth = "depth") {
 		Float depth2 = 2.0*depth - 1.0 << "depth2";
 		Float viewDepth = -projectionMatrix[3][2] / (depth2 + projectionMatrix[2][2]) << "viewDepth";
 		GL_RETURN(viewDepth);
-	}, "depth");
+	});
 
-	auto positionFromUV = makeFunc<vec3>("positionFromUV", [&](vec2 uv) {
+	auto positionFromUV = declareFunc<vec3>("positionFromUV", [&](vec2 uv = "uv") {
 		Float depth = texture(depthTexture, uv)[r] << "depth";
 		Float viewDepth = linearizeDepth(depth) << "viewDepth";
 		vec2 ndcPos = 2.0 * uv - 1.0 << "ndcPos";
 		GL_RETURN(vec3(-ndcPos * viewDepth / vec2(projectionMatrix[0][0], projectionMatrix[1][1]), viewDepth));
-	}, "uv");
+	});
 
 	shader.main([&] {
 		vec3 n = normalize(2.0 * texture(normalTexture, in.uv)[r, g, b] - 1.0) << "n";

@@ -46,7 +46,9 @@ std::string dolphinVertex() {
 		(Float) clipDist1
 	);
 
-	auto CalculateLighting = makeFunc<ivec4>("CalculateLighting", [&](Uint index, Uint attnfunc, Uint diffusefunc, vec3 pos, vec3 normal) {
+	auto CalculateLighting = declareFunc<ivec4>("CalculateLighting",
+		[&](Uint index = "index", Uint attnfunc = "attnfunc", Uint diffusefunc = "diffusefunc",
+			vec3 pos = "pos", vec3 normal = "normal") {
 		vec3 ldir("ldir"), h("h"), cosAttn("cosAttn"), distAttn("distAttn");
 		Float dist("dist"), dist2("dist2"), attn("attn");
 
@@ -113,7 +115,7 @@ std::string dolphinVertex() {
 			GL_RETURN(ivec4(0, 0, 0, 0));
 			}
 		}
-	}, "index", "attnfunc", "diffusefunc", "pos", "normal");
+	});
 
 	In<vec4> rawpos("rawpos");
 	In<uvec4> posmtx("posmtx");
@@ -229,9 +231,9 @@ std::string dolphinVertex() {
 			GL_IF(bitfieldExtract(alphareg, 1, 1) != 0u) {
 				GL_IF(bitfieldExtract(alphareg, 6, 1) != 0u) {
 					GL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
-						lacc[w] = Int(round(GL_TERNARY(chan == 0u, rawcolor0[x, y, z], rawcolor1[x, y, z]) * 255.0));
+						lacc[w] = Int(round(GL_TERNARY(chan == 0u, rawcolor0[w], rawcolor1[w]) * 255.0));
 					GL_ELSE_IF((components & 8192u) != 0u) // VB_HAS_COLO0
-						lacc[w] = Int(round(rawcolor0[x, y, z] * 255.0));
+						lacc[w] = Int(round(rawcolor0[w] * 255.0));
 					GL_ELSE
 						lacc[w] = 255;
 				} GL_ELSE{
@@ -438,6 +440,26 @@ std::string dolphinVertex() {
 		gl_ClipDistance[1] = o.clipDist1;
 		gl_Position = o.pos;
 	});
+
+	return shader.str();
+}
+
+std::string dolphinFragment() {
+	using namespace csl::vert_430;
+	using namespace csl::swizzles::all;
+
+	Shader shader;
+
+	// Pixel UberShader for 2 texgens, early-depth
+	auto idot = declareFunc<Int,Int>( "idot", 
+	[](ivec3 ix = "x", ivec3 iy = "y") {
+		ivec3 tmp = ix * iy;
+		GL_RETURN(tmp[x] + tmp[y] + tmp[z]);
+	}, [](ivec4 ix, ivec4 iy) {
+		ivec4 tmp = ix * iy;
+		GL_RETURN(tmp[x] + tmp[y] + tmp[z] + tmp[w]);
+	});
+
 
 	return shader.str();
 }

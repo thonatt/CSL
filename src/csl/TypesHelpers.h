@@ -1,5 +1,8 @@
 #pragma once
 
+#include <tuple>
+#include <utility>
+
 namespace csl {
 	
 	// cpp helpers
@@ -128,9 +131,31 @@ namespace csl {
 	template<QualifierType qType, typename T, typename L>
 	struct Qualifier;
 
-	//helpers for clean LayoutArgs
+	//helper for storing Type lists
 
-	template<typename ...> struct TList {};
+	template<typename ... Args> struct TList {
+		using Tuple = std::tuple<Args...>;
+		static constexpr size_t size = sizeof...(Args);
+
+		template<size_t id> using GetType = typename std::tuple_element<id, Tuple>::type;
+	};
+
+
+	// lambdas helpers
+
+	template<typename T> struct FuncPtrInfo;
+
+	template<typename ReturnType, typename Fun, typename... Args>
+	struct FuncPtrInfo< ReturnType(Fun::*)(Args...) const> {
+		using ArgTup = std::tuple<Args...>;
+		using ArgTList = TList<Args...>;
+	};
+
+	template<typename F>
+	using LambdaInfos = FuncPtrInfo<decltype(&F::operator())>;
+
+	template<typename F>
+	using GetArgTList = typename LambdaInfos<F>::ArgTList;
 
 	// arrays
 	template<typename T, uint N = 0> struct Array;
@@ -440,5 +465,64 @@ namespace csl {
 	struct IsAnySamplerType {
 		static const bool value = AnyTrue<(input == sources)...>;
 	};
+
+	// TList utils
+
+	template<typename A, size_t first, typename Range>
+	struct SubsetImpl;
+
+	template<typename A, size_t first, size_t last>
+	using Subset = typename SubsetImpl<A, first, std::make_index_sequence<last - first>>::Type;
+
+	template<size_t first, size_t ... Is, typename ... Ts>
+	struct SubsetImpl< TList<Ts...>, first, std::index_sequence<Is...> > {
+		using Type = TList<std::tuple_element_t<first + Is, std::tuple<Ts...>> ...>;
+	};
+
+	template<typename TLA, typename TLB> struct EqualListT;
+	template<typename TLA, typename TLB> constexpr bool EqualList = EqualListT<TLA, TLB>::value;
+
+	template<typename A, typename ... As, typename B, typename ... Bs> 
+	struct EqualListT<TList<A,As...>, TList<B,Bs...> > {
+		static constexpr bool value = EqualMat<A,B> &&
+			EqualListT<TList<As...>, TList<Bs...> >::value;
+	};
+
+	template<> struct EqualListT<TList<>, TList<> > {
+		static constexpr bool value = true;
+	};
+	template<typename ...As> struct EqualListT<TList<As...>, TList<> > {
+		static constexpr bool value = false;
+	};
+	template<typename ...As> struct EqualListT<TList<>, TList<As...> > {
+		static constexpr bool value = false;
+	};
+
+	template<typename FList, typename ArgsList, int Id = 0> struct OverloadResolution;
+
+	template<int Id, typename ArgsTList, typename F, typename ...Fs> 
+	struct OverloadResolution<TList<F,Fs...>, ArgsTList, Id> {
+		static constexpr int value =
+			EqualList< GetArgTList<F>, ArgsTList> ?
+			Id :
+			OverloadResolution<TList<Fs...>, ArgsTList, Id + 1>::value;
+	};
+
+	template<int Id, typename ArgsTList>
+	struct OverloadResolution<TList<>, ArgsTList, Id> {
+		static constexpr int value = -1;
+	};
+
+	template<typename ReturnTypeList, typename FList, typename ArgsList>
+	struct OverloadResolutionTypeImpl {
+		static constexpr int id = OverloadResolution<FList, ArgsList>::value;
+		static_assert(id >= 0, "no overload founded");
+
+		static constexpr size_t valid_id = (id >= 0 ? id : 0);
+		using ReturnType = std::tuple_element_t<valid_id, typename ReturnTypeList::Tuple>;	
+	};
+
+	template<typename ReturnTypeList, typename FList, typename ArgsList>
+	using OverloadResolutionType = typename OverloadResolutionTypeImpl<ReturnTypeList, FList, ArgsList>::ReturnType;
 
 } //namespace csl

@@ -10,3 +10,6 @@
  */
 
 std::string dolphinVertex();
+
+std::string dolphinFragment();
+

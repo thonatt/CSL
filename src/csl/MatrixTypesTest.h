@@ -42,10 +42,17 @@ protected:
 
 public:
 
-	explicit Matrix(const std::string & _name = "", uint flags = IS_TRACKED)
+	explicit Matrix(const std::string & _name, uint flags)
 		: NamedObject<Matrix>(_name, flags)
 	{	
 	}
+
+	Matrix(const std::string & name = "") 
+		: Matrix(name, IS_TRACKED) { }
+
+	template<size_t N>
+	Matrix(const char(&s)[N]) :
+		Matrix(s, IS_TRACKED) { }
 
 	//template <std::size_t N>
 	//explicit Matrix(const char(&s)[N], uint flags = IS_TRACKED)
@@ -77,8 +84,9 @@ public:
 	//glsl constructors
 
 	// matXY(a,b,...)
-	template<typename U, typename V, typename ...Us,
-		typename = std::enable_if_t < AreValid<U,V,Us...> && MatElements<U,V,Us... > == NR * NC > >
+	template<typename U, typename V, typename ...Us, typename = std::enable_if_t <
+		AreValid<U,V,Us...> && MatElements<U,V,Us... > == NR * NC 
+	> >
 		explicit Matrix(U && u, V && v, Us && ...us)
 		: NamedObject<Matrix>(
 			PARENTHESIS | DISPLAY_TYPE, IS_TRACKED, "",
@@ -88,18 +96,29 @@ public:
 
 
 	// matXY(cpp types) and matXY(matWZ)
-	template<typename T, typename = std::enable_if_t< 
-		AreValid<T> && (
-			isScalar || IsScalar<T>  || //matXY(int/float)
-		(!isBool && (NC != 1 || NR != 1) &&  (Infos<T>::cols != 1 || Infos<T>::rows != 1) ) //matXY(matWZ)
-			) > >
-	Matrix( T && x)
+	template<typename T, typename = std::enable_if_t <
+		EqualType<Matrix, T> || EqualDim<Matrix, T> 
+		|| std::is_same<T,int>::value
+	> >
+		Matrix(T && x)
 		: NamedObject<Matrix>(
 			EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
 			IS_TRACKED, "",
 			EX(T, x))
 	{
 	}
+
+	////
+	//template<typename T, typename Dummy = void, typename = std::enable_if_t< 
+	//	!isBool && !isScalar && !IsScalar<T> 
+	//> >
+	//explicit Matrix( T && x)
+	//	: NamedObject<Matrix>(
+	//		EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
+	//		IS_TRACKED, "",
+	//		EX(T, x))
+	//{
+	//}
 
 	// operators =
 
