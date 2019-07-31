@@ -15,21 +15,23 @@ std::string eightiesShader() {
 	Out<vec4, Layout<Location<0>>> fragColor("fragColor");
 
 	/// Noise helpers.
-	auto noise1D = declareFunc<Float>([](Float p) {
-		Float fl = floor(p);
-		Float fc = fract(p);
-		Float rand0 = fract(sin(fl) * 43758.5453123);
-		Float rand1 = fract(sin(fl + 1.0) * 43758.5453123);
-		GL_RETURN(mix(rand0, rand1, fc));
-	});
-
-	auto noise4D = declareFunc<vec4>([](vec4 p) {
-		vec4 fl = floor(p);
-		vec4 fc = fract(p);
-		vec4 rand0 = fract(sin(fl) * 43758.5453123);
-		vec4 rand1 = fract(sin(fl + 1.0) * 43758.5453123);
-		GL_RETURN(mix(rand0, rand1, fc));
-	});
+	
+	auto noise = declareFunc<Float, vec4>("noise",
+			[](Float p) {
+				Float fl = floor(p);
+				Float fc = fract(p);
+				Float rand0 = fract(sin(fl) * 43758.5453123);
+				Float rand1 = fract(sin(fl + 1.0) * 43758.5453123);
+				GL_RETURN(mix(rand0, rand1, fc));
+			},
+			[](vec4 p) {
+				vec4 fl = floor(p);
+				vec4 fc = fract(p);
+				vec4 rand0 = fract(sin(fl) * 43758.5453123);
+				vec4 rand1 = fract(sin(fl + 1.0) * 43758.5453123);
+				GL_RETURN(mix(rand0, rand1, fc));
+			}
+	);
 
 	auto hash = declareFunc<Float>([](vec2 p) {
 		vec3 p3 = fract(p[x, y, x] * 0.2831);
@@ -38,7 +40,7 @@ std::string eightiesShader() {
 	});
 
 	/// Background utilities.
-	auto stars = declareFunc<Float>([&](vec2 localUV, Float starsDens, Float starsDist) {
+	auto stars = declareFunc<Float>([&](vec2 localUV = "localUV", Float starsDens = "starsDens", Float starsDist = "starsDist") {
 		// Center and scale UVs.
 		vec2 p = (localUV - 0.5) * starsDist;
 		// Use thresholded high-frequency noise.
@@ -166,10 +168,10 @@ std::string eightiesShader() {
 		vec4 points4 = vec4(0.38, 0.91, 0.66, 0.87);
 		vec4 points5 = vec4(0.31, 0.89, 0.72, 0.83);
 		// Randomly perturb based on time.
-		points2 += 0.04 * noise4D(10.0 * points2 + 0.4 * iTime);
-		points3 += 0.04 * noise4D(10.0 * points3 + 0.4 * iTime);
-		points4 += 0.04 * noise4D(10.0 * points4 + 0.4 * iTime);
-		points5 += 0.04 * noise4D(10.0 * points5 + 0.4 * iTime);
+		points2 += 0.04 * noise(10.0 * points2 + 0.4 * iTime);
+		points3 += 0.04 * noise(10.0 * points3 + 0.4 * iTime);
+		points4 += 0.04 * noise(10.0 * points4 + 0.4 * iTime);
+		points5 += 0.04 * noise(10.0 * points5 + 0.4 * iTime);
 		// Intensity of the triangle edges.
 		Float tri1 = triangleDistance(uv, points1, 0.010);
 		Float tri2 = triangleDistance(uv, points2, 0.005);
@@ -209,7 +211,7 @@ std::string eightiesShader() {
 			// Merge and threshold.
 			Float finalDist = 0.52 - min(let1, min(let2, let3));
 			// Split between top and bottom gradients (landscape in the reflection).
-			Float localTh = 0.49 + 0.03 * noise1D(70.0 * uv[x] + iTime);
+			Float localTh = 0.49 + 0.03 * noise(70.0 * uv[x] + iTime);
 			Float isTop = smoothstep(localTh - 0.01, localTh + 0.01, textUV[y]);
 			// Split between interior and edge gradients.
 			Float isInt = smoothstep(0.018, 0.022, finalDist);
