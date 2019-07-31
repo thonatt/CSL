@@ -18,14 +18,21 @@
 #define EX(type, var) getExp(std::forward<type>(var))
 
 namespace csl {
-
+	
+	// Forward delcarations.
+	
+	template<typename ReturnTList, typename ... Fs>
+	void init_function_declaration(const std::string & fname, const Fs & ...fs);
+	
+	
+	//////////////////////////
 
 	struct CounterData {
 		size_t value = 0;
 		bool is_tracked = false;
 	};
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////
 
 	class NamedObjectBase {
 	public:
@@ -834,40 +841,7 @@ namespace csl {
 		static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 	};
 
-	template<typename ReturnTList, typename FuncTList>
-	struct Function : FuncBase {
-		static_assert(ReturnTList::size == FuncTList::size, "numbers of overload and return type dont match");
-
-		template<typename ... Fs>
-		Function(const std::string & _name, const Fs & ... _fs) : FuncBase(_name) {
-			init_function_declaration<ReturnTList>(str(), _fs ...);
-		}
-
-		template<typename ... Args>
-		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<Args...>>;
-
-		template<typename ... Args>
-		ReturnType<Args...> operator()(Args && ...args) {
-			//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
-			if (std::is_same<ReturnType<Args...>, void>::value) {
-				listen().addEvent(createFCallExp(str(), EX(Args, args)...));
-			}
-		
-			return ReturnType<Args...>(createFCallExp(str(), EX(Args, args)...));
-		}
-	};
-
-
-	template<typename ... ReturnTypes, typename F, typename ... Fs >
-	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const std::string & name, const F & f, const Fs & ... fs) {
-		return Function<TList<ReturnTypes...>, TList<F, Fs...> >(name, f, fs...);
-	}
-
-	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible<F, std::string>::value > >
-	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const F & f, const Fs & ... fs) {
-		return Function<TList<ReturnTypes...>, TList<F, Fs...> >("", f, fs...);
-	}
-
+	
 	template<typename ... Args>
 	struct StructDeclaration : InstructionBase {
 
@@ -1620,7 +1594,42 @@ namespace csl {
 
 
 	inline void lineBreak(int n = 1) { listen().add_blank_line(n); }
+	
+	template<typename ReturnTList, typename FuncTList>
+	struct Function : FuncBase {
+		static_assert(ReturnTList::size == FuncTList::size, "numbers of overload and return type dont match");
+		
+		template<typename ... Fs>
+		Function(const std::string & _name, const Fs & ... _fs) : FuncBase(_name) {
+			init_function_declaration<ReturnTList>(str(), _fs ...);
+		}
+		
+		template<typename ... Args>
+		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<Args...>>;
+		
+		template<typename ... Args>
+		ReturnType<Args...> operator()(Args && ...args) {
+			//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
+			if (std::is_same<ReturnType<Args...>, void>::value) {
+				listen().addEvent(createFCallExp(str(), EX(Args, args)...));
+			}
+			
+			return ReturnType<Args...>(createFCallExp(str(), EX(Args, args)...));
+		}
+	};
+	
+	
+	template<typename ... ReturnTypes, typename F, typename ... Fs >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const std::string & name, const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >(name, f, fs...);
+	}
+	
+	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible<F, std::string>::value > >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >("", f, fs...);
+	}
 
+	
 	template<GLVersion version>
 	struct ShaderWrapper
 	{

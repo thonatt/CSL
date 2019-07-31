@@ -55,6 +55,10 @@ namespace csl {
 	//{
 	//	call_from_tuple_helper(func, params, std::index_sequence_for<Args...>{});
 	//}
+	template<typename F>
+	constexpr size_t min_num_args() {
+		return getMinNumArgs<F, typename LambdaInfos<F>::ArgTup>();
+	}
 
 	template<typename F, typename ...Args>
 	void call_with_first_args_empty(const F & f, TList<Args...>) {
@@ -66,9 +70,6 @@ namespace csl {
 		call_with_first_args_empty(f, Subset<typename LambdaInfos<F>::ArgTList, 0, min_num_args<F>() >{});
 	}
 
-	template<typename F>
-	constexpr size_t min_num_args() {
-		return getMinNumArgs<F, typename LambdaInfos<F>::ArgTup>();
-	}
+	
 
 } //namespace csl
