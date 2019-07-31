@@ -7,8 +7,12 @@ namespace csl {
 	
 	// cpp helpers
 	using uint = unsigned int;
+	
 	template< class T, class U >
 	constexpr bool is_same_v = std::is_same<T, U>::value;
+	
+	template< class T >
+	constexpr bool is_integral_v = std::is_integral<T>::value;
 	
 	template<uint A, uint B>
 	constexpr uint MaxUint = A > B ? A : B;
