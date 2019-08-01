@@ -165,26 +165,26 @@ void testArgCleaning()
 void testArgsOrder()
 {
 
-	getArgOrderStr();
+	//getArgOrderStr();
 
-	auto e = [](Arg i = 0, Arg d = 1, Arg k = 2) {
-	};
+	//auto e = [](Arg i = 0, Arg d = 1, Arg k = 2) {
+	//};
 
-	auto f = [&](Arg i = 0, Arg d = 1) {
-		e(i, d);
-	};
+	//auto f = [&](Arg i = 0, Arg d = 1) {
+	//	e(i, d);
+	//};
 
-	auto sf = [](Arg i, Arg d = 1) {
-	};
-	
-	auto g = [&](Arg i = 0) {
-		f(i);
-	};
+	//auto sf = [](Arg i, Arg d = 1) {
+	//};
+	//
+	//auto g = [&](Arg i = 0) {
+	//	f(i);
+	//};
 
-	auto ff = [&](auto&&... args) -> decltype(auto) { 
-		printArgs(args...);
-		return f(std::forward<decltype(args)>(args)...); 
-	};
+	//auto ff = [&](auto&&... args) -> decltype(auto) { 
+	//	printArgs(args...);
+	//	return f(std::forward<decltype(args)>(args)...); 
+	//};
 
 	//f();
 	//ff();

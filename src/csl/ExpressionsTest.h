@@ -19,6 +19,55 @@
 
 namespace csl {
 	
+	enum ArgOrderEvaluation { LEFT_TO_RIGHT, RIGHT_TO_LEFT, ORDER_NOT_SUPPORTED };
+
+	struct ArgOrdering {
+		ArgOrdering(size_t i) : value(i) {
+			static size_t counter = 0;
+			counter_value = counter;
+			++counter;
+		}
+
+		static ArgOrderEvaluation call_args(ArgOrdering a, ArgOrdering b, ArgOrdering c) {
+			ArgOrderEvaluation out;
+			if (a.check(a) && b.check(b) && c.check(c)) {
+				out = LEFT_TO_RIGHT;
+			} else  if (a.check(c) && b.check(b) && c.check(a)) {
+				out = RIGHT_TO_LEFT;
+			} else {
+				out = ORDER_NOT_SUPPORTED;
+			}
+			return out;
+		}
+
+		bool check(const ArgOrdering & other) const { return value == other.counter_value; }
+
+		size_t value, counter_value;
+
+	};
+
+	inline ArgOrderEvaluation getArgOrder() {
+		static bool first = true;
+		static ArgOrderEvaluation order;
+		if (first) {
+			order = ArgOrdering::call_args(ArgOrdering(0), ArgOrdering(1), ArgOrdering(2));
+			first = false;
+		}
+		return order;
+	}
+
+	inline void getArgOrderStr(ArgOrderEvaluation order) {
+		std::string out;
+		if (order == LEFT_TO_RIGHT) {
+			out = "left to right";
+		} else if (order == RIGHT_TO_LEFT) {
+			out = "right to left";
+		} else {
+			out = "order no not supported";
+		}
+		std::cout << out << std::endl;
+	}
+
 	// Forward delcarations.
 	
 	template<typename ReturnTList, typename ... Fs>
@@ -627,10 +676,20 @@ namespace csl {
 
 			int dummy_trailing = 0;
 			const auto & args = funcs[it].args->instructions;
-			for (int it0 = static_cast<int>(args.size()) - 1; it0 >= 0; --it0) {
-				args[it0]->str(stream, dummy_trailing, (it0 == 0 ? 0 : COMMA | ADD_SPACE) );
+			const int size = static_cast<int>(args.size());
+			if (getArgOrder() == LEFT_TO_RIGHT) {
+				for (int i = 0; i < size; ++i) {
+					args[i]->str(stream, dummy_trailing, (i == (size - 1) ? 0 : COMMA | ADD_SPACE));
+				}
+			} else if (getArgOrder() == RIGHT_TO_LEFT) {
+				for (int i = size - 1; i >= 0; --i) {
+					args[i]->str(stream, dummy_trailing, (i == 0 ? 0 : COMMA | ADD_SPACE));
+				}
+			} else {
+				getArgOrderStr(getArgOrder());
+				throw;
 			}
-
+		
 			stream << ") {\n";
 			++trailing;
 

@@ -40,7 +40,7 @@ int main()
 	
 	//testArgCleaning();
 	//testStructsMacros();
-	testArgsOrder();
+	//testArgsOrder();
 
 	//arrays_example();
 	//swizzling_example();
@@ -82,7 +82,7 @@ int main()
 	//std::cout << ssao_str;
 	//std::cout << discard_str;
 	//std::cout << transfeedBack_str;
-	//std::cout << eightiesShader_str;
+	std::cout << eightiesShader_str;
 	//std::cout << dolphin_vertex_str;
 	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;
