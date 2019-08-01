@@ -159,3 +159,40 @@ void testArgCleaning()
 	//TypeMerger< TypeList<float>, TypeList<>, TypeList<double> >::Type;
 	//TypeMerger< TypeList<>, TypeList<>, TypeList<double>, TypeList<>, TypeList<float> >::Type;
 }
+
+
+
+void testArgsOrder()
+{
+
+	getArgOrderStr();
+
+	auto e = [](Arg i = 0, Arg d = 1, Arg k = 2) {
+	};
+
+	auto f = [&](Arg i = 0, Arg d = 1) {
+		e(i, d);
+	};
+
+	auto sf = [](Arg i, Arg d = 1) {
+	};
+	
+	auto g = [&](Arg i = 0) {
+		f(i);
+	};
+
+	auto ff = [&](auto&&... args) -> decltype(auto) { 
+		printArgs(args...);
+		return f(std::forward<decltype(args)>(args)...); 
+	};
+
+	//f();
+	//ff();
+	//g();
+
+	//h();
+	//j();
+
+	//curry(f);
+
+}

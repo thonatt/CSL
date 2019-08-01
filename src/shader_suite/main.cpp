@@ -40,16 +40,17 @@ int main()
 	
 	//testArgCleaning();
 	//testStructsMacros();
-	
-	arrays_example();
-	swizzling_example();
-	auto_naming_example();
-	qualifier_example();
-	functions_example();
-	structure_stratements_example();
-	structs_examples();
-	interface_examples();
-	struct_interface_comma_examples();
+	testArgsOrder();
+
+	//arrays_example();
+	//swizzling_example();
+	//auto_naming_example();
+	//qualifier_example();
+	//functions_example();
+	//structure_stratements_example();
+	//structs_examples();
+	//interface_examples();
+	//struct_interface_comma_examples();
 
 	auto start = std::chrono::steady_clock::now();
 
@@ -82,8 +83,8 @@ int main()
 	//std::cout << discard_str;
 	//std::cout << transfeedBack_str;
 	//std::cout << eightiesShader_str;
-	std::cout << dolphin_vertex_str;
-	std::cout << dolphin_frag_str;
+	//std::cout << dolphin_vertex_str;
+	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;
 	//std::cout << per_tri_normal_str;
 
