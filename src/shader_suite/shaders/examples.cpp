@@ -1,6 +1,6 @@
 #include "examples.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 void auto_naming_example()
 {

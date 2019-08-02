@@ -408,7 +408,8 @@ namespace csl {
 	constexpr bool SuperiorType = Infos<CT<B>>::scalar_type >= Infos<CT<A>>::scalar_type;
 
 	template<typename A, typename B>
-	constexpr bool EqualDim = (Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols) && (Infos<CT<A>>::array_size == Infos<CT<B>>::array_size);
+	constexpr bool EqualDim = IsValid<A> && IsValid<B> &&
+		(Infos<CT<A>>::rows == Infos<CT<B>>::rows) && (Infos<CT<A>>::cols == Infos<CT<B>>::cols) && (Infos<CT<A>>::array_size == Infos<CT<B>>::array_size);
 
 	template<typename A, typename B>
 	constexpr bool EqualMat = EqualType<A, B> && EqualDim<A, B>;

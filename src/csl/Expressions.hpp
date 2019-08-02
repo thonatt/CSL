@@ -11,9 +11,8 @@
 #include <algorithm> //for std::replace
 #include <iomanip> // for std::setprecision
 
-#include "FunctionHelpers.h"
-
-#include "Operators.h"
+#include "FunctionHelpers.hpp"
+#include "Operators.hpp"
 
 #define EX(type, var) getExp(std::forward<type>(var))
 
@@ -976,6 +975,8 @@ namespace csl {
 
 		Block::Ptr currentBlock;
 
+		virtual void pushInstruction(const InstructionBase::Ptr & i) {}
+
 		virtual ~ControllerBase() = default;
 
 	};
@@ -1036,7 +1037,8 @@ namespace csl {
 
 		virtual void begin_for() {
 			current_for = std::make_shared<ForInstruction>();
-			currentBlock->push_instruction(current_for);
+			pushInstruction(current_for);
+			//currentBlock->push_instruction(current_for);
 		}
 
 		void begin_for_args() {
@@ -1069,7 +1071,8 @@ namespace csl {
 			current_if = std::make_shared<IfInstruction>(current_if);
 
 			current_if->bodies.push_back({ std::make_shared<Block>(currentBlock), std::make_shared<Statement>(ex) });
-			currentBlock->push_instruction(current_if);
+			pushInstruction(current_if);
+			//currentBlock->push_instruction(current_if);
 			currentBlock = current_if->bodies.back().body;
 		}
 
@@ -1123,7 +1126,8 @@ namespace csl {
 		void begin_while(const Ex & ex) {
 			//std::cout << " begin while " << std::endl;
 			auto while_instruction = std::make_shared<WhileInstruction>(ex, currentBlock);
-			currentBlock->push_instruction(while_instruction);
+			pushInstruction(while_instruction);
+			//currentBlock->push_instruction(while_instruction);
 			currentBlock = while_instruction->body;
 		}
 
@@ -1135,7 +1139,8 @@ namespace csl {
 	struct SwitchController : virtual ControllerBase {
 		void begin_switch(const Ex & ex) {
 			current_switch = std::make_shared<SwitchInstruction>(ex, currentBlock, current_switch);
-			currentBlock->push_instruction(current_switch);
+			pushInstruction(current_switch);
+			//currentBlock->push_instruction(current_switch);
 			currentBlock = current_switch->body;
 		}
 
@@ -1149,8 +1154,9 @@ namespace csl {
 		virtual void end_switch() {
 			if (current_switch->current_case) {
 				currentBlock = currentBlock->parent;
-			}
+			}	
 			currentBlock = currentBlock->parent;
+			
 			current_switch = current_switch->parent_switch;
 		}
 
@@ -1204,6 +1210,12 @@ namespace csl {
 			check_end_if();
 			checkFuncArgs();
 			queueEvent(e);
+		}
+
+		virtual void pushInstruction(const InstructionBase::Ptr & i) override {
+			check_end_if();
+			checkFuncArgs();
+			currentBlock->push_instruction(i);
 		}
 	};
 
@@ -1297,7 +1309,8 @@ namespace csl {
 				}
 			}
 
-			currentBlock->push_instruction(statement);
+			pushInstruction(statement);
+			//currentBlock->push_instruction(statement);
 		}
 
 		//void add_return_statement() {
@@ -1356,7 +1369,7 @@ namespace csl {
 		/////////////////////////////////////////////////
 
 		void addEvent(const Ex & ex) {
-			if (currentShader && isListening) {
+			if (currentShader && active()) {
 				currentShader->handleEvent(ex);
 			}
 		}
@@ -1830,3 +1843,5 @@ namespace csl {
 	//////////////////////////////////////
 
 } //namespace csl
+
+#undef EX

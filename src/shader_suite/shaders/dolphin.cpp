@@ -1,6 +1,6 @@
 #include "dolphin.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 std::string dolphinVertex() {
 
@@ -451,15 +451,159 @@ std::string dolphinFragment() {
 	Shader shader;
 
 	// Pixel UberShader for 2 texgens, early-depth
-	auto idot = declareFunc<Int,Int>( "idot", 
-	[](ivec3 ix = "x", ivec3 iy = "y") {
-		ivec3 tmp = ix * iy;
+	auto idot = declareFunc<Int, Int>("idot",
+		[](ivec3 ix = "x", ivec3 iy = "y") {
+		ivec3 tmp = ix * iy << "tmp";
 		GL_RETURN(tmp[x] + tmp[y] + tmp[z]);
-	}, [](ivec4 ix, ivec4 iy) {
-		ivec4 tmp = ix * iy;
+	}, [](ivec4 ix = "x", ivec4 iy = "y") {
+		ivec4 tmp = ix * iy << "tmp";
 		GL_RETURN(tmp[x] + tmp[y] + tmp[z] + tmp[w]);
 	});
 
+	auto iround = declareFunc<Float, vec2, vec3, vec4>("iround",
+		[](Float x = "x") {
+		GL_RETURN(Int(round(x)));
+	}, [](vec2 x = "x") {
+		GL_RETURN(ivec2(round(x)));
+	}, [](vec3 x = "x") {
+		GL_RETURN(ivec3(round(x)));
+	}, [](vec4 x = "x") {
+		GL_RETURN(ivec4(round(x)));
+	});
 
+
+	Array<Uniform<sampler2DArray, Layout<Binding<0>>>, 8> samp("samp");
+
+	using PSBlockQuali = Uniform<Layout<Std140, Binding<1>>>;
+	GL_INTERFACE_BLOCK(PSBlockQuali, PSBlock, , ,
+		(GetArray<ivec4>::Size<4>) color,
+		(GetArray<ivec4>::Size<4>)  k,
+		(ivec4)alphaRef,
+		(GetArray<vec4>::Size<8>)  texdim,
+		(GetArray<ivec4>::Size<2>)  czbias,
+		(GetArray<ivec4>::Size<2>)  cindscale,
+		(GetArray<ivec4>::Size<6>)  cindmtx,
+		(ivec4)cfogcolor,
+		(ivec4)cfogi,
+		(GetArray<vec4>::Size<2>)  cfogf,
+		(vec4)czslope,
+		(vec2)cefbscale,
+		(Uint)bpmem_genmode,
+		(Uint)bpmem_alphaTest,
+		(Uint)bpmem_fogParam3,
+		(Uint)bpmem_fogRangeBase,
+		(Uint)bpmem_dstalpha,
+		(Uint)bpmem_ztex_op,
+		(Bool)bpmem_early_ztest,
+		(Bool)bpmem_rgba6_format,
+		(Bool)bpmem_dither,
+		(Bool)bpmem_bounding_box,
+		(GetArray<uvec4>::Size<16>) bpmem_pack1,
+		(GetArray<uvec4>::Size<8>) bpmem_pack2,
+		(GetArray<ivec4>::Size<32>)  konstLookup
+	);
+
+	GL_STRUCT(VS_OUTPUT,
+		(vec4) pos,
+		(vec4) colors_0,
+		(vec4) colors_1,
+		(vec3) tex0,
+		(vec3) tex1,
+		(vec4) clipPos,
+		(Float) clipDist0,
+		(Float) clipDist1
+	);
+
+	Out<vec4> ocol0("ocol0"), ocol1("ocol1");
+
+	GL_INTERFACE_BLOCK(In<>, VertexData, , ,
+		(vec4)pos,
+		(vec4)colors_0,
+		(vec4)colors_1,
+		(vec3)tex0,
+		(vec3)tex1,
+		(vec4)clipPos,
+		(Float)clipDist0,
+		(Float)clipDist1
+	);
+
+	auto selectTexCoord = declareFunc<vec3>("selectTexCoord",
+		[&](Uint index = "index") {
+		GL_SWITCH(index) {
+			GL_CASE(0u) : {
+				GL_RETURN(tex0);
+			}
+			GL_CASE(1u) : {
+				GL_RETURN(tex1);
+			}
+		GL_DEFAULT: {
+			GL_RETURN(vec3(0.0, 0.0, 0.0));
+			}
+		}
+	});
+
+	auto sampleTexture = declareFunc<ivec4>("sampleTexture",
+		[&](uint sampler_num, vec2 uv) {
+		return iround(texture(samp[sampler_num], vec3(uv, 0.0)) * 255.0);
+	});
+
+	auto Swizzle = declareFunc<ivec4>("Swizzle",
+		[&](uint s, ivec4 color) {
+		// AKA: Color Channel Swapping
+
+		ivec4 ret;
+		ret[r] = color[bitfieldExtract(bpmem_pack2[(s * 2u)][y], 0, 2)];
+		ret[g] = color[bitfieldExtract(bpmem_pack2[(s * 2u)][y], 2, 2)];
+		ret[b] = color[bitfieldExtract(bpmem_pack2[(s * 2u + 1u)][y], 0, 2)];
+		ret[a] = color[bitfieldExtract(bpmem_pack2[(s * 2u + 1u)][y], 2, 2)];
+		GL_RETURN(ret);
+	});
+
+	auto Wrap = declareFunc<Int>("Wrap",
+		[](Int coord, Uint mode) {
+		GL_IF (mode == 0u) // ITW_OFF
+			GL_RETURN(coord);
+		GL_ELSE_IF (mode < 6u) // ITW_256 to ITW_16
+			GL_RETURN( coord & (0xfffe >> mode) );
+		GL_ELSE // ITW_0
+			GL_RETURN(0);
+	});
+
+	// TEV's Linear Interpolate, plus bias, add/subtract and scale
+	auto tevLerp = declareFunc<Int>("tevLerp",
+		[](Int A = "A", Int B = "B", Int C = "C", Int D = "D", Uint bias = "bias",
+			Bool op = "op", Bool alpha = "alpha", Uint shift = "shift") {
+		// Scale C from 0..255 to 0..256
+		C += C >> 7;
+
+		// Add bias to D
+		GL_IF (bias == 1u) D += 128;
+		GL_ELSE_IF (bias == 2u) D -= 128;
+
+		Int lerp = (A << 8) + (B - A)*C;
+		GL_IF (shift != 3u) {
+			lerp = lerp << shift;
+			D = D << shift;
+		}
+
+		GL_IF ((shift == 3u) == alpha)
+			lerp = lerp + (op ? 127 : 128);
+
+		Int result = lerp >> 8;
+
+		// Add/Subtract D
+		GL_IF (op) // Subtract
+			result = D - result;
+		GL_ELSE // Add
+			result = D + result;
+
+		// Most of the Shift was moved inside the lerp for improved percision
+		// But we still do the divide by 2 here
+		GL_IF (shift == 3u)
+			result = result >> 1;
+
+		GL_RETURN(result);
+	});
+	
 	return shader.str();
 }

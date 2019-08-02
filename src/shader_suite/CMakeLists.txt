@@ -13,7 +13,7 @@ source_group("Src" FILES ${ShaderSuiteApp})
 file(GLOB Shaders "shaders/*.h" "shaders/*.cpp")
 source_group("Src\\Shaders" FILES ${Shaders})
 
-file(GLOB CSL_CORE "./../csl/*.h")
+file(GLOB CSL_CORE "./../csl/*.hpp")
 source_group("Src\\csl" FILES ${CSL_CORE})
 
 

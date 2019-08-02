@@ -1,6 +1,6 @@
 #pragma once
 
-#include "StringHelpers.h"
+#include "StringHelpers.hpp"
 
 namespace csl {
 
@@ -100,15 +100,19 @@ namespace csl {
 			return 0;
 		}
 
-		const bool inversion(Ex other) const {
+		const bool inversion(const Ex & other) const {
 			return rank() < other->rank();
 		}
 
-		std::string checkForParenthesis(Ex exp) const {
+		const bool equalRank(const Ex & other) const {
+			return rank() == other->rank();
+		}
+
+		std::string checkForParenthesis(const Ex & exp) const {
 			if (inversion(exp)) {
 				//return exp->str();
 				return "(" + exp->str(0) + ")";
-			}
+			} 
 			return exp->str(0);
 		}
 

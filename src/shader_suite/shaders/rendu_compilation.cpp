@@ -1,6 +1,6 @@
 #include "rendu_compilation.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 std::string blurShader()
 {

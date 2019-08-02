@@ -1,13 +1,36 @@
 #pragma once
 
-#include "Layouts.h"
-#include "Samplers.h"
-#include "BuiltInFunctions.h"
-#include "StructHelpers.h"
+#include "Layouts.hpp"
+#include "Samplers.hpp"
+#include "BuiltInFunctions.hpp"
+#include "StructHelpers.hpp"
 
 namespace csl {
 
+	namespace shader_common {
+		template<typename L> struct ShaderInOut;
+		template<typename ... LQualifiers> struct ShaderInOut<Layout<LQualifiers...> > {
+			static void declareIn() {
+				Qualifier<EMPTY_QUALIFIER, EmptyType, Layout<LQualifiers...>> in("in");
+			}
+			static void declareOut() {
+				Qualifier<EMPTY_QUALIFIER, EmptyType, Layout<LQualifiers...>> out("out");
+			}
+		};
+
+		template<typename Layout> inline void in() {
+			ShaderInOut<Layout>::declareIn();
+		}
+
+		template<typename Layout> inline void out() {
+			ShaderInOut<Layout>::declareOut();
+		}
+	}
+
+
 	namespace frag_common {
+
+		using namespace shader_common;
 
 		const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
 		const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
@@ -22,6 +45,8 @@ namespace csl {
 
 	namespace geom_common {
 
+		using namespace shader_common;
+
 		CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 			(vec4) gl_Position,
 			(Float) gl_PointSize,
@@ -34,24 +59,6 @@ namespace csl {
 			(GetArray<Float>::Size<0>) gl_ClipDistance
 		);
 
-		template<typename L> struct GeometryIn;
-		template<typename ... LQualifiers> struct GeometryIn<Layout<LQualifiers...> > {
-			static void declareIn() {
-				Qualifier<EMPTY_QUALIFIER, EmptyType, Layout<LQualifiers...>> in("in");
-			}
-			static void declareOut() {
-				Qualifier<EMPTY_QUALIFIER, EmptyType, Layout<LQualifiers...>> out("out");
-			}
-		};
-
-		template<typename Layout> inline void in() {
-			GeometryIn<Layout>::declareIn();
-		}
-
-		template<typename Layout> inline void out() {
-			GeometryIn<Layout>::declareOut();
-		}
-
 		inline void EmitVertex() {
 			listen().add_statement<EmitVertexInstruction>();
 		}
@@ -62,6 +69,8 @@ namespace csl {
 	}
 
 	namespace vert_common {
+
+		using namespace shader_common;
 
 		CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertex, , ,
 			(vec4) gl_Position,

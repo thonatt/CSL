@@ -1,7 +1,9 @@
 #pragma once
 
-#include "MatrixTypesTest.h"
-#include "StructHelpers.h"
+#include "Matrix.hpp"
+#include "StructHelpers.hpp"
+
+#define EX(type, var) getExp(std::forward<type>(var))
 
 #define GENTYPE_OP_GENTYPE(r, data, i, elem) \
 template<typename A, typename = std::enable_if_t< IsVecF<A> > > \
@@ -130,7 +132,7 @@ namespace csl {
 
 		template<typename S, typename P, typename SI = SamplerInfos<CT<S>>,
 			typename = std::enable_if_t<
-			(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
+			(SI::access_type == SAMPLER) && (SI::type == BASIC) && ((SI::flags & IS_SHADOW) == 0) &&
 			IsVecF<P> &&
 			Infos<CT<P>>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
 		> >
@@ -259,3 +261,5 @@ namespace csl {
 #undef GENTYPE_OP_GENTYPE
 #undef RELATIONAL_GENTYPE_OP
 #undef BOOL_OP
+
+#undef EX

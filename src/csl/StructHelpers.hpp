@@ -11,7 +11,7 @@
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/facilities/is_empty.hpp>
 
-#include "ExpressionsTest.h"
+#include "Expressions.hpp"
 
 //helpers for C++ reflexion from http://pfultz2.com/blog/2012/07/31/reflection-in-under-100-lines/
 #define CSL_PP_REM(...) __VA_ARGS__
@@ -43,7 +43,7 @@
 #define CSL_PP_MEMBER_TYPE_IT(r, data, i, elem) , CSL_PP_MEMBER_TYPE(elem)
 #define CSL_PP_MEMBER_STR_IT(r, data, i, elem) , CSL_PP_MEMBER_STR(elem)
 #define CSL_PP_MEMBER_ARG_IT(r, data, i, elem) CSL_PP_MEMBER_TYPE(elem) && CSL_PP_MEMBER_NAME(elem),
-#define CSL_PP_MEMBER_ARG_EX_IT(r, data, i, elem) , EX( CSL_PP_MEMBER_TYPE(elem), CSL_PP_MEMBER_NAME(elem))
+#define CSL_PP_MEMBER_ARG_EX_IT(r, data, i, elem) , getExp(std::forward<CSL_PP_MEMBER_TYPE(elem)>(CSL_PP_MEMBER_NAME(elem)))
 
 #define CSL_PP_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP_PAIR(elem);
 #define CSL_PP_INIT_MEMBER_PARENT_IT(r, data, i, elem) , CSL_PP_MEMBER_NAME(elem)( \

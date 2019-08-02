@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ExpressionsTest.h"
+#include "Expressions.hpp"
 
 namespace csl {
 
@@ -69,25 +69,5 @@ namespace csl {
 		}
 	}
 
-	namespace v_0 {
-		inline void f_0() {}
-	}
-
-	namespace v_1 {
-		using namespace v_0;
-		inline void f_1() {}
-	}
-
-	namespace v_2 {
-		using namespace v_1;
-		inline void f_1(mat2 &) {}
-		inline void f_2(Float &) {}
-	}
-
-	static void test_namespaces() {
-		using namespace v_2;
-		f_1();
-
-	}
 
 } //namespace csl

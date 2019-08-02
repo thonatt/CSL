@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ExpressionsTest.h"
+#include "Expressions.hpp"
 
 namespace csl {
 
@@ -14,6 +14,12 @@ namespace csl {
 		Sampler(const std::string & s = "", uint obj_flags = 0)
 			: NamedObject<Sampler>(s, obj_flags) {
 		}
+
+		Sampler(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+			: NamedObject<Sampler>(_ex, ctor_flags, obj_flags, s)
+		{
+		}
+
 	};
 
 	using sampler1D = Sampler < SAMPLER, FLOAT, 1 >;

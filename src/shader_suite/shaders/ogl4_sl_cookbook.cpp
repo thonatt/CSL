@@ -1,6 +1,6 @@
 #include "ogl4_sl_cookbook.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 std::string transfeedBackVertex()
 {

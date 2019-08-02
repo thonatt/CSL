@@ -2,7 +2,7 @@
 
 #include <string>
 #include <map>
-#include "TypesHelpers.h"
+#include "TypesHelpers.hpp"
 
 #include <boost/preprocessor/seq/for_each_i.hpp>
 

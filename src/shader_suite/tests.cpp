@@ -1,6 +1,6 @@
 #include "tests.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 void testSwitch()
 {

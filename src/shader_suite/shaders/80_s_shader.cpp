@@ -1,6 +1,6 @@
 #include "80_s_shader.h"
 
-#include <csl/Shaders.h>
+#include <csl/Core.hpp>
 
 std::string eightiesShader() {
 	using namespace csl::frag_410;
