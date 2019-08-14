@@ -29,7 +29,7 @@ int main()
 	//testStructsMacros();
 	//testArgsOrder();
 
-	//printExamples();
+	printExamples();
 
 	auto start = std::chrono::steady_clock::now();
 
@@ -47,7 +47,7 @@ int main()
 
 	//auto dolphin_vertex_str = dolphinVertex();
 
-	auto dolphin_frag_str = dolphinFragment();
+	//auto dolphin_frag_str = dolphinFragment();
 
 	//auto phongShading_str = phongShading();
 
@@ -63,7 +63,7 @@ int main()
 	//std::cout << transfeedBack_str;
 	//std::cout << eightiesShader_str;
 	//std::cout << dolphin_vertex_str;
-	std::cout << dolphin_frag_str;
+	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;
 	//std::cout << per_tri_normal_str;
 

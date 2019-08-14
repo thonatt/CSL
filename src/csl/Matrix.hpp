@@ -172,7 +172,7 @@ namespace csl {
 		}
 
 		// array subscript accessor
-		template<typename U, typename = std::enable_if_t<!isScalar && IsInteger<CT<U>> > >
+		template<typename U, typename = std::enable_if_t<!isScalar && IsInteger<U> > >
 		typename std::conditional_t< NC == 1, Scalar<type>, Vec<type, NR> > operator[](U && u) &
 		{
 			return { createExp<ArraySubscript>(NamedObjectBase::getExRef(), EX(U,u)) };
@@ -347,28 +347,28 @@ namespace csl {
 
 
 	// bitwise operators
-	template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	template<typename A, typename B, typename C = Infos<A>, typename =
 		std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && SameScalarType<A, B> && (IsScalar<A> || IsScalar<B> || EqualDim<A, B>) > >
 		Vec<C::scalar_type, C::rows> operator&(A && a, B && b)
 	{
 		return { createExp<MiddleOperator<BITWISE_AND>>(" & ", EX(A, a), EX(B, b)) };
 	}
 
-	template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	template<typename A, typename B, typename C = Infos<A>, typename =
 		std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && SameScalarType<A, B> && (IsScalar<A> || IsScalar<B> || EqualDim<A, B>) > >
 		Vec<C::scalar_type, C::rows> operator|(A && a, B && b)
 	{
 		return { createExp<MiddleOperator<BITWISE_OR>>(" | ", EX(A, a), EX(B, b)) };
 	}
 
-	template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	template<typename A, typename B, typename C = Infos<A>, typename =
 		std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && ((IsScalar<A> && IsScalar<B>) || IsScalar<B> || EqualDim<A, B>) > >
 		Vec<C::scalar_type, C::rows> operator<<(A && a, B && b)
 	{
 		return { createExp<MiddleOperator<BITWISE_SHIFT>>(" << ", EX(A, a), EX(B, b)) };
 	}
 
-	template<typename A, typename B, typename C = Infos<CT<A>>, typename =
+	template<typename A, typename B, typename C = Infos<A>, typename =
 		std::enable_if_t< IsVecInteger<A> && IsVecInteger<B> && ((IsScalar<A> && IsScalar<B>) || IsScalar<B> || EqualDim<A, B>) > >
 		Vec<C::scalar_type, C::rows> operator>>(A && a, B && b)
 	{

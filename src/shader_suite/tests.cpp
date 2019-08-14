@@ -86,6 +86,8 @@ void testArgCleaning()
 	using namespace csl::swizzles::xyzw;
 	Shader shader;
 
+	std::is_same<ArithmeticBinaryReturnType<vec2&, vec2&>, vec2>::value;
+
 	auto g = [](vec3 a, vec3 b = "b") {
 		a += b;
 	};

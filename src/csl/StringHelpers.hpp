@@ -25,6 +25,62 @@ namespace csl {
 		static std::string str(int trailing = 0) { return T::typeNamingStr(trailing); }
 	};
 
+	enum class NamingCaterogy { SCALAR, VECTOR, MATRIX, SAMPLER, ARRAY, FUNCTION, OTHER };
+
+	struct CounterData {
+		size_t value = 0;
+		bool is_tracked = false;
+	};
+
+	template<NamingCaterogy cat>
+	class NamingCounter {
+
+	public:
+		static std::string getNextName();
+
+	protected:
+		static std::string baseName();
+		static CounterData counterData;
+	};
+	template<NamingCaterogy cat> CounterData NamingCounter<cat>::counterData = {};
+
+	template<> inline std::string NamingCounter<NamingCaterogy::SCALAR>::baseName() {
+		return "x";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::VECTOR>::baseName() {
+		return "v";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::MATRIX>::baseName() {
+		return "m";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::SAMPLER>::baseName() {
+		return "s";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::ARRAY>::baseName() {
+		return "A";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::FUNCTION>::baseName() {
+		return "f";
+	}
+	template<> inline std::string NamingCounter<NamingCaterogy::OTHER>::baseName() {
+		return "X";
+	}
+	template<typename T> struct AutoNaming {
+		using Type = NamingCounter<NamingCaterogy::OTHER>;
+	};
+
+	template<ScalarType type> struct AutoNaming<Matrix<type,1,1>> {
+		using Type = NamingCounter<NamingCaterogy::SCALAR>;
+	};
+
+	template<ScalarType type, uint N> struct AutoNaming<Vec<type, N>> {
+		using Type = NamingCounter<NamingCaterogy::VECTOR>;
+	};
+
+	template<ScalarType type, uint N, uint M> struct AutoNaming<Matrix<type, N, M> > {
+		using Type = NamingCounter<NamingCaterogy::MATRIX>;
+	};
+
 	template<typename T>
 	std::string getTypeNamingStr() {
 		return TypeNamingStr<T>::str();
@@ -108,12 +164,6 @@ namespace csl {
 
 	//algebra types
 
-	//template<> struct TypeStr<EmptyType> {
-	//	static std::string str(int trailing = 0) {
-	//		return "";
-	//	}
-	//};
-
 	template<ScalarType type, uint N>
 	struct TypeStr<Vec<type, N>> {
 		static std::string str(int trailing = 0) {
@@ -179,6 +229,12 @@ namespace csl {
 		}
 	};
 
+	template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+	struct AutoNaming<Sampler<aType, nType, N, sType, flags>> {
+		using Type = NamingCounter<NamingCaterogy::SAMPLER>;
+	};
+
+
 	template<> inline std::string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
 
 	template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
@@ -243,8 +299,18 @@ namespace csl {
 	};
 
 	template<QualifierType qType, typename T, typename ... LayoutArgs>
+	struct AutoNaming<Qualifier<qType, T, Layout<LayoutArgs...> >> {
+		using Type = typename AutoNaming<T>::Type;
+	};
+
+	template<QualifierType qType, typename T, typename ... LayoutArgs>
 	struct TypeNamingStr < Qualifier<qType, T, Layout<LayoutArgs...> > > {
 		static std::string str(int trailing = 0) { return TypeStr<T>::str(trailing); }
+	};
+
+	template<typename T, uint N>
+	struct AutoNaming<Array<T, N>> {
+		using Type = NamingCounter<NamingCaterogy::ARRAY>;
 	};
 
 	template<typename T, uint N>

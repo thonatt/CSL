@@ -8,11 +8,12 @@
 
 #include <set> //for storing counters
 
-#include <algorithm> //for std::replace
+//#include <algorithm> //for std::replace
 #include <iomanip> // for std::setprecision
 
 #include "FunctionHelpers.hpp"
 #include "Operators.hpp"
+#include "StringHelpers.hpp"
 
 #define EX(type, var) getExp(std::forward<type>(var))
 
@@ -72,14 +73,6 @@ namespace csl {
 	template<typename ReturnTList, typename ... Fs>
 	void init_function_declaration(const std::string & fname, const Fs & ...fs);
 	
-	
-	//////////////////////////
-
-	struct CounterData {
-		size_t value = 0;
-		bool is_tracked = false;
-	};
-
 	///////////////////////////
 
 	class NamedObjectBase {
@@ -255,13 +248,11 @@ namespace csl {
 
 		void checkName();
 
-		static CounterData counterData;
-
-	public:
+		//static CounterData counterData;
 
 	};
 
-	template<typename T> CounterData NamedObject<T>::counterData = {};
+	//template<typename T> CounterData NamedObject<T>::counterData = {};
 
 	template<typename T>
 	inline Ex getExp(T && t)
@@ -898,8 +889,10 @@ namespace csl {
 		static std::string typeStr(int trailing = 0) { return "function"; }
 		static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 	};
+	template<> struct AutoNaming<FuncBase> {
+		using Type = NamingCounter<NamingCaterogy::FUNCTION>;
+	};
 
-	
 	template<typename ... Args>
 	struct StructDeclaration : InstructionBase {
 
@@ -1579,20 +1572,38 @@ namespace csl {
 	}
 
 
+	template<NamingCaterogy cat>
+	inline std::string NamingCounter<cat>::getNextName()
+	{
+
+		std::string out = baseName() + std::to_string(counterData.value);
+		++counterData.value;
+
+		if (!counterData.is_tracked) {
+			listen().add_active_counter(counterData);
+			counterData.is_tracked = true;
+		}
+
+		return out;
+	}
+
 	template<typename T>
 	inline void NamedObject<T>::checkName() {
 
+		using AutoName = typename AutoNaming<T>::Type;
 		if (*namePtr == "") {
 
-			namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counterData.value));
-			std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
+			namePtr = std::make_shared<std::string>(AutoName::getNextName());
 
-			++counterData.value;
+			//namePtr = std::make_shared<std::string>(getTypeNamingStr<T>() + "_" + std::to_string(counterData.value));
+			//std::replace(namePtr->begin(), namePtr->end(), ' ', '_');
 
-			if (!counterData.is_tracked) {
-				listen().add_active_counter(counterData);
-				counterData.is_tracked = true;
-			}
+			//++counterData.value;
+
+			//if (!counterData.is_tracked) {
+			//	listen().add_active_counter(counterData);
+			//	counterData.is_tracked = true;
+			//}
 			
 		}
 
@@ -1832,7 +1843,7 @@ namespace csl {
 #define GL_DEFAULT \
 	listen().begin_switch_case(); default
 
-	template<typename B, typename A, typename C, typename I = Infos<CT<A>>, typename = std::enable_if_t<
+	template<typename B, typename A, typename C, typename I = Infos<A>, typename = std::enable_if_t<
 		EqualMat<B, Bool> && EqualMat<A, C>
 		>> Matrix< I::scalar_type, I::rows, I::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
 		return { createExp<Ternary>(EX(B,condition), EX(A,lhs), EX(C,rhs)) };

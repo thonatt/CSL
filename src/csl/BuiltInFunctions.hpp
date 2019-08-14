@@ -7,13 +7,13 @@
 
 #define GENTYPE_OP_GENTYPE(r, data, i, elem) \
 template<typename A, typename = std::enable_if_t< IsVecF<A> > > \
-		Vec<FLOAT, Infos<CT<A>>::rows> elem(A && a) { \
+		Vec<FLOAT, Infos<A>::rows> elem(A && a) { \
 		return { createFCallExp(CSL_PP_STR(elem), EX(A,a)) };	\
 	} 
 
 #define RELATIONAL_GENTYPE_OP(r, data, i, elem) \
 template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > > \
-		Vec<BOOL, Infos<CT<A>>::rows> elem(A && a, B && b) { \
+		Vec<BOOL, Infos<A>::rows> elem(A && a, B && b) { \
 		return { createFCallExp(CSL_PP_STR(elem), EX(A,a), EX(B,b) ) };	\
 	} 
 
@@ -38,9 +38,9 @@ namespace csl {
 		}
 		
 		template<typename A, typename B, typename = std::enable_if_t<
-			NoBools<A, B> && IsConvertibleTo<A, Vec<FLOAT, Infos<CT<B>>::rows>> && IsConvertibleTo<B, Vec<FLOAT, Infos<CT<A>>::rows>>
+			NoBools<A, B> && IsConvertibleTo<A, Vec<FLOAT, Infos<B>::rows>> && IsConvertibleTo<B, Vec<FLOAT, Infos<A>::rows>>
 		> >
-			Vec<FLOAT, Infos<CT<A>>::rows> pow(A && a, B && b) {
+			Vec<FLOAT, Infos<A>::rows> pow(A && a, B && b) {
 			return { createFCallExp("pow", EX(A,a), EX(B,b)) };
 		}
 
@@ -54,35 +54,35 @@ namespace csl {
 		template<typename I, typename N, typename = std::enable_if_t<
 			IsVecF<I> && EqualMat<I, N>
 		> >
-			Vec<FLOAT, Infos<CT<I>>::rows> reflect(I && i, N && n) {
+			Vec<FLOAT, Infos<I>::rows> reflect(I && i, N && n) {
 			return { createFCallExp("reflect", EX(I,i), EX(N,n)) };
 		}
 
 		template<typename A, typename B, typename = std::enable_if_t<
 			IsVecF<A> && (EqualMat<A, B> || IsFloat<B>)
 		> >
-			Vec<FLOAT, Infos<CT<A>>::rows> max(A && a, B && b) {
+			Vec<FLOAT, Infos<A>::rows> max(A && a, B && b) {
 			return { createFCallExp("max", EX(A,a), EX(B,b)) };
 		}
 		
 		template<typename A, typename B, typename = std::enable_if_t<
 		IsVecF<A> && (EqualMat<A, B> || IsFloat<B>)
 		> >
-		Vec<FLOAT, Infos<CT<A>>::rows> min(A && a, B && b) {
+		Vec<FLOAT, Infos<A>::rows> min(A && a, B && b) {
 			return { createFCallExp("min", EX(A,a), EX(B,b)) };
 		}
 		
 		template<typename A, typename B, typename = std::enable_if_t<
 		IsVecF<A> && (EqualMat<A, B> || IsFloat<B>)
 		> >
-		Vec<FLOAT, Infos<CT<A>>::rows> mod(A && a, B && b) {
+		Vec<FLOAT, Infos<A>::rows> mod(A && a, B && b) {
 			return { createFCallExp("mod", EX(A,a), EX(B,b)) };
 		}
 
 		template<typename A, typename B, typename C, typename = std::enable_if_t<
 			IsVecF<A> && EqualMat<A, B> && (EqualMat<A, C> || IsFloat<C>)
 		> >
-			Vec<FLOAT, Infos<CT<A>>::rows> mix(A && a, B && b, C && c) {
+			Vec<FLOAT, Infos<A>::rows> mix(A && a, B && b, C && c) {
 			return { createFCallExp("mix", EX(A,a), EX(B,b), EX(C,c)) };
 		}
 
@@ -94,21 +94,21 @@ namespace csl {
 		}
 
 		template<typename A, typename = std::enable_if_t < IsVecB<A> > >
-		Vec<BOOL, Infos<CT<A>>::rows> Not(A && a) {
+		Vec<BOOL, Infos<A>::rows> Not(A && a) {
 			return { createFCallExp("not", EX(A,a)) };
 		}
 
 		template<typename A, typename B, typename C, typename = std::enable_if_t<
 			IsVecF<A> && EqualMat<B, C> && (EqualMat<A, B> || IsConvertibleTo<B, Float>)
 		> >
-			Vec<FLOAT, Infos<CT<A>>::rows> clamp(A && x, B && minVal, C && maxVal) {
+			Vec<FLOAT, Infos<A>::rows> clamp(A && x, B && minVal, C && maxVal) {
 			return { createFCallExp("clamp", EX(A,x), EX(B,minVal), EX(C, maxVal)) };
 		}
 		
 		template<typename A, typename B, typename C, typename = std::enable_if_t<
 		IsVecF<C> && EqualMat<B, A> && (EqualMat<A, C> || IsConvertibleTo<A, Float>)
 		> >
-		Vec<FLOAT, Infos<CT<C>>::rows> smoothstep(A && edge0, B && edge1, C && x) {
+		Vec<FLOAT, Infos<C>::rows> smoothstep(A && edge0, B && edge1, C && x) {
 			return { createFCallExp("smoothstep", EX(A,edge0), EX(B,edge1), EX(C, x)) };
 		}
 
@@ -130,11 +130,11 @@ namespace csl {
 
 		// ScalarType nType, unsigned int N, SamplerIsArray is_array,
 
-		template<typename S, typename P, typename SI = SamplerInfos<CT<S>>,
+		template<typename S, typename P, typename SI = SamplerInfos<S>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == BASIC) && ((SI::flags & IS_SHADOW) == 0) &&
 			IsVecF<P> &&
-			Infos<CT<P>>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
+			Infos<P>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
 		> >
 			Vec< SI::scalar_type, 4> texture(S && sampler, P && point) {
 			return {
@@ -142,11 +142,11 @@ namespace csl {
 			};
 		}
 
-		template<typename S, typename P, typename SI = SamplerInfos<CT<S>>, typename B,
+		template<typename S, typename P, typename SI = SamplerInfos<S>, typename B,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
 			IsVecF<P> && IsFloat<B> &&
-			Infos<CT<P>>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
+			Infos<P>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
 		> >
 			Vec< SI::scalar_type, 4> texture(S && sampler, P && point, B && bias) {
 			return {
@@ -154,10 +154,10 @@ namespace csl {
 			};
 		}
 
-		template<typename S, typename P, typename L, typename SI = SamplerInfos<CT<S>>,
+		template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
-			IsInt<P> && EqualMat<L, Int> && Infos<CT<P>>::rows == SI::size
+			IsInt<P> && EqualMat<L, Int> && Infos<P>::rows == SI::size
 		> >
 			Vec< SI::scalar_type, 4> texelFetch(S && sampler, P && point, L && lod) {
 			return {
@@ -165,10 +165,10 @@ namespace csl {
 			};
 		}
 
-		template<typename S, typename P, typename L, typename SI = SamplerInfos<CT<S>>,
+		template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == 0) &&
-			IsVecF<P> && Infos<CT<P>>::rows == (SI::type == CUBE ? 3 : SI::size) && IsFloat<L>
+			IsVecF<P> && Infos<P>::rows == (SI::type == CUBE ? 3 : SI::size) && IsFloat<L>
 		> >
 			Vec< SI::scalar_type, 4> textureLod(S && sampler, P && point, L && lod) {
 			return {
@@ -176,7 +176,7 @@ namespace csl {
 			};
 		}
 
-		template<typename A, typename B, typename C, typename IA = Infos<CT<A>>, typename = std::enable_if_t<
+		template<typename A, typename B, typename C, typename IA = Infos<A>, typename = std::enable_if_t<
 			IsVecInteger<A> && EqualMat<B, C> && (EqualMat<A, B> || IsConvertibleTo<B, Vec<IA::scalar_type,1>>)
 		> >
 			Vec<IA::scalar_type, IA::rows> clamp(A && x, B && minVal, C && maxVal) {
@@ -201,26 +201,24 @@ namespace csl {
 	namespace glsl_400 {
 		using namespace glsl_330;
 
-		template<typename R_A, typename A = CleanType<R_A>,
-			typename = std::enable_if_t<
+		template<typename A, typename = std::enable_if_t<
 			Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE
 		> >
-			Float length(R_A && v) {
-			return Float(createFCallExp("length", getExp<R_A>(v)));
+			Float length(A && v) {
+			return Float(createFCallExp("length", getExp<A>(v)));
 		}
 
-		template<typename R_A, typename R_B, typename A = CleanType<R_A>, typename B = CleanType<R_B>,
-		typename = std::enable_if_t<
-		Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE && Infos<B>::cols == 1 && Infos<B>::scalar_type == DOUBLE
+		template<typename A, typename B, typename = std::enable_if_t<
+			Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE && Infos<B>::cols == 1 && Infos<B>::scalar_type == DOUBLE
 		> >
-		Float distance(R_A && a, R_B && b) {
-			return Float(createFCallExp("distance", getExp<R_A>(a), getExp<R_B>(b)));
+		Float distance(A && a, B && b) {
+			return Float(createFCallExp("distance", getExp<A>(a), getExp<B>(b)));
 		}
 		
-		template<typename S, typename P, typename L, typename SI = SamplerInfos<CT<S>>,
+		template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == CUBE) && (SI::flags & IS_ARRAY) &&
-			IsVecF<P> && Infos<CT<P>>::rows == 4 && IsFloat<L>
+			IsVecF<P> && Infos<P>::rows == 4 && IsFloat<L>
 		> >
 			Vec< SI::scalar_type, 4> textureLod(S && sampler, P && point, L && lod) {
 			return {
@@ -228,7 +226,7 @@ namespace csl {
 			};
 		}
 
-		template<typename A, typename B, typename C, typename IA = Infos<CT<A>>, typename =
+		template<typename A, typename B, typename C, typename IA = Infos<A>, typename =
 			std::enable_if_t< IsVecInteger<A> && EqualMat<B,Int> && EqualMat <C,Int> > >
 			Vec<IA::scalar_type, IA::rows> bitfieldExtract(A && value, B && offset, C && bits)
 		{
