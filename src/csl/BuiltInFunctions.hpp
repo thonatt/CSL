@@ -47,6 +47,13 @@ namespace csl {
 		template<typename A, typename B, typename = std::enable_if_t<
 			IsVecF<A> && EqualMat<A, B>
 		> >
+			Float atan(A && a, B && b) {
+			return { createFCallExp("atan", EX(A,a), EX(B,b)) };
+		}
+
+		template<typename A, typename B, typename = std::enable_if_t<
+			IsVecF<A> && EqualMat<A, B>
+		> >
 			Float dot(A && a, B && b) {
 			return { createFCallExp("dot", EX(A,a), EX(B,b)) };
 		}
@@ -112,7 +119,7 @@ namespace csl {
 			return { createFCallExp("smoothstep", EX(A,edge0), EX(B,edge1), EX(C, x)) };
 		}
 
-		CSL_PP_ITERATE(GENTYPE_OP_GENTYPE, abs, sin, cos, tan, exp, log, sqrt, ceil, floor, fract, exp2, log2, normalize);
+		CSL_PP_ITERATE(GENTYPE_OP_GENTYPE, abs, sin, cos, tan, exp, log, sqrt, ceil, floor, fract, exp2, log2, normalize, atan, acos, asin);
 
 		CSL_PP_ITERATE(RELATIONAL_GENTYPE_OP, greaterThan, lessThan, greaterThanEqual, lessThenEqual, equal, notEqual);
 
@@ -157,7 +164,7 @@ namespace csl {
 		template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 			typename = std::enable_if_t<
 			(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
-			IsInt<P> && EqualMat<L, Int> && Infos<P>::rows == SI::size
+			IsVecInteger<P> && EqualMat<L, Int> && Infos<P>::rows == SI::size
 		> >
 			Vec< SI::scalar_type, 4> texelFetch(S && sampler, P && point, L && lod) {
 			return {

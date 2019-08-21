@@ -109,7 +109,7 @@ namespace csl {
 		}
 
 		std::string checkForParenthesis(const Ex & exp) const {
-			if (inversion(exp)) {
+			if (inversion(exp) || equalRank(exp) ) {
 				//return exp->str();
 				return "(" + exp->str(0) + ")";
 			} 
@@ -367,6 +367,8 @@ namespace csl {
 					} else {
 						obj_str = ctor->obj_name();
 					}	
+				} else {
+					obj_str = obj->str(0);
 				}
 			}
 			return obj_str + "." + member_str;
