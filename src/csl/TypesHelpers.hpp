@@ -51,13 +51,13 @@ namespace csl {
 	using vec4 = Vec<FLOAT, 4>;
 
 	using mat2x2 = Matrix<FLOAT, 2, 2>;
-	using mat2x3 = Matrix<FLOAT, 2, 3>;
-	using mat2x4 = Matrix<FLOAT, 2, 4>;
-	using mat3x2 = Matrix<FLOAT, 3, 2>;
+	using mat2x3 = Matrix<FLOAT, 3, 2>;
+	using mat2x4 = Matrix<FLOAT, 4, 2>;
+	using mat3x2 = Matrix<FLOAT, 2, 3>;
 	using mat3x3 = Matrix<FLOAT, 3, 3>;
-	using mat3x4 = Matrix<FLOAT, 3, 4>;
-	using mat4x2 = Matrix<FLOAT, 4, 2>;
-	using mat4x3 = Matrix<FLOAT, 4, 3>;
+	using mat3x4 = Matrix<FLOAT, 4, 3>;
+	using mat4x2 = Matrix<FLOAT, 2, 4>;
+	using mat4x3 = Matrix<FLOAT, 3, 4>;
 	using mat4x4 = Matrix<FLOAT, 4, 4>;
 
 	using mat2 = mat2x2;
@@ -164,9 +164,9 @@ namespace csl {
 	// arrays
 	template<typename T, uint N = 0> struct Array;
 
-	template<typename T> struct GetArray {
-		template<uint N> using Size = Array<T, N>;
-	};
+	//template<typename T> struct GetArray {
+	//	template<uint N> using Size = Array<T, N>;
+	//};
 
 	// types infos
 

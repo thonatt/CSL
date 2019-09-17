@@ -57,7 +57,7 @@ void testStructsMacros()
 	GL_INTERFACE_BLOCK(Out<>, BasicBlock, basic, 7,
 		(vec3) myVec3,
 		(MyArray) myInnerBlocks,
-		(GetArray<uvec4>::Size<8>) uintsArray
+		(Array<uvec4>::Size<8>) uintsArray
 	);
 
 	Array<Uniform<uvec4>, 8> myArray("myArray");

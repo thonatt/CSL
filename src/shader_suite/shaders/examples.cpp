@@ -243,7 +243,7 @@ void struct_interface_comma_examples()
 	using vec4A = Array<vec4, 16>;
 	GL_INTERFACE_BLOCK(Quali, MyInterface, vars, 2,
 		(vec4A) myVecs,
-		(GetArray<mat4>::Size<4>) myMats
+		(Array<mat4>::Size<4>) myMats
 	);
 
 	std::cout << shader.str() << std::endl;

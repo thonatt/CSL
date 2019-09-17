@@ -22,17 +22,17 @@ std::string dolphinVertex() {
 		(Uint) components,
 		(Uint) xfmem_dualTexInfo,
 		(Uint) xfmem_numColorChans,
-		(GetArray<vec4>::Size<6>) cpnmtx,
-		(GetArray<vec4>::Size<4>) cproj,
-		(GetArray<ivec4>::Size<6>) cmtrl,
-		(GetArray<Light>::Size<8>) clights,
-		(GetArray<vec4>::Size<24>) ctexmtx,
-		(GetArray<vec4>::Size<64>) ctrmtx,
-		(GetArray<vec4>::Size<32>) cnmtx,
-		(GetArray<vec4>::Size<64>) cpostmtx,
+		(Array<vec4>::Size<6>) cpnmtx,
+		(Array<vec4>::Size<4>) cproj,
+		(Array<ivec4>::Size<6>) cmtrl,
+		(Array<Light>::Size<8>) clights,
+		(Array<vec4>::Size<24>) ctexmtx,
+		(Array<vec4>::Size<64>) ctrmtx,
+		(Array<vec4>::Size<32>) cnmtx,
+		(Array<vec4>::Size<64>) cpostmtx,
 		(vec4) cpixelcenter,
 		(vec2) cviewport,
-		(GetArray<uvec4>::Size<8>) xfmem_pack1
+		(Array<uvec4>::Size<8>) xfmem_pack1
 	);
 
 	GL_STRUCT(VS_OUTPUT,
@@ -476,16 +476,16 @@ std::string dolphinFragment() {
 
 	using PSBlockQuali = Uniform<Layout<Std140, Binding<1>>>;
 	GL_INTERFACE_BLOCK(PSBlockQuali, PSBlock, , ,
-		(GetArray<ivec4>::Size<4>) color,
-		(GetArray<ivec4>::Size<4>)  k,
+		(Array<ivec4>::Size<4>) color,
+		(Array<ivec4>::Size<4>)  k,
 		(ivec4)alphaRef,
-		(GetArray<vec4>::Size<8>)  texdim,
-		(GetArray<ivec4>::Size<2>)  czbias,
-		(GetArray<ivec4>::Size<2>)  cindscale,
-		(GetArray<ivec4>::Size<6>)  cindmtx,
+		(Array<vec4>::Size<8>)  texdim,
+		(Array<ivec4>::Size<2>)  czbias,
+		(Array<ivec4>::Size<2>)  cindscale,
+		(Array<ivec4>::Size<6>)  cindmtx,
 		(ivec4)cfogcolor,
 		(ivec4)cfogi,
-		(GetArray<vec4>::Size<2>)  cfogf,
+		(Array<vec4>::Size<2>)  cfogf,
 		(vec4)czslope,
 		(vec2)cefbscale,
 		(Uint)bpmem_genmode,
@@ -498,9 +498,9 @@ std::string dolphinFragment() {
 		(Bool)bpmem_rgba6_format,
 		(Bool)bpmem_dither,
 		(Bool)bpmem_bounding_box,
-		(GetArray<uvec4>::Size<16>) bpmem_pack1,
-		(GetArray<uvec4>::Size<8>) bpmem_pack2,
-		(GetArray<ivec4>::Size<32>)  konstLookup
+		(Array<uvec4>::Size<16>) bpmem_pack1,
+		(Array<uvec4>::Size<8>) bpmem_pack2,
+		(Array<ivec4>::Size<32>) konstLookup
 	);
 
 	GL_STRUCT(VS_OUTPUT,

@@ -50,13 +50,13 @@ namespace csl {
 		CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 			(vec4) gl_Position,
 			(Float) gl_PointSize,
-			(GetArray<Float>::Size<0>) gl_ClipDistance
+			(Array<Float>::Size<0>) gl_ClipDistance
 		);
 
 		CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertexOut, , ,
 			(vec4) gl_Position,
 			(Float) gl_PointSize,
-			(GetArray<Float>::Size<0>) gl_ClipDistance
+			(Array<Float>::Size<0>) gl_ClipDistance
 		);
 
 		inline void EmitVertex() {
@@ -75,7 +75,7 @@ namespace csl {
 		CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertex, , ,
 			(vec4) gl_Position,
 			(Float) gl_PointSize,
-			(GetArray<Float>::Size<0>) gl_ClipDistance
+			(Array<Float>::Size<0>) gl_ClipDistance
 		);
 
 		const In<Int> gl_VertexID("gl_VertexID", DISABLED);

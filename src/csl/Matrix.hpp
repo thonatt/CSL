@@ -451,6 +451,8 @@ namespace csl {
 	template<typename T, uint N>
 	struct Array : NamedObject<Array<T, N>> {
 
+		template<uint M, typename = std::enable_if_t<N == 0>> using Size = Array<T, M>;
+
 		//template<bool b = (N != 0), typename = std::enable_if_t<b> > should be here but prevents gl_ClipDistance
 
 		Array(const std::string & _name = "", uint flags = IS_TRACKED)
