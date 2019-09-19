@@ -69,7 +69,7 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 + [Basic and Sampler types](#basic-and-sampler-types)
 + [Naming variables](#naming-variables)
 + [Operators and Swizzles](#operators-and-swizzles)
-+ [Memory and Layout qualifiers](#memory-and-layout-qualifiers)
++ [Qualifiers and shader stage options](#qualifiers-and-shader-stage-options)
 + [Arrays and Functions](#arrays-and-functions)
 + [Building blocks](#building-blocks)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
@@ -266,7 +266,7 @@ out[a] = col[b, a, r][b, g][g];
 </table>
 </details>
 
-## Memory and Layout qualifiers
+## Qualifiers and shader stage options
 
 Memory qualifiers are available in CSL in the form of template classes. Their template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unsigned int when it requires a value. CSL layout qualifiers are identical to GLSL, except for beginning with an uppercase.
 
@@ -298,6 +298,41 @@ Memory qualifiers are available in CSL in the form of template classes. Their te
    layout(row_major, location = 1) uniform mat4 mvp;
 
 ```
+</td> 
+  </tr>
+</table>
+</details>
+
+Shader stage options can be specified with the templated `in()` and `out()` built-in functions, using the template as layout qualifiers.
+
+<details>
+    <summary>Shader stage option examples</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	//in a geometry shader
+	in<Layout<Triangles>>();
+	out<Layout<Line_strip, Max_vertices<2>>>();
+	
+	//in a fragment shader
+	in<Layout<Early_fragment_tests>>();
+```
+</td>
+    <td>
+  
+```cpp
+   layout(triangles) in;
+   layout(line_strip, max_vertices = 2) out;
+   
+   layout(early_fragment_tests) out;
+```
+
 </td> 
   </tr>
 </table>
