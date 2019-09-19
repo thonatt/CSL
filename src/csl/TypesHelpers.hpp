@@ -112,7 +112,8 @@ namespace csl {
 		LOCATION = 8 * 4,
 		POINTS = 8 * 5, LINES, TRIANGLES,
 		LINE_STRIP = 8 * 6, TRIANGLE_STRIP,
-		MAX_VERTICES = 8 * 7
+		MAX_VERTICES = 8 * 7,
+		EARLY_FRAGMENT_TEST = 8 * 8
 	};
 
 	template<LayoutQualifier lq> struct LayoutQArg;
@@ -498,7 +499,8 @@ namespace csl {
 
 	template<typename A, typename ... As, typename B, typename ... Bs> 
 	struct EqualListT<TList<A,As...>, TList<B,Bs...> > {
-		static constexpr bool value = EqualMat<A,B> &&
+		static constexpr bool value = 
+			(std::is_same<A,B>::value || EqualMat<A,B>) &&
 			EqualListT<TList<As...>, TList<Bs...> >::value;
 	};
 

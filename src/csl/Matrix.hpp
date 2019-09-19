@@ -294,6 +294,11 @@ namespace csl {
 			Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" /= ", NamedObjectBase::getExTmp(), EX(A, a)));
 		}
 
+		template<typename A, typename = std::enable_if_t< 
+			IsVecInteger<Matrix> && SameScalarType<Matrix, A> && (IsScalar<A> || EqualDim<Matrix, A>) >  >
+			void operator&=(A && a) & {
+			Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" &= ", NamedObjectBase::getExRef(), EX(A, a)));
+		}
 
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		// member functions

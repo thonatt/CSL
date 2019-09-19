@@ -100,7 +100,7 @@ namespace csl {
 	using Std430 = LayoutQArg<STD430>;
 	using Row_major = LayoutQArg<ROW_MAJOR>;
 	using Column_major = LayoutQArg<COLUMN_MAJOR>;
-
+	using Early_fragment_tests = LayoutQArg<EARLY_FRAGMENT_TEST>;
 
 	template<uint N> using Offset = LayoutQArgValue<OFFSET, N>;
 	template<uint N> using Binding = LayoutQArgValue<BINDING, N>;

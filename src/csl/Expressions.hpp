@@ -1200,8 +1200,10 @@ namespace csl {
 		}
 
 		void handleEvent(const Ex & e) {
-			check_end_if();
-			checkFuncArgs();
+			check_end_if(); 
+			if (!e->isMemberDeclaration()) {
+				checkFuncArgs();
+			} 
 			queueEvent(e);
 		}
 
@@ -1250,7 +1252,6 @@ namespace csl {
 			out << "\n";
 			for (const auto & fun : functions) {
 				fun->str(out, trailing, DEFAULT);
-				out << "\n";
 			}
 
 			return out.str();
@@ -1412,7 +1413,7 @@ namespace csl {
 		void stack_for_condition(const Ex & ex) {
 			if (currentShader) {
 				currentShader->stack_for_condition(ex);
-				std::cout << "stacked for arg : " << ex->str(0) << std::endl;
+				//std::cout << "stacked for arg : " << ex->str(0) << std::endl;
 			}
 		}
 
@@ -1688,7 +1689,7 @@ namespace csl {
 		}
 		
 		template<typename ... Args>
-		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<Args...>>;
+		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<std::remove_reference_t<Args>...>>;
 		
 		template<typename ... Args>
 		ReturnType<Args...> operator()(Args && ...args) {
@@ -1725,6 +1726,8 @@ namespace csl {
 
 		template<typename F_Type>
 		void main(const F_Type & f) {
+			using ArgsTList = GetArgTList<F_Type>;
+			static_assert(EqualList<ArgsTList, TList<>> || EqualList<ArgsTList, TList<void>>, "main function shoud not have arguments");
 			Function<TList<void>, TList<F_Type>>("main", f);
 		}
 

@@ -28,56 +28,56 @@ namespace csl {
 		DISPLAY_TYPE = 1 << 2,
 		MULTIPLE_INITS = 1 << 3,
 		PARENTHESIS = 1 << 4,
-		MAIN_BLOCK = 1 << 5
+		MAIN_BLOCK = 1 << 5,
+		MEMBER_DECLARATION = 1 << 6
 	};
 
-	enum OperatorPrecedence {
+	enum OperatorPrecedence : uint {
 
-		ALIAS = 1,
-		INITIALIZER_LIST = 1,
+		ALIAS = 10,
+		INITIALIZER_LIST = 10,
 
-		ARRAY_SUBSCRIPT = 2,
-		FUNCTION_CALL = 2,
-		FIELD_SELECTOR = 2,
-		MEMBER_SELECTOR = 2,
-		SWIZZLE = 2,
-		POSTFIX = 2,
+		ARRAY_SUBSCRIPT = 20,
+		FUNCTION_CALL = 20,
+		FIELD_SELECTOR = 20,
+		SWIZZLE = 20,
+		POSTFIX = 20,
 
-		PREFIX = 3,
-		UNARY = 3,
-		NEGATION = 3,
-		ONES_COMPLEMENT = 3,
+		PREFIX = 30,
+		UNARY = 30,
+		NEGATION = 30,
+		ONES_COMPLEMENT = 30,
 
-		MULTIPLY = 4,
-		DIVISION = 4,
-		MODULO = 4,
+		DIVISION = 40,
+		MULTIPLY = 42,
+		MODULO = 41,
 
-		ADDITION = 5,
-		SUBSTRACTION = 5,
+		ADDITION = 50,
+		SUBSTRACTION = 50,
 
-		BITWISE_SHIFT = 6,
+		BITWISE_SHIFT = 60,
 
-		RELATIONAL = 7,
+		RELATIONAL = 70,
 
-		EQUALITY = 8,
+		EQUALITY = 80,
 
-		BITWISE_AND = 9,
+		BITWISE_AND = 90,
 
-		BITWISE_XOR = 10,
+		BITWISE_XOR = 100,
 
-		BITWISE_OR = 11,
+		BITWISE_OR = 110,
 
-		LOGICAL_AND = 12,
+		LOGICAL_AND = 120,
 
-		LOGICAL_XOR = 13,
+		LOGICAL_XOR = 130,
 
-		LOGICAL_OR = 14,
+		LOGICAL_OR = 140,
 
-		TERNARY = 15,
+		TERNARY = 150,
 
-		ASSIGNMENT = 16,
+		ASSIGNMENT = 160,
 
-		SEQUENCE = 17
+		SEQUENCE = 170
 	};
 
 	struct OperatorBase;
@@ -109,8 +109,7 @@ namespace csl {
 		}
 
 		std::string checkForParenthesis(const Ex & exp) const {
-			if (inversion(exp) || equalRank(exp) ) {
-				//return exp->str();
+			if (inversion(exp)) {
 				return "(" + exp->str(0) + ")";
 			} 
 			return exp->str(0);
@@ -122,6 +121,10 @@ namespace csl {
 
 		bool disabled() const {
 			return flags & DISABLED;
+		}
+
+		bool isMemberDeclaration() const {
+			return flags & MEMBER_DECLARATION;
 		}
 
 		virtual Ex firstArg() { return Ex(); }
@@ -260,10 +263,11 @@ namespace csl {
 	struct Constructor : ArgsCall<N>, ConstructorBase {
 
 		virtual uint rank() const override {
-			if (N == 0) {
-				return (uint)FUNCTION_CALL;
+			if ((N == 0) || (flags & DISPLAY_TYPE) ) {
+				return FUNCTION_CALL;
+			} else {
+				return ArgsCall<N>::args[0]->rank();
 			}
-			return ArgsCall<N>::args[0]->rank();
 		}
 
 		template<typename ... Args>
@@ -480,7 +484,7 @@ namespace csl {
 			std::string s = std::to_string(i);
 			if (!is_integral_v<T>) {
 				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-				if (static_cast<T>((i)) == i) {
+				if (static_cast<T>(static_cast<long int>(i)) == i) {
 					s += "0";
 				}
 			}

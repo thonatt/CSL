@@ -245,13 +245,14 @@ namespace csl {
 	// layout types
 
 	static std::map<LayoutQualifier, std::string> layoutQualifiersKeywords = {
-		{SHARED, "shared"}, {PACKED, "packed"} , {STD140, "std140"}, {STD430, "std430"},
+		{SHARED, "shared"}, {PACKED, "packed"}, {STD140, "std140"}, {STD430, "std430"},
 		{ROW_MAJOR,"row_major"}, {COLUMN_MAJOR, "column_major"},
 		{BINDING, "binding"},
 		{LOCATION, "location"},
-		{POINTS, "points"},{LINES, "lines"},{TRIANGLES, "triangles"},
-		{LINE_STRIP, "line_strip"},{TRIANGLE_STRIP, "triangle_strip"},
-		{MAX_VERTICES, "max_vertices"}
+		{POINTS, "points"}, {LINES, "lines"}, {TRIANGLES, "triangles"},
+		{LINE_STRIP, "line_strip"}, {TRIANGLE_STRIP, "triangle_strip"},
+		{MAX_VERTICES, "max_vertices"},
+		{EARLY_FRAGMENT_TEST, "early_fragment_tests"}
 	};
 
 	static inline const std::string & layoutQualifierKeyword(LayoutQualifier layoutQualifier) {

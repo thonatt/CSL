@@ -47,7 +47,7 @@
 
 #define CSL_PP_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP_PAIR(elem);
 #define CSL_PP_INIT_MEMBER_PARENT_IT(r, data, i, elem) , CSL_PP_MEMBER_NAME(elem)( \
-	createExp<MemberAccessor>(exp, CSL_PP_MEMBER_STR(elem)), 0, ALWAYS_EXP) 
+	createExp<MemberAccessor>(exp, CSL_PP_MEMBER_STR(elem)), MEMBER_DECLARATION, ALWAYS_EXP) 
 
 //helpers for declaring members
 #define CSL_PP_QUALI_TYPENAME(Qualifier, Typename) \

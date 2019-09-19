@@ -42,7 +42,7 @@ int main()
 	//auto discard_str = discardFrag();
 
 	//auto transfeedBack_str = transfeedBackVertex();
-	//
+	
 	//auto eightiesShader_str = eightiesShader();
 
 	//auto dolphin_vertex_str = dolphinVertex();
@@ -51,7 +51,7 @@ int main()
 
 	//auto phongShading_str = phongShading();
 
-	//auto per_tri_normal_str = per_triangle_normal_geom();
+	auto per_tri_normal_str = per_triangle_normal_geom();
 
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
@@ -65,7 +65,7 @@ int main()
 	//std::cout << dolphin_vertex_str;
 	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;
-	//std::cout << per_tri_normal_str;
+	std::cout << per_tri_normal_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 	
