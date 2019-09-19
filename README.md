@@ -11,7 +11,7 @@ CSL does not require any dependency as it only relies on the STL and some Boost 
 
 CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite) which includes several shaders, from didactic examples to shaders used in complex graphics applications.
 
-**Disclaimer** : This project is a work in progress. The current coverage of the GLSL specification, while already quite advanced, is only partial. The guideline is to add remaining operators/functions/features as soon as they needed in a CSL shader. In particular, the goal is to first make possible what is legal in GLSL. In a second time, the goal will be to make impossible what is not valid in GLSL. 
+**Disclaimer** : This project is a work in progress. The current coverage of the GLSL specification is only partial. The guideline is to add remaining operators/functions/features as soon as they needed in a CSL shader. In particular, the goal is to first make possible what is legal in GLSL. In a second time, the goal will be to make impossible what is not valid in GLSL. 
 
 # Setup
 
@@ -149,25 +149,28 @@ shader.main([&] {
     <td>
   
 ```cpp
-   in vec3 vec3_0;
-   in vec3 vec3_1;
-   uniform vec3 vec3_2;
+   in vec3 v0;
+   in vec3 v1;
+   uniform vec3 v2;
 
-   void main()
-   {
-      float float_0 = 1.2;
-      vec3 vec3_4 = normalize(vec3_2 - vec3_1);
-      vec3 vec3_5 = normalize(vec3_0);
-      float float_1;
-      float_1 = float_0*dot(vec3_5, vec3_4);
+   void main() {
+      float x0 = 1.2;
+      vec3 v4 = normalize(v2 - v1);
+      vec3 v5 = normalize(v0);
+      float x1;
+      x1 = x0*dot(v5, v4);
    }
+
 ```
 </td> 
   </tr>
 </table>
 </details>
 
-Therefore, it is possible, yet **completely optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator.  Since the way variables are named should have **no impact on the shader validity or usage once compiled on the GPU**, you are not expected to name variables other than for debugging purposes. Such manual naming is rather cumbersome, but it is sometimes usefull to name locally variables when debugging.
+Therefore, it is possible, **yet optionnal**, to provide a name to any CSL variable. It can be done either when declaring a variable using the `(const std::string &)` constructor, or when initializing a variable using the `<<(const std::string &)` operator. Manual naming is rather cumbersome, but may be useful for certain cases such as:
++ access to uniforms location with an explicit name
++ name consistency between vertex out and fragment in variables
++ output shader readability for debugging purposes
 
 <details>
     <summary>Same example with manual naming</summary>
@@ -223,7 +226,7 @@ void main()
 As C++ and GLSL share a common C base syntax, most of the operators keywords are identical and can be used as is. This includes for example:
 + `+`, `-`, `*`, `/` and their assignment operator counterparts,
 + `==`, `<`, `>` , `&&` and other binary relational or bitwise operators,
-+ `[int]` for component or row access
++ `[]` for component or row access
 
 One exception is the ternary operator ` ? : `. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a macro `GL_TERNARY` with the 3 arguments.
 
@@ -265,7 +268,7 @@ out[a] = col[b, a, r][b, g][g];
 
 ## Memory and Layout qualifiers
 
-Memory qualifiers are available in CSL in the form of template classes. Template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unsigned int when it requires a value. CSL layout qualifiers are identical to GLSL, except for beginning with an uppercase.
+Memory qualifiers are available in CSL in the form of template classes. Their template parameters are the underlying type and an optional `Layout`, which is itself a template class. Currently available memory qualifiers are `In`,`Out` and `Uniform`. Layout qualifiers are classes, which may be templated over an unsigned int when it requires a value. CSL layout qualifiers are identical to GLSL, except for beginning with an uppercase.
 
 <details>
     <summary>Qualifier and layout examples</summary>
@@ -436,7 +439,7 @@ Functions in CSL are objects that can be created using the `declareFunc` templat
 Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `GL_KEYWORD`, namely `GL_FOR`, `GL_CONTINUE`, `GL_BREAK`, `GL_WHILE`, `GL_IF`, `GL_ELSE`, `GL_ELSE_IF`, `GL_SWITCH`, `GL_CASE` and `GL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and the few limitations:
 + A `GL_SWITCH` **must** contain a `GL_DEFAULT` case, even if it happens to be empty.
 + CSL syntax for `case value :` is `GL_CASE(value) :`.
-+ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. There is no limit about the number of initialisation in the init-expression. All these expressions can also be empty.
++ Condition and loop in `GL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. There is no limit about the number of initialisation in the init-expression. Any of these expressions can also be empty.
 + Variables declared in `GL_FOR` args expressions outlive the scope of the `for` body. It is possible to prevent that by putting explicitly the for in a scope.
 + Statements can be nested
 
@@ -454,7 +457,7 @@ Selection, iteration and jump statements are available in CSL. As C++ and GLSL s
 //empty for
 GL_FOR(;;) { GL_BREAK; }
 
-//named function with named parameters
+//nested building blocks
 	GL_FOR(Int i = 0; i < 5; ++i) {
 		GL_IF(i == 3) {
 			++i;
@@ -530,7 +533,7 @@ GL_FOR(;;) { GL_BREAK; }
 
 ## Structs and Interface blocks
 
-CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(TypeA) member1, (TypeB) other_member, ...`
+CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, one must declare the `member list` using *typed expressions*, which look like this: `(Type1) member1, (Type2) member2, ...`
 
 <details>
     <summary>Struct examples</summary>
@@ -584,7 +587,7 @@ CSL structs are declared using the syntax `GL_STRUCT(StructTypename, member list
 </table>
 </details>
 
-Interface block are similar to structs with syntax `GL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, member list ... );`. `Name` and `ArraySize` are optionnal. `Qualifier` refers to the memory and layout qualifiers associated to the block. The syntax is identical to other variables except there is no need to specify the type. `Name` is name of the variable associated to the block. In case it is empty, it declares an unnamed interface block and the members belong directly to the current scope. If not empty, `ArraySize` refers to the size of the declared array. Again, a size of 0 is used to declare an implicitely sized array.  
+Interface block are similar to structs with syntax `GL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, member list ... );`. `Name` and `ArraySize` can be empty. `Qualifier` refers to the memory and layout qualifiers associated to the block. The syntax is identical to single variables except there is no need to specify the type. `Name` is name of the variable associated to the block. In case it is empty, it declares an unnamed interface block and the members belong directly to the current scope. If not empty, `ArraySize` refers to the size of the declared array. Again, a size of 0 is used to declare an implicitely sized array.  
 
 <details>
     <summary>Interface block examples</summary>
@@ -630,7 +633,7 @@ Interface block are similar to structs with syntax `GL_INTERFACE_BLOCK(Qualifier
 </table>
 </details>
 
-Since the `member list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, it is possible to either create an alias, or, in the case of Arrays, to use the class helper `GetArray<T>::Size<N>` as an alias for `Array<T,N>`.
+Since the `member list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, type aliases must be created. In the case of Arrays, the type helper `Array<T>::Size<N>` can be used as an alias for `Array<T,N>`.
 
 <details>
     <summary>Type alias examples</summary>
@@ -647,7 +650,7 @@ Since the `member list` is parsed by the preprocessor, **members typename must n
 	using vec4A = Array<vec4, 16>;
 	GL_INTERFACE_BLOCK(Quali, MyInterface, vars, 2,
 		(vec4A) myVecs,
-		(GetArray<mat4>::Size<4>) myMats
+		(Array<mat4>::Size<4>) myMats
 	);
 ```
 </td>
