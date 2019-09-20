@@ -4,7 +4,7 @@ CSL is a C++ header-only library, self-transpiling into GLSL, which allows to wr
 
 + Having a syntax as close as possible to GLSL.
 + Checking GLSL specification compliance at compile-time as much as possible.
-+ The possibility to use C++ as meta language for clean shader generation.
++ The possibility to use C++ as meta language for generic shader generation.
 
 CSL requires a C++14 compiler. It was tested on Visual Studio 2017, GCC 8.3.0 and Clang (Apple LLVM version 10.0.1).
 CSL does not require any dependency as it only relies on the STL and some Boost Preprocessor files that are included in the repo. *Optionnaly*, it is possible to only clone `\src\csl\` if the Boost Preprocessor is already available from elsewhere.
@@ -73,6 +73,7 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 + [Arrays and Functions](#arrays-and-functions)
 + [Building blocks](#building-blocks)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
++ [Generic shader generation](#generic-shader-generation)
 + [Subroutines](#subroutines)
 
 ## Shader setup
@@ -704,6 +705,104 @@ Since the `member list` is parsed by the preprocessor, **members typename must n
 
 Also since CSL must rely on a macro for structs and interface blocks, it means it can directly forward the members name (and interface block variable names). Therefore there is no need for either automatic or manual naming in those cases. 
 
+## Generic shader generation
+
+
+<details>
+    <summary>Generic shader generation example</summary>
+<table>
+  <tr>
+    <th>Code</th>
+    <th>Output</th> 
+  </tr>
+  <tr>
+    <td>
+        
+  ```cpp
+	template<int N> struct ConstexprInt {
+		static int value = N;
+	};
+	
+	auto shader_variation =
+	 	[](auto template_parameter, double sampling_angle, bool gamma_correction) {
+	
+		using namespace csl::frag_430;
+		using namespace swizzles::rgba;
+		Shader shader;
+		
+		Uniform<sampler2D> sampler;
+		In<vec2> uvs;
+		Out<vec4> color;
+
+		shader.main([&](){
+			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
+			
+			constexpr int N = decltype(template_parameter)::value;
+			Array<vec4, N> cols;
+			GL_FOR(Int i = Int(-N); i <= N; ++i) {
+				cols[i] = texture(sampler, uvs + i * sampling_dir);
+				color += cols[i] / Float(N);
+			}
+
+			if (gamma_correction) {
+				color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+			}
+		});
+
+		return shader.str();
+	};
+
+	std::cout << 
+		shader_variation(ConstexprInt<11>{}, 0, true) <<
+		shader_variation(ConstexprInt<7>{}, 1.57079632679, false);
+```
+</td>
+    <td>
+  
+```cpp
+   #version 430
+
+   uniform sampler2D sampler;
+   in vec2 uvs;
+   out vec4 color;
+
+   void main() {
+      vec2 sampling_dir = vec2(1.0, 0.0);
+      vec4 cols[11];
+      for( int i = -11; i <= 11; ++i){
+         cols[i] = texture(sampler, uvs + i*sampling_dir);
+         color += cols[i]/float(11);
+      }
+      color.rgb = pow(color.rgb, vec3(2.2));
+   }
+```
+
+<hr/>
+
+```cpp
+   #version 430
+
+   uniform sampler2D sampler;
+   in vec2 uvs;
+   out vec4 color;
+
+   void main() {
+      vec2 sampling_dir = vec2(0.0, 1.0);
+      vec4 cols[7];
+      for( int i = -7; i <= 7; ++i){
+         cols[i] = texture(sampler, uvs + i*sampling_dir);
+         color += cols[i]/float(7);
+      }
+   }
+
+```
+
+</td> 
+  </tr>
+</table>
+</details>
+
+		
 ## Subroutines
 
 Not yet implemented.
