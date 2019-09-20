@@ -249,6 +249,45 @@ void struct_interface_comma_examples()
 	std::cout << shader.str() << std::endl;
 }
 
+template<int N> struct ConstexprInt {
+	static constexpr int value = N;
+};
+
+void meta_variations()
+{
+	auto shader_variation = [](auto template_parameter, double sampling_angle, bool gamma_correction) {
+			
+		using namespace csl::frag_430;
+		using namespace swizzles::rgba;
+
+		Shader shader;
+		Uniform<sampler2D> sampler("sampler");
+		In<vec2> uvs("uvs");
+		Out<vec4> color("color");
+
+		shader.main([&](){
+			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle)) << "sampling_dir";
+
+			constexpr static int N = decltype(template_parameter)::value;
+			Array<vec4, N> cols("cols");
+			GL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
+				cols[i] = texture(sampler, uvs + i * sampling_dir);
+				color += cols[i] / Float(N);
+			}
+
+			if (gamma_correction) {
+				color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+			}
+		});
+
+		return shader.str();
+	};
+
+	std::cout << 
+		shader_variation(ConstexprInt<11>{}, 0, true) <<
+		shader_variation(ConstexprInt<7>{}, 1.57079632679, false);
+}
+
 std::string phongShading() {
 	using namespace csl::frag_330;
 

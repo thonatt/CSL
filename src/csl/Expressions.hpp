@@ -260,20 +260,28 @@ namespace csl {
 		return std::forward<T>(t).getEx();
 	}
 
-	template<> inline Ex getExp<bool>(bool && b) {
+	template<> inline Ex getExp<const bool &>(const bool & b) {
 		return createExp<Litteral<bool>>(b);
 	}
 	template<> inline Ex getExp<bool&>(bool & b) {
 		return createExp<Litteral<bool>>(b);
 	}
+	template<> inline Ex getExp<bool>(bool && b) {
+		return createExp<Litteral<bool>>(b);
+	}
 
-	template<> inline Ex getExp<int>(int && i) {
+	template<> inline Ex getExp<const int &>(const int & i) {
+		return createExp<Litteral<int>>(i);
+	}
+	template<> inline Ex getExp<const int>(const int && i) {
 		return createExp<Litteral<int>>(i);
 	}
 	template<> inline Ex getExp<int&>(int & i) {
 		return createExp<Litteral<int>>(i);
 	}
-
+	template<> inline Ex getExp<int>(int && i) {
+		return createExp<Litteral<int>>(i);
+	}
 
 	template<> inline Ex getExp<uint>(uint && i) {
 		return createExp<Litteral<uint>>(i);
@@ -289,6 +297,9 @@ namespace csl {
 		return createExp<Litteral<float>>(d);
 	}
 
+	template<> inline Ex getExp<const double &>(const double & d) {
+		return createExp<Litteral<double>>(d);
+	}
 	template<> inline Ex getExp<double>(double && d) {
 		return createExp<Litteral<double>>(d);
 	}

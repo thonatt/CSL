@@ -9,6 +9,8 @@
 #include <iostream>
 #include <chrono>
 
+#include <array>
+
 void printExamples() {
 	arrays_example();
 	swizzling_example();
@@ -19,10 +21,31 @@ void printExamples() {
 	structs_examples();
 	interface_examples();
 	struct_interface_comma_examples();
+	meta_variations();
 }
+
+template<int N> struct T {
+	void f() {}
+};
+
 
 int main()
 {
+
+	//auto test = [] {
+	//	static constexpr int N = 3;
+	//	T<N> n;
+	//	T<5> m;
+	//	
+	//	auto test2 = [&](auto p) {
+	//		//n.f();
+	//		p.f();
+	//		m.f();
+	//	};
+
+	//	test2(n);
+	//};
+
 	//test_accessor();
 	
 	//testArgCleaning();
@@ -51,7 +74,7 @@ int main()
 
 	//auto phongShading_str = phongShading();
 
-	auto per_tri_normal_str = per_triangle_normal_geom();
+	//auto per_tri_normal_str = per_triangle_normal_geom();
 
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
@@ -65,7 +88,7 @@ int main()
 	//std::cout << dolphin_vertex_str;
 	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;
-	std::cout << per_tri_normal_str;
+	//std::cout << per_tri_normal_str;
 
 	std::cout << "elapsed time : " << duration.count() << std::endl;
 	

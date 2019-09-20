@@ -481,14 +481,16 @@ namespace csl {
 		Litteral(const T & _i) : i(_i) {}
 
 		virtual std::string str(int trailing) const {
-			std::string s = std::to_string(i);
-			if (!is_integral_v<T>) {
+			if (is_integral_v<T>) {
+				return std::to_string(i);
+			} else {
+				std::string s = (std::stringstream() << std::fixed << i).str();
 				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-				if (static_cast<T>(static_cast<long int>(i)) == i) {
+				if (s.back() == '.') {
 					s += "0";
 				}
-			}
-			return s;
+				return s;
+			}		
 		}
 
 		T i;
