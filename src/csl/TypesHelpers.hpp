@@ -434,6 +434,12 @@ namespace csl {
 	using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<A>::rows, Infos<B>::cols >;
 
 
+	//
+	template<typename T, T _value>
+	struct ConstExpr {
+		static constexpr T value = _value;
+	};
+
 	// variadic helpers
 
 	template<bool ... bs> struct AllTrueT;

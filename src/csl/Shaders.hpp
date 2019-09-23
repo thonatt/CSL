@@ -139,4 +139,14 @@ namespace csl {
 		using Shader = ShaderWrapper<GLSL_450>;
 	}
 
+	namespace shadertoy {
+		using namespace csl;
+		using namespace glsl_450;
+		using Shader = ShaderWrapper<SHADERTOY>;
+
+		const Uniform<vec2> iResolution("iResolution", DISABLED);
+		const Uniform<Float> iTime("iTime", DISABLED);
+		const Uniform<sampler2D> iChannel0("iChannel0", DISABLED);
+	}
+
 } //namespace csl

@@ -51,8 +51,10 @@ int main()
 	//testArgCleaning();
 	//testStructsMacros();
 	//testArgsOrder();
+	//testInArgs();
 
-	printExamples();
+
+	//printExamples();
 
 	auto start = std::chrono::steady_clock::now();
 
@@ -66,7 +68,7 @@ int main()
 
 	//auto transfeedBack_str = transfeedBackVertex();
 	
-	//auto eightiesShader_str = eightiesShader();
+	auto eightiesShader_str = eightiesShader();
 
 	//auto dolphin_vertex_str = dolphinVertex();
 
@@ -84,7 +86,7 @@ int main()
 	//std::cout << ssao_str;
 	//std::cout << discard_str;
 	//std::cout << transfeedBack_str;
-	//std::cout << eightiesShader_str;
+	std::cout << eightiesShader_str;
 	//std::cout << dolphin_vertex_str;
 	//std::cout << dolphin_frag_str;
 	//std::cout << phongShading_str;

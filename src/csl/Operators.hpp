@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sstream>
 #include "StringHelpers.hpp"
 
 namespace csl {
@@ -14,7 +15,8 @@ namespace csl {
 		IS_USED = 1 << 1,
 		IS_INIT = 1 << 2,
 		IS_TRACKED = 1 << 3,
-		ALWAYS_EXP = 1 << 4
+		ALWAYS_EXP = 1 << 4,
+		IS_BASE = 1 << 5
 	};
 
 	enum CtorStatus { DECLARATION, INITIALISATION, TEMP, FORWARD };
@@ -484,7 +486,9 @@ namespace csl {
 			if (is_integral_v<T>) {
 				return std::to_string(i);
 			} else {
-				std::string s = (std::stringstream() << std::fixed << i).str();
+				std::stringstream ss;
+				ss << std::fixed << i;
+				std::string s = ss.str();
 				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
 				if (s.back() == '.') {
 					s += "0";

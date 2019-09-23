@@ -162,6 +162,20 @@ void testArgCleaning()
 	//TypeMerger< TypeList<>, TypeList<>, TypeList<double>, TypeList<>, TypeList<float> >::Type;
 }
 
+void testInArgs()
+{
+	using namespace csl::frag_430;
+
+	
+	Shader shader;
+
+	declareFunc<void>([](
+		In<vec3> in = "in", Out<vec3> out = "out" ) {
+	});
+
+	std::cout << shader.str() << std::endl;
+}
+
 
 
 void testArgsOrder()

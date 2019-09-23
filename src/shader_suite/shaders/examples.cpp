@@ -249,10 +249,6 @@ void struct_interface_comma_examples()
 	std::cout << shader.str() << std::endl;
 }
 
-template<int N> struct ConstexprInt {
-	static constexpr int value = N;
-};
-
 void meta_variations()
 {
 	auto shader_variation = [](auto template_parameter, double sampling_angle, bool gamma_correction) {
@@ -261,18 +257,21 @@ void meta_variations()
 		using namespace swizzles::rgba;
 
 		Shader shader;
-		Uniform<sampler2D> sampler("sampler");
+		Uniform<sampler2D> samplerA("samplerA"), samplerB("samplerB");
 		In<vec2> uvs("uvs");
 		Out<vec4> color("color");
 
-		shader.main([&](){
+		shader.main([&]{
 			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle)) << "sampling_dir";
 
-			constexpr static int N = decltype(template_parameter)::value;
+			constexpr int N = decltype(template_parameter)::value;
 			Array<vec4, N> cols("cols");
 			GL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
-				cols[i] = texture(sampler, uvs + i * sampling_dir);
-				color += cols[i] / Float(N);
+				cols[i] = vec4(0);
+				for (auto & sampler : { samplerA, samplerB }) {
+					cols[i] += texture(sampler, uvs + i * sampling_dir);
+				}
+				color += cols[i] / Float(2*N);
 			}
 
 			if (gamma_correction) {
@@ -284,8 +283,8 @@ void meta_variations()
 	};
 
 	std::cout << 
-		shader_variation(ConstexprInt<11>{}, 0, true) <<
-		shader_variation(ConstexprInt<7>{}, 1.57079632679, false);
+		shader_variation(csl::ConstExpr<int,11>{}, 0, true) <<
+		shader_variation(csl::ConstExpr<int,7>{}, 1.57079632679, false);
 }
 
 std::string phongShading() {

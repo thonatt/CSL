@@ -129,18 +129,23 @@ namespace csl {
 		using T::exp;
 		using T::operator=;
 
-		Qualifier(const std::string &s = "", uint flags = 0) : T(s, 0)
+		Qualifier(const std::string &s = "", uint flags = 0) : T(s, IS_BASE)
 		{
 			exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 		}
 
-		Qualifier(const NamedObjectInit<T> & obj) : T(obj.name, 0)
+		template<size_t N>
+		Qualifier(const char(&s)[N], uint flags = 0) : T(s, IS_BASE) {
+			exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
+		}
+
+		Qualifier(const NamedObjectInit<T> & obj) : T(obj.name, IS_BASE)
 		{
 			exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
 		}
 
 		Qualifier(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
-			: T(_ex, ctor_flags, obj_flags, s)
+			: T(_ex, ctor_flags | IS_BASE, obj_flags, s)
 		{
 		}
 

@@ -3,19 +3,12 @@
 #include <csl/Core.hpp>
 
 std::string eightiesShader() {
-	using namespace csl::frag_410;
+	using namespace csl::shadertoy;
 	using namespace csl::swizzles::all;
 
 	Shader shader;
 
-	/// Uniforms and output.
-	Uniform<vec2> iResolution("iResolution");
-	Uniform<Float> iTime("iTime");
-	Uniform<sampler2D> iChannel0("iChannel0");
-	Out<vec4, Layout<Location<0>>> fragColor("fragColor");
-
-	/// Noise helpers.
-	
+	/// Noise helpers.	
 	auto noise = declareFunc<Float, vec4>("noise",
 			[](Float p) {
 				Float fl = floor(p);
@@ -107,9 +100,10 @@ std::string eightiesShader() {
 	});
 
 	/// Main render.
-	shader.main([&] {
+	declareFunc<void>("mainImage", 
+		[&] (Out<vec4> fragColor = "fragColor", In<vec2> fragCoord = "fragCoord") {
 		// Normalized pixel coordinates.
-		vec2 uv = gl_FragCoord[x, y] / iResolution[x, y];
+		vec2 uv = fragCoord[x, y] / iResolution[x, y];
 		vec2 uvCenter = 2.0 * uv - 1.0;
 
 		/// Background.
@@ -151,17 +145,17 @@ std::string eightiesShader() {
 			/// Starfield.
 			// Compensate aspect ratio for circular stars.
 			vec2 ratioUVs = uv * vec2(1.0, iResolution[y] / iResolution[x]);
-		// Decrease density towards the bottom of the screen.
-		Float baseDens = clamp(uv[y] - 0.3, 0.0, 1.0);
-		// Three layers of stars with varying density, cyclic animation.
-		Float deltaDens = 20.0 * (sin(0.05 * iTime - 1.5) + 1.0);
-		finalColor += 0.50 * stars(ratioUVs, 0.10 * baseDens, 150.0 - deltaDens);
-		finalColor += 0.75 * stars(ratioUVs, 0.05 * baseDens,  80.0 - deltaDens);
-		finalColor += 1.00 * stars(ratioUVs, 0.01 * baseDens,  30.0 - deltaDens);
+			// Decrease density towards the bottom of the screen.
+			Float baseDens = clamp(uv[y] - 0.3, 0.0, 1.0);
+			// Three layers of stars with varying density, cyclic animation.
+			Float deltaDens = 20.0 * (sin(0.05 * iTime - 1.5) + 1.0);
+			finalColor += 0.50 * stars(ratioUVs, 0.10 * baseDens, 150.0 - deltaDens);
+			finalColor += 0.75 * stars(ratioUVs, 0.05 * baseDens,  80.0 - deltaDens);
+			finalColor += 1.00 * stars(ratioUVs, 0.01 * baseDens,  30.0 - deltaDens);
 		}
 
-			/// Triangles.
-			// Triangles upper points.
+		/// Triangles.
+		// Triangles upper points.
 		vec4 points1 = vec4(0.30, 0.85, 0.70, 0.85);
 		vec4 points2 = vec4(0.33, 0.83, 0.73, 0.88);
 		vec4 points3 = vec4(0.35, 0.80, 0.66, 0.82);

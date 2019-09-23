@@ -81,7 +81,7 @@ namespace csl {
 			: flags(_flags)
 		{
 			namePtr = std::make_shared<std::string>(_name);
-			//std::cout << " end check" << std::endl;
+			//std::cout << "base " << *namePtr << " " << (int)(flags & IS_TRACKED) << std::endl;
 		}
 
 		bool isUsed() const {
@@ -209,7 +209,7 @@ namespace csl {
 		{
 			checkName();
 
-			exp = createDeclaration<T>(NamedObjectBase::strPtr(), 0);
+			exp = createDeclaration<T>(NamedObjectBase::strPtr(), _flags);
 
 			checkDisabling();
 		}
@@ -672,10 +672,20 @@ namespace csl {
 		static void str(std::stringstream & stream, int & trailing,
 			uint opts, const std::string & fname, const std::vector<OverloadData> & funcs) {
 			
+			int dummy_trailing = 0;
+			//{
+			//	std::stringstream ss;
+			//	std::cout << "/////////////";
+			//	for (const auto & i : funcs[it].args->instructions) {
+			//		ss << "\n\t";
+			//		i->str(ss, dummy_trailing, 0);
+			//	}
+			//	std::cout << ss.str() << "\n /////////////////" << std::endl;
+			//}
+
 			stream << InstructionBase::instruction_begin(trailing, opts) <<
 			getTypeStr<typename ReturnTList::template GetType<it>>() << " " << fname << "(";
-
-			int dummy_trailing = 0;
+				
 			const auto & args = funcs[it].args->instructions;
 			const int size = static_cast<int>(args.size());
 			if (getArgOrder() == LEFT_TO_RIGHT) {
@@ -1006,7 +1016,7 @@ namespace csl {
 		void checkFuncArgs() {
 			if (current_func && feedingArgs) {
 				checkNumArgs();
-				++current_func_arg_counter;			
+				++current_func_arg_counter;
 			}
 		}
 
@@ -1211,10 +1221,9 @@ namespace csl {
 		}
 
 		void handleEvent(const Ex & e) {
+			//std::cout << "e : " << e->str(0) << std::endl;		
 			check_end_if(); 
-			if (!e->isMemberDeclaration()) {
-				checkFuncArgs();
-			} 
+			checkFuncArgs();
 			queueEvent(e);
 		}
 
@@ -1355,6 +1364,15 @@ namespace csl {
 
 		virtual std::string header() const {
 			return "#version " + gl_version_str<version>();
+		}
+	};
+
+	template<>
+	struct IShader<SHADERTOY> : ShaderBase {
+		using Ptr = std::shared_ptr<IShader>;
+
+		virtual std::string header() const {
+			return "";
 		}
 	};
 
@@ -1775,7 +1793,9 @@ namespace csl {
 		//std::cout << "ctor : " << *name << " " << (bool)(ctor_flags & PARENTHESIS) << std::endl;
 		auto ctor = std::make_shared<Constructor<T, sizeof...(args)>>(name, status, ctor_flags, args...);
 		Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-		listen().addEvent(expr);
+		if (!(ctor_flags & IS_BASE)) {
+			listen().addEvent(expr);
+		}
 		return expr;
 	}
 
@@ -1805,6 +1825,7 @@ namespace csl {
 	void init_function_declaration(const std::string & fname, const Fs & ...fs)
 	{
 		listen().begin_func<ReturnTList>(fname, fs...);
+		//std::cout << "\t" << fname << std::endl;
 		CallFuncs<TList<Fs...>>::run(fs...);
 		listen().end_func();
 	}

@@ -67,7 +67,8 @@ namespace csl {
 
 	template<typename F>
 	void call_with_only_non_default_args(const F & f) {
-		call_with_first_args_empty(f, Subset<typename LambdaInfos<F>::ArgTList, 0, min_num_args<F>() >{});
+		//std::cout << "num args : " << min_num_args<F>() << "/" << GetArgTList<F>::size << std::endl;
+		call_with_first_args_empty(f, Subset<GetArgTList<F>, 0, min_num_args<F>() >{});
 	}
 
 	
