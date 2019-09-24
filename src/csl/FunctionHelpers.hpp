@@ -27,34 +27,6 @@ namespace csl {
 		return lambda_minumnarg_helper<F, ArgList>(std::index_sequence<>{}, 0);
 	}
 
-
-	//template<typename T> struct FunctionReturnType;
-
-	//template<typename ReturnType, typename Fun, typename... Args>
-	//struct FunctionReturnType< ReturnType(Fun::*)(Args...) const> {
-	//	using type = const std::function<ReturnType(Args...)>;
-	//	using RType = ReturnType;
-	//	using Tup = std::tuple<Args...>;
-	//	using ArgTList = TList<Args...>;
-	//};
-
-	//template<typename Lambda>
-	//typename FunctionReturnType<decltype(&Lambda::operator())>::type
-	//	functionFromLambda(const Lambda &func) {
-	//	return func;
-	//}
-
-	//template<typename R, template<typename...> class Params, typename... Args, std::size_t... I>
-	//void call_from_tuple_helper(const std::function<R(Args...)> & func, const Params<Args...> & params, std::index_sequence<I...>)
-	//{
-	//	func(std::get<I>(params)...);
-	//}
-
-	//template<typename R, template<typename...> class Params, typename... Args>
-	//void call_from_tuple(const std::function<R(Args...)> &func, const Params<Args...> & params)
-	//{
-	//	call_from_tuple_helper(func, params, std::index_sequence_for<Args...>{});
-	//}
 	template<typename F>
 	constexpr size_t min_num_args() {
 		return getMinNumArgs<F, typename LambdaInfos<F>::ArgTup>();
@@ -71,6 +43,48 @@ namespace csl {
 		call_with_first_args_empty(f, Subset<GetArgTList<F>, 0, min_num_args<F>() >{});
 	}
 
-	
+	template<typename FList> struct CallFuncs;
+
+	template<> struct CallFuncs<TList<>> {
+		static void run() {}
+	};	
+
+	template<typename ReturnTList, typename ... Fs>
+	void init_function_declaration(const std::string & fname, const Fs & ...fs);
+
+	struct FuncBase : NamedObject<FuncBase> {
+		FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, 0) {}
+		static std::string typeStr(int trailing = 0) { return "function"; }
+		static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
+	};
+	template<> struct AutoNaming<FuncBase> {
+		using Type = NamingCounter<NamingCaterogy::FUNCTION>;
+	};
+
+	template<typename ReturnTList, typename FuncTList>
+	struct Function : FuncBase {
+		static_assert(ReturnTList::size == FuncTList::size, "numbers of overload and return type dont match");
+
+		template<typename ... Fs>
+		Function(const std::string & _name, const Fs & ... _fs) : FuncBase(_name) {
+			init_function_declaration<ReturnTList>(str(), _fs ...);
+		}
+
+		template<typename ... Args>
+		using ReturnType = OverloadResolutionType<ReturnTList, FuncTList, TList<std::remove_reference_t<Args>...>>;
+
+		template<typename ... Args>
+		ReturnType<Args...> operator()(Args && ...args);
+	};
+
+	template<typename ... ReturnTypes, typename F, typename ... Fs >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const std::string & name, const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >(name, f, fs...);
+	}
+
+	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible<F, std::string>::value > >
+	Function<TList<ReturnTypes...>, TList<F, Fs...> > declareFunc(const F & f, const Fs & ... fs) {
+		return Function<TList<ReturnTypes...>, TList<F, Fs...> >("", f, fs...);
+	}
 
 } //namespace csl

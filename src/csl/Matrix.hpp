@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Expressions.hpp"
+#include "NamedObjects.hpp"
 #include "Swizzles.hpp"
 
 #define EX(type, var) getExp(std::forward<type>(var))
@@ -300,6 +300,12 @@ namespace csl {
 			Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" &= ", NamedObjectBase::getExRef(), EX(A, a)));
 		}
 
+		template<typename A, typename = std::enable_if_t<
+			IsVecInteger<Matrix> && SameScalarType<Matrix, A> && (IsScalar<A> || EqualDim<Matrix, A>) >  >
+			void operator&=(A && a) && {
+			Matrix(createExp<MiddleOperator<ASSIGNMENT>>(" &= ", NamedObjectBase::getExTmp(), EX(A, a)));
+		}
+
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		// member functions
 
@@ -310,15 +316,6 @@ namespace csl {
 
 		Int length() && = delete;
 	};
-
-	inline MatrixConvertor<Bool>::operator bool() &
-	{
-		//needed as any [variable;] in GL_FOR wont generate any instruction
-		//listen().stack_for_condition(NamedObjectBase::getExRef());
-
-		listen().stack_for_condition(static_cast<Bool &>(*this).getExRef());
-		return false;
-	}
 
 	// logical binary operators
 	template<typename A, typename B,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Listener.hpp"
 #include "Layouts.hpp"
 #include "Samplers.hpp"
 #include "BuiltInFunctions.hpp"
@@ -81,6 +82,52 @@ namespace csl {
 		const In<Int> gl_VertexID("gl_VertexID", DISABLED);
 		const In<Int> gl_InstanceID("gl_InstanceID", DISABLED);
 	}
+
+	template<GLVersion version>
+	struct IShader : ShaderBase {
+		using Ptr = std::shared_ptr<IShader>;
+
+		virtual std::string header() const {
+			return "#version " + gl_version_str<version>();
+		}
+	};
+
+	template<>
+	struct IShader<SHADERTOY> : ShaderBase {
+		using Ptr = std::shared_ptr<IShader>;
+
+		virtual std::string header() const {
+			return "";
+		}
+	};
+
+	template<GLVersion version>
+	struct ShaderWrapper
+	{
+
+		ShaderWrapper() {
+			shader_ptr = std::make_shared<IShader<version>>();
+			listen().currentShader = shader_ptr;
+			listen().reset_counters();
+		}
+
+		template<typename F_Type>
+		void main(const F_Type & f) {
+			using ArgsTList = GetArgTList<F_Type>;
+			static_assert(EqualList<ArgsTList, TList<>> || EqualList<ArgsTList, TList<void>>, "main function shoud not have arguments");
+			Function<TList<void>, TList<F_Type>>("main", f);
+		}
+
+		std::string str() {
+			if (shader_ptr) {
+				return shader_ptr->str();
+			} else {
+				return "";
+			}
+		}
+
+		typename IShader<version>::Ptr shader_ptr;
+	};
 
 	namespace vert_330 {
 		using namespace csl;

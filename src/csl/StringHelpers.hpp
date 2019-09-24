@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 #include "TypesHelpers.hpp"
 
 #include <boost/preprocessor/seq/for_each_i.hpp>

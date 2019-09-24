@@ -11,7 +11,7 @@
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/facilities/is_empty.hpp>
 
-#include "Expressions.hpp"
+#include "NamedObjects.hpp"
 
 //helpers for C++ reflexion from http://pfultz2.com/blog/2012/07/31/reflection-in-under-100-lines/
 #define CSL_PP_REM(...) __VA_ARGS__

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <sstream>
+#include <array>
+
 #include "StringHelpers.hpp"
 
 namespace csl {
@@ -198,7 +200,6 @@ namespace csl {
 		}
 
 		std::array<Ex, N> args;
-		//std::vector<Ex> args;
 	};
 
 	template<uint N>
@@ -296,7 +297,7 @@ namespace csl {
 		}
 
 		virtual std::string lhs_str(int trailing) const {
-			return DeclarationStr<T>::str(obj_name(), trailing); // lhs_type_str(trailing) + " " + obj_name();
+			return DeclarationStr<T>::str(obj_name(), trailing); 
 		}
 
 		std::string rhs_str() const {
@@ -412,7 +413,6 @@ namespace csl {
 		}
 
 		std::string str(int trailing) const {
-			//std::cout << " array_sub" << std::endl;
 			return OperatorBase::checkForParenthesis(obj) + "[" + arg->str(0) + "]";
 		}
 
@@ -420,7 +420,6 @@ namespace csl {
 	};
 
 	struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
-
 		PrefixUnary(const std::string & op_str, Ex _obj)
 			: NamedOperator(op_str), obj(_obj) {
 		}
@@ -433,7 +432,6 @@ namespace csl {
 	};
 
 	struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
-
 		PostfixUnary(const std::string & op_str, Ex _obj)
 			: NamedOperator(op_str), obj(_obj) {
 		}
