@@ -81,6 +81,7 @@ void testStructsMacros()
 void testArgCleaning()
 {
 	using namespace csl;
+	using namespace csl::core;
 
 	using namespace csl::frag_430;
 	using namespace csl::swizzles::xyzw;

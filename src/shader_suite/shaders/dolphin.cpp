@@ -1122,7 +1122,7 @@ std::string dolphinFragment() {
 				Bool alpha_clamp = Bool(bitfieldExtract(ss.ac, 19, 1));
 				Uint alpha_shift = bitfieldExtract(ss.ac, 20, 2);
 				Uint alpha_dest = bitfieldExtract(ss.ac, 22, 2);
-				Uint alpha_compare_op = alpha_shift << 1 | uint(alpha_op);
+				Uint alpha_compare_op = alpha_shift << 1 | Uint(alpha_op);
 
 				Int alpha_A;
 				Int alpha_B;

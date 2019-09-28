@@ -283,8 +283,8 @@ void meta_variations()
 	};
 
 	std::cout << 
-		shader_variation(csl::ConstExpr<int,11>{}, 0, true) <<
-		shader_variation(csl::ConstExpr<int,7>{}, 1.57079632679, false);
+		shader_variation(csl::ConstExpr<int,9>{}, 0, true) <<
+		shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
 }
 
 std::string phongShading() {

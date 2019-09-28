@@ -39,7 +39,7 @@ std::string ambiantShader()
 	double M_PI = 3.1415926536;
 	double M_INV_LOG2 = 1.4426950408889;
 
-	uint SAMPLES_COUNT = 16u;
+	unsigned int SAMPLES_COUNT = 16u;
 	int MAX_LOD = 5;
 
 	GL_INTERFACE_BLOCK(In<>, Interface, In, ,

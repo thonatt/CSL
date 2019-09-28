@@ -54,7 +54,7 @@ int main()
 	//testInArgs();
 
 
-	//printExamples();
+	printExamples();
 
 	auto start = std::chrono::steady_clock::now();
 

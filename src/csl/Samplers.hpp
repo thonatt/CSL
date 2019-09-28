@@ -4,102 +4,106 @@
 
 namespace csl {
 
-	template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint sFlags> // SamplerIsArray isArray, SamplerIsShadow isShadow>
-	class Sampler : public NamedObject<Sampler<aType, nType, N, sType, sFlags>> {
-	public:
-		//static_assert(N <= 3, "Dim must be <= 3");
-		//static_assert(IsSamplerType<nType>::value, "Invalide sampler nType");
-		//static_assert(IsValid<aType, nType, Dim, sType, isArray, isShadow>::value, "Invalide sampler template arguments");
+	namespace core {
 
-		Sampler(const std::string & s = "", uint obj_flags = 0)
-			: NamedObject<Sampler>(s, obj_flags) {
-		}
+		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint sFlags> // SamplerIsArray isArray, SamplerIsShadow isShadow>
+		class Sampler : public NamedObject<Sampler<aType, nType, N, sType, sFlags>> {
+		public:
+			//static_assert(N <= 3, "Dim must be <= 3");
+			//static_assert(IsSamplerType<nType>::value, "Invalide sampler nType");
+			//static_assert(IsValid<aType, nType, Dim, sType, isArray, isShadow>::value, "Invalide sampler template arguments");
 
-		Sampler(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
-			: NamedObject<Sampler>(_ex, ctor_flags, obj_flags, s)
-		{
-		}
+			Sampler(const std::string & s = "", uint obj_flags = 0)
+				: NamedObject<Sampler>(s, obj_flags) {
+			}
 
-	};
+			Sampler(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+				: NamedObject<Sampler>(_ex, ctor_flags, obj_flags, s)
+			{
+			}
 
-	using sampler1D = Sampler < SAMPLER, FLOAT, 1 >;
-	using sampler2D = Sampler < SAMPLER, FLOAT, 2 >;
-	using sampler3D = Sampler < SAMPLER, FLOAT, 3 >;
-	using samplerCube = Sampler < SAMPLER, FLOAT, 0, CUBE >;
-	using sampler2DRect = Sampler < SAMPLER, FLOAT, 2, RECTANGLE >;
-	using sampler1DArray = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_ARRAY >;
-	using sampler2DArray = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_ARRAY >;
-	using samplerBuffer = Sampler < SAMPLER, FLOAT, 0, BUFFER >;
-	using sampler2DMS = Sampler < SAMPLER, FLOAT, 2, MULTI_SAMPLE >;
-	using sampler2DMSArray = Sampler < SAMPLER, FLOAT, 2, MULTI_SAMPLE, IS_ARRAY>;
-	using samplerCubeArray = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_ARRAY >;
-	using sampler1DShadow = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_SHADOW >;
-	using sampler2DShadow = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_SHADOW >;
-	using sampler2DRectShadow = Sampler < SAMPLER, FLOAT, 2, RECTANGLE, IS_SHADOW>;
-	using sampler1DArrayShadow = Sampler < SAMPLER, FLOAT, 1, BASIC, IS_ARRAY | IS_SHADOW >;
-	using sampler2DArrayShadow = Sampler < SAMPLER, FLOAT, 2, BASIC, IS_ARRAY | IS_SHADOW >;
-	using samplerCubeShadow = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_SHADOW >;
-	using samplerCubeArrayShadow = Sampler < SAMPLER, FLOAT, 0, CUBE, IS_ARRAY | IS_SHADOW >;
+		};
 
-	using isampler1D = Sampler < SAMPLER, INT, 1 >;
-	using isampler2D = Sampler < SAMPLER, INT, 2 >;
-	using isampler3D = Sampler < SAMPLER, INT, 3 >;
-	using isamplerCube = Sampler < SAMPLER, INT, 0, CUBE >;
-	using isampler2DRect = Sampler < SAMPLER, INT, 2, RECTANGLE >;
-	using isampler1DArray = Sampler < SAMPLER, INT, 1, BASIC, IS_ARRAY >;
-	using isampler2DArray = Sampler < SAMPLER, INT, 2, BASIC, IS_ARRAY >;
-	using isamplerBuffer = Sampler < SAMPLER, INT, 0, BUFFER >;
-	using isampler2DMS = Sampler < SAMPLER, INT, 2, MULTI_SAMPLE >;
-	using isampler2DMSArray = Sampler < SAMPLER, INT, 2, MULTI_SAMPLE, IS_ARRAY >;
-	using isamplerCubeArray = Sampler < SAMPLER, INT, 0, CUBE, IS_ARRAY >;
+	}
 
-	using usampler1D = Sampler < SAMPLER, UINT, 1 >;
-	using usampler2D = Sampler < SAMPLER, UINT, 2 >;
-	using usampler3D = Sampler < SAMPLER, UINT, 3 >;
-	using usamplerCube = Sampler < SAMPLER, UINT, 0, CUBE >;
-	using usampler2DRect = Sampler < SAMPLER, UINT, 2, RECTANGLE >;
-	using usampler1DArray = Sampler < SAMPLER, UINT, 1, BASIC, IS_ARRAY >;
-	using usampler2DArray = Sampler < SAMPLER, UINT, 2, BASIC, IS_ARRAY >;
-	using usamplerBuffer = Sampler < SAMPLER, UINT, 0, BUFFER >;
-	using usampler2DMS = Sampler < SAMPLER, UINT, 2, MULTI_SAMPLE >;
-	using usampler2DMSArray = Sampler < SAMPLER, UINT, 2, MULTI_SAMPLE, IS_ARRAY >;
-	using usamplerCubeArray = Sampler < SAMPLER, UINT, 0, CUBE, IS_ARRAY >;
+	using sampler1D = core::Sampler< core::SAMPLER, core::FLOAT, 1 >;
+	using sampler2D = core::Sampler < core::SAMPLER, core::FLOAT, 2 >;
+	using sampler3D = core::Sampler < core::SAMPLER, core::FLOAT, 3 >;
+	using samplerCube = core::Sampler < core::SAMPLER, core::FLOAT, 0, core::CUBE >;
+	using sampler2DRect = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::RECTANGLE >;
+	using sampler1DArray = core::Sampler < core::SAMPLER, core::FLOAT, 1, core::BASIC, core::IS_ARRAY >;
+	using sampler2DArray = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::BASIC, core::IS_ARRAY >;
+	using samplerBuffer = core::Sampler < core::SAMPLER, core::FLOAT, 0, core::BUFFER >;
+	using sampler2DMS = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::MULTI_SAMPLE >;
+	using sampler2DMSArray = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::MULTI_SAMPLE, core::IS_ARRAY>;
+	using samplerCubeArray = core::Sampler < core::SAMPLER, core::FLOAT, 0, core::CUBE, core::IS_ARRAY >;
+	using sampler1DShadow = core::Sampler < core::SAMPLER, core::FLOAT, 1, core::BASIC, core::IS_SHADOW >;
+	using sampler2DShadow = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::BASIC, core::IS_SHADOW >;
+	using sampler2DRectShadow = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::RECTANGLE, core::IS_SHADOW>;
+	using sampler1DArrayShadow = core::Sampler < core::SAMPLER, core::FLOAT, 1, core::BASIC, core::IS_ARRAY | core::IS_SHADOW >;
+	using sampler2DArrayShadow = core::Sampler < core::SAMPLER, core::FLOAT, 2, core::BASIC, core::IS_ARRAY | core::IS_SHADOW >;
+	using samplerCubeShadow = core::Sampler < core::SAMPLER, core::FLOAT, 0, core::CUBE, core::IS_SHADOW >;
+	using samplerCubeArrayShadow = core::Sampler < core::SAMPLER, core::FLOAT, 0, core::CUBE, core::IS_ARRAY | core::IS_SHADOW >;
 
-	using image1D = Sampler < IMAGE, FLOAT, 1 >;
-	using image2D = Sampler < IMAGE, FLOAT, 2 >;
-	using image3D = Sampler < IMAGE, FLOAT, 3 >;
-	using imageCube = Sampler < IMAGE, FLOAT, 0, CUBE >;
-	using image2DRect = Sampler < IMAGE, FLOAT, 2, RECTANGLE >;
-	using image1DArray = Sampler < IMAGE, FLOAT, 1, BASIC, IS_ARRAY >;
-	using image2DArray = Sampler < IMAGE, FLOAT, 2, BASIC, IS_ARRAY >;
-	using imageBuffer = Sampler < IMAGE, FLOAT, 0, BUFFER >;
-	using image2DMS = Sampler < IMAGE, FLOAT, 2, MULTI_SAMPLE >;
-	using image2DMSArray = Sampler < IMAGE, FLOAT, 2, MULTI_SAMPLE, IS_ARRAY >;
-	using imageCubeArray = Sampler < IMAGE, FLOAT, 0, CUBE, IS_ARRAY >;
+	using isampler1D = core::Sampler < core::SAMPLER, core::INT, 1 >;
+	using isampler2D = core::Sampler < core::SAMPLER, core::INT, 2 >;
+	using isampler3D = core::Sampler < core::SAMPLER, core::INT, 3 >;
+	using isamplerCube = core::Sampler < core::SAMPLER, core::INT, 0, core::CUBE >;
+	using isampler2DRect = core::Sampler < core::SAMPLER, core::INT, 2, core::RECTANGLE >;
+	using isampler1DArray = core::Sampler < core::SAMPLER, core::INT, 1, core::BASIC, core::IS_ARRAY >;
+	using isampler2DArray = core::Sampler < core::SAMPLER, core::INT, 2, core::BASIC, core::IS_ARRAY >;
+	using isamplerBuffer = core::Sampler < core::SAMPLER, core::INT, 0, core::BUFFER >;
+	using isampler2DMS = core::Sampler < core::SAMPLER, core::INT, 2, core::MULTI_SAMPLE >;
+	using isampler2DMSArray = core::Sampler < core::SAMPLER, core::INT, 2, core::MULTI_SAMPLE, core::IS_ARRAY >;
+	using isamplerCubeArray = core::Sampler < core::SAMPLER, core::INT, 0, core::CUBE, core::IS_ARRAY >;
 
-	using iimage1D = Sampler < IMAGE, INT, 1 >;
-	using iimage2D = Sampler < IMAGE, INT, 2 >;
-	using iimage3D = Sampler < IMAGE, INT, 3 >;
-	using iimageCube = Sampler < IMAGE, INT, 0, CUBE >;
-	using iimage2DRect = Sampler < IMAGE, INT, 2, RECTANGLE >;
-	using iimage1DArray = Sampler < IMAGE, INT, 1, BASIC, IS_ARRAY >;
-	using iimage2DArray = Sampler < IMAGE, INT, 2, BASIC, IS_ARRAY >;
-	using iimageBuffer = Sampler < IMAGE, INT, 0, BUFFER >;
-	using iimage2DMS = Sampler < IMAGE, INT, 2, MULTI_SAMPLE >;
-	using iimage2DMSArray = Sampler < IMAGE, INT, 2, MULTI_SAMPLE, IS_ARRAY>;
-	using iimageCubeArray = Sampler < IMAGE, INT, 0, CUBE, IS_ARRAY >;
+	using usampler1D = core::Sampler < core::SAMPLER, core::UINT, 1 >;
+	using usampler2D = core::Sampler < core::SAMPLER, core::UINT, 2 >;
+	using usampler3D = core::Sampler < core::SAMPLER, core::UINT, 3 >;
+	using usamplerCube = core::Sampler < core::SAMPLER, core::UINT, 0, core::CUBE >;
+	using usampler2DRect = core::Sampler < core::SAMPLER, core::UINT, 2, core::RECTANGLE >;
+	using usampler1DArray = core::Sampler < core::SAMPLER, core::UINT, 1, core::BASIC, core::IS_ARRAY >;
+	using usampler2DArray = core::Sampler < core::SAMPLER, core::UINT, 2, core::BASIC, core::IS_ARRAY >;
+	using usamplerBuffer = core::Sampler < core::SAMPLER, core::UINT, 0, core::BUFFER >;
+	using usampler2DMS = core::Sampler < core::SAMPLER, core::UINT, 2, core::MULTI_SAMPLE >;
+	using usampler2DMSArray = core::Sampler < core::SAMPLER, core::UINT, 2, core::MULTI_SAMPLE, core::IS_ARRAY >;
+	using usamplerCubeArray = core::Sampler < core::SAMPLER, core::UINT, 0, core::CUBE, core::IS_ARRAY >;
 
-	using uimage1D = Sampler < IMAGE, UINT, 1 >;
-	using uimage2D = Sampler < IMAGE, UINT, 2 >;
-	using uimage3D = Sampler < IMAGE, UINT, 3 >;
-	using uimageCube = Sampler < IMAGE, UINT, 0, CUBE >;
-	using uimage2DRect = Sampler < IMAGE, UINT, 2, RECTANGLE >;
-	using uimage1DArray = Sampler < IMAGE, UINT, 1, BASIC, IS_ARRAY >;
-	using uimage2DArray = Sampler < IMAGE, UINT, 2, BASIC, IS_ARRAY >;
-	using uimageBuffer = Sampler < IMAGE, UINT, 0, BUFFER >;
-	using uimage2DMS = Sampler < IMAGE, UINT, 2, MULTI_SAMPLE >;
-	using uimage2DMSArray = Sampler < IMAGE, UINT, 2, MULTI_SAMPLE, IS_ARRAY>;
-	using uimageCubeArray = Sampler < IMAGE, UINT, 0, CUBE, IS_ARRAY >;
+	using image1D = core::Sampler < core::IMAGE, core::FLOAT, 1 >;
+	using image2D = core::Sampler < core::IMAGE, core::FLOAT, 2 >;
+	using image3D = core::Sampler < core::IMAGE, core::FLOAT, 3 >;
+	using imageCube = core::Sampler < core::IMAGE, core::FLOAT, 0, core::CUBE >;
+	using image2DRect = core::Sampler < core::IMAGE, core::FLOAT, 2, core::RECTANGLE >;
+	using image1DArray = core::Sampler < core::IMAGE, core::FLOAT, 1, core::BASIC, core::IS_ARRAY >;
+	using image2DArray = core::Sampler < core::IMAGE, core::FLOAT, 2, core::BASIC, core::IS_ARRAY >;
+	using imageBuffer = core::Sampler < core::IMAGE, core::FLOAT, 0, core::BUFFER >;
+	using image2DMS = core::Sampler < core::IMAGE, core::FLOAT, 2, core::MULTI_SAMPLE >;
+	using image2DMSArray = core::Sampler < core::IMAGE, core::FLOAT, 2, core::MULTI_SAMPLE, core::IS_ARRAY >;
+	using imageCubeArray = core::Sampler < core::IMAGE, core::FLOAT, 0, core::CUBE, core::IS_ARRAY >;
+
+	using iimage1D = core::Sampler < core::IMAGE, core::INT, 1 >;
+	using iimage2D = core::Sampler < core::IMAGE, core::INT, 2 >;
+	using iimage3D = core::Sampler < core::IMAGE, core::INT, 3 >;
+	using iimageCube = core::Sampler < core::IMAGE, core::INT, 0, core::CUBE >;
+	using iimage2DRect = core::Sampler < core::IMAGE, core::INT, 2, core::RECTANGLE >;
+	using iimage1DArray = core::Sampler < core::IMAGE, core::INT, 1, core::BASIC, core::IS_ARRAY >;
+	using iimage2DArray = core::Sampler < core::IMAGE, core::INT, 2, core::BASIC, core::IS_ARRAY >;
+	using iimageBuffer = core::Sampler < core::IMAGE, core::INT, 0, core::BUFFER >;
+	using iimage2DMS = core::Sampler < core::IMAGE, core::INT, 2, core::MULTI_SAMPLE >;
+	using iimage2DMSArray = core::Sampler < core::IMAGE, core::INT, 2, core::MULTI_SAMPLE, core::IS_ARRAY>;
+	using iimageCubeArray = core::Sampler < core::IMAGE, core::INT, 0, core::CUBE, core::IS_ARRAY >;
+
+	using uimage1D = core::Sampler < core::IMAGE, core::UINT, 1 >;
+	using uimage2D = core::Sampler < core::IMAGE, core::UINT, 2 >;
+	using uimage3D = core::Sampler < core::IMAGE, core::UINT, 3 >;
+	using uimageCube = core::Sampler < core::IMAGE, core::UINT, 0, core::CUBE >;
+	using uimage2DRect = core::Sampler < core::IMAGE, core::UINT, 2, core::RECTANGLE >;
+	using uimage1DArray = core::Sampler < core::IMAGE, core::UINT, 1, core::BASIC, core::IS_ARRAY >;
+	using uimage2DArray = core::Sampler < core::IMAGE, core::UINT, 2, core::BASIC, core::IS_ARRAY >;
+	using uimageBuffer = core::Sampler < core::IMAGE, core::UINT, 0, core::BUFFER >;
+	using uimage2DMS = core::Sampler < core::IMAGE, core::UINT, 2, core::MULTI_SAMPLE >;
+	using uimage2DMSArray = core::Sampler < core::IMAGE, core::UINT, 2, core::MULTI_SAMPLE, core::IS_ARRAY>;
+	using uimageCubeArray = core::Sampler < core::IMAGE, core::UINT, 0, core::CUBE, core::IS_ARRAY >;
 
 } //namespace csl
 
