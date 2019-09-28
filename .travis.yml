@@ -8,32 +8,34 @@ matrix:
   include:
     - os: linux
       dist: bionic
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - cmake
-      env:
-         - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+      compiler: 
+        -gcc
+        -clang
+      # addons:
+        # apt:
+          # sources:
+            # - ubuntu-toolchain-r-test
+          # packages:
+            # - cmake
+      # env:
+         # - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
          
-    - os: linux
-      dist: bionic
-      compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - cmake
-      env:
-         - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7"
+    # - os: linux
+      # dist: bionic
+      # compiler: clang
+      # addons:
+        # apt:
+          # sources:
+            # - ubuntu-toolchain-r-test
+          # packages:
+            # - cmake
+      # env:
+         # - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7"
 
 
 before_install:
     - cmake --version
-    - eval "${MATRIX_EVAL}"
+    #- eval "${MATRIX_EVAL}"
     - cd src/shader_suite
     - mkdir build 
     - cd build
