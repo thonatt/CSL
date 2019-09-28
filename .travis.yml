@@ -10,6 +10,9 @@ matrix:
       dist: bionic
       compiler: 
         -gcc
+    - os: linux
+      dist: bionic
+      compiler: 
         -clang
       # addons:
         # apt:
