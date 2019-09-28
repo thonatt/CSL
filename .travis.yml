@@ -9,11 +9,11 @@ matrix:
     - os: linux
       dist: bionic
       compiler: 
-        -gcc
+        - gcc
     - os: linux
       dist: bionic
       compiler: 
-        -clang
+        - clang
       # addons:
         # apt:
           # sources:
