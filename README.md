@@ -74,7 +74,6 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 + [Building blocks](#building-blocks)
 + [Structs and Interface blocks](#structs-and-interface-blocks)
 + [Generic shader generation](#generic-shader-generation)
-+ [Subroutines](#subroutines)
 
 ## Shader setup
 
@@ -707,6 +706,7 @@ Also since CSL must rely on a macro for structs and interface blocks, it means i
 
 ## Generic shader generation
 
+Regular C++ workflow can be used to help the generation of CSL shaders, such as changing values (including arrays size), manual unrolling or conditionnal expressions. The helper `csl::ConstExpr<Type, value>` can be used to pass `constexpr` parameters, which are useful for example to specify the size of an array. Limitation, CSL scopes are still C++ scopes, so CSL declarations do not outlive C++ scopes.
 
 <details>
     <summary>Generic shader generation example</summary>
@@ -719,42 +719,40 @@ Also since CSL must rely on a macro for structs and interface blocks, it means i
     <td>
         
   ```cpp
-	template<int N> struct ConstexprInt {
-		static int value = N;
-	};
-	
-	auto shader_variation =
-	 	[](auto template_parameter, double sampling_angle, bool gamma_correction) {
-	
-		using namespace csl::frag_430;
-		using namespace swizzles::rgba;
-		Shader shader;
-		
-		Uniform<sampler2D> sampler;
-		In<vec2> uvs;
-		Out<vec4> color;
+auto shader_variation = 
+	[](auto template_parameter, double sampling_angle, bool gamma_correction) {		
+	using namespace csl::frag_430;
+	using namespace swizzles::rgba;
 
-		shader.main([&](){
-			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
-			
-			constexpr int N = decltype(template_parameter)::value;
-			Array<vec4, N> cols;
-			GL_FOR(Int i = Int(-N); i <= N; ++i) {
-				cols[i] = texture(sampler, uvs + i * sampling_dir);
-				color += cols[i] / Float(N);
+	Shader shader;
+	Uniform<sampler2D> samplerA, samplerB;
+	In<vec2> uvs;
+	Out<vec4> color;
+
+	shader.main([&]{
+		vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
+
+		constexpr int N = decltype(template_parameter)::value;
+		Array<vec4, N> cols("cols");
+		GL_FOR(Int i = -N; i <= N; ++i) {
+			cols[i] = vec4(0);
+			for (auto & sampler : { samplerA, samplerB }) {
+				cols[i] += texture(sampler, uvs + i * sampling_dir);
 			}
+			color += cols[i] / Float(2*N);
+		}
 
-			if (gamma_correction) {
-				color[r, g, b] = pow(color[r, g, b], vec3(2.2));
-			}
-		});
+		if (gamma_correction) {
+			color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+		}
+	});
 
-		return shader.str();
-	};
+	return shader.str();
+};
 
-	std::cout << 
-		shader_variation(ConstexprInt<11>{}, 0, true) <<
-		shader_variation(ConstexprInt<7>{}, 1.57079632679, false);
+std::cout << 
+	shader_variation(csl::ConstExpr<int,9>{}, 0, true) <<
+	shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
 ```
 </td>
     <td>
@@ -762,16 +760,19 @@ Also since CSL must rely on a macro for structs and interface blocks, it means i
 ```cpp
    #version 430
 
-   uniform sampler2D sampler;
+   uniform sampler2D samplerA;
+   uniform sampler2D samplerB;
    in vec2 uvs;
    out vec4 color;
 
    void main() {
       vec2 sampling_dir = vec2(1.0, 0.0);
-      vec4 cols[11];
-      for( int i = -11; i <= 11; ++i){
-         cols[i] = texture(sampler, uvs + i*sampling_dir);
-         color += cols[i]/float(11);
+      vec4 cols[9];
+      for( int i = -9; i <= 9; ++i){
+         cols[i] = vec4(0);
+         cols[i] += texture(samplerA, uvs + i*sampling_dir);
+         cols[i] += texture(samplerB, uvs + i*sampling_dir);
+         color += cols[i]/float(18);
       }
       color.rgb = pow(color.rgb, vec3(2.2));
    }
@@ -782,27 +783,24 @@ Also since CSL must rely on a macro for structs and interface blocks, it means i
 ```cpp
    #version 430
 
-   uniform sampler2D sampler;
+   uniform sampler2D samplerA;
+   uniform sampler2D samplerB;
    in vec2 uvs;
    out vec4 color;
 
    void main() {
       vec2 sampling_dir = vec2(0.0, 1.0);
-      vec4 cols[7];
-      for( int i = -7; i <= 7; ++i){
-         cols[i] = texture(sampler, uvs + i*sampling_dir);
-         color += cols[i]/float(7);
+      vec4 cols[5];
+      for( int i = -5; i <= 5; ++i){
+         cols[i] = vec4(0);
+         cols[i] += texture(samplerA, uvs + i*sampling_dir);
+         cols[i] += texture(samplerB, uvs + i*sampling_dir);
+         color += cols[i]/float(10);
       }
    }
-
 ```
 
 </td> 
   </tr>
 </table>
 </details>
-
-		
-## Subroutines
-
-Not yet implemented.
