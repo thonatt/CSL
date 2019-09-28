@@ -455,7 +455,7 @@ namespace csl {
 		template<typename T, uint N>
 		struct ArrayImpl : NamedObject<Array<T, N>> {
 
-			template<uint M, typename = std::enable_if_t<N == 0>> using Size = ArrayImpl<T, M>;
+			template<uint M> using Size = ArrayImpl<T, M>;
 
 			//template<bool b = (N != 0), typename = std::enable_if_t<b> > should be here but prevents gl_ClipDistance
 
