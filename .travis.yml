@@ -8,12 +8,10 @@ matrix:
   include:
     - os: linux
       dist: bionic
-      compiler: 
-        - gcc
+      compiler: gcc
     - os: linux
       dist: bionic
-      compiler: 
-        - clang
+      compiler: clang
       # addons:
         # apt:
           # sources:
