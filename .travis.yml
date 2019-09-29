@@ -9,12 +9,17 @@ matrix:
     - os: linux
       dist: bionic
       compiler: gcc
+      env:
+        - CMAKE_OPTS = ""
     - os: linux
       dist: bionic
       compiler: clang
+      env:
+        - CMAKE_OPTS = ""
     - os: windows
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+        - CMAKE_OPTS = "-DCMAKE_BUILD_TYPE=Release"
       before_script:
         - export PATH=$MSBUILD_PATH:$PATH
 
@@ -26,7 +31,7 @@ before_install:
     - cd build
     
 script:
-    - cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64
+    - cmake .. ${CMAKE_OPTS}
     - cmake --build .
     
     

@@ -66,7 +66,7 @@ namespace csl {
 					++current_func_overload;
 					current_func_arg_counter = 0;
 					feedingArgs = true;
-					if (current_func_overload < current_func->overloads.size()) {
+					if (current_func_overload < static_cast<int>(current_func->overloads.size())) {
 						currentBlock = current_func->overloads[current_func_overload].args;
 						checkNumArgs();
 					}
