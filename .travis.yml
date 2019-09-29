@@ -12,26 +12,11 @@ matrix:
     - os: linux
       dist: bionic
       compiler: clang
-      # addons:
-        # apt:
-          # sources:
-            # - ubuntu-toolchain-r-test
-          # packages:
-            # - cmake
-      # env:
-         # - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-         
-    # - os: linux
-      # dist: bionic
-      # compiler: clang
-      # addons:
-        # apt:
-          # sources:
-            # - ubuntu-toolchain-r-test
-          # packages:
-            # - cmake
-      # env:
-         # - MATRIX_EVAL="CC=clang-7 && CXX=clang++-7"
+    - os: windows
+      env:
+        - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+      before_script:
+        - export PATH=$MSBUILD_PATH:$PATH
 
 
 before_install:
