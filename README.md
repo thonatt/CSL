@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/thonatt/CSL.svg?token=8pN7VnVet8U5vh7SPZhs&branch=master)](https://travis-ci.com/thonatt/CSL)
+
 # C++ integrated Shading Language
 
 CSL is a C++ header-only library, self-transpiling into GLSL, which allows to write OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time while a string corresponding to the GLSL code is produced at run-time. CSL aims to provide convenient and maintainable shader writing thanks to :

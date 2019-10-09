@@ -3,36 +3,8 @@
 #include <string>
 #include <tuple>
 
-#include <boost/preprocessor/seq/for_each_i.hpp>
-#include <boost/preprocessor/variadic/to_seq.hpp>
-#include <boost/preprocessor/stringize.hpp>
-#include <boost/preprocessor/variadic/elem.hpp>
-#include <boost/preprocessor/seq/pop_front.hpp>
-#include <boost/preprocessor/punctuation/comma_if.hpp>
-#include <boost/preprocessor/facilities/is_empty.hpp>
-
+#include "Preprocessor.hpp"
 #include "NamedObjects.hpp"
-
-//helpers for C++ reflexion from http://pfultz2.com/blog/2012/07/31/reflection-in-under-100-lines/
-#define CSL_PP_REM(...) __VA_ARGS__
-#define CSL_PP_EAT(...)
-#define CSL_PP_STRIP(x) CSL_PP_EAT x		
-#define CSL_PP_PAIR(x) CSL_PP_REM x
-
-//helpers wrapping up BOOST_PP
-#define CSL_PP_STR(arg) BOOST_PP_STRINGIZE(arg)
-#define CSL_PP_IS_EMPTY(arg) BOOST_PP_IS_EMPTY(arg)
-#define CSL_PP_HEAD(elem) BOOST_PP_SEQ_HEAD(elem)
-#define CSL_PP_IF_EMPTY(arg,t,f) BOOST_PP_IIF(BOOST_PP_IS_EMPTY(arg),t,f)
-#define CSL_PP_NOT_EMPTY(arg) BOOST_PP_COMPL(BOOST_PP_IS_EMPTY(arg))
-#define CSL_PP_COMMA_IF_NOT_EMPTY(arg) BOOST_PP_COMMA_IF(CSL_PP_NOT_EMPTY(arg))
-
-#define CSL_PP_ITERATE(macro, ...) \
-	BOOST_PP_SEQ_FOR_EACH_I(macro, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
-
-#define CSL_PP_ITERATE_1(data, macro, ...) \
-	BOOST_PP_SEQ_FOR_EACH_I(macro, data, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
-
 
 //helpers for member infos acces
 #define CSL_PP_MEMBER_TYPE(elem) CSL_PP_HEAD(elem)
@@ -87,11 +59,11 @@
 	CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
 	core::listen().add_unnamed_interface_block<CSL_PP_QUALI_TYPENAME(Qualifier, Typename) CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) >( \
 			"" CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
-	CSL_PP_ITERATE_1(Qualifier, CSL_PP_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ ) 
+	CSL_PP_ITERATE_DATA(Qualifier, CSL_PP_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ ) 
 
 #define CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
 	CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
-	CSL_PP_ITERATE_1(Qualifier, CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ )
+	CSL_PP_ITERATE_DATA(Qualifier, CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ )
 
 #define CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, ...) \
 	struct Typename : public core::NamedObject<Typename> { \

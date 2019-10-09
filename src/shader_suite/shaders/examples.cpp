@@ -249,6 +249,30 @@ void struct_interface_comma_examples()
 	std::cout << shader.str() << std::endl;
 }
 
+void shader_stage_options()
+{	
+	{
+		using namespace csl::frag_330;
+
+		Shader shader;
+		//in a fragment shader
+		in<Layout<Early_fragment_tests>>();
+
+		std::cout << shader.str() << std::endl;
+	}
+
+	{
+		using namespace csl::geom_330;
+		Shader shader;
+
+		//in a geometry shader
+		in<Layout<Triangles>>();
+		out<Layout<Line_strip, Max_vertices<2>>>();
+
+		std::cout << shader.str() << std::endl;
+	}
+}
+
 void meta_variations()
 {
 	auto shader_variation = [](auto template_parameter, double sampling_angle, bool gamma_correction) {
