@@ -30,6 +30,16 @@ namespace csl {
 		namespace glsl_110 {
 
 			template<typename A, typename = std::enable_if_t< IsVecF<A> > >
+			Vec<FLOAT, Infos<A>::rows> dFdx(A&& a) {
+				return { createFCallExp("dFdx", EX(A,a)) };
+			}
+
+			template<typename A, typename = std::enable_if_t< IsVecF<A> > >
+			Vec<FLOAT, Infos<A>::rows> dFdy(A&& a) {
+				return { createFCallExp("dFdy", EX(A,a)) };
+			}
+
+			template<typename A, typename = std::enable_if_t< IsVecF<A> > >
 			Float length(A && a) {
 				return { createFCallExp("length", EX(A,a)) };
 			}
@@ -105,6 +115,17 @@ namespace csl {
 			template<typename A, typename = std::enable_if_t < IsVecB<A> > >
 			Vec<BOOL, Infos<A>::rows> Not(A && a) {
 				return { createFCallExp("not", EX(A,a)) };
+			}
+
+			template<typename S, typename P, typename DX, typename DY, typename SI = SamplerInfos<S>,
+				typename = std::enable_if_t<
+				(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == 0) &&
+				IsVecF<P> && Infos<P>::rows == (SI::type == CUBE ? 3 : SI::size) && EqualMat<P, DX> && EqualMat<P, DY>
+			> >
+				Vec< SI::scalar_type, 4> textureGrad(S&& sampler, P&& point, DX&& dx, DY&& dy) {
+				return {
+					createFCallExp("textureGrad", EX(S, sampler) , EX(P, point), EX(DX, dx), EX(DY, dy))
+				};
 			}
 
 			template<typename A, typename B, typename C, typename = std::enable_if_t<
