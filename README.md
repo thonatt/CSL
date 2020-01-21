@@ -252,9 +252,9 @@ Swizzles are GLSL-specific operators for verstatile vector components acces. In 
         
   ```cpp
 using namespace csl::swizzles::rgba;
-mat4 cols("cols");
-vec4 col("col");
-vec4 out("out");
+mat4 cols;
+vec4 col;
+vec4 out;
 
 cols[0] = CSL_TERNARY(col[r] > 0, col, 1.0 - col);
 
@@ -447,33 +447,33 @@ Functions in CSL are objects that can be created using the `declareFunc` templat
     <td>
   
 ```cpp
-   void function_0() {
-   }
+void f0() {
+}
 
-   vec3 add(vec3 a, vec3 b) {
-      return a + b;
-   }
+vec3 add(vec3 a, vec3 b) {
+  return a + b;
+}
 
-   int function_1(int int_1, int b, int int_0) {
-      return int_1 + b + int_0;
-   }
+int f1(int x1, int b, int x0) {
+  return x1 + b + x0;
+}
 
-   vec3 function_2(vec3 vec3_2, vec3 vec3_1) {
-      function_0();
-      return add(vec3_2, -vec3_1);
-   }
+vec3 f2(vec3 v2, vec3 v1) {
+  f0();
+  return add(v2, -v1);
+}
 
-   vec3 square(vec3 a) {
-      return a*a;
-   }
+vec3 square(vec3 a) {
+  return a*a;
+}
 
-   ivec3 square(ivec3 b) {
-      return b*b;
-   }
+ivec3 square(ivec3 b) {
+  return b*b;
+}
 
-   void square() {
-      return;
-   }
+void square() {
+  return;
+}
 ```
 </td> 
   </tr>
@@ -740,16 +740,16 @@ The use of C++ as a meta-languages for CSL has limitations. For example, CSL sco
 		using namespace csl::swizzles::rgba;
 
 		Shader shader;
-		Uniform<sampler2D> samplerA("samplerA"), samplerB("samplerB");
-		In<vec2> uvs("uvs");
-		Out<vec4> color("color");
+		Uniform<sampler2D> samplerA, samplerB;
+		In<vec2> uvs;
+		Out<vec4> color;
 
 		shader.main([&] {
-			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle)) << "sampling_dir";
+			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
 
 			constexpr int N = decltype(template_parameter)::value;
-			Array<vec4, 2 * N + 1> cols("cols");
-			CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
+			Array<vec4, 2 * N + 1> cols;
+			CSL_FOR(Int i = Int(-N); i <= N; ++i) {
 				cols[N + i] = vec4(0);
 				for (auto& sampler : { samplerA, samplerB }) {
 					cols[N + i] += texture(sampler, uvs + i * sampling_dir);
