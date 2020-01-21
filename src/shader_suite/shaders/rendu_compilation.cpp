@@ -9,7 +9,7 @@ std::string blurShader()
 
 	Shader shader;
 
-	GL_INTERFACE_BLOCK(In<>, Interface, In, ,
+	CSL_INTERFACE_BLOCK(In<>, Interface, In, ,
 		(vec2) uv
 	);
 
@@ -42,7 +42,7 @@ std::string ambiantShader()
 	unsigned int SAMPLES_COUNT = 16u;
 	int MAX_LOD = 5;
 
-	GL_INTERFACE_BLOCK(In<>, Interface, In, ,
+	CSL_INTERFACE_BLOCK(In<>, Interface, In, ,
 		(vec2) uv
 	);
 
@@ -65,7 +65,7 @@ std::string ambiantShader()
 		Float depth2 = 2.0 * depth - 1.0 << "depth2";
 		vec2 ndcPos = 2.0 * In.uv - 1.0 << "ndcPos";
 		Float viewDepth = -projectionMatrix[w] / (depth2 + projectionMatrix[z]) << "viewDepth";
-		GL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
+		CSL_RETURN(vec3(-ndcPos * viewDepth / projectionMatrix[x, y], viewDepth));
 	});
 
 	auto ggx = declareFunc<vec3>("ggx", 
@@ -75,12 +75,12 @@ std::string ambiantShader()
 		ref = normalize((inverseV * vec4(ref, 0.0))[x, y, z]);
 		vec2 brdfParams = texture(brdfPrecalc, vec2(NdotV, roughness))[r, g] << "brdfParams";
 		vec3 specularColor = textureLod(textureCubeMap, ref, MAX_LOD * roughness)[r, g, b] << "specularColor";
-		GL_RETURN(specularColor * (brdfParams[x] * F0 + brdfParams[y]));
+		CSL_RETURN(specularColor * (brdfParams[x] * F0 + brdfParams[y]));
 	});
 
 
 	auto applySH = declareFunc<vec3>("applySH", [&](vec3 wn = "wn") {
-		GL_RETURN((shCoeffs[7] * wn[z] + shCoeffs[4] * wn[y] + shCoeffs[8] * wn[x] + shCoeffs[3]) * wn[x] +
+		CSL_RETURN((shCoeffs[7] * wn[z] + shCoeffs[4] * wn[y] + shCoeffs[8] * wn[x] + shCoeffs[3]) * wn[x] +
 			(shCoeffs[5] * wn[z] - shCoeffs[8] * wn[y] + shCoeffs[1]) * wn[y] +
 			(shCoeffs[6] * wn[z] + shCoeffs[2]) * wn[z] +
 			shCoeffs[0]);
@@ -89,9 +89,9 @@ std::string ambiantShader()
 	shader.main([&] {
 		vec4 albedoInfo = texture(albedoTexture, In.uv) << "albedoInfo";
 
-		GL_IF(albedoInfo[a] == 0) {
+		CSL_IF(albedoInfo[a] == 0) {
 			fragColor = albedoInfo[r, g, b];
-			GL_RETURN;
+			CSL_RETURN;
 		}
 		lineBreak();
 
@@ -135,7 +135,7 @@ std::string ssaoShader()
 
 	Shader shader;
 
-	GL_INTERFACE_BLOCK(In<>, Interface, in, ,
+	CSL_INTERFACE_BLOCK(In<>, Interface, in, ,
 		(vec2) uv
 	);
 
@@ -153,22 +153,22 @@ std::string ssaoShader()
 	auto linearizeDepth = declareFunc<Float>("linearizeDepth", [&](Float depth = "depth") {
 		Float depth2 = 2.0*depth - 1.0 << "depth2";
 		Float viewDepth = -projectionMatrix[3][2] / (depth2 + projectionMatrix[2][2]) << "viewDepth";
-		GL_RETURN(viewDepth);
+		CSL_RETURN(viewDepth);
 	});
 
 	auto positionFromUV = declareFunc<vec3>("positionFromUV", [&](vec2 uv = "uv") {
 		Float depth = texture(depthTexture, uv)[r] << "depth";
 		Float viewDepth = linearizeDepth(depth) << "viewDepth";
 		vec2 ndcPos = 2.0 * uv - 1.0 << "ndcPos";
-		GL_RETURN(vec3(-ndcPos * viewDepth / vec2(projectionMatrix[0][0], projectionMatrix[1][1]), viewDepth));
+		CSL_RETURN(vec3(-ndcPos * viewDepth / vec2(projectionMatrix[0][0], projectionMatrix[1][1]), viewDepth));
 	});
 
 	shader.main([&] {
 		vec3 n = normalize(2.0 * texture(normalTexture, in.uv)[r, g, b] - 1.0) << "n";
 
-		GL_IF(length(n) < 0.1) {
+		CSL_IF(length(n) < 0.1) {
 			fragColor = 1.0;
-			GL_RETURN;
+			CSL_RETURN;
 		}
 
 		vec3 randomOrientation = texture(noiseTexture, gl_FragCoord[x, y] / 5.0)[r, g, b] << "randomOrientation";
@@ -180,7 +180,7 @@ std::string ssaoShader()
 		vec3 position = positionFromUV(in.uv) << "position";
 
 		Float occlusion = Float(0.0) << "occlusion";
-		GL_FOR(Int i = Int(0) << "i"; i < 24; ++i) {
+		CSL_FOR(Int i = Int(0) << "i"; i < 24; ++i) {
 
 			vec3 randomSample = position + radius * tbn * samples[i] << "randomSample";
 
@@ -188,9 +188,9 @@ std::string ssaoShader()
 			vec2 sampleUV = (sampleClipSpace[x, y] / sampleClipSpace[w]) * 0.5 + 0.5 << "sampleUV";
 
 			Float sampleDepth = linearizeDepth(texture(depthTexture, sampleUV)[r]) << "sampleDepth";
-			Float isValid = GL_TERNARY(abs(position[z] - sampleDepth) < radius, 1.0, 0.0) << "isValid";
+			Float isValid = CSL_TERNARY(abs(position[z] - sampleDepth) < radius, 1.0, 0.0) << "isValid";
 
-			occlusion += GL_TERNARY(sampleDepth >= randomSample[z], isValid, 0.0);
+			occlusion += CSL_TERNARY(sampleDepth >= randomSample[z], isValid, 0.0);
 		}
 
 		occlusion = 1.0 - (occlusion / 24.0);

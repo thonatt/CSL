@@ -235,14 +235,14 @@ namespace csl {
 				Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE
 			> >
 				Float length(A && v) {
-				return Float(createFCallExp("length", getExp<A>(v)));
+				return Float(createFCallExp("length", EX(A, v)));
 			}
 
 			template<typename A, typename B, typename = std::enable_if_t<
 				Infos<A>::cols == 1 && Infos<A>::scalar_type == DOUBLE && Infos<B>::cols == 1 && Infos<B>::scalar_type == DOUBLE
 			> >
 				Float distance(A && a, B && b) {
-				return Float(createFCallExp("distance", getExp<A>(a), getExp<B>(b)));
+				return Float(createFCallExp("distance", EX(A, a), EX(B, b)));
 			}
 
 			template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,

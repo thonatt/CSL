@@ -9,32 +9,32 @@ void testSwitch()
 	using namespace csl::swizzles::all;
 
 	Uint i = Uint(0u) << "i";
-	GL_SWITCH(i) {
-		GL_CASE(1u) : {
+	CSL_SWITCH(i) {
+		CSL_CASE(1u) : {
 			++i;
-			GL_FOR(Int j = 0; j < 5; ++j) {
+			CSL_FOR(Int j = 0; j < 5; ++j) {
 				i += 2;
 			}
-			GL_IF(i > 6) {
-				GL_SWITCH(j) {
-					GL_CASE(12) : {
-						GL_BREAK;
+			CSL_IF(i > 6) {
+				CSL_SWITCH(j) {
+					CSL_CASE(12) : {
+						CSL_BREAK;
 					}
-				GL_DEFAULT: {}
+				CSL_DEFAULT: {}
 				}
-			} GL_ELSE{
+			} CSL_ELSE{
 				--i;
 			}
-			GL_BREAK;
+			CSL_BREAK;
 		}
 
-		GL_CASE(2u) : { --i; }
+		CSL_CASE(2u) : { --i; }
 
-	GL_DEFAULT: { i += 2; }
+	CSL_DEFAULT: { i += 2; }
 	}
 
 	Bool bb("bb");
-	GL_FOR(Int k = Int(0) << "k"; bb; ++k) {
+	CSL_FOR(Int k = Int(0) << "k"; bb; ++k) {
 		k *= 2;
 	}
 }
@@ -49,12 +49,12 @@ void testStructsMacros()
 
 
 	using MyMats = Array<mat4, 12>;
-	GL_STRUCT(InnerBlock,
+	CSL_STRUCT(InnerBlock,
 		(MyMats) mats
 	);
 
 	using MyArray = Array<InnerBlock, 12>;
-	GL_INTERFACE_BLOCK(Out<>, BasicBlock, basic, 7,
+	CSL_INTERFACE_BLOCK(Out<>, BasicBlock, basic, 7,
 		(vec3) myVec3,
 		(MyArray) myInnerBlocks,
 		(Array<uvec4>::Size<8>) uintsArray
@@ -101,13 +101,13 @@ void testArgCleaning()
 	//call_f_non_default_args_empty(g);
 
 	auto add = declareFunc<vec3, mat4, void>("add",
-		[](vec3 a = "a", vec3 b = "b") { GL_RETURN(a + b); },
-		[](mat4 a, mat4 b = "chosen", mat4 c = "") { GL_RETURN(a + b + c); },
+		[](vec3 a = "a", vec3 b = "b") { CSL_RETURN(a + b); },
+		[](mat4 a, mat4 b = "chosen", mat4 c = "") { CSL_RETURN(a + b + c); },
 		[] {}
 	);
 
 	auto nulll = declareFunc<void>(
-		[]{ GL_RETURN; }
+		[]{ CSL_RETURN; }
 	);
 
 	//auto notenough = declareFunc<>("notenough");
@@ -118,8 +118,8 @@ void testArgCleaning()
 	//
 	std::cout << shader.str() << std::endl;
 
-	//auto ff = [](vec3 a = "a", vec3 b = "b") { GL_RETURN(a + b); };
-	//auto gg = [](mat4 a, mat4 b) { GL_RETURN(a + b); };
+	//auto ff = [](vec3 a = "a", vec3 b = "b") { CSL_RETURN(a + b); };
+	//auto gg = [](mat4 a, mat4 b) { CSL_RETURN(a + b); };
 
 
 	//using F = decltype(ff);

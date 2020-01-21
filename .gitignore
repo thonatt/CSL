@@ -1,5 +1,1 @@
-/build/
-/build-gcc/
-/build-clang/
-/build_gcc/
-/build_visual/
+/build*/

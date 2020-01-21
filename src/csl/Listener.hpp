@@ -362,7 +362,7 @@ namespace csl {
 
 		inline MatrixConvertor<Bool>::operator bool() &
 		{
-			//needed as any [variable;] in GL_FOR wont generate any instruction
+			//needed as any [variable;] in CSL_FOR wont generate any instruction
 			//listen().stack_for_condition(NamedObjectBase::getExRef());
 
 			listen().stack_for_condition(static_cast<Bool &>(*this).getExRef());
@@ -380,8 +380,8 @@ namespace csl {
 		};
 
 		template<typename B, typename A, typename C, typename I = Infos<A>, typename = std::enable_if_t<
-			EqualMat<B, Bool> && EqualMat<A, C>
-			>> Matrix< I::scalar_type, I::rows, I::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
+			EqualMat<B, Bool> && EqualMat<A, C> >> 
+			Matrix< I::scalar_type, I::rows, I::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
 			return { createExp<Ternary>(EX(B,condition), EX(A,lhs), EX(C,rhs)) };
 		}
 
@@ -389,44 +389,44 @@ namespace csl {
 
 	inline void lineBreak(int n = 1) { core::listen().add_blank_line(n); }
 
-#define GL_RETURN core::ReturnKeyword csl_return_statement
+#define CSL_RETURN core::ReturnKeyword csl_return_statement
 
-#define GL_FOR(...) \
+#define CSL_FOR(...) \
 	core::listen().begin_for(); core::listen().active() = false; for( __VA_ARGS__ ){break;} core::listen().active() = true;  \
 	core::listen().begin_for_args(); __VA_ARGS__;  core::listen().begin_for_body(); \
 	for(core::EndFor csl_dummy_for; csl_dummy_for; )
 
-#define GL_IF(condition) \
+#define CSL_IF(condition) \
 	core::listen().check_begin_if(); core::listen().begin_if(condition); if(core::BeginIf csl_begin_if = {})
 
-#define GL_ELSE \
+#define CSL_ELSE \
 	else {} core::listen().begin_else(); if(core::BeginElse csl_begin_else = {}) {} else 
 
-#define GL_ELSE_IF(condition) \
+#define CSL_ELSE_IF(condition) \
 	else if(false){} core::listen().delay_end_if(); core::listen().begin_else_if(condition); if(false) {} else if(core::BeginIf csl_begin_else_if = {})
 
-#define GL_CONTINUE \
+#define CSL_CONTINUE \
 	core::listen().add_statement<core::ContinueStatement>();
 
-#define GL_DISCARD \
+#define CSL_DISCARD \
 	core::listen().add_statement<core::DiscardStatement>();
 
-#define GL_BREAK \
+#define CSL_BREAK \
 	if(false){break;} core::listen().add_statement<core::BreakStatement>();
 
-#define GL_WHILE(condition) \
+#define CSL_WHILE(condition) \
 	core::listen().begin_while(condition); for(core::BeginWhile csl_begin_while = {}; csl_begin_while; )
 
-#define GL_SWITCH(condition) \
+#define CSL_SWITCH(condition) \
 	core::listen().begin_switch(condition); switch(core::BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
 
-#define GL_CASE(value) \
+#define CSL_CASE(value) \
 	core::listen().begin_switch_case(value); case value 
 
-#define GL_DEFAULT \
+#define CSL_DEFAULT \
 	core::listen().begin_switch_case(); default
 
-#define GL_TERNARY(...) core::csl_ternary( __VA_ARGS__ )
+#define CSL_TERNARY(...) core::csl_ternary( __VA_ARGS__ )
 
 }
 

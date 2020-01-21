@@ -15,21 +15,21 @@ std::string eightiesShader() {
 				Float fc = fract(p);
 				Float rand0 = fract(sin(fl) * 43758.5453123);
 				Float rand1 = fract(sin(fl + 1.0) * 43758.5453123);
-				GL_RETURN(mix(rand0, rand1, fc));
+				CSL_RETURN(mix(rand0, rand1, fc));
 			},
 			[](vec4 p) {
 				vec4 fl = floor(p);
 				vec4 fc = fract(p);
 				vec4 rand0 = fract(sin(fl) * 43758.5453123);
 				vec4 rand1 = fract(sin(fl + 1.0) * 43758.5453123);
-				GL_RETURN(mix(rand0, rand1, fc));
+				CSL_RETURN(mix(rand0, rand1, fc));
 			}
 	);
 
 	auto hash = declareFunc<Float>([](vec2 p) {
 		vec3 p3 = fract(p[x, y, x] * 0.2831);
 		p3 += dot(p3, p3[y, z, x] + 19.19);
-		GL_RETURN(fract((p3[x] + p3[y]) * p3[z]));
+		CSL_RETURN(fract((p3[x] + p3[y]) * p3[z]));
 	});
 
 	/// Background utilities.
@@ -40,7 +40,7 @@ std::string eightiesShader() {
 		Float brightness = smoothstep(1.0 - starsDens, 1.0, hash(floor(p)));
 		// Apply soft transition between the stars and the background.
 		const Float startsTh = 0.5;
-		GL_RETURN(smoothstep(startsTh, 0.0, length(fract(p) - 0.5)) * brightness);
+		CSL_RETURN(smoothstep(startsTh, 0.0, length(fract(p) - 0.5)) * brightness);
 	});
 
 	auto segmentDistance = declareFunc<Float>([](vec2 p, vec2 a, vec2 b) {
@@ -50,7 +50,7 @@ std::string eightiesShader() {
 		Float t = clamp(dot(p - a, dir) / len2, 0.0, 1.0);
 		vec2 proj = a + t * dir;
 		// Distance between the point and its projection.
-		GL_RETURN(distance(p, proj));
+		CSL_RETURN(distance(p, proj));
 	});
 
 	auto triangleDistance = declareFunc<Float>([&](vec2 p, vec4 tri, Float width) {
@@ -61,14 +61,14 @@ std::string eightiesShader() {
 		minDist = min(minDist, segmentDistance(p, tri[x, y], tri[z, w]));
 		minDist = min(minDist, segmentDistance(p, tri[z, w], point0));
 		// Smooth result for transition.
-		GL_RETURN(1.0 - smoothstep(0.0, width, minDist));
+		CSL_RETURN(1.0 - smoothstep(0.0, width, minDist));
 	});
 
 	/// Text utilities.
 	auto getLetter = declareFunc<Float>([&](Int lid, vec2 uv) {
 		// If outside, return arbitrarily high distance.
-		GL_IF(uv[x] < 0.0 || uv[y] < 0.0 || uv[x] > 1.0 || uv[y] > 1.0) {
-			GL_RETURN(1000.0);
+		CSL_IF(uv[x] < 0.0 || uv[y] < 0.0 || uv[x] > 1.0 || uv[y] > 1.0) {
+			CSL_RETURN(1000.0);
 		}
 		// The font texture is 16x16 glyphs.
 		Int vlid = lid / 16;
@@ -76,13 +76,13 @@ std::string eightiesShader() {
 		vec2 fontUV = (vec2(hlid, vlid) + uv) / 16.0;
 		// Fetch in a 3x3 neighborhood to box blur
 		Float accum = 0.0;
-		GL_FOR(Int i = -1; i < 2; ++i) {
-			GL_FOR(Int j = -1; j < 2; ++j) {
+		CSL_FOR(Int i = -1; i < 2; ++i) {
+			CSL_FOR(Int j = -1; j < 2; ++j) {
 				vec2 offset = vec2(i, j) / 1024.0;
 				accum += texture(iChannel0, fontUV + offset, 0.0)[a];
 			}
 		}
-		GL_RETURN(accum / 9.0);
+		CSL_RETURN(accum / 9.0);
 	});
 
 	auto textGradient = declareFunc<vec3>([](Float interior, Float top, vec2 alphas) {
@@ -96,7 +96,7 @@ std::string eightiesShader() {
 		// Blend based on current location.
 		vec3 gradInterior = mix(bottomInterior, topInterior, top);
 		vec3 gradExterior = mix(bottomExterior, topExterior, top);
-		GL_RETURN(mix(gradExterior, gradInterior, interior));
+		CSL_RETURN(mix(gradExterior, gradInterior, interior));
 	});
 
 	/// Main render.
@@ -111,7 +111,7 @@ std::string eightiesShader() {
 		vec3 finalColor = 1.5 * mix(vec3(0.308, 0.066, 0.327), vec3(0.131, 0.204, 0.458), uv[x]);
 
 		const Float gridHeight = 0.3;
-		GL_IF(uv[y] < gridHeight) {
+		CSL_IF(uv[y] < gridHeight) {
 
 			/// Bottom grid.
 			// Compute local cflipped oordinates for the grid.
@@ -141,7 +141,7 @@ std::string eightiesShader() {
 			// Composite grid lines and halos.
 			finalColor += 0.15 * gridAlpha * (1.0 + 5.0 * spotLight);
 
-		} GL_ELSE{
+		} CSL_ELSE{
 			/// Starfield.
 			// Compensate aspect ratio for circular stars.
 			vec2 ratioUVs = uv * vec2(1.0, iResolution[y] / iResolution[x]);
@@ -189,7 +189,7 @@ std::string eightiesShader() {
 		/// Letters.
 		// Centered UVs for text box.
 		vec2 textUV = uvCenter * 2.2 - vec2(0.0, 0.5);
-		GL_IF(abs(textUV[x]) < 1.0 && abs(textUV[y]) < 1.0) {
+		CSL_IF(abs(textUV[x]) < 1.0 && abs(textUV[y]) < 1.0) {
 			// Rescale UVs.
 			textUV = textUV * 0.5 + 0.5;
 			textUV[x] *= 3.5;
@@ -216,7 +216,7 @@ std::string eightiesShader() {
 			// Evaluate final mixed color gradient.
 			vec3 textColor = textGradient(isInt, isTop, gradientBlend);
 			// Add sharp reflection along a flat diagonal.
-			GL_IF(textUV[x] - 20.0 * textUV[y] < -14.0 || textUV[x] - 20.0 * textUV[y] > -2.5) {
+			CSL_IF(textUV[x] - 20.0 * textUV[y] < -14.0 || textUV[x] - 20.0 * textUV[y] > -2.5) {
 				textColor += 0.1;
 			}
 			// Soft letter edges.

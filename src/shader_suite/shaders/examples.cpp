@@ -56,9 +56,13 @@ void swizzling_example()
 
 	Shader shader;
 
+	mat4 cols("cols");
 	vec4 col("col");
 	vec4 out("out");
-	out[b, g, r] = col[r, g, b];
+
+	cols[0] = CSL_TERNARY(col[r] > 0, col, 1.0 - col);
+
+	//can you guess what is actually assigned ?
 	out[a] = col[a, b, g][b, g][r];
 
 	std::cout << shader.str() << std::endl;
@@ -106,37 +110,37 @@ void functions_example()
 	Shader shader;
 
 	//empty function
-	auto fun = declareFunc<void>([] { });
+	auto fun = declareFunc<void>([] {});
 
 	//named function with named parameters
 	auto add = declareFunc<vec3>("add",
 		[](vec3 a = "a", vec3 b = "b") {
-			GL_RETURN(a + b);
+			CSL_RETURN(a + b);
 		}
 	);
 
 	//function with some named parameters
 	auto addI = declareFunc<Int>(
 		[](Int a, Int b = "b", Int c = "") {
-			GL_RETURN(a + b + c);
+			CSL_RETURN(a + b + c);
 		}
 	);
 
 	////function calling another function
 	auto sub = declareFunc<vec3>([&](vec3 a, vec3 b) {
 		fun();
-		GL_RETURN(add(a, -b));
+		CSL_RETURN(add(a, -b));
 	});
 
 	//named function with overload
 	auto square = declareFunc<vec3, ivec3, void>( "square",
 		[](vec3 a = "a") {
-			GL_RETURN(a*a);
+			CSL_RETURN(a*a);
 		}, 
 		[](ivec3 b = "b") {
-			GL_RETURN(b*b);
+			CSL_RETURN(b*b);
 		},
-		[] { GL_RETURN; }
+		[] { CSL_RETURN; }
 	);
 
 	std::cout << shader.str() << std::endl;
@@ -149,17 +153,17 @@ void structure_stratements_example()
 	Shader shader;
 
 	//empty for
-	GL_FOR(;;) { GL_BREAK; }
+	CSL_FOR(;;) { CSL_BREAK; }
 
 	//named function with named parameters
-	GL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
-		GL_IF(i == 3) {
+	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
+		CSL_IF(i == 3) {
 			++i;
-			GL_CONTINUE;
-		} GL_ELSE_IF(i < 3) {
+			CSL_CONTINUE;
+		} CSL_ELSE_IF(i < 3) {
 			i += 3;
-		} GL_ELSE {
-			GL_FOR(; i > 1;)
+		} CSL_ELSE {
+			CSL_FOR(; i > 1;)
 				--i;
 		}
 	}
@@ -167,8 +171,8 @@ void structure_stratements_example()
 	//Int i; 
 
 	{
-		GL_FOR(Int j = Int(0) << "j"; j < 5;) {
-			GL_WHILE(j != 3) {
+		CSL_FOR(Int j = Int(0) << "j"; j < 5;) {
+			CSL_WHILE(j != 3) {
 				++j;
 			}
 		}
@@ -176,10 +180,10 @@ void structure_stratements_example()
 	//OK since previous for was put in a scope
 	Int j("j");
 
-	GL_SWITCH(j) {
-		GL_CASE(0) : { GL_BREAK; }
-		GL_CASE(2) : { j = 3; }
-		GL_DEFAULT: { j = 2; }
+	CSL_SWITCH(j) {
+		CSL_CASE(0) : { CSL_BREAK; }
+		CSL_CASE(2) : { j = 3; }
+		CSL_DEFAULT: { j = 2; }
 	}
 
 	std::cout << shader.str() << std::endl;
@@ -191,13 +195,13 @@ void structs_examples() {
 	Shader shader;
 
 	//struct declaration
-	GL_STRUCT(MyBlock,
+	CSL_STRUCT(MyBlock,
 		(mat4) mvp,
 		(vec4) center
 	);
 
 	//nested struct
-	GL_STRUCT(MyBigBlock,
+	CSL_STRUCT(MyBigBlock,
 		(MyBlock) innerBlock,
 		(vec4) center
 	);
@@ -218,12 +222,12 @@ void interface_examples()
 	Shader shader;
 
 	//unnamed interface
-	GL_INTERFACE_BLOCK(In<>, SimpleInterface, , ,
+	CSL_INTERFACE_BLOCK(In<>, SimpleInterface, , ,
 		(Float) current_time
 	);
 
 	//named array interface with qualifiers
-	GL_INTERFACE_BLOCK(Out<Layout<Binding<0>>>, Output, out, 3,
+	CSL_INTERFACE_BLOCK(Out<Layout<Binding<0>>>, Output, out, 3,
 		(vec3) position,
 		(Float) velocity
 	);
@@ -239,10 +243,10 @@ void struct_interface_comma_examples()
 
 	Shader shader;
 
-	using Quali = Uniform<Layout<Binding<0>, Std140>>;
-	using vec4A = Array<vec4, 16>;
-	GL_INTERFACE_BLOCK(Quali, MyInterface, vars, 2,
-		(vec4A) myVecs,
+	using MyQualifier = Uniform<Layout<Binding<0>, Std140>>;
+	using vec4x16 = Array<vec4, 16>;
+	CSL_INTERFACE_BLOCK(MyQualifier, MyInterface, vars, 2,
+		(vec4x16) myVecs,
 		(Array<mat4>::Size<4>) myMats
 	);
 
@@ -275,27 +279,29 @@ void shader_stage_options()
 
 void meta_variations()
 {
-	auto shader_variation = [](auto template_parameter, double sampling_angle, bool gamma_correction) {
+	auto shader_variation =
+		[](auto template_parameter, double sampling_angle, bool gamma_correction) 
+	{
 			
 		using namespace csl::frag_430;
-		using namespace swizzles::rgba;
+		using namespace csl::swizzles::rgba;
 
 		Shader shader;
 		Uniform<sampler2D> samplerA("samplerA"), samplerB("samplerB");
 		In<vec2> uvs("uvs");
 		Out<vec4> color("color");
 
-		shader.main([&]{
+		shader.main([&] {
 			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle)) << "sampling_dir";
 
 			constexpr int N = decltype(template_parameter)::value;
-			Array<vec4, N> cols("cols");
-			GL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
-				cols[i] = vec4(0);
-				for (auto & sampler : { samplerA, samplerB }) {
-					cols[i] += texture(sampler, uvs + i * sampling_dir);
+			Array<vec4, 2 * N + 1> cols("cols");
+			CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
+				cols[N + i] = vec4(0);
+				for (auto& sampler : { samplerA, samplerB }) {
+					cols[N + i] += texture(sampler, uvs + i * sampling_dir);
 				}
-				color += cols[i] / Float(2*N);
+				color += cols[N + i] / Float(2 * N + 1);
 			}
 
 			if (gamma_correction) {
@@ -303,12 +309,11 @@ void meta_variations()
 			}
 		});
 
-		return shader.str();
+		std::cout << shader.str() << std::endl;
 	};
-
-	std::cout << 
-		shader_variation(csl::ConstExpr<int,9>{}, 0, true) <<
-		shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
+ 
+	shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
+	shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
 }
 
 std::string phongShading() {

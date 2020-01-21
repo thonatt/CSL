@@ -53,16 +53,16 @@ std::string transfeedBackVertex()
 		Float phi = mix(0.0, 2.0 * pi, texelFetch(RandomTex, 3 * gl_VertexID + 1, 0)[r]) << "phi";
 		Float velocity = mix(1.25, 1.5, texelFetch(RandomTex, 3 * gl_VertexID + 2, 0)[r]) << "velocity";
 		vec3 v = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) << "v";
-		GL_RETURN(normalize(EmitterBasis * v) * velocity);
+		CSL_RETURN(normalize(EmitterBasis * v) * velocity);
 	});
 
 	auto update = declareFunc<void>("update", [&] {
-		GL_IF(VertexAge < 0 || VertexAge > ParticleLifetime) {
+		CSL_IF(VertexAge < 0 || VertexAge > ParticleLifetime) {
 			Position = Emitter;
 			Velocity = randomInitialVelocity();
-			GL_IF(VertexAge < 0) Age = VertexAge + DeltaT;
-			GL_ELSE Age = (VertexAge - ParticleLifetime) + DeltaT;
-		} GL_ELSE{
+			CSL_IF(VertexAge < 0) Age = VertexAge + DeltaT;
+			CSL_ELSE Age = (VertexAge - ParticleLifetime) + DeltaT;
+		} CSL_ELSE{
 			Position = VertexPosition + VertexVelocity * DeltaT;
 			Velocity = VertexVelocity + Accel * DeltaT;
 			Age = VertexAge + DeltaT;
@@ -72,7 +72,7 @@ std::string transfeedBackVertex()
 	auto render = declareFunc<void>("render", [&] {
 		Transp = 0.0;
 		vec3 posCam = vec3(0.0) << "posCam";
-		GL_IF(VertexAge >= 0.0) {
+		CSL_IF(VertexAge >= 0.0) {
 			posCam = (MV * vec4(VertexPosition, 1))[x, y, z] + offsets[gl_VertexID] * ParticleSize;
 			Transp = clamp(1.0 - VertexAge / ParticleLifetime, 0, 1);
 		}
@@ -81,9 +81,9 @@ std::string transfeedBackVertex()
 	});
 
 	shader.main([&] {
-		GL_IF(Pass == 1)
+		CSL_IF(Pass == 1)
 			update();
-		GL_ELSE
+		CSL_ELSE
 			render();
 	});
 
@@ -106,12 +106,12 @@ std::string discardFrag()
 	shader.main([&]() {
 		Float scale = Float(15.0) << "scale";
 		bvec2 toDiscard = greaterThan(fract(TexCoord*scale), vec2(0.2, 0.2)) << "toDiscard";
-		GL_IF(all(toDiscard)) {
-			GL_DISCARD;
-		} GL_ELSE{
-			GL_IF(gl_FrontFacing) {
+		CSL_IF(all(toDiscard)) {
+			CSL_DISCARD;
+		} CSL_ELSE{
+			CSL_IF(gl_FrontFacing) {
 				FragColor = vec4(FrontColor, 1.0);
-			} GL_ELSE {
+			} CSL_ELSE {
 				FragColor = vec4(BackColor, 1.0);
 			}
 		}

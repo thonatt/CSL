@@ -508,6 +508,7 @@ namespace csl {
 	//
 	template<typename T, T _value>
 	struct ConstExpr {
+		using Type = T;
 		static constexpr T value = _value;
 	};
 

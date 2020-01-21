@@ -100,7 +100,7 @@
 
 //actual macros
 
-#define GL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, ... ) \
+#define CSL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, ... ) \
 	static_assert(CSL_PP_NOT_EMPTY(Qualifier), "interface block must have In, Out or Uniform qualifier"); \
 	CSL_PP_IF_EMPTY(Name, \
 		CSL_PP_UNNAMED_INTERFACE, \
@@ -109,7 +109,7 @@
 		Qualifier, Typename, Name, ArraySize, __VA_ARGS__ \
 	)
 
-#define GL_STRUCT(StructTypename,...)  \
+#define CSL_STRUCT(StructTypename,...)  \
 	core::listen().add_struct<true CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) >(CSL_PP_STR(StructTypename) \
 				CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	\
