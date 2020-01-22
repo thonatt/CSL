@@ -2,22 +2,22 @@
 
 # C++ integrated Shading Language
 
-CSL is a C++ header-only library, self-transpiling into GLSL. It allows to write OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time by the C++ compiler, while a string corresponding to the GLSL code is produced at run-time by the graphic application. CSL can be considered as some kind of inlined GLSL compiler. This project goals are to provide convenient and maintainable shader writing thanks to :
+CSL is a C++ header-only library, self-transpiling into GLSL. It allows to write OpenGL shaders directly inside computer graphics applications code. The concept is that shader correctness is checked at compile-time by the C++ compiler, while a string corresponding to the GLSL code is produced at run-time by the graphic application. CSL can be considered as some kind of inlined GLSL compiler, meaning that if the shader should not compile, the application should not compile either. This project goals are to provide convenient and maintainable shader writing thanks to :
 
 + Having a syntax as close as possible to GLSL.
 + Having the shader code directly in the C++ code.
-+ Checking GLSL specification compliance at compile-time as much as possible.
++ Checking GLSL specification compliance at C++ compile-time as much as possible.
 + The possibility to use C++ as meta language for generic shader generation.
 
-CSL requires a C++14 complient compiler. It was tested on Visual Studio 2017, GCC 8.3.0 and Clang (Apple LLVM version 10.0.1).
-CSL does not require any dependency as it relies only on the STL and [some Boost Preprocessor files](https://github.com/thonatt/CSL/blob/master/src/boost/headers_used.txt) which are included in the repo.
+CSL requires a C++14 compliant compiler. It built successfully using Visual Studio (Windows), Clang (Windows, Linux, Apple), and GCC (Linux).
+CSL does not require any external dependency as it relies only on the STL and some [Boost Preprocessor files](https://github.com/thonatt/CSL/blob/master/src/boost/headers_used.txt) which are included in the repo.
 
-CSL also provides a [shader suite](https://github.com/thonatt/CSL/tree/master/src/shader_suite/) application, which show several CSL shaders, from didactic examples to more complex shaders such as [dolphin's ubershaders](https://github.com/thonatt/CSL/blob/master/src/shader_suite/shaders/dolphin.cpp). The application can be built using for example CMake.
+This repo contains the [CSL source files](https://github.com/thonatt/CSL/tree/master/src/csl). It also contains a [shader suite application](https://github.com/thonatt/CSL/tree/master/src/shader_suite/), which shows several CSL shaders, from didactic examples to more complex shaders such as [Dolphin's ubershaders](https://github.com/thonatt/CSL/blob/master/src/shader_suite/shaders/dolphin.cpp). The application can be built using for example CMake.
 
-CSL is a template-heavy library and compilation is currently quite slow. however, the run-time generation is pretty fast. The whole shader suite takes approximately 20ms to be generated. 
+CSL is a template-heavy library and compilation is currently noticeably slow. The run-time shader generation is however pretty fast. The whole shader suite, including all the examples present in this readme, takes approximately 5 ms to be generated. 
 
 
-**Disclaimer** : This project is a work in progress. The goal is to first make possible what is legal in GLSL. In a second time, the goal will be to make impossible what is not valid in GLSL. While there is already a lot to play with, the current coverage of the GLSL specification is only partial. The [syntax section](#csl-syntax) gives a nice preview of what is currently available.
+**Disclaimer** : This project is a work in progress. While there is already a lot to play with, the current coverage of the different GLSL specifications is only partial. Many functions or language features are missing. The [syntax section](#csl-syntax) gives a nice preview of what is currently available. The goal is to first make possible what is legal in GLSL. In a second time, the goal will be to make impossible what is not valid in GLSL. 
 
 # Setup
 
@@ -67,6 +67,12 @@ int main() {
 
 For readability purposes, all outputs are shown as if the code used named variables. Please check the [naming variables](#naming-variables) section for more details about the actual output.
 
+# Credits
+
+Developped by [thonatt](https://github.com/thonatt), initially from frustration coming from shader writing, but in the end mostly to learn advanced template programming and explore C++ dark corners.
+
+Special thanks to [Simon Rodriguez](https://github.com/kosua20) for decisive positive feedback about the initial project concept, the help with compilers cross-checking, and for many of the shaders examples.
+
 # CSL syntax
 
 As GLSL and C++ share a common C base language, their syntax are quite similar. However, the goal of CSL is to write C++ code that can perform introspection, while keeping a syntax close to GLSL, meaning that some tradeoffs had to be made. This section covers the subtleties of the CSL syntax (hopefully nothing too repulsive !). It is also a summary of what is possible in CSL:
@@ -83,7 +89,7 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 
 ## Shader setup
 
-Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Only vertex, fragment, and geometry shaders are currently supported. 
+Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Only vertex, fragment, and geometry shaders are currently supported. A [shadertoy](https://www.shadertoy.com/) namespace is also available.
 
 Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`, which retrieves the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for en example.
 
@@ -238,7 +244,7 @@ As C++ and GLSL share a common C base syntax, most of the operators keywords are
 
 One exception is the ternary operator ` ? : `. Even if the synthax is identical between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a macro `CSL_TERNARY` with the 3 arguments.
 
-Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x` `y` `z` or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x];`. To prevent namespace pollution, each of these swizzle variable belongs to a specific namespace corresponding to its swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq`, and `csl::swizzles::all` which includes the previous three.
+Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x`, `y`, `z`, or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x];`. To prevent namespace pollution, each of these swizzle variable belongs to a specific namespace corresponding to its swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq`, and `csl::swizzles::all` which includes the previous three.
 
 <details>
     <summary>Swizzle examples</summary>
@@ -731,42 +737,42 @@ The use of C++ as a meta-languages for CSL has limitations. For example, CSL sco
   <tr>
     <td>
         
-  ```cpp
-	auto shader_variation =
-		[](auto template_parameter, double sampling_angle, bool gamma_correction) 
-	{
-			
-		using namespace csl::frag_430;
-		using namespace csl::swizzles::rgba;
+```cpp
+auto shader_variation =
+  [](auto template_parameter, double sampling_angle, bool gamma_correction) 
+{
+    
+  using namespace csl::frag_430;
+  using namespace csl::swizzles::rgba;
 
-		Shader shader;
-		Uniform<sampler2D> samplerA, samplerB;
-		In<vec2> uvs;
-		Out<vec4> color;
+  Shader shader;
+  Uniform<sampler2D> samplerA, samplerB;
+  In<vec2> uvs;
+  Out<vec4> color;
 
-		shader.main([&] {
-			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
+  shader.main([&] {
+    vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle));
 
-			constexpr int N = decltype(template_parameter)::value;
-			Array<vec4, 2 * N + 1> cols;
-			CSL_FOR(Int i = Int(-N); i <= N; ++i) {
-				cols[N + i] = vec4(0);
-				for (auto& sampler : { samplerA, samplerB }) {
-					cols[N + i] += texture(sampler, uvs + i * sampling_dir);
-				}
-				color += cols[N + i] / Float(2 * N + 1);
-			}
+    constexpr int N = decltype(template_parameter)::value;
+    Array<vec4, 2 * N + 1> cols;
+    CSL_FOR(Int i = Int(-N); i <= N; ++i) {
+      cols[N + i] = vec4(0);
+      for (auto& sampler : { samplerA, samplerB }) {
+        cols[N + i] += texture(sampler, uvs + i * sampling_dir);
+      }
+      color += cols[N + i] / Float(2 * N + 1);
+    }
 
-			if (gamma_correction) {
-				color[r, g, b] = pow(color[r, g, b], vec3(2.2));
-			}
-		});
+    if (gamma_correction) {
+      color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+    }
+  });
 
-		std::cout << shader.str() << std::endl;
-	};
- 
-	shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
-	shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
+  std::cout << shader.str() << std::endl;
+};
+
+shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
+shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
 ```
 </td>
     <td>

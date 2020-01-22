@@ -9,44 +9,8 @@
 #include <iostream>
 #include <chrono>
 
-#include <array>
-
-void printExamples() {
-	arrays_example();
-	swizzling_example();
-	auto_naming_example();
-	qualifier_example();
-	functions_example();
-	structure_stratements_example();
-	structs_examples();
-	interface_examples();
-	struct_interface_comma_examples();
-	shader_stage_options();
-	meta_variations();
-}
-
-template<int N> struct T {
-	void f() {}
-};
-
-
 int main()
 {
-
-	//auto test = [] {
-	//	static constexpr int N = 3;
-	//	T<N> n;
-	//	T<5> m;
-	//	
-	//	auto test2 = [&](auto p) {
-	//		//n.f();
-	//		p.f();
-	//		m.f();
-	//	};
-
-	//	test2(n);
-	//};
-
 	//test_accessor();
 	
 	//testArgCleaning();
@@ -55,45 +19,74 @@ int main()
 	//testInArgs();
 
 
-	printExamples();
-
 	auto start = std::chrono::steady_clock::now();
 
-	auto blur_str = blurShader();
+	// readme examples
+	std::string arrays_str = arrays_example();
+	std::string swizzling_str = swizzling_example();
+	std::string auto_naming_str = auto_naming_example();
+	std::string qualifier_str = qualifier_example();
+	std::string functions_str = functions_example();
+	std::string structure_str = structure_stratements_example();
+	std::string structs_str = structs_examples();
+	std::string interface_str = interface_examples();
+	std::string struct_interface_comma_str = struct_interface_comma_examples();
+	std::string shader_stage_str = shader_stage_options();
+	std::string variations_str = meta_variations();
 
-	auto ambiant_str = ambiantShader();
+	// Rendu
+	std::string blur_str = blurShader();
+	std::string ambiant_str = ambiantShader();
+	std::string ssao_str = ssaoShader();
 
-	auto ssao_str = ssaoShader();
-
-	auto discard_str = discardFrag();
-
-	auto transfeedBack_str = transfeedBackVertex();
+	// Shading Language Cookbook
+	std::string discard_str = discardFrag();
+	std::string transfeedBack_str = transfeedBackVertex();
 	
-	auto eightiesShader_str = eightiesShader();
+	// Shadertoy example
+	std::string eightiesShader_str = eightiesShader();
 
-	auto dolphin_vertex_str = dolphinVertex();
+	// Dolphin ubershaders
+	std::string dolphin_vertex_str = dolphinVertex();
+	std::string dolphin_frag_str = dolphinFragment();
 
-	auto dolphin_frag_str = dolphinFragment();
+	//basic shaders
+	std::string phongShading_str = phongShading();
+	std::string per_tri_normal_str = per_triangle_normal_geom();
 
-	auto phongShading_str = phongShading();
-
-	auto per_tri_normal_str = per_triangle_normal_geom();
-
+	//only measuring generation, not display
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
 
+	//display
 
-	//std::cout << blur_str;
-	//std::cout << ambiant_str;
-	//std::cout << ssao_str;
-	//std::cout << discard_str;
-	//std::cout << transfeedBack_str;
-	//std::cout << eightiesShader_str;
-	//std::cout << dolphin_vertex_str;
-	//std::cout << dolphin_frag_str;
-	//std::cout << phongShading_str;
-	std::cout << per_tri_normal_str;
+	auto seperator = [] {
+		for (int i = 0; i < 10; ++i) {
+			std::cout << "/////////";
+		}
+		std::cout << "\n\n";
+	};
 
-	std::cout << "elapsed time : " << duration.count() << std::endl;
+	for (std::string str : 
+		{ arrays_str, swizzling_str, auto_naming_str, qualifier_str ,
+		functions_str, structure_str, structs_str, interface_str,
+		struct_interface_comma_str, shader_stage_str, variations_str
+		})
+	{
+		std::cout << str;
+		seperator();
+	}
+
+	for (std::string str :
+		{ blur_str, ambiant_str, ssao_str, discard_str ,
+	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
+	dolphin_vertex_str, dolphin_frag_str
+		})
+	{
+		std::cout << str;
+		seperator();
+	}
+
+	std::cout << "shader generation elapsed time : " << duration.count()/1000.0 << " ms" << std::endl;
 	
 	return 0;
 }

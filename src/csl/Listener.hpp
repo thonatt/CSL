@@ -394,31 +394,33 @@ namespace csl {
 #define CSL_FOR(...) \
 	core::listen().begin_for(); core::listen().active() = false; for( __VA_ARGS__ ){break;} core::listen().active() = true;  \
 	core::listen().begin_for_args(); __VA_ARGS__;  core::listen().begin_for_body(); \
-	for(core::EndFor csl_dummy_for; csl_dummy_for; )
+	for(core::EndFor _csl_dummy_for; _csl_dummy_for; )
 
 #define CSL_IF(condition) \
 	core::listen().check_begin_if(); core::listen().begin_if(condition); if(core::BeginIf csl_begin_if = {})
 
 #define CSL_ELSE \
-	else {} core::listen().begin_else(); if(core::BeginElse csl_begin_else = {}) {} else 
+	else {} core::listen().begin_else(); if(core::BeginElse _csl_begin_else = {}) {} else 
 
 #define CSL_ELSE_IF(condition) \
-	else if(false){} core::listen().delay_end_if(); core::listen().begin_else_if(condition); if(false) {} else if(core::BeginIf csl_begin_else_if = {})
+	else if(false){} core::listen().delay_end_if(); core::listen().begin_else_if(condition); if(false) {} else if(core::BeginIf _csl_begin_else_if = {})
 
 #define CSL_CONTINUE \
+	if(false){ continue; } \
 	core::listen().add_statement<core::ContinueStatement>();
 
 #define CSL_DISCARD \
 	core::listen().add_statement<core::DiscardStatement>();
 
 #define CSL_BREAK \
-	if(false){break;} core::listen().add_statement<core::BreakStatement>();
+	if(false){break;} \
+	core::listen().add_statement<core::BreakStatement>();
 
 #define CSL_WHILE(condition) \
-	core::listen().begin_while(condition); for(core::BeginWhile csl_begin_while = {}; csl_begin_while; )
+	core::listen().begin_while(condition); for(core::BeginWhile _csl_begin_while = {}; _csl_begin_while; )
 
 #define CSL_SWITCH(condition) \
-	core::listen().begin_switch(condition); switch(core::BeginSwitch csl_begin_switch = {})while(csl_begin_switch)
+	core::listen().begin_switch(condition); switch(core::BeginSwitch _csl_begin_switch = {})while(_csl_begin_switch)
 
 #define CSL_CASE(value) \
 	core::listen().begin_switch_case(value); case value 

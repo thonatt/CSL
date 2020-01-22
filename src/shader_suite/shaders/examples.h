@@ -2,17 +2,27 @@
 
 #include <string>
 
-void auto_naming_example();
-void swizzling_example();
-void qualifier_example();
-void arrays_example();
-void functions_example();
-void structure_stratements_example();
-void structs_examples();
-void interface_examples();
-void struct_interface_comma_examples();
-void shader_stage_options();
-void meta_variations();
+std::string auto_naming_example();
+
+std::string swizzling_example();
+
+std::string qualifier_example();
+
+std::string arrays_example();
+
+std::string functions_example();
+
+std::string structure_stratements_example();
+
+std::string structs_examples();
+
+std::string interface_examples();
+
+std::string struct_interface_comma_examples();
+
+std::string shader_stage_options();
+
+std::string meta_variations();
 
 std::string phongShading();
 

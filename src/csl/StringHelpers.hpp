@@ -247,7 +247,7 @@ namespace csl {
 
 		// layout types
 
-		static ::std::map<LayoutQualifier, string> layoutQualifiersKeywords = {
+		static const ::std::map<LayoutQualifier, string> layoutQualifiersKeywords = {
 			{SHARED, "shared"}, {PACKED, "packed"}, {STD140, "std140"}, {STD430, "std430"},
 			{ROW_MAJOR,"row_major"}, {COLUMN_MAJOR, "column_major"},
 			{BINDING, "binding"},
@@ -258,8 +258,8 @@ namespace csl {
 			{EARLY_FRAGMENT_TEST, "early_fragment_tests"}
 		};
 
-		static inline const string & layoutQualifierKeyword(LayoutQualifier layoutQualifier) {
-			return layoutQualifiersKeywords[layoutQualifier];
+		static inline const string& layoutQualifierKeyword(LayoutQualifier layoutQualifier) {
+			return layoutQualifiersKeywords.at(layoutQualifier);
 		}
 
 		template<QualifierType t>

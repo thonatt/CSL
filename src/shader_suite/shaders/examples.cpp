@@ -2,8 +2,10 @@
 
 #include <csl/Core.hpp>
 
-void auto_naming_example()
+std::string auto_naming_example()
 {
+	std::string out;
+
 	using namespace csl::frag_450;
 
 	{
@@ -25,7 +27,7 @@ void auto_naming_example()
 			result = alpha * dot(N, V);
 		});
 
-		std::cout << shader.str() << std::endl;
+		out += shader.str();
 	}
 
 	{
@@ -44,12 +46,13 @@ void auto_naming_example()
 			result = alpha * dot(N, V);
 		});
 
-		std::cout << shader.str() << std::endl;
+		out += shader.str();
 	}
 
+	return out;
 }
 
-void swizzling_example()
+std::string swizzling_example()
 {
 	using namespace csl::frag_330;
 	using namespace csl::swizzles::rgba;
@@ -65,10 +68,10 @@ void swizzling_example()
 	//can you guess what is actually assigned ?
 	out[a] = col[a, b, g][b, g][r];
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void qualifier_example()
+std::string qualifier_example()
 {
 	using namespace csl::frag_330;
 
@@ -81,10 +84,10 @@ void qualifier_example()
 	//in case of multiple occurences, last one prevails
 	Uniform<mat4, Layout<Location<0>, Row_major, Location<1>> > mvp("mvp");
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void arrays_example()
+std::string arrays_example()
 {
 	using namespace csl::frag_330;
 
@@ -100,10 +103,10 @@ void arrays_example()
 
 	vec3A[0] = floatA[1] * matA[0][0]* vec3A[1];
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void functions_example()
+std::string functions_example()
 {
 	using namespace csl::frag_330;
 
@@ -143,10 +146,10 @@ void functions_example()
 		[] { CSL_RETURN; }
 	);
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void structure_stratements_example()
+std::string structure_stratements_example()
 {
 	using namespace csl::frag_330;
 
@@ -186,10 +189,10 @@ void structure_stratements_example()
 		CSL_DEFAULT: { j = 2; }
 	}
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void structs_examples() {
+std::string structs_examples() {
 	using namespace csl::frag_330;
 
 	Shader shader;
@@ -212,10 +215,10 @@ void structs_examples() {
 
 	block.center = bigBlock.innerBlock.mvp*block.center;
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void interface_examples()
+std::string interface_examples()
 {
 	using namespace csl::frag_330;
 
@@ -234,10 +237,10 @@ void interface_examples()
 
 	out[0].position += current_time * out[0].velocity;
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void struct_interface_comma_examples()
+std::string struct_interface_comma_examples()
 {
 	using namespace csl::frag_330;
 
@@ -250,11 +253,13 @@ void struct_interface_comma_examples()
 		(Array<mat4>::Size<4>) myMats
 	);
 
-	std::cout << shader.str() << std::endl;
+	return shader.str();
 }
 
-void shader_stage_options()
+std::string shader_stage_options()
 {	
+	std::string output;
+
 	{
 		using namespace csl::frag_330;
 
@@ -262,7 +267,7 @@ void shader_stage_options()
 		//in a fragment shader
 		in<Layout<Early_fragment_tests>>();
 
-		std::cout << shader.str() << std::endl;
+		output += shader.str();
 	}
 
 	{
@@ -273,16 +278,17 @@ void shader_stage_options()
 		in<Layout<Triangles>>();
 		out<Layout<Line_strip, Max_vertices<2>>>();
 
-		std::cout << shader.str() << std::endl;
+		output += shader.str();
 	}
+
+	return output;
 }
 
-void meta_variations()
+std::string meta_variations()
 {
-	auto shader_variation =
-		[](auto template_parameter, double sampling_angle, bool gamma_correction) 
-	{
-			
+	auto shader_variation = 
+		[](auto template_parameter, double sampling_angle, bool gamma_correction)
+	{	
 		using namespace csl::frag_430;
 		using namespace csl::swizzles::rgba;
 
@@ -309,11 +315,14 @@ void meta_variations()
 			}
 		});
 
-		std::cout << shader.str() << std::endl;
+		return shader.str();
 	};
- 
-	shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
-	shader_variation(csl::ConstExpr<int,5>{}, 1.57079632679, false);
+
+	std::string out;
+	out += shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
+	out += shader_variation(csl::ConstExpr<int, 5>{}, 1.57079632679, false);
+
+	return out;
 }
 
 std::string phongShading() {

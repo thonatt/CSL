@@ -457,7 +457,7 @@ namespace csl {
 
 			template<uint M> using Size = ArrayImpl<T, M>;
 
-			//template<bool b = (N != 0), typename = std::enable_if_t<b> > should be here but prevents gl_ClipDistance
+			//template<bool b = (N != 0), typename = std::enable_if_t<b> > TODO should be here but prevents gl_ClipDistance
 
 			ArrayImpl(const std::string & _name = "", uint flags = IS_TRACKED)
 				: NamedObject<ArrayImpl>(_name, flags)

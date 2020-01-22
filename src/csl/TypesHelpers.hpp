@@ -476,7 +476,8 @@ namespace csl {
 			static constexpr bool value = false;
 		};
 
-		template<typename FList, typename ArgsList, int Id = 0> struct OverloadResolution;
+		template<typename FList, typename ArgsList, int Id = 0> 
+		struct OverloadResolution;
 
 		template<int Id, typename ArgsTList, typename F, typename ...Fs>
 		struct OverloadResolution<TList<F, Fs...>, ArgsTList, Id> {
