@@ -24,21 +24,21 @@ namespace csl {
 		template<SwizzleSet Set, uint Dim, uint Bytes, uint Size, SwizzeStatus Status>
 		class SwizzlePack {
 		public:
-			SwizzlePack(const std::string & _s) : s(std::make_shared<std::string>(_s)) { }
+			SwizzlePack(const std::string & _s) : s(_s) { }
 
 			template<SwizzleSet _Set, uint _Dim, uint _Bytes>
 			OutSwizzle<Set, _Set, Dim, _Dim, Bytes, _Bytes, Size, Status>
-				operator,(const SwizzlePack<_Set, _Dim, _Bytes, 1> & other) const
+				operator,(const SwizzlePack<_Set, _Dim, _Bytes, 1>& other) const
 			{
-				return { *s + *other.s };
+				return { s + other.s };
 			}
 
-			const stringPtr & getStrPtr() const {
+			const string& getStr() const {
 				return s;
 			}
 
 		public:
-			stringPtr s;
+			std::string s;
 		};
 	}
 

@@ -149,28 +149,28 @@ namespace csl {
 				typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 				Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &
 			{
-				return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
+				return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStr()) };
 			}
 
 			template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
 				typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 				Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &
 			{
-				return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), *swizzle.getStrPtr()) };
+				return { createExp<MemberAccessor>(NamedObjectBase::getExRef(), swizzle.getStr()) };
 			}
 
 			template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
 				typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 				Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, REPEATED> & swizzle) const &&
 			{
-				return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr(), MemberAccessor::ObjStatus::TEMP) };
+				return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStr(), MemberAccessor::ObjStatus::TEMP) };
 			}
 
 			template<SwizzleSet Set, uint Dim, uint Bytes, uint Size,
 				typename = std::enable_if_t<NC == 1 && NR != 1 && Set != MIXED_SET && Dim <= NR > >
 				Vec<type, Size> operator[](const SwizzlePack<Set, Dim, Bytes, Size, NON_REPEATED> & swizzle) const &&
 			{
-				return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), *swizzle.getStrPtr(), MemberAccessor::ObjStatus::TEMP) };
+				return { createExp<MemberAccessor>(NamedObjectBase::getExTmp(), swizzle.getStr(), MemberAccessor::ObjStatus::TEMP) };
 			}
 
 			// array subscript accessor

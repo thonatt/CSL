@@ -269,6 +269,7 @@ namespace csl {
 		template<> inline string QualifierTypeStr<UNIFORM>::str() { return "uniform "; }
 		template<> inline string QualifierTypeStr<IN>::str() { return "in "; }
 		template<> inline string QualifierTypeStr<OUT>::str() { return "out "; }
+		template<> inline string QualifierTypeStr<INOUT>::str() { return "inout "; }
 		template<> inline string QualifierTypeStr<EMPTY_QUALIFIER>::str() { return ""; }
 
 		template<LayoutQualifier lq>

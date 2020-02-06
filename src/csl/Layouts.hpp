@@ -13,11 +13,14 @@ namespace csl {
 		template<typename A, typename B>
 		using Concat = typename ConcatImpl<A, B>::Type;
 
-		template<typename A, typename ...Bs> struct ConcatImpl<TList<A>, TList<Bs...>> {
+		template<typename A, typename ...Bs> 
+		struct ConcatImpl<TList<A>, TList<Bs...>> {
 			using Type = TList<A, Bs...>;
 		};
 
-		template<typename A, typename B, template<typename, typename> class Comp> struct MergeImpl;
+		template<typename A, typename B, template<typename, typename> class Comp> 
+		struct MergeImpl;
+		
 		template<typename A, typename B, template<typename, typename> class Comp>
 		using Merge = typename MergeImpl<A, B, Comp>::Type;
 
@@ -42,7 +45,9 @@ namespace csl {
 				>;
 		};
 
-		template<typename T, template<typename, typename> class Comp> struct SortImpl;
+		template<typename T, template<typename, typename> class Comp> 
+		struct SortImpl;
+		
 		template<typename T, template<typename, typename> class Comp>
 		using Sort = typename SortImpl<T, Comp>::Type;
 
@@ -124,7 +129,6 @@ namespace csl {
 
 		};
 
-
 		template<QualifierType _qType, typename ... T>
 		struct QualiPH;
 
@@ -179,7 +183,6 @@ namespace csl {
 			template<uint N> using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
 		}
 
-
 		template<typename ... LayoutArgs>
 		struct LayoutImpl {
 			using CleanupArgs = Sort<TList<LayoutArgs...>, LayoutQualifierSort>;
@@ -209,5 +212,8 @@ namespace csl {
 
 	template<typename ...T>
 	using In = typename core::QualiPH<core::IN, T...>::Type;
+
+	template<typename ...T>
+	using Inout = typename core::QualiPH<core::INOUT, T...>::Type;
 
 } //namespace csl

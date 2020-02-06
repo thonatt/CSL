@@ -82,7 +82,7 @@ namespace csl {
 		template<LayoutQualifier lq, uint N> struct LayoutQArgValue;
 
 		enum QualifierType {
-			IN, OUT, UNIFORM, EMPTY_QUALIFIER
+			IN, OUT, UNIFORM, INOUT, EMPTY_QUALIFIER
 		};
 
 		template<template<typename T, typename Layout> class Quali>

@@ -148,7 +148,7 @@ namespace csl {
 
 			NamedOperator(const std::string & str) : operator_str(str) {}
 
-			std::string op_str() const { return operator_str; }
+			const std::string& op_str() const { return operator_str; }
 
 			std::string operator_str;
 		};

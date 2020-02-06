@@ -60,7 +60,7 @@ namespace csl {
 
 			Ex getExTmp() const
 			{
-				flags = flags | IS_USED;
+				flags |= IS_USED;
 				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
 					ctor->setTemp();
 					ctor->disable();

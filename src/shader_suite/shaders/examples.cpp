@@ -130,7 +130,7 @@ std::string functions_example()
 	);
 
 	////function calling another function
-	auto sub = declareFunc<vec3>([&](vec3 a, vec3 b) {
+	auto sub = declareFunc<vec3>([&](vec3 a, Inout<vec3> b = "b") {
 		fun();
 		CSL_RETURN(add(a, -b));
 	});
@@ -198,20 +198,20 @@ std::string structs_examples() {
 	Shader shader;
 
 	//struct declaration
-	CSL_STRUCT(MyBlock,
+	CSL_STRUCT(Block,
 		(mat4) mvp,
 		(vec4) center
 	);
 
 	//nested struct
-	CSL_STRUCT(MyBigBlock,
-		(MyBlock) innerBlock,
+	CSL_STRUCT(BigBlock,
+		(Block) innerBlock,
 		(vec4) center
 	);
 
 	//usage
-	MyBigBlock bigBlock("block");
-	MyBlock block = MyBlock(mat4(1), vec3(0)) << "block";
+	BigBlock bigBlock("block");
+	Block block = Block(mat4(1), vec3(0)) << "block";
 
 	block.center = bigBlock.innerBlock.mvp*block.center;
 

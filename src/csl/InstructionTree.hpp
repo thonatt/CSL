@@ -78,7 +78,7 @@ namespace csl {
 
 			static std::string instruction_begin(int trailing, uint opts = 0) {
 				std::string out;
-				if ((opts & IGNORE_TRAILING) == 0) {
+				if (!(opts & IGNORE_TRAILING)) {
 					for (int t = 0; t < trailing; ++t) {
 						out += "   ";
 					}
@@ -270,7 +270,7 @@ namespace csl {
 								if (ctor->ctor_status == INITIALISATION) {
 									//std::cout << "init : " << ctor->str() << " " << ctor->ctor_status << std::endl;
 									if (inits.size() > 0) {
-										ctor->flags = ctor->flags | MULTIPLE_INITS;
+										ctor->flags |= MULTIPLE_INITS;
 									}
 									inits.push_back(*it);
 								} else if (ctor->is_bool_ctor()) {
@@ -338,7 +338,7 @@ namespace csl {
 
 			ReturnStatement(const Ex & e = {}) : SpecialStatement(e) {}
 
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << internal_str() << instruction_end(opts);
 			}
 
@@ -356,19 +356,19 @@ namespace csl {
 		};
 
 		struct ContinueStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "continue" << instruction_end(opts);
 			}
 		};
 
 		struct DiscardStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "discard" << instruction_end(opts);
 			}
 		};
 
 		struct BreakStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "break" << instruction_end(opts);
 			}
 		};
