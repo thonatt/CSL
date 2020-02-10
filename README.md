@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.com/thonatt/CSL.svg?token=8pN7VnVet8U5vh7SPZhs&branch=master)](https://travis-ci.com/thonatt/CSL)
+[![GitHub license](https://img.shields.io/github/license/thonatt/CSL)](https://github.com/thonatt/CSL/LICENSE)
+[![GitHub repo size](https://img.shields.io/github/repo-size/thonatt/CSL)](https://github.com/thonatt/CSL)
 
 # C++ integrated Shading Language
 

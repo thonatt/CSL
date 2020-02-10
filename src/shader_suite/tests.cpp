@@ -177,7 +177,31 @@ void testInArgs()
 	std::cout << shader.str() << std::endl;
 }
 
+template<typename A, typename B>
+constexpr auto validMultiplication(int) -> decltype(A()* B(), true) { return true; }
 
+template<typename A, typename B>
+constexpr auto validMultiplication(long) { return false; }
+
+template<typename T>
+constexpr auto validInverse(int) -> decltype(csl::core::glsl_140::inverse(T()), true) { return true; }
+
+template<typename T>
+constexpr auto validInverse(long) { return false; }
+
+void testsCompliance()
+{
+	static_assert(validMultiplication<csl::mat4, csl::vec4>(0), "bouh");
+	static_assert(validMultiplication<csl::vec3, csl::vec3>(0), "bouh");
+	static_assert(validMultiplication<csl::Float, csl::vec3>(0), "bouh");
+
+	static_assert(!validMultiplication<csl::mat4, csl::vec3>(0), "bouh");
+	static_assert(!validMultiplication<csl::vec3, csl::mat4x3>(0), "bouh");
+
+	static_assert(validInverse<csl::mat4>(0), "bouh");
+	static_assert(!validInverse<csl::mat4x2>(0), "bouh");
+	static_assert(!validInverse<csl::vec3>(0), "bouh");
+}
 
 void testArgsOrder()
 {

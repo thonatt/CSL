@@ -348,16 +348,25 @@ namespace csl {
 
 		// other helpers
 		template<typename A>
-		constexpr bool IsVecF = Infos<A>::cols == 1 && Infos<A>::scalar_type == FLOAT;
+		constexpr bool IsSquare = Infos<A>::cols == Infos<A>::rows;
+
+		template<typename A, ScalarType type>
+		constexpr bool IsVec = Infos<A>::cols == 1 && Infos<A>::scalar_type == type;
 
 		template<typename A>
-		constexpr bool IsVecI = Infos<A>::cols == 1 && Infos<A>::scalar_type == INT;
+		constexpr bool IsVecD = IsVec<A, DOUBLE>;
 
 		template<typename A>
-		constexpr bool IsVecU = Infos<A>::cols == 1 && Infos<A>::scalar_type == UINT;
+		constexpr bool IsVecF = IsVec<A, FLOAT>;
 
 		template<typename A>
-		constexpr bool IsVecB = Infos<A>::cols == 1 && Infos<A>::scalar_type == BOOL;
+		constexpr bool IsVecI = IsVec<A, INT>;
+
+		template<typename A>
+		constexpr bool IsVecU = IsVec<A, UINT>;
+
+		template<typename A>
+		constexpr bool IsVecB = IsVec<A, BOOL>;
 
 		template<typename A>
 		constexpr bool IsVecInteger = IsVecU<A> || IsVecI<A>;

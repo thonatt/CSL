@@ -11,6 +11,8 @@ void testArgCleaning();
 
 void testInArgs();
 
+void testsCompliance();
+
 //struct Arg {
 //	Arg(int && t) : val(t) { std::cout << val << std::endl; }
 //	~Arg() { std::cout << val << std::endl; }

@@ -12,12 +12,11 @@
 int main()
 {
 	//test_accessor();
-	
+	testsCompliance();
 	//testArgCleaning();
 	//testStructsMacros();
 	//testArgsOrder();
 	//testInArgs();
-
 
 	auto start = std::chrono::steady_clock::now();
 
@@ -76,7 +75,7 @@ int main()
 		seperator();
 	}
 
-	for (std::string str :
+	for (const std::string& str :
 		{ blur_str, ambiant_str, ssao_str, discard_str ,
 	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
 	dolphin_vertex_str, dolphin_frag_str
