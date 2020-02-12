@@ -395,14 +395,14 @@ namespace csl {
 				IsVecU<A> && EqualMat<A, B> && EqualMat<A, C> && EqualMat<A, D> && std::is_lvalue_reference<C>::value && std::is_lvalue_reference<D>::value
 				>>
 				void umulExtended(A&& x, B&& y, C&& msb, D&& lsb) {
-				return { createFCallExp("umulExtended", EX(A,x), EX(B,y), EX(C,msb), EX(D,lsb)) };
+				listen().addEvent(createFCallExp("umulExtended", EX(A, x), EX(B, y), EX(C, msb), EX(D, lsb)));
 			}
 			
 			template<typename A, typename B, typename C, typename D, typename = std::enable_if_t<
 				IsVecI<A> && EqualMat<A, B> && EqualMat<A, C> && EqualMat<A, D> && std::is_lvalue_reference<C>::value && std::is_lvalue_reference<D>::value
 				>>
 				void imulExtended(A&& x, B&& y, C&& msb, D&& lsb) {
-				return { createFCallExp("imulExtended", EX(A,x), EX(B,y), EX(C,msb), EX(D,lsb)) };
+				listen().addEvent(createFCallExp("imulExtended", EX(A, x), EX(B, y), EX(C, msb), EX(D, lsb)));
 			}
 
 			template<typename A, typename B, typename C, typename D, typename = std::enable_if_t<
