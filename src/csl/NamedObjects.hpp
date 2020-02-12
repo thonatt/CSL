@@ -125,12 +125,12 @@ namespace csl {
 		};
 
 		template<typename T, typename ... Args>
-		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args);
+		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, Args &&... args);
 
 		template<typename T, typename ... Args>
-		Ex createDeclaration(const stringPtr & name, uint ctor_flags, const Args &... args)
+		Ex createDeclaration(const stringPtr & name, uint ctor_flags, Args &&... args)
 		{
-			return createInit<T, Args...>(name, DECLARATION, ctor_flags, args...);
+			return createInit<T, Args...>(name, DECLARATION, ctor_flags, std::forward<Args>(args)...);
 		}
 
 		template<typename T>

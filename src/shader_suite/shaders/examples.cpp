@@ -2,6 +2,19 @@
 
 #include <csl/Core.hpp>
 
+std::string operators_example()
+{
+	using namespace csl::frag_450;
+	Shader shader;
+
+	Uint counter = 0;
+	vec2 uv = vec2(1.0, 2.0);
+	vec4 color = vec4(0.0, uv, Float(counter));
+	bvec3 m = not(bvec3(!Bool(true), false, false));
+
+	return shader.str();
+}
+
 std::string auto_naming_example()
 {
 	std::string out;

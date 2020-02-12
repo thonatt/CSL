@@ -383,6 +383,18 @@ namespace csl {
 		template<typename A>
 		constexpr bool IsFloat = IsScalar<A> && Infos<A>::scalar_type == FLOAT;
 
+		template<typename T, QualifierType type>
+		struct IsQualifierImpl {
+			static constexpr bool value = false;
+		};
+
+		template<typename T, typename L, QualifierType type>
+		struct IsQualifierImpl<Qualifier<type, T, L>, type> {
+			static constexpr bool value = true;
+		};
+
+		template<typename T, QualifierType type>
+		constexpr bool IsQuali = IsQualifierImpl<T, type>::value;
 
 
 		template<typename A, typename B>
@@ -403,7 +415,6 @@ namespace csl {
 
 		template<typename A, typename B>
 		using MultiplicationReturnType = Matrix< HigherType<A, B>, Infos<A>::rows, Infos<B>::cols >;
-
 
 		// variadic helpers
 
@@ -516,11 +527,8 @@ namespace csl {
 	}
 
 	//
-	template<typename T, T _value>
-	struct ConstExpr {
-		using Type = T;
-		static constexpr T value = _value;
-	};
+	template <typename T, T value>
+	using ConstExpr = std::integral_constant<T, value>;
 
 	template<typename T, core::uint N = 0> 
 	using Array = core::ArrayImpl<T, N>;

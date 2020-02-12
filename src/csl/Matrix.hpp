@@ -236,13 +236,20 @@ namespace csl {
 				return { createExp<PrefixUnary>("-", NamedObjectBase::getExTmp()) };
 			}
 
-			template<bool b = isBool, typename = std::enable_if_t<b> >
+			template<bool b = IsVec<Matrix, BOOL>, typename = std::enable_if_t<b> >
 			Matrix operator!() & {
-				return { createExp<PrefixUnary>("!", NamedObjectBase::getExRef()) };
+				if (isScalar) {
+					return { createExp<PrefixUnary>("!", NamedObjectBase::getExRef()) };
+				}
+				return { createFCallExp("not", NamedObjectBase::getExRef()) };
 			}
-			template<bool b = isBool, typename = std::enable_if_t<b> >
+
+			template<bool b = IsVec<Matrix, BOOL>, typename = std::enable_if_t<b> >
 			Matrix operator!() && {
-				return { createExp<PrefixUnary>("!", NamedObjectBase::getExTmp()) };
+				if (isScalar) {
+					return { createExp<PrefixUnary>("!", NamedObjectBase::getExTmp()) };
+				}
+				return { createFCallExp("not", NamedObjectBase::getExTmp()) };
 			}
 
 			////////////////////////////////////////////////////////////////////////////////

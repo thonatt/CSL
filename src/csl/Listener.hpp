@@ -182,9 +182,9 @@ namespace csl {
 			/////////////////////////////////////////////////
 
 			template<typename ReturnTList, typename ... Fs>
-			void begin_func(const std::string & name, const Fs & ... fs) {
+			void begin_func(const std::string & name, Fs && ... fs) {
 				if (currentShader) {
-					currentShader->begin_func<ReturnTList>(name, fs...);
+					currentShader->begin_func<ReturnTList>(name, std::forward<Fs>(fs)...);
 				}
 			}
 
@@ -250,10 +250,11 @@ namespace csl {
 		}
 
 		template<typename T, typename ... Args>
-		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, const Args &... args)
+		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, Args && ... args)
 		{
 			//std::cout << "ctor : " << *name << " " << (bool)(ctor_flags & PARENTHESIS) << std::endl;
-			auto ctor = std::make_shared<Constructor<T, sizeof...(args)>>(name, status, ctor_flags, args...);
+
+			auto ctor = std::make_shared<Constructor<T, sizeof...(args)>>(name, status, ctor_flags, std::forward<Args>(args)...);
 			Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
 			if (!(ctor_flags & IS_BASE)) {
 				listen().addEvent(expr);
@@ -328,19 +329,19 @@ namespace csl {
 
 		template<typename F, typename ...Fs >
 		struct CallFuncs<TList<F, Fs...>> {
-			static void run(const F & f, const Fs & ... fs) {
+			static void run(F && f, Fs && ... fs) {
 				call_with_only_non_default_args(f);
 				listen().next_overload();
-				CallFuncs<TList<Fs...>>::run(fs...);
+				CallFuncs<TList<Fs...>>::run(std::forward<Fs>(fs)...);
 			}
 		};
 
 		template<typename ReturnTList, typename ... Fs>
-		void init_function_declaration(const std::string & fname, const Fs & ...fs)
+		void init_function_declaration(const std::string & fname, Fs && ...fs)
 		{
-			listen().begin_func<ReturnTList>(fname, fs...);
+			listen().begin_func<ReturnTList>(fname, std::forward<Fs>(fs)...);
 			//std::cout << "\t" << fname << std::endl;
-			CallFuncs<TList<Fs...>>::run(fs...);
+			CallFuncs<TList<Fs...>>::run(std::forward<Fs>(fs)...);
 			listen().end_func();
 		}
 
@@ -379,9 +380,9 @@ namespace csl {
 			}
 		};
 
-		template<typename B, typename A, typename C, typename I = Infos<A>, typename = std::enable_if_t<
+		template<typename B, typename A, typename C, typename = std::enable_if_t<
 			EqualMat<B, Bool> && EqualMat<A, C> >> 
-			Matrix< I::scalar_type, I::rows, I::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
+			Matrix< Infos<A>::scalar_type, Infos<A>::rows, Infos<A>::cols > csl_ternary(B && condition, A && lhs, C && rhs) {
 			return { createExp<Ternary>(EX(B,condition), EX(A,lhs), EX(C,rhs)) };
 		}
 

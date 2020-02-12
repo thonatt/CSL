@@ -21,6 +21,7 @@ int main()
 	auto start = std::chrono::steady_clock::now();
 
 	// readme examples
+	std::string operators_str = operators_example();
 	std::string arrays_str = arrays_example();
 	std::string swizzling_str = swizzling_example();
 	std::string auto_naming_str = auto_naming_example();
@@ -66,7 +67,7 @@ int main()
 	};
 
 	for (std::string str : 
-		{ arrays_str, swizzling_str, auto_naming_str, qualifier_str ,
+		{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str ,
 		functions_str, structure_str, structs_str, interface_str,
 		struct_interface_comma_str, shader_stage_str, variations_str
 		})

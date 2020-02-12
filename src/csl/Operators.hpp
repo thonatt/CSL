@@ -140,8 +140,8 @@ namespace csl {
 		};
 
 		template<typename Operator, typename ... Args>
-		Ex createExp(const Args &... args) {
-			return std::static_pointer_cast<OperatorBase>(std::make_shared<Operator>(args...));
+		Ex createExp(Args &&... args) {
+			return std::static_pointer_cast<OperatorBase>(std::make_shared<Operator>(std::forward<Args>(args)...));
 		}
 
 		struct NamedOperator {
@@ -187,7 +187,7 @@ namespace csl {
 		struct ArgsCall {
 
 			template<typename ... Args>
-			ArgsCall(const Args & ... _args) : args{ _args... } {}
+			ArgsCall(Args && ... _args) : args{ _args... } {}
 
 			std::string args_str_body() const {
 				std::string out = "";
@@ -208,8 +208,8 @@ namespace csl {
 		struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
 
 			template<typename ... Args>
-			FunctionCall(const std::string & s, const Args & ... _args)
-				: NamedOperator(s), ArgsCall<N>(_args...) {
+			FunctionCall(const std::string & s, Args && ... _args)
+				: NamedOperator(s), ArgsCall<N>(std::forward<Args>(_args)...) {
 			}
 
 			std::string str(int trailing) const {
@@ -218,8 +218,8 @@ namespace csl {
 		};
 
 		template<typename ... Args>
-		Ex createFCallExp(const std::string & f_name, const Args & ... args) {
-			return createExp<FunctionCall<sizeof...(Args)>>(f_name, args...);
+		Ex createFCallExp(const std::string & f_name, Args && ... args) {
+			return createExp<FunctionCall<sizeof...(Args)>>(f_name, std::forward<Args>(args)...);
 		}
 
 		struct ConstructorBase : OperatorBase {
@@ -276,8 +276,8 @@ namespace csl {
 			}
 
 			template<typename ... Args>
-			Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint _flags, const Args & ...  _args)
-				: ArgsCall<N>(_args...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
+			Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint _flags, Args && ...  args)
+				: ArgsCall<N>(std::forward<Args>(args)...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
 			{
 			}
 
@@ -399,8 +399,8 @@ namespace csl {
 		template<uint N>
 		struct MemberFunctionAccessor : FunctionCall<N> {
 			template<typename ...Args>
-			MemberFunctionAccessor(const Ex & _obj, const std::string & fun_name, const Args & ... _args)
-				: FunctionCall<N>(fun_name, _args...), obj(_obj) {
+			MemberFunctionAccessor(const Ex & _obj, const std::string & fun_name, Args && ... args)
+				: FunctionCall<N>(fun_name, std::forward<Args>(args)...), obj(_obj) {
 			}
 
 			std::string str(int trailing) const {

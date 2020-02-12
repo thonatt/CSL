@@ -55,7 +55,7 @@ namespace csl {
 			} else if (order == RIGHT_TO_LEFT) {
 				out = "right to left";
 			} else {
-				out = "order no not supported";
+				out = "compiler's arg order is not supported";
 			}
 			std::cout << out << std::endl;
 		}

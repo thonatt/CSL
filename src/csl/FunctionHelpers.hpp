@@ -52,7 +52,7 @@ namespace csl {
 		};
 
 		template<typename ReturnTList, typename ... Fs>
-		void init_function_declaration(const std::string & fname, const Fs & ...fs);
+		void init_function_declaration(const std::string & fname, Fs && ...fs);
 
 		struct FuncBase : NamedObject<FuncBase> {
 			FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, 0) {}
@@ -68,8 +68,8 @@ namespace csl {
 			static_assert(ReturnTList::size == FuncTList::size, "numbers of overload and return type dont match");
 
 			template<typename ... Fs>
-			Function(const std::string & _name, const Fs & ... _fs) : FuncBase(_name) {
-				init_function_declaration<ReturnTList>(str(), _fs ...);
+			Function(const std::string & _name, Fs && ... _fs) : FuncBase(_name) {
+				init_function_declaration<ReturnTList>(str(), std::forward<Fs>(_fs) ...);
 			}
 
 			template<typename ... Args>

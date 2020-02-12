@@ -196,7 +196,7 @@ void testsCompliance()
 	static_assert(validMultiplication<csl::Float, csl::vec3>(0), "bouh");
 
 	static_assert(!validMultiplication<csl::mat4, csl::vec3>(0), "bouh");
-	static_assert(!validMultiplication<csl::vec3, csl::mat4x3>(0), "bouh");
+	static_assert(!validMultiplication<csl::vec2, csl::mat4x3>(0), "bouh");
 
 	static_assert(validInverse<csl::mat4>(0), "bouh");
 	static_assert(!validInverse<csl::mat4x2>(0), "bouh");

@@ -2,6 +2,8 @@
 
 #include <string>
 
+std::string operators_example();
+
 std::string auto_naming_example();
 
 std::string swizzling_example();

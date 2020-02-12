@@ -357,7 +357,7 @@ namespace csl {
 
 			template<typename S, typename ... Args>
 			void add_statement(Args && ... args) {
-				auto statement = std::make_shared<S>(args...);
+				auto statement = std::make_shared<S>(std::forward<Args>(args)...);
 				if (auto st = std::dynamic_pointer_cast<SpecialStatement>(statement)) {
 					if (!st->checkStatementValidity(currentBlock)) {
 						return;

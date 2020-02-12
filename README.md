@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/thonatt/CSL.svg?token=8pN7VnVet8U5vh7SPZhs&branch=master)](https://travis-ci.com/thonatt/CSL)
-[![GitHub license](https://img.shields.io/github/license/thonatt/CSL)](https://github.com/thonatt/CSL/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/thonatt/CSL)](https://github.com/thonatt/CSL/blob/master/LICENSE)
 [![GitHub repo size](https://img.shields.io/github/repo-size/thonatt/CSL)](https://github.com/thonatt/CSL)
 
 # C++ integrated Shading Language
@@ -12,7 +12,7 @@ CSL is a C++ header-only library, self-transpiling into GLSL. It allows to write
 + The possibility to use C++ as meta language for generic shader generation.
 
 CSL requires a C++14 compliant compiler. It built successfully using Visual Studio (Windows), Clang (Windows, Linux, Apple), and GCC (Linux, Apple).
-CSL does not require any external dependency as it relies only on the STL and some [Boost Preprocessor files](https://github.com/thonatt/CSL/blob/master/src/boost/headers_used.txt) which are included in the repo.
+CSL does not require any external dependency as it relies only on the C++ Standard Library and some [Boost Preprocessor files](https://github.com/thonatt/CSL/blob/master/src/boost/headers_used.txt) which are included in the repo.
 
 This repo contains the [CSL source files](https://github.com/thonatt/CSL/tree/master/src/csl). It also contains a [shader suite application](https://github.com/thonatt/CSL/tree/master/src/shader_suite/), which shows several CSL shaders, from didactic examples to more complex shaders such as [Dolphin's ubershaders](https://github.com/thonatt/CSL/blob/master/src/shader_suite/shaders/dolphin.cpp). The application can be built using for example CMake.
 

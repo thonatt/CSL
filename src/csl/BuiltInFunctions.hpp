@@ -115,7 +115,12 @@ namespace csl {
 				return { createFCallExp("mod", EX(A,a), EX(B,b)) };
 			}
 
-			//TODO modf
+			template<typename A, typename B, typename = std::enable_if_t<
+				IsVecF<A> && EqualMat<A,B> && std::is_lvalue_reference<B>::value
+			>>
+				Vec<FLOAT, Infos<A>::rows> modf(A&& x, B&& i) {
+				return { createFCallExp("modf", EX(A,x), EX(B,i)) };
+			}
 
 			template<typename A, typename B, typename C, typename = std::enable_if_t<
 				IsVecF<A> && EqualMat<A, B> && (EqualMat<A, C> || IsFloat<C>)
@@ -129,11 +134,6 @@ namespace csl {
 			> >
 				vec3 cross(A && a, B && b) {
 				return { createFCallExp("cross", EX(A,a), EX(B,b)) };
-			}
-
-			template<typename A, typename = std::enable_if_t < IsVecB<A> > >
-			Vec<BOOL, Infos<A>::rows> Not(A && a) {
-				return { createFCallExp("not", EX(A,a)) };
 			}
 
 			template<typename S, typename P, typename DX, typename DY, typename SI = SamplerInfos<S>,
@@ -370,7 +370,67 @@ namespace csl {
 			TYPE_OP_TYPE(uvec2, v, Double, packDouble2x32);
 			TYPE_OP_TYPE(Double, d, uvec2, unpackDouble2x32);
 
-			//TODO frexp
+			template<typename A, typename B, typename = std::enable_if_t<
+				IsVecF<A> && IsVecI<B> && EqualDim<A, B> && std::is_lvalue_reference<B>::value
+				>>
+				Vec<FLOAT, Infos<A>::rows> frexp(A&& x, B&& exp) {
+				return { createFCallExp("frexp", EX(A,x), EX(B,exp)) };
+			}
+
+			template<typename A, typename B, typename C, typename = std::enable_if_t<
+					IsVecU<A> && EqualMat<A,B> && EqualMat<A,C> && std::is_lvalue_reference<C>::value
+				>>
+				Vec<UINT, Infos<A>::rows> uaddCarry(A&& x, B&& y, C&& carry) {
+				return { createFCallExp("uaddCarry", EX(A,x), EX(B,y), EX(C,carry)) };
+			}
+
+			template<typename A, typename B, typename C, typename = std::enable_if_t<
+				IsVecU<A> && EqualMat<A, B> && EqualMat<A, C> && std::is_lvalue_reference<C>::value
+				>>
+				Vec<UINT, Infos<A>::rows> usubBorrow(A&& x, B&& y, C&& carry) {
+				return { createFCallExp("usubBorrow", EX(A,x), EX(B,y), EX(C,carry)) };
+			}
+
+			template<typename A, typename B, typename C, typename D, typename = std::enable_if_t<
+				IsVecU<A> && EqualMat<A, B> && EqualMat<A, C> && EqualMat<A, D> && std::is_lvalue_reference<C>::value && std::is_lvalue_reference<D>::value
+				>>
+				void umulExtended(A&& x, B&& y, C&& msb, D&& lsb) {
+				return { createFCallExp("umulExtended", EX(A,x), EX(B,y), EX(C,msb), EX(D,lsb)) };
+			}
+			
+			template<typename A, typename B, typename C, typename D, typename = std::enable_if_t<
+				IsVecI<A> && EqualMat<A, B> && EqualMat<A, C> && EqualMat<A, D> && std::is_lvalue_reference<C>::value && std::is_lvalue_reference<D>::value
+				>>
+				void imulExtended(A&& x, B&& y, C&& msb, D&& lsb) {
+				return { createFCallExp("imulExtended", EX(A,x), EX(B,y), EX(C,msb), EX(D,lsb)) };
+			}
+
+			template<typename A, typename B, typename C, typename D, typename = std::enable_if_t<
+				IsVecInteger<A> && EqualMat<A, B> && IsInt<C> && IsInt<D>
+				>>
+				Vec< Infos<A>::scalar_type, Infos<A>::rows > bitfieldInsert(A&& base, B&& insert, C&& offset, D&& bits) {
+				return { createFCallExp("bitfieldInsert", EX(A,base), EX(B,insert), EX(C,offset), EX(D,bits)) };
+			}
+
+			template<typename A, typename = std::enable_if_t<IsVecInteger<A>> >
+				Vec<Infos<A>::scalar_type, Infos<A>::rows> bitfieldReverse(A&& value) {
+				return { createFCallExp("bitfieldReverse", EX(A,value)) };
+			}
+
+			template<typename A, typename = std::enable_if_t<IsVecInteger<A>> >
+				Vec<INT, Infos<A>::rows> bitCount(A&& value) {
+				return { createFCallExp("bitCount", EX(A,value)) };
+			}
+
+			template<typename A, typename = std::enable_if_t<IsVecInteger<A>> >
+			Vec<INT, Infos<A>::rows> findLSB(A&& value) {
+				return { createFCallExp("findLSB", EX(A,value)) };
+			}
+
+			template<typename A, typename = std::enable_if_t<IsVecInteger<A>> >
+			Vec<INT, Infos<A>::rows> findMSB(A&& value) {
+				return { createFCallExp("findMSB", EX(A,value)) };
+			}
 		}
 			
 

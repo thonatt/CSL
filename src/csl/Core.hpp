@@ -8,6 +8,10 @@
 //multiple assignment operators specified
 #pragma warning( disable : 4522)
 
+//to define "not" keyword
+#ifdef _WIN32	
+#include <iso646.h>
+#endif
 
 #include "Shaders.hpp"
 
