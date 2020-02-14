@@ -111,7 +111,7 @@ namespace csl {
 				return namePtr;
 			}
 
-			std::string str() const {
+			const std::string& str() const {
 				return *strPtr();
 			}
 
@@ -196,6 +196,11 @@ namespace csl {
 			//static CounterData counterData;
 
 		};
+
+		template<typename T>
+		NamedObjectInit<T> operator>>(const std::string& s, T&& t) {
+			return { getExp(std::forward<T>(t)) , s };
+		}
 
 		//template<typename T> CounterData NamedObject<T>::counterData = {};
 

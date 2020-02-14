@@ -55,29 +55,13 @@ namespace csl {
 				: Matrix(name, IS_TRACKED) { }
 
 			template<size_t N>
-			Matrix(const char(&s)[N]) :
-				Matrix(s, IS_TRACKED) { }
-
-			//template <std::size_t N>
-			//explicit Matrix(const char(&s)[N], uint flags = IS_TRACKED)
-			//	: NamedObject<Matrix>(s)
-			//{
-			//}
+			Matrix(const char(&s)[N]) 
+				: Matrix(s, IS_TRACKED) { }
 
 			Matrix(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
 				: NamedObject<Matrix>(_ex, ctor_flags, obj_flags, s)
 			{
 			}
-
-			//// constructor from cpp types (bool, int, and double)
-			//template<typename U, typename = std::enable_if_t<IsValid<U> && !Infos<U>::is_glsl_type && isScalar && !isBool > >
-			//Matrix(U && u, const std::string & s)
-			//	: NamedObject<Matrix>(
-			//		EqualMat<U,Matrix> ? 0 : ( DISPLAY_TYPE | PARENTHESIS),
-			//		IS_TRACKED , s,
-			//		EX(U,u) )
-			//{
-			//}
 
 			Matrix(const NamedObjectInit<Matrix> & obj) : NamedObject<Matrix>(obj) {}
 
@@ -111,18 +95,6 @@ namespace csl {
 					EX(T, x))
 			{
 			}
-
-			////
-			//template<typename T, typename Dummy = void, typename = std::enable_if_t< 
-			//	!isBool && !isScalar && !IsScalar<T> 
-			//> >
-			//explicit Matrix( T && x)
-			//	: NamedObject<Matrix>(
-			//		EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
-			//		IS_TRACKED, "",
-			//		EX(T, x))
-			//{
-			//}
 
 			// operators =
 
@@ -464,8 +436,8 @@ namespace csl {
 
 			template<uint M> using Size = ArrayImpl<T, M>;
 
-			//template<bool b = (N != 0), typename = std::enable_if_t<b> > TODO should be here but prevents gl_ClipDistance
-
+			//template<bool b = (N != 0), typename = std::enable_if_t<b> > //TODO should be here but prevents gl_ClipDistance
+			
 			ArrayImpl(const std::string & _name = "", uint flags = IS_TRACKED)
 				: NamedObject<ArrayImpl>(_name, flags)
 			{
@@ -484,7 +456,8 @@ namespace csl {
 			{
 			}
 
-			ArrayImpl(const NamedObjectInit<ArrayImpl> & obj) : NamedObject<ArrayImpl>(obj)
+			ArrayImpl(const NamedObjectInit<ArrayImpl> & obj)
+				: NamedObject<ArrayImpl>(obj)
 			{
 			}
 

@@ -231,7 +231,7 @@ namespace csl {
 				check_end_if();
 				if (currentBlock) {
 					for (int i = 0; i < n; ++i) {
-						currentBlock->push_instruction(EmptyStatement::create(NEW_LINE | IGNORE_TRAILING | NOTHING));
+						currentBlock->push_instruction(EmptyStatement::create(NEW_LINE | IGNORE_TRAILING));
 					}
 				}
 			}
@@ -316,10 +316,6 @@ namespace csl {
 				}
 
 				return out.str();
-			}
-
-			void explore() {
-				declarations->explore();
 			}
 
 			template<typename ...Args, typename ... Strings>

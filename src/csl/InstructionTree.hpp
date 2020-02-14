@@ -11,7 +11,7 @@ namespace csl {
 
 		//////////////
 
-		enum ArgOrderEvaluation { LEFT_TO_RIGHT, RIGHT_TO_LEFT, ORDER_NOT_SUPPORTED };
+		enum class ArgOrderEvaluation { LEFT_TO_RIGHT, RIGHT_TO_LEFT, ORDER_NOT_SUPPORTED };
 
 		struct ArgOrdering {
 			ArgOrdering(size_t i) : value(i) {
@@ -23,11 +23,11 @@ namespace csl {
 			static ArgOrderEvaluation call_args(ArgOrdering a, ArgOrdering b, ArgOrdering c) {
 				ArgOrderEvaluation out;
 				if (a.check(a) && b.check(b) && c.check(c)) {
-					out = LEFT_TO_RIGHT;
+					out = ArgOrderEvaluation::LEFT_TO_RIGHT;
 				} else  if (a.check(c) && b.check(b) && c.check(a)) {
-					out = RIGHT_TO_LEFT;
+					out = ArgOrderEvaluation::RIGHT_TO_LEFT;
 				} else {
-					out = ORDER_NOT_SUPPORTED;
+					out = ArgOrderEvaluation::ORDER_NOT_SUPPORTED;
 				}
 				return out;
 			}
@@ -50,9 +50,9 @@ namespace csl {
 
 		inline void getArgOrderStr(ArgOrderEvaluation order) {
 			std::string out;
-			if (order == LEFT_TO_RIGHT) {
+			if (order == ArgOrderEvaluation::LEFT_TO_RIGHT) {
 				out = "left to right";
-			} else if (order == RIGHT_TO_LEFT) {
+			} else if (order == ArgOrderEvaluation::RIGHT_TO_LEFT) {
 				out = "right to left";
 			} else {
 				out = "compiler's arg order is not supported";
@@ -65,7 +65,7 @@ namespace csl {
 		enum StatementOptions : uint {
 			SEMICOLON = 1 << 0,
 			COMMA = 1 << 1,
-			NOTHING = 1 << 2,
+			//NOTHING = 1 << 2,
 			ADD_SPACE = 1 << 3,
 			NEW_LINE = 1 << 4,
 			IGNORE_DISABLE = 1 << 5,
@@ -104,7 +104,6 @@ namespace csl {
 			virtual ~InstructionBase() = default;
 			virtual void str(std::stringstream & stream, int & trailing, uint otps) { }
 			virtual void cout(int & trailing, uint otps = DEFAULT) {}
-			virtual void explore() {}
 		};
 
 		struct Block {
@@ -129,11 +128,7 @@ namespace csl {
 					inst->cout(trailing);
 				}
 			}
-			virtual void explore() {
-				for (const auto & inst : instructions) {
-					inst->explore();
-				}
-			}
+
 			std::vector<InstructionBase::Ptr> instructions;
 			Block::Ptr parent;
 		};
@@ -205,10 +200,6 @@ namespace csl {
 						<< ex->str(trailing)
 						<< instruction_end(opts);
 				}
-			}
-
-			void explore() {
-				ex->explore();
 			}
 
 			Ex ex;
@@ -321,7 +312,7 @@ namespace csl {
 
 				conditions.back()->str(stream, trailing, IGNORE_TRAILING | SEMICOLON | ADD_SPACE);
 
-				loops.back()->str(stream, trailing, IGNORE_TRAILING | NOTHING);
+				loops.back()->str(stream, trailing, IGNORE_TRAILING);
 			}
 
 		};
@@ -348,10 +339,6 @@ namespace csl {
 					s += " " + ex->str(0);
 				}
 				return s;
-			}
-
-			void explore() {
-				ex->explore();
 			}
 		};
 
@@ -441,11 +428,11 @@ namespace csl {
 
 				const auto & args = funcs[it].args->instructions;
 				const int size = static_cast<int>(args.size());
-				if (getArgOrder() == LEFT_TO_RIGHT) {
+				if (getArgOrder() == ArgOrderEvaluation::LEFT_TO_RIGHT) {
 					for (int i = 0; i < size; ++i) {
 						args[i]->str(stream, dummy_trailing, (i == (size - 1) ? 0 : COMMA | ADD_SPACE));
 					}
-				} else if (getArgOrder() == RIGHT_TO_LEFT) {
+				} else if (getArgOrder() == ArgOrderEvaluation::RIGHT_TO_LEFT) {
 					for (int i = size - 1; i >= 0; --i) {
 						args[i]->str(stream, dummy_trailing, (i == 0 ? 0 : COMMA | ADD_SPACE));
 					}
@@ -535,7 +522,7 @@ namespace csl {
 						} else {
 							stream << "else if( ";
 						}
-						bodies[i].condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+						bodies[i].condition->str(stream, trailing, IGNORE_DISABLE);
 						stream << " ) {\n";
 					} else {
 						stream << "else {\n";
@@ -563,7 +550,7 @@ namespace csl {
 
 			void str(std::stringstream & stream, int & trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "while( ";
-				condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+				condition->str(stream, trailing, IGNORE_DISABLE);
 				stream << " ){\n";
 				++trailing;
 				body->str(stream, trailing, opts);
@@ -588,7 +575,7 @@ namespace csl {
 			void str(std::stringstream & stream, int & trailing, uint opts) {
 				if (label) {
 					stream << instruction_begin(trailing, opts) << "case ";
-					label->str(stream, trailing, NOTHING | IGNORE_TRAILING);
+					label->str(stream, trailing, IGNORE_TRAILING);
 				} else {
 					stream << instruction_begin(trailing, opts) << "default";
 				}
@@ -620,7 +607,7 @@ namespace csl {
 
 			void str(std::stringstream & stream, int & trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "switch( ";
-				condition->str(stream, trailing, NOTHING | IGNORE_DISABLE);
+				condition->str(stream, trailing, IGNORE_DISABLE);
 				stream << " ){\n";
 				++trailing;
 				body->str(stream, trailing, opts);

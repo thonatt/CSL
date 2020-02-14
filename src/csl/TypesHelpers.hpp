@@ -127,10 +127,6 @@ namespace csl {
 		// arrays
 		template<typename T, uint N = 0> struct ArrayImpl;
 
-		//template<typename T> struct GetArray {
-		//	template<uint N> using Size = Array<T, N>;
-		//};
-
 		// types infos
 
 		template<typename T> struct Infos {
@@ -396,6 +392,8 @@ namespace csl {
 		template<typename T, QualifierType type>
 		constexpr bool IsQuali = IsQualifierImpl<T, type>::value;
 
+		template<typename T>
+		constexpr bool FunctionOut = std::is_lvalue_reference<T>::value;
 
 		template<typename A, typename B>
 		constexpr bool SuperiorType = Infos<B>::scalar_type >= Infos<A>::scalar_type;

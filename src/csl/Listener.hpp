@@ -202,14 +202,6 @@ namespace csl {
 
 			/////////////////////////////////////////////////
 
-			void explore() {
-				if (currentShader) {
-					std::cout << "############## explore ############" << std::endl;
-					currentShader->explore();
-					std::cout << "###################################" << std::endl;
-				}
-			}
-
 			void reset_counters() {
 				for (CounterData * counter_ptr : counter_ptrs) {
 					*counter_ptr = CounterData();
@@ -353,12 +345,14 @@ namespace csl {
 			ReturnType<Args...>
 			Function<ReturnTList, FuncTList>::operator()(Args && ...args) {
 
+			Ex ex = createFCallExp(str(), getExp(std::forward<Args>(args))...);
+
 			//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 			if (std::is_same<ReturnType<Args...>, void>::value) {
-				listen().addEvent(createFCallExp(str(), EX(Args, args)...));
+				listen().addEvent(ex);
 			}
 
-			return ReturnType<Args...>(createFCallExp(str(), EX(Args, args)...));
+			return ReturnType<Args...>(ex);
 		}
 
 		inline MatrixConvertor<Bool>::operator bool() &

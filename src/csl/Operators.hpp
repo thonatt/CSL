@@ -98,10 +98,6 @@ namespace csl {
 				return "no_str";
 			}
 
-			std::string explore() const {
-				return "no_exploration";
-			}
-
 			virtual uint rank() const {
 				return 0;
 			}
@@ -122,7 +118,7 @@ namespace csl {
 			}
 
 			void disable() {
-				flags = flags | DISABLED;
+				flags |= DISABLED;
 			}
 
 			bool disabled() const {
@@ -135,7 +131,6 @@ namespace csl {
 
 			virtual Ex firstArg() { return Ex(); }
 
-			//stringPtr op_str_ptr;
 			uint flags = 0;
 		};
 
@@ -145,9 +140,7 @@ namespace csl {
 		}
 
 		struct NamedOperator {
-
 			NamedOperator(const std::string & str) : operator_str(str) {}
-
 			const std::string& op_str() const { return operator_str; }
 
 			std::string operator_str;
@@ -155,25 +148,21 @@ namespace csl {
 
 		template<OperatorPrecedence precedence>
 		struct Precedence : OperatorBase {
-			//Precedence(stringPtr _op_str_ptr = {}) : OperatorBase(_op_str_ptr) {}
 			virtual ~Precedence() = default;
 			virtual uint rank() const { return (uint)precedence; }
 		};
 
 		struct Alias : Precedence<ALIAS> {
-			Alias(stringPtr _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
-			//Alias( const std::string & s) : obj_str_ptr(makeStringPtr(s)) {}
-			std::string str(int trailing) const { return *obj_str_ptr; }
-			//virtual std::string str() const { return "Alias[" + *obj_str_ptr + "]"; }
+			Alias(const stringPtr& _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
+			std::string str(int trailing) const override { return *obj_str_ptr; }
 
 			stringPtr obj_str_ptr;
 		};
 
 		template<OperatorPrecedence precedence>
 		struct MiddleOperator : Precedence<precedence>, NamedOperator {
-			MiddleOperator(const std::string & op_str, Ex _lhs, Ex _rhs)
+			MiddleOperator(const std::string & op_str, const Ex& _lhs, const Ex& _rhs)
 				: NamedOperator(op_str), lhs(_lhs), rhs(_rhs) {
-				//std::cout << "middle op : " << op_str << " " << *OperatorBase::op_str_ptr << std::endl;
 			}
 
 			std::string str(int trailing) const {
@@ -183,7 +172,7 @@ namespace csl {
 			Ex lhs, rhs;
 		};
 
-		template<uint N>
+		template<size_t N>
 		struct ArgsCall {
 
 			template<typename ... Args>
@@ -191,7 +180,7 @@ namespace csl {
 
 			std::string args_str_body() const {
 				std::string out = "";
-				for (uint i = 0; i < N; ++i) {
+				for (size_t i = 0; i < N; ++i) {
 					out += args[i]->str(0) + ((i == N - 1) ? "" : ", ");
 				}
 				return out;
@@ -365,6 +354,7 @@ namespace csl {
 			MemberAccessor(const Ex & _obj, const std::string & _member_str, ObjStatus _obj_is_temp = NOT_TEMP)
 				: obj(_obj), member_str(_member_str), obj_is_temp(_obj_is_temp) {
 			}
+
 			std::string str(int trailing) const {
 				std::string obj_str;
 				if (obj_is_temp) {
@@ -411,7 +401,7 @@ namespace csl {
 		};
 
 		struct ArraySubscript : Precedence<ARRAY_SUBSCRIPT> {
-			ArraySubscript(Ex _obj, Ex _arg) : obj(_obj), arg(_arg) {
+			ArraySubscript(const Ex& _obj, const Ex& _arg) : obj(_obj), arg(_arg) {
 			}
 
 			std::string str(int trailing) const {
@@ -422,7 +412,7 @@ namespace csl {
 		};
 
 		struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
-			PrefixUnary(const std::string & op_str, Ex _obj)
+			PrefixUnary(const std::string & op_str, const Ex& _obj)
 				: NamedOperator(op_str), obj(_obj) {
 			}
 
@@ -434,7 +424,7 @@ namespace csl {
 		};
 
 		struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
-			PostfixUnary(const std::string & op_str, Ex _obj)
+			PostfixUnary(const std::string & op_str, const Ex& _obj)
 				: NamedOperator(op_str), obj(_obj) {
 			}
 
@@ -446,7 +436,7 @@ namespace csl {
 		};
 
 		struct Ternary : Precedence<TERNARY> {
-			Ternary(Ex _condition, Ex _first, Ex _second)
+			Ternary(const Ex& _condition, const Ex& _first, const Ex& _second)
 				: condition(_condition), first(_first), second(_second) {
 			}
 
