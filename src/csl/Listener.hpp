@@ -166,14 +166,14 @@ namespace csl {
 			//////////////////////////////
 
 			template<bool dummy, typename ...Args, typename ... Strings>
-			void add_struct(const std::string & name, const Strings & ... names) {
+			void add_struct(const string & name, const Strings & ... names) {
 				if (currentShader) {
 					currentShader->add_struct<Args...>(name, names...);
 				}
 			}
 
 			template<typename T, typename ...Args, typename ... Strings>
-			void add_unnamed_interface_block(const std::string & dummy, Strings & ... names) {
+			void add_unnamed_interface_block(const string & dummy, Strings & ... names) {
 				if (currentShader) {
 					currentShader->add_unnamed_interface_block<T, Args...>(names...);
 				}
@@ -182,7 +182,7 @@ namespace csl {
 			/////////////////////////////////////////////////
 
 			template<typename ReturnTList, typename ... Fs>
-			void begin_func(const std::string & name, Fs && ... fs) {
+			void begin_func(const string & name, Fs && ... fs) {
 				if (currentShader) {
 					currentShader->begin_func<ReturnTList>(name, std::forward<Fs>(fs)...);
 				}
@@ -228,9 +228,9 @@ namespace csl {
 		}
 
 		template<NamingCaterogy cat>
-		inline std::string NamingCounter<cat>::getNextName()
+		inline string NamingCounter<cat>::getNextName()
 		{
-			std::string out = baseName() + std::to_string(counterData.value);
+			string out = baseName() + std::to_string(counterData.value);
 			++counterData.value;
 
 			if (!counterData.is_tracked) {
@@ -296,11 +296,11 @@ namespace csl {
 				} else if (count == 2) {
 					listen().active() = true;
 				}
-				return count > 2 ? 0 : unlikely_case;
+				return (count > 2) ? 0 : unlikely_case;
 			}
 
 			mutable int count = 0;
-			int unlikely_case = 696969;
+			static constexpr int unlikely_case = 696969;
 		};
 
 		struct EndFor {
@@ -329,7 +329,7 @@ namespace csl {
 		};
 
 		template<typename ReturnTList, typename ... Fs>
-		void init_function_declaration(const std::string & fname, Fs && ...fs)
+		void init_function_declaration(const string & fname, Fs && ...fs)
 		{
 			listen().begin_func<ReturnTList>(fname, std::forward<Fs>(fs)...);
 			//std::cout << "\t" << fname << std::endl;
@@ -408,7 +408,7 @@ namespace csl {
 	core::listen().add_statement<core::DiscardStatement>();
 
 #define CSL_BREAK \
-	if(false){break;} \
+	if(false){ break; } \
 	core::listen().add_statement<core::BreakStatement>();
 
 #define CSL_WHILE(condition) \

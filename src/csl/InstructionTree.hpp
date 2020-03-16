@@ -321,7 +321,7 @@ namespace csl {
 			using Statement::Statement;
 			virtual ~SpecialStatement() = default;
 
-			virtual bool checkStatementValidity(Block::Ptr block) const { return true; }
+			virtual bool checkStatementValidity(const Block::Ptr& block) const { return true; }
 		};
 
 		struct ReturnStatement : SpecialStatement {

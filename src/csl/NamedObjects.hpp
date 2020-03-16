@@ -12,10 +12,10 @@ namespace csl {
 
 		class NamedObjectBase {
 		public:
-			NamedObjectBase(const std::string & _name = "", uint _flags = IS_USED | IS_TRACKED)
+			NamedObjectBase(const string & _name = "", uint _flags = IS_USED | IS_TRACKED)
 				: flags(_flags)
 			{
-				namePtr = std::make_shared<std::string>(_name);
+				namePtr = std::make_shared<string>(_name);
 				//std::cout << "base " << *namePtr << " " << (int)(flags & IS_TRACKED) << std::endl;
 			}
 
@@ -98,7 +98,7 @@ namespace csl {
 				//should check inside scope
 			}
 
-			//static std::string typeStr() { return "dummyT"; }
+			//static string typeStr() { return "dummyT"; }
 
 		protected:
 			stringPtr namePtr;
@@ -111,7 +111,7 @@ namespace csl {
 				return namePtr;
 			}
 
-			const std::string& str() const {
+			const string& str() const {
 				return *strPtr();
 			}
 
@@ -119,9 +119,9 @@ namespace csl {
 
 		template<typename T>
 		struct NamedObjectInit {
-			NamedObjectInit(const Ex & _exp, const std::string & s) : exp(_exp), name(s) {}
+			NamedObjectInit(const Ex & _exp, const string & s) : exp(_exp), name(s) {}
 			Ex exp;
-			std::string name;
+			string name;
 		};
 
 		template<typename T, typename ... Args>
@@ -137,12 +137,12 @@ namespace csl {
 		class NamedObject : public NamedObjectBase {
 
 		public:
-			NamedObjectInit<T> operator<<(const std::string & s) const && {
+			NamedObjectInit<T> operator<<(const string & s) const && {
 				return { getExTmp() , s };
 			}
 
 		protected:
-			NamedObject(const std::string & _name = "", uint _flags = IS_TRACKED)
+			NamedObject(const string & _name = "", uint _flags = IS_TRACKED)
 				: NamedObjectBase(_name, _flags)
 			{
 				checkName();
@@ -156,7 +156,7 @@ namespace csl {
 				const Ex & _ex,
 				uint ctor_flags = 0,
 				uint obj_flags = IS_TRACKED,
-				const std::string & s = ""
+				const string & s = ""
 			) : NamedObjectBase(s, obj_flags)
 			{
 				checkName();
@@ -168,12 +168,12 @@ namespace csl {
 			NamedObject(
 				uint ctor_flags,
 				uint obj_flags,
-				const std::string & s,
-				const Args &... args
+				const string & s,
+				Args &&... args
 			) : NamedObjectBase(s, obj_flags)
 			{
 				checkName();
-				exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, args ...);
+				exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, std::forward<Args>(args) ...);
 				checkDisabling();
 			}
 
@@ -188,7 +188,7 @@ namespace csl {
 			{
 				using AutoName = typename AutoNaming<T>::Type;
 				if (*namePtr == "") {
-					namePtr = std::make_shared<std::string>(AutoName::getNextName());
+					namePtr = std::make_shared<string>(AutoName::getNextName());
 				}
 
 			}
@@ -198,7 +198,7 @@ namespace csl {
 		};
 
 		template<typename T>
-		NamedObjectInit<T> operator>>(const std::string& s, T&& t) {
+		NamedObjectInit<T> operator>>(const string& s, T&& t) {
 			return { getExp(std::forward<T>(t)) , s };
 		}
 

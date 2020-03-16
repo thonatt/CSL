@@ -40,7 +40,7 @@ int main() {
       using namespace csl::vert_330;  
       Shader myShader;
 
-      In<vec3, Layout<Location<0>> position;
+      In<vec3, Layout<Location<0>>> position;
 
       myShader.main([&]{
             gl_Position = vec4(position, 1.0);
@@ -685,7 +685,7 @@ Interface block are similar to structs with syntax `CSL_INTERFACE_BLOCK(Qualifie
 </table>
 </details>
 
-Since the `member-list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, type aliases must be created. In the case of arrays, the type helper `Array<T>::Size<N>` can be used as an alias for `Array<T,N>`.
+Since the `member-list` is parsed by the preprocessor, **members typename must not contain any comma**. To circumvent this issue, type aliases must be created. In the case of arrays, the type helper `csl::Array<T>::Size<N>` can be used as an alias for `csl::Array<T,N>`.
 
 <details>
     <summary>Type alias examples</summary>

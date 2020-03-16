@@ -177,6 +177,13 @@ namespace csl {
 
 			CSL_PP_ITERATE(RELATIONAL_GENTYPE_OP, greaterThan, lessThan, greaterThanEqual, lessThenEqual, equal, notEqual);
 
+			template<typename A, typename B, typename = std::enable_if_t <
+				IsVecF<A> && EqualMat<A, B>
+			> >
+				Matrix<FLOAT, Infos<A>::rows, Infos<A>::cols> atan(A&& y, B&& x) {
+				return { createFCallExp("atan", EX(A,y), EX(B,x)) };
+			}
+
 			BOOL_OP(any);
 			BOOL_OP(all);
 

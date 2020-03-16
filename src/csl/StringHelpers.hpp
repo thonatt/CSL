@@ -365,7 +365,7 @@ namespace csl {
 		};
 
 		template<GLVersion v>
-		string gl_version_str() { return std::to_string(v); }
+		constexpr string gl_version_str() { return std::to_string(v); }
 	
 	}
 

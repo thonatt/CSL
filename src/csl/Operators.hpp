@@ -94,7 +94,7 @@ namespace csl {
 			OperatorBase(uint _flags = 0) : flags(_flags) {}
 			virtual ~OperatorBase() = default;
 
-			virtual std::string str(int trailing) const {
+			virtual string str(int trailing) const {
 				return "no_str";
 			}
 
@@ -110,7 +110,7 @@ namespace csl {
 				return rank() == other->rank();
 			}
 
-			std::string checkForParenthesis(const Ex & exp) const {
+			string checkForParenthesis(const Ex & exp) const {
 				if (inversion(exp)) {
 					return "(" + exp->str(0) + ")";
 				}
@@ -140,10 +140,10 @@ namespace csl {
 		}
 
 		struct NamedOperator {
-			NamedOperator(const std::string & str) : operator_str(str) {}
+			NamedOperator(const string & str) : operator_str(str) {}
 			const std::string& op_str() const { return operator_str; }
 
-			std::string operator_str;
+			string operator_str;
 		};
 
 		template<OperatorPrecedence precedence>
@@ -154,18 +154,18 @@ namespace csl {
 
 		struct Alias : Precedence<ALIAS> {
 			Alias(const stringPtr& _obj_str_ptr) : obj_str_ptr(_obj_str_ptr) {}
-			std::string str(int trailing) const override { return *obj_str_ptr; }
+			string str(int trailing) const override { return *obj_str_ptr; }
 
 			stringPtr obj_str_ptr;
 		};
 
 		template<OperatorPrecedence precedence>
 		struct MiddleOperator : Precedence<precedence>, NamedOperator {
-			MiddleOperator(const std::string & op_str, const Ex& _lhs, const Ex& _rhs)
+			MiddleOperator(const string & op_str, const Ex& _lhs, const Ex& _rhs)
 				: NamedOperator(op_str), lhs(_lhs), rhs(_rhs) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return OperatorBase::checkForParenthesis(lhs) + NamedOperator::op_str() + OperatorBase::checkForParenthesis(rhs);
 			}
 
@@ -176,17 +176,17 @@ namespace csl {
 		struct ArgsCall {
 
 			template<typename ... Args>
-			ArgsCall(Args && ... _args) : args{ _args... } {}
+			ArgsCall(Args && ... _args) : args{ std::forward<Args>(_args)... } {}
 
-			std::string args_str_body() const {
-				std::string out = "";
+			string args_str_body() const {
+				string out = "";
 				for (size_t i = 0; i < N; ++i) {
 					out += args[i]->str(0) + ((i == N - 1) ? "" : ", ");
 				}
 				return out;
 			}
 
-			std::string args_str() const {
+			string args_str() const {
 				return "(" + args_str_body() + ")";
 			}
 
@@ -197,17 +197,17 @@ namespace csl {
 		struct FunctionCall : Precedence<FUNCTION_CALL>, NamedOperator, ArgsCall<N> {
 
 			template<typename ... Args>
-			FunctionCall(const std::string & s, Args && ... _args)
+			FunctionCall(const string & s, Args && ... _args)
 				: NamedOperator(s), ArgsCall<N>(std::forward<Args>(_args)...) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return op_str() + ArgsCall<N>::args_str();
 			}
 		};
 
 		template<typename ... Args>
-		Ex createFCallExp(const std::string & f_name, Args && ... args) {
+		Ex createFCallExp(const string & f_name, Args && ... args) {
 			return createExp<FunctionCall<sizeof...(Args)>>(f_name, std::forward<Args>(args)...);
 		}
 
@@ -244,7 +244,7 @@ namespace csl {
 				return false;
 			}
 
-			virtual std::string obj_name() const {
+			virtual string obj_name() const {
 				return "base_ctor_obj_name";
 			}
 
@@ -265,34 +265,34 @@ namespace csl {
 			}
 
 			template<typename ... Args>
-			Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint _flags, Args && ...  args)
+			Constructor(const stringPtr& _obj_name_ptr, CtorStatus _status, uint _flags, Args && ...  args)
 				: ArgsCall<N>(std::forward<Args>(args)...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
 			{
 			}
 
 			virtual ~Constructor() = default;
 
-			virtual std::string obj_name() const override {
+			virtual string obj_name() const override {
 				return *obj_name_ptr;
 			}
 
-			std::string lhs_type_str(int trailing) const {
+			string lhs_type_str(int trailing) const {
 				if (flags & MULTIPLE_INITS) {
 					return "";
 				}
 				return getTypeStr<T>(trailing);
 			}
 
-			virtual std::string rhs_type_str() const {
+			virtual string rhs_type_str() const {
 				return TypeStrRHS<T>::str();
 			}
 
-			virtual std::string lhs_str(int trailing) const {
+			virtual string lhs_str(int trailing) const {
 				return DeclarationStr<T>::str(obj_name(), trailing);
 			}
 
-			std::string rhs_str() const {
-				std::string str;
+			string rhs_str() const {
+				string str;
 				if (flags & DISPLAY_TYPE) {
 					str += rhs_type_str();
 				}
@@ -304,7 +304,7 @@ namespace csl {
 				return str;
 			}
 
-			virtual std::string str(int trailing) const override {
+			virtual string str(int trailing) const override {
 				if (status() == INITIALISATION) {
 					return lhs_str(trailing) + " = " + rhs_str();
 				} else if (status() == DECLARATION) {
@@ -331,32 +331,15 @@ namespace csl {
 			stringPtr obj_name_ptr;
 		};
 
-		//template<typename T, uint N, uint M>
-		//struct Constructor<Array<T, N>, M> : Constructor<T, M> {
-		//
-		//	template<typename ... Args>
-		//	Constructor(stringPtr _obj_name_ptr, CtorStatus _status, uint flags, const Args & ...  _args)
-		//		: Constructor<T, M>(_obj_name_ptr, _status, flags, _args...) {
-		//	}
-		//
-		//	virtual std::string lhs_str(int trailing) const {
-		//		return Constructor<T, M>::lhs_str(trailing) + TypeStr< Array<T, N> >::array_str();
-		//	}
-		//
-		//	virtual std::string rhs_type_str() const {
-		//		return getTypeStr<T>() + TypeStr< Array<T, N> >::array_str();
-		//	}
-		//};
-
 		struct MemberAccessor : Precedence<FIELD_SELECTOR> {
 			enum ObjStatus { NOT_TEMP = 0, TEMP = 1 };
 
-			MemberAccessor(const Ex & _obj, const std::string & _member_str, ObjStatus _obj_is_temp = NOT_TEMP)
+			MemberAccessor(const Ex & _obj, const string & _member_str, ObjStatus _obj_is_temp = NOT_TEMP)
 				: obj(_obj), member_str(_member_str), obj_is_temp(_obj_is_temp) {
 			}
 
-			std::string str(int trailing) const {
-				std::string obj_str;
+			string str(int trailing) const {
+				string obj_str;
 				if (obj_is_temp) {
 					obj_str = OperatorBase::checkForParenthesis(obj);
 				} else {
@@ -382,18 +365,18 @@ namespace csl {
 			}
 
 			Ex obj;
-			std::string member_str;
+			string member_str;
 			ObjStatus obj_is_temp;
 		};
 
 		template<uint N>
 		struct MemberFunctionAccessor : FunctionCall<N> {
 			template<typename ...Args>
-			MemberFunctionAccessor(const Ex & _obj, const std::string & fun_name, Args && ... args)
+			MemberFunctionAccessor(const Ex & _obj, const string & fun_name, Args && ... args)
 				: FunctionCall<N>(fun_name, std::forward<Args>(args)...), obj(_obj) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str(0);
 			}
 
@@ -404,7 +387,7 @@ namespace csl {
 			ArraySubscript(const Ex& _obj, const Ex& _arg) : obj(_obj), arg(_arg) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return OperatorBase::checkForParenthesis(obj) + "[" + arg->str(0) + "]";
 			}
 
@@ -412,11 +395,11 @@ namespace csl {
 		};
 
 		struct PrefixUnary : Precedence<PREFIX>, NamedOperator {
-			PrefixUnary(const std::string & op_str, const Ex& _obj)
+			PrefixUnary(const string & op_str, const Ex& _obj)
 				: NamedOperator(op_str), obj(_obj) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return op_str() + OperatorBase::checkForParenthesis(obj);
 			}
 
@@ -424,11 +407,11 @@ namespace csl {
 		};
 
 		struct PostfixUnary : Precedence<POSTFIX>, NamedOperator {
-			PostfixUnary(const std::string & op_str, const Ex& _obj)
+			PostfixUnary(const string & op_str, const Ex& _obj)
 				: NamedOperator(op_str), obj(_obj) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return OperatorBase::checkForParenthesis(obj) + op_str();
 			}
 
@@ -440,7 +423,7 @@ namespace csl {
 				: condition(_condition), first(_first), second(_second) {
 			}
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return OperatorBase::checkForParenthesis(condition) + " ? " + OperatorBase::checkForParenthesis(first) + " : " + OperatorBase::checkForParenthesis(second);
 			}
 
@@ -455,7 +438,7 @@ namespace csl {
 			{
 			}
 
-			virtual std::string str(int trailing) const {
+			virtual string str(int trailing) const {
 				return "{ " + ArgsCall<N>::args_str_body() + " }";
 			}
 		};
@@ -463,23 +446,23 @@ namespace csl {
 		struct EmptyExp : OperatorBase {
 			static Ex get() { return std::static_pointer_cast<OperatorBase>(std::make_shared<EmptyExp>()); }
 
-			std::string str(int trailing) const {
+			string str(int trailing) const {
 				return "";
 			}
 		};
 
 		template<typename T>
 		struct Litteral : OperatorBase {
-			Litteral(const T & _i) : i(_i) {}
+			Litteral(T _i) : i(_i) {}
 
-			virtual std::string str(int trailing) const {
+			virtual string str(int trailing) const {
 				if (is_integral_v<T>) {
 					return std::to_string(i);
 				} else {
 					std::stringstream ss;
 					ss << std::fixed << i;
-					std::string s = ss.str();
-					s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+					string s = ss.str();
+					s.erase(s.find_last_not_of('0') + 1, string::npos);
 					if (s.back() == '.') {
 						s += "0";
 					}
@@ -493,7 +476,7 @@ namespace csl {
 
 		template<> struct Litteral<bool> : OperatorBase {
 			Litteral(const bool & _b) : b(_b) {}
-			virtual std::string str(int trailing) const { return b ? "true" : "false"; }
+			virtual string str(int trailing) const { return b ? "true" : "false"; }
 			bool b;
 		};
 

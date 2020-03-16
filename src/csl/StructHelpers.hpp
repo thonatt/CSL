@@ -92,7 +92,6 @@
 #define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
 	CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name)); 
-	//listen().add_blank_line(1);
 
 #define CSL_PP_BUILT_IN_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ...) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
