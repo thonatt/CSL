@@ -66,16 +66,23 @@ namespace csl {
 
 		// layout types forward declarations
 
-		enum LayoutQualifier : uint {
-			SHARED = 8 * 0, PACKED, STD140, STD430,
-			ROW_MAJOR = 8 * 1, COLUMN_MAJOR,
-			BINDING = 8 * 2,
-			OFFSET = 8 * 3,
-			LOCATION = 8 * 4,
-			POINTS = 8 * 5, LINES, TRIANGLES,
-			LINE_STRIP = 8 * 6, TRIANGLE_STRIP,
-			MAX_VERTICES = 8 * 7,
-			EARLY_FRAGMENT_TEST = 8 * 8
+
+
+		constexpr int maxQualifierValues = 8;
+
+		enum LayoutQualifier : int {
+			SHARED = 0 * maxQualifierValues, PACKED, STD140, STD430,
+			ROW_MAJOR = 1 * maxQualifierValues, COLUMN_MAJOR,
+			BINDING = 2 * maxQualifierValues,
+			OFFSET = 3 * maxQualifierValues,
+			LOCATION = 4 * maxQualifierValues,
+			POINTS = 5 * maxQualifierValues, LINES, TRIANGLES, QUADS, ISOLINES,
+			LINE_STRIP = 6 * maxQualifierValues, TRIANGLE_STRIP,
+			MAX_VERTICES = 7 * maxQualifierValues,
+			EARLY_FRAGMENT_TEST = 8 * maxQualifierValues,
+			VERTICES = 9 * maxQualifierValues,
+			EQUAL_SPACING = 10 * maxQualifierValues, FRACTIONAL_EVEN_SPACING, FRACTIONAL_ODD_SPACING,
+			CW = 11*maxQualifierValues, CCW
 		};
 
 		template<LayoutQualifier lq> struct LayoutQArg;

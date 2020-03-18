@@ -35,11 +35,11 @@ namespace csl {
 
 			using namespace shader_common;
 
-			const In<vec4> gl_FragCoord("gl_FragCoord", DISABLED);
-			const In<Bool> gl_FrontFacing("gl_FrontFacing", DISABLED);
-			const In<vec2> gl_PointCoord("gl_PointCoord", DISABLED);
+			const In<vec4> gl_FragCoord("gl_FragCoord", BUILT_IN);
+			const In<Bool> gl_FrontFacing("gl_FrontFacing", BUILT_IN);
+			const In<vec2> gl_PointCoord("gl_PointCoord", BUILT_IN);
 
-			static Out<Float> gl_FragDepth("gl_FragDepth", DISABLED);
+			static Out<Float> gl_FragDepth("gl_FragDepth", BUILT_IN);
 
 			inline void Discard() {
 				listen().add_statement<DiscardStatement>();
@@ -81,8 +81,51 @@ namespace csl {
 				(Array<Float>::Size<0>) gl_ClipDistance
 			);
 
-			const In<Int> gl_VertexID("gl_VertexID", DISABLED);
-			const In<Int> gl_InstanceID("gl_InstanceID", DISABLED);
+			const In<Int> gl_VertexID("gl_VertexID", BUILT_IN);
+			const In<Int> gl_InstanceID("gl_InstanceID", BUILT_IN);
+		}
+
+		namespace tesc_common {
+			using namespace shader_common;
+			
+			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", BUILT_IN);
+			const In<Int> gl_PrimitiveID("gl_PrimitiveID", BUILT_IN);
+			const In<Int> gl_InvocationID("gl_InvocationID", BUILT_IN);
+
+			const Array<Out<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
+			const Array<Out<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
+
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
+				(vec4) gl_Position,
+				(Float) gl_PointSize,
+				(Array<Float>::Size<0>) gl_ClipDistance
+			);
+
+			static CSL_PP_DECLARATION(Out<>, gl_PerVertex, gl_out, 0, BUILT_IN);
+		}
+
+		namespace tese_common {
+			using namespace shader_common;
+
+			const In<vec3> gl_TessCoord("gl_TessCoord", BUILT_IN);
+			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", BUILT_IN);
+			const In<Int> gl_PrimitiveID("gl_PrimitiveID", BUILT_IN);
+
+			const Array<In<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
+			const Array<In<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
+
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
+				(vec4) gl_Position,
+				(Float) gl_PointSize,
+				(Array<Float>::Size<0>) gl_ClipDistance
+			);
+
+			CSL_PP_BUILT_IN_UNNAMED_INTERFACE_INTERNAL(Out<>, gl_PerVertex,
+				(vec4) gl_Position,
+				(Float) gl_PointSize,
+				(Array<Float>::Size<0>) gl_ClipDistance
+			);
+
 		}
 
 		template<GLVersion version>
@@ -165,6 +208,21 @@ namespace csl {
 		using Shader = core::ShaderWrapper<core::GLSL_410>;
 	}
 
+	namespace tesc_400 {
+		using namespace csl;
+		using namespace core::tesc_common;
+		using namespace core::glsl_400;
+
+		using Shader = core::ShaderWrapper<core::GLSL_400>;
+	}
+
+	namespace tese_400 {
+		using namespace csl;
+		using namespace core::tese_common;
+		using namespace core::glsl_400;
+
+		using Shader = core::ShaderWrapper<core::GLSL_400>;
+	}
 
 	namespace vert_430 {
 		using namespace csl;
@@ -195,9 +253,9 @@ namespace csl {
 		using namespace core::glsl_450;
 		using Shader = core::ShaderWrapper<core::SHADERTOY>;
 
-		const Uniform<vec2> iResolution("iResolution", core::DISABLED);
-		const Uniform<Float> iTime("iTime", core::DISABLED);
-		const Uniform<sampler2D> iChannel0("iChannel0", core::DISABLED);
+		const Uniform<vec2> iResolution("iResolution", core::BUILT_IN);
+		const Uniform<Float> iTime("iTime", core::BUILT_IN);
+		const Uniform<sampler2D> iChannel0("iChannel0", core::BUILT_IN);
 	}
 
 } //namespace csl

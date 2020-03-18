@@ -24,7 +24,7 @@ namespace csl {
 				ArgOrderEvaluation out;
 				if (a.check(a) && b.check(b) && c.check(c)) {
 					out = ArgOrderEvaluation::LEFT_TO_RIGHT;
-				} else  if (a.check(c) && b.check(b) && c.check(a)) {
+				} else if (a.check(c) && b.check(b) && c.check(a)) {
 					out = ArgOrderEvaluation::RIGHT_TO_LEFT;
 				} else {
 					out = ArgOrderEvaluation::ORDER_NOT_SUPPORTED;
@@ -39,12 +39,7 @@ namespace csl {
 		};
 
 		inline ArgOrderEvaluation getArgOrder() {
-			static bool first = true;
-			static ArgOrderEvaluation order;
-			if (first) {
-				order = ArgOrdering::call_args(ArgOrdering(0), ArgOrdering(1), ArgOrdering(2));
-				first = false;
-			}
+			static ArgOrderEvaluation order = ArgOrdering::call_args(ArgOrdering(0), ArgOrdering(1), ArgOrdering(2));
 			return order;
 		}
 

@@ -147,14 +147,14 @@ namespace csl {
 
 			// array subscript accessor
 			template<typename U, typename = std::enable_if_t<!isScalar && IsInteger<U> > >
-			typename std::conditional_t< NC == 1, Scalar<type>, Vec<type, NR> > operator[](U && u) &
+			typename std::conditional_t< NC == 1, Scalar<type>, Vec<type, NR> > operator[](U && u) const &
 			{
 				return { createExp<ArraySubscript>(NamedObjectBase::getExRef(), EX(U,u)) };
 			}
 
 			// array subscript accessor tmp
 			template<typename U, typename = std::enable_if_t<!isScalar && IsInteger<U> > >
-			typename std::conditional_t< NC == 1, Scalar<type>, Vec<type, NR> > operator[](U && u) &&
+			typename std::conditional_t< NC == 1, Scalar<type>, Vec<type, NR> > operator[](U && u) const &&
 			{
 				return { createExp<ArraySubscript>(NamedObjectBase::getExTmp(), EX(U,u)) };
 			}

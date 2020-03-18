@@ -89,12 +89,12 @@ namespace csl {
 
 		template<LayoutQualifier lq>
 		struct LayoutQArg {
-			static constexpr int sort_value = static_cast<int>(lq) / 8;
+			static constexpr int sort_value = static_cast<int>(lq) / maxQualifierValues;
 		};
 
 		template<LayoutQualifier lq, uint N>
 		struct LayoutQArgValue {
-			static constexpr int sort_value = static_cast<int>(lq) / 8;
+			static constexpr int sort_value = static_cast<int>(lq) / maxQualifierValues;
 		};
 
 		template<typename A, typename B> struct LayoutQualifierSort {
@@ -104,30 +104,48 @@ namespace csl {
 		template<QualifierType q, typename T, typename L>
 		struct Qualifier : T
 		{
-			using T::exp;
-			using T::operator=;
+			using T::T;
+		};
 
-			Qualifier(const std::string &s = "", uint flags = 0) : T(s, IS_BASE)
+		template<QualifierType q, ScalarType type, uint NR, uint NC, typename L>
+		struct Qualifier<q, Matrix<type, NR, NC>, L> 
+			: Matrix<type, NR, NC> 
+		{
+			using Base = Matrix<type, NR, NC>;
+			using Base::operator[];
+			using Base::operator=; 
+			using Base::exp;
+			
+			Qualifier(const std::string& s = "", uint flags = 0) : Base(s, IS_BASE)
 			{
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
 			template<size_t N>
-			Qualifier(const char(&s)[N], uint flags = 0) : T(s, IS_BASE) {
+			Qualifier(const char(&s)[N], uint flags = 0) : Base(s, IS_BASE) {
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
-			Qualifier(const NamedObjectInit<T> & obj) : T(obj.name, IS_BASE)
+			Qualifier(const NamedObjectInit<Base>& obj) : Base(obj.name, IS_BASE)
 			{
 				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
 			}
 
-			Qualifier(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
-				: T(_ex, ctor_flags | IS_BASE, obj_flags, s)
+			Qualifier(const Ex& _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string& s = "")
+				: Base(_ex, ctor_flags | IS_BASE, obj_flags, s)
 			{
 			}
-
 		};
+
+		template<QualifierType q, typename T, typename L>
+		struct Qualifier<q, Array<T>, L> 
+			: Array<T>
+		{
+			using Base = Array<T>;
+			using Base::Base;
+			using Base::operator[];
+		};
+
 
 		template<QualifierType _qType, typename ... T>
 		struct QualiPH;
@@ -180,7 +198,29 @@ namespace csl {
 			using Line_strip = LayoutQArg<LINE_STRIP>;
 			using Triangle_strip = LayoutQArg<TRIANGLE_STRIP>;
 
-			template<uint N> using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
+			template<uint N>
+			using Max_vertices = LayoutQArgValue<MAX_VERTICES, N>;
+		}
+
+		namespace tesc_common {
+
+			template<uint N>
+			using Vertices = LayoutQArgValue<VERTICES, N>;
+		}
+
+		namespace tese_common {
+
+			using Triangles = LayoutQArg<TRIANGLES>;
+			using Quads = LayoutQArg<QUADS>;
+			using Isolines = LayoutQArg<ISOLINES>;
+
+			using Equal_spacing = LayoutQArg<EQUAL_SPACING>;
+			using Fractional_even_spacing = LayoutQArg<FRACTIONAL_EVEN_SPACING>;
+			using Fractional_odd_spacing = LayoutQArg<FRACTIONAL_ODD_SPACING>;
+
+			using Cw = LayoutQArg<CW>;
+			using Ccw = LayoutQArg<CCW>;
+
 		}
 
 		template<typename ... LayoutArgs>

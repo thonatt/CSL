@@ -393,3 +393,42 @@ std::string per_triangle_normal_geom()
 
 	return shader.str();
 }
+
+std::string tesselation_control_example()
+{
+	using namespace csl::tesc_400;
+
+	Shader shader;
+	out<Layout<Vertices<3>>>();
+
+	shader.main([&] {
+		CSL_IF (gl_InvocationID == 0) {
+			gl_TessLevelInner[0] = 2.0;
+			gl_TessLevelOuter[0] = 1.0;
+			gl_TessLevelOuter[1] = 1.0;
+			gl_TessLevelOuter[2] = 1.0;
+		}
+
+		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	});
+
+	return shader.str();
+}
+
+std::string tesselation_evaluation_example()
+{
+	using namespace csl::tese_400;
+
+	Shader shader;
+	in<Layout<Triangles, Ccw, Equal_spacing>>();
+
+	shader.main([&] {
+		gl_Position =
+			gl_TessCoord[0] * gl_in[0].gl_Position +
+			gl_TessCoord[1] * gl_in[1].gl_Position +
+			gl_TessCoord[2] * gl_in[2].gl_Position;
+
+	});
+
+	return shader.str();
+}

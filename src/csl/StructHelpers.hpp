@@ -43,8 +43,8 @@
 	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::DISABLED);
 
 #define CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
-	CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
-	static CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::DISABLED);
+	static CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
+	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::DISABLED);
 
 //internal macros for named/unnamed interface blocks
 
@@ -61,9 +61,12 @@
 			"" CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	CSL_PP_ITERATE_DATA(Qualifier, CSL_PP_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ ) 
 
+#define CSL_PP_BUILT_IN_UNNAMED_INTERFACE_INTERNAL(Qualifier,Typename, ... ) \
+	CSL_PP_ITERATE_DATA(Qualifier, CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ );
+
 #define CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
 	CSL_PP_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
-	CSL_PP_ITERATE_DATA(Qualifier, CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ )
+	CSL_PP_BUILT_IN_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, __VA_ARGS__ );
 
 #define CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, ...) \
 	struct Typename : public core::NamedObject<Typename> { \
@@ -89,13 +92,16 @@
 		} \
 	}; 
 
+#define CSL_PP_DECLARATION(Qualifier, Typename, Name, ArraySize, Flags) \
+	CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name), Flags);
+
 #define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
-	CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name)); 
+	CSL_PP_DECLARATION(Qualifier, Typename, Name, ArraySize, core::IS_TRACKED);
 
 #define CSL_PP_BUILT_IN_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ...) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, Name, ArraySize, __VA_ARGS__ ); \
-	static CSL_PP_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(CSL_PP_STR(Name), core::DISABLED); 
+	static CSL_PP_DECLARATION(Qualifier, Typename, Name, ArraySize, core::BUILT_IN); 
 
 //actual macros
 

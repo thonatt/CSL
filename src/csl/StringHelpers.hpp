@@ -255,7 +255,10 @@ namespace csl {
 			{POINTS, "points"}, {LINES, "lines"}, {TRIANGLES, "triangles"},
 			{LINE_STRIP, "line_strip"}, {TRIANGLE_STRIP, "triangle_strip"},
 			{MAX_VERTICES, "max_vertices"},
-			{EARLY_FRAGMENT_TEST, "early_fragment_tests"}
+			{EARLY_FRAGMENT_TEST, "early_fragment_tests"},
+			{VERTICES, "vertices"}, {QUADS, "quads"}, {ISOLINES, "isolines"},
+			{EQUAL_SPACING, "equal_spacing"},{FRACTIONAL_EVEN_SPACING, "fractional_even_spacing"}, {FRACTIONAL_ODD_SPACING, "fractional_odd_spacing"},
+			{CW, "cw"}, {CCW, "ccw"}
 		};
 
 		static inline const string& layoutQualifierKeyword(LayoutQualifier layoutQualifier) {

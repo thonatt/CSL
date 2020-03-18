@@ -35,7 +35,9 @@ namespace csl {
 			MULTIPLE_INITS = 1 << 3,
 			PARENTHESIS = 1 << 4,
 			MAIN_BLOCK = 1 << 5,
-			MEMBER_DECLARATION = 1 << 6
+			MEMBER_DECLARATION = 1 << 6,
+
+			BUILT_IN = DISABLED
 		};
 
 		enum OperatorPrecedence : uint {
