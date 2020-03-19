@@ -432,3 +432,30 @@ std::string tesselation_evaluation_example()
 
 	return shader.str();
 }
+
+std::string tesselation_interfaces()
+{
+	using namespace csl::tesc_400;	
+	Shader shader;
+
+	out<Layout<Vertices<3>>>();
+
+	CSL_INTERFACE_BLOCK(In<>, VertexData, tcs_in, 0,
+		(vec3) position, (vec3) normal, (vec3) color,
+		(vec2) uv
+	);
+
+	CSL_INTERFACE_BLOCK(Out<>, VertexData, tcs_out, 0,
+		(vec3) position, (vec3) normal, (vec3) color,
+		(vec2) uv
+	);
+
+	shader.main([&] {
+		tcs_out[gl_InvocationID].position = tcs_in[gl_InvocationID].position;
+		tcs_out[gl_InvocationID].normal = tcs_in[gl_InvocationID].normal;
+		tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+		tcs_out[gl_InvocationID].uv = tcs_in[gl_InvocationID].uv;
+		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	});
+	return shader.str();
+}

@@ -60,7 +60,7 @@ namespace csl {
 			SamplerType sType = BASIC,
 			uint flags = 0
 		>
-			class Sampler;
+		class Sampler;
 
 		using atomic_uint = Sampler<SAMPLER, UINT, 0, ATOMIC >;
 

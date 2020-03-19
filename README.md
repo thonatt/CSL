@@ -90,7 +90,7 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 
 ## Shader setup
 
-Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Only vertex, fragment, and geometry shaders are currently supported. A [shadertoy](https://www.shadertoy.com/) namespace is also available.
+Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Vertex, fragment, geometry, and tesselation shaders are currently supported. A [shadertoy](https://www.shadertoy.com/) namespace is also available.
 
 Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`, which retrieves the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
 

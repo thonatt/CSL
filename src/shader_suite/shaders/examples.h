@@ -33,3 +33,5 @@ std::string per_triangle_normal_geom();
 std::string tesselation_control_example();
 
 std::string tesselation_evaluation_example();
+
+std::string tesselation_interfaces();

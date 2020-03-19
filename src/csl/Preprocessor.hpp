@@ -6,6 +6,9 @@
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/facilities/is_empty.hpp>
 
+#define CSL_PP_CONCAT_INTERNAL(x, y) x ## y
+#define CSL_PP_CONCAT(x, y) CSL_PP_CONCAT_INTERNAL(x, y)
+
 //helpers for C++ reflexion from http://pfultz2.com/blog/2012/07/31/reflection-in-under-100-lines/
 #define CSL_PP_REM(...) __VA_ARGS__
 #define CSL_PP_EAT(...)

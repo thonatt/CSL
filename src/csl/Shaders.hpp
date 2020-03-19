@@ -50,13 +50,13 @@ namespace csl {
 
 			using namespace shader_common;
 
-			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
 				(vec4) gl_Position,
 				(Float) gl_PointSize,
 				(Array<Float>::Size<0>) gl_ClipDistance
 			);
 
-			CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertexOut, , ,
+			CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertex, , ,
 				(vec4) gl_Position,
 				(Float) gl_PointSize,
 				(Array<Float>::Size<0>) gl_ClipDistance
@@ -95,13 +95,17 @@ namespace csl {
 			const Array<Out<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
 			const Array<Out<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
 
-			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 				(vec4) gl_Position,
 				(Float) gl_PointSize,
 				(Array<Float>::Size<0>) gl_ClipDistance
 			);
 
-			static CSL_PP_DECLARATION(Out<>, gl_PerVertex, gl_out, 0, BUILT_IN);
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(Out<>, gl_PerVertexOut, gl_out, 0,
+				(vec4) gl_Position,
+				(Float) gl_PointSize,
+				(Array<Float>::Size<0>) gl_ClipDistance
+			);
 		}
 
 		namespace tese_common {
@@ -114,13 +118,13 @@ namespace csl {
 			const Array<In<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
 			const Array<In<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
 
-			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertex, gl_in, 0,
+			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 				(vec4) gl_Position,
 				(Float) gl_PointSize,
 				(Array<Float>::Size<0>) gl_ClipDistance
 			);
 
-			CSL_PP_BUILT_IN_UNNAMED_INTERFACE_INTERNAL(Out<>, gl_PerVertex,
+			CSL_PP_BUILT_IN_UNNAMED_INTERFACE(Out<>, gl_PerVertexOut, gl_out, ,
 				(vec4) gl_Position,
 				(Float) gl_PointSize,
 				(Array<Float>::Size<0>) gl_ClipDistance

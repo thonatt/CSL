@@ -55,6 +55,7 @@ int main()
 	std::string per_tri_normal_str = per_triangle_normal_geom();
 	std::string tesselation_control_str = tesselation_control_example();
 	std::string tesselation_evaluation_str = tesselation_evaluation_example();
+	std::string tesselation_interfaces_str = tesselation_interfaces();
 
 	//only measuring generation, not display
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
@@ -81,7 +82,7 @@ int main()
 	for (const std::string& str :
 		{ blur_str, ambiant_str, ssao_str, discard_str ,
 	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
-		tesselation_control_str, tesselation_evaluation_str,
+		tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,
 	dolphin_vertex_str, dolphin_frag_str
 		})
 	{

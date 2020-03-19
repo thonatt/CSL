@@ -174,10 +174,10 @@ namespace csl {
 			}
 		};
 
-		template<ScalarType type, uint N, uint M>
-		struct TypeStr< Matrix<type, N, M> > {
+		template<ScalarType type, uint NR, uint NC>
+		struct TypeStr< Matrix<type, NR, NC> > {
 			static string str(int trailing = 0) {
-				return TypePrefixStr<type>::str() + "mat" + std::to_string(N) + (N == M ? string("") : "x" + std::to_string(M));
+				return TypePrefixStr<type>::str() + "mat" + std::to_string(NC) + (NC == NR ? string("") : "x" + std::to_string(NR));
 			}
 		};
 

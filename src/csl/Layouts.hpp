@@ -104,7 +104,31 @@ namespace csl {
 		template<QualifierType q, typename T, typename L>
 		struct Qualifier : T
 		{
-			using T::T;
+			using T::exp;
+
+			Qualifier(const std::string& s = "", uint flags = 0)
+				: T(s, IS_BASE)
+			{
+				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
+			}
+
+			template<size_t N>
+			Qualifier(const char(&s)[N], uint flags = 0) 
+				: T(s, IS_BASE)
+			{
+				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
+			}
+
+			Qualifier(const NamedObjectInit<T>& obj) 
+				: T(obj.name, IS_BASE)
+			{
+				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
+			}
+
+			Qualifier(const Ex& _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string& s = "")
+				: T(_ex, ctor_flags | IS_BASE, obj_flags, s)
+			{
+			}
 		};
 
 		template<QualifierType q, ScalarType type, uint NR, uint NC, typename L>
@@ -116,17 +140,20 @@ namespace csl {
 			using Base::operator=; 
 			using Base::exp;
 			
-			Qualifier(const std::string& s = "", uint flags = 0) : Base(s, IS_BASE)
+			Qualifier(const std::string& s = "", uint flags = 0) 
+				: Base(s, IS_BASE)
 			{
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
 			template<size_t N>
-			Qualifier(const char(&s)[N], uint flags = 0) : Base(s, IS_BASE) {
+			Qualifier(const char(&s)[N], uint flags = 0) 
+				: Base(s, IS_BASE) {
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
-			Qualifier(const NamedObjectInit<Base>& obj) : Base(obj.name, IS_BASE)
+			Qualifier(const NamedObjectInit<Base>& obj)
+				: Base(obj.name, IS_BASE)
 			{
 				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
 			}
