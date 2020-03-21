@@ -35,11 +35,11 @@ namespace csl {
 
 			using namespace shader_common;
 
-			const In<vec4> gl_FragCoord("gl_FragCoord", BUILT_IN);
-			const In<Bool> gl_FrontFacing("gl_FrontFacing", BUILT_IN);
-			const In<vec2> gl_PointCoord("gl_PointCoord", BUILT_IN);
+			const In<vec4> gl_FragCoord("gl_FragCoord", OpFlags::BUILT_IN);
+			const In<Bool> gl_FrontFacing("gl_FrontFacing", OpFlags::BUILT_IN);
+			const In<vec2> gl_PointCoord("gl_PointCoord", OpFlags::BUILT_IN);
 
-			static Out<Float> gl_FragDepth("gl_FragDepth", BUILT_IN);
+			static Out<Float> gl_FragDepth("gl_FragDepth", OpFlags::BUILT_IN);
 
 			inline void Discard() {
 				listen().add_statement<DiscardStatement>();
@@ -81,19 +81,19 @@ namespace csl {
 				(Array<Float>::Size<0>) gl_ClipDistance
 			);
 
-			const In<Int> gl_VertexID("gl_VertexID", BUILT_IN);
-			const In<Int> gl_InstanceID("gl_InstanceID", BUILT_IN);
+			const In<Int> gl_VertexID("gl_VertexID", OpFlags::BUILT_IN);
+			const In<Int> gl_InstanceID("gl_InstanceID", OpFlags::BUILT_IN);
 		}
 
 		namespace tesc_common {
 			using namespace shader_common;
 			
-			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", BUILT_IN);
-			const In<Int> gl_PrimitiveID("gl_PrimitiveID", BUILT_IN);
-			const In<Int> gl_InvocationID("gl_InvocationID", BUILT_IN);
+			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", OpFlags::BUILT_IN);
+			const In<Int> gl_PrimitiveID("gl_PrimitiveID", OpFlags::BUILT_IN);
+			const In<Int> gl_InvocationID("gl_InvocationID", OpFlags::BUILT_IN);
 
-			const Array<Out<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
-			const Array<Out<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
+			const Array<Out<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", OpFlags::BUILT_IN);
+			const Array<Out<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", OpFlags::BUILT_IN);
 
 			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 				(vec4) gl_Position,
@@ -111,12 +111,12 @@ namespace csl {
 		namespace tese_common {
 			using namespace shader_common;
 
-			const In<vec3> gl_TessCoord("gl_TessCoord", BUILT_IN);
-			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", BUILT_IN);
-			const In<Int> gl_PrimitiveID("gl_PrimitiveID", BUILT_IN);
+			const In<vec3> gl_TessCoord("gl_TessCoord", OpFlags::BUILT_IN);
+			const In<Int> gl_PatchVerticesIn("gl_PatchVerticesIn", OpFlags::BUILT_IN);
+			const In<Int> gl_PrimitiveID("gl_PrimitiveID", OpFlags::BUILT_IN);
 
-			const Array<In<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", BUILT_IN);
-			const Array<In<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", BUILT_IN);
+			const Array<In<Float>, 4> gl_TessLevelOuter("gl_TessLevelOuter", OpFlags::BUILT_IN);
+			const Array<In<Float>, 2> gl_TessLevelInner("gl_TessLevelInner", OpFlags::BUILT_IN);
 
 			CSL_PP_BUILT_IN_NAMED_INTERFACE(In<>, gl_PerVertexIn, gl_in, 0,
 				(vec4) gl_Position,
@@ -257,9 +257,26 @@ namespace csl {
 		using namespace core::glsl_450;
 		using Shader = core::ShaderWrapper<core::SHADERTOY>;
 
-		const Uniform<vec2> iResolution("iResolution", core::BUILT_IN);
-		const Uniform<Float> iTime("iTime", core::BUILT_IN);
-		const Uniform<sampler2D> iChannel0("iChannel0", core::BUILT_IN);
+		const Uniform<vec4> 
+			iMouse("iMouse", core::OpFlags::BUILT_IN),
+			iDate("iDate", core::OpFlags::BUILT_IN);
+
+		const Uniform<vec3> iResolution("iResolution", core::OpFlags::BUILT_IN);
+
+		const Uniform<Float> 
+			iTime("iTime", core::OpFlags::BUILT_IN),
+			iTimeDelta("iTimeDelta", core::OpFlags::BUILT_IN),
+			iFrame("iFrame", core::OpFlags::BUILT_IN),
+			iSampleRate("iSampleRate", core::OpFlags::BUILT_IN);
+
+		const Array<Uniform<vec3>, 4> iChannelResolution("iChannelResolution", core::OpFlags::BUILT_IN);
+		const Array<Uniform<Float>, 4> iChannelTime("iChannelTime", core::OpFlags::BUILT_IN);
+
+		const Uniform<sampler2D> 
+			iChannel0("iChannel0", core::OpFlags::BUILT_IN),
+			iChannel1("iChannel1", core::OpFlags::BUILT_IN),
+			iChannel2("iChannel2", core::OpFlags::BUILT_IN),
+			iChannel3("iChannel3", core::OpFlags::BUILT_IN);
 	}
 
 } //namespace csl

@@ -22,12 +22,6 @@ namespace csl {
 		template<int First, int Second>
 		constexpr int Last = (Second >= 0 ? Second : First);
 
-		//template<typename T>
-		//using CleanType = std::remove_const_t<std::remove_reference_t<T>>;
-
-		//template<typename T>
-		//using CT = std::remove_const_t<std::remove_reference_t<T>>;
-
 		// matrix types forward declarations
 
 		enum ScalarType { BOOL, INT, UINT, FLOAT, DOUBLE, VOID, INVALID };
@@ -51,14 +45,21 @@ namespace csl {
 		//enum SamplerIsArray { NOT_ARRAY, ARRAY };
 		//enum SamplerIsShadow { NOT_SHADOW, SHADOW };
 
-		enum SamplerFlags { IS_ARRAY = 1 << 1, IS_SHADOW = 1 << 2 };
+		enum class SamplerFlags : uint { NONE = 0, IS_ARRAY = 1 << 1, IS_SHADOW = 1 << 2 };
+
+		constexpr SamplerFlags operator|(SamplerFlags a, SamplerFlags b){
+			return static_cast<SamplerFlags>(static_cast<uint>(a) | static_cast<uint>(b));
+		}
+		constexpr bool operator&(SamplerFlags a, SamplerFlags b) {
+			return static_cast<bool>(static_cast<uint>(a) & static_cast<uint>(b));
+		}
 
 		template<
 			AccessType aType,
 			ScalarType nType,
 			uint N,
 			SamplerType sType = BASIC,
-			uint flags = 0
+			SamplerFlags flags = SamplerFlags::NONE
 		>
 		class Sampler;
 
@@ -229,14 +230,14 @@ namespace csl {
 		template<typename T> struct SamplerInfos<const T &> : SamplerInfos<T> {};
 
 
-		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint sflags> //SamplerIsArray isArray, SamplerIsShadow isShadow>
+		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerFlags sflags> 
 		struct SamplerInfos<Sampler<aType, nType, N, sType, sflags>> {
 			static const bool is_sampler = true;
 			static const uint size = N;
 			static const AccessType access_type = aType;
 			static const ScalarType scalar_type = nType;
 			static const SamplerType type = sType;
-			static const uint flags = sflags;
+			static const SamplerFlags flags = sflags;
 		};
 
 		template<QualifierType qType, typename T, typename L>

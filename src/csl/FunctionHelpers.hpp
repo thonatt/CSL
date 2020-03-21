@@ -55,7 +55,7 @@ namespace csl {
 		void init_function_declaration(const std::string & fname, Fs && ...fs);
 
 		struct FuncBase : NamedObject<FuncBase> {
-			FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, 0) {}
+			FuncBase(const std::string & s = "") : NamedObject<FuncBase>(s, ObjFlags::NONE) {}
 			static std::string typeStr(int trailing = 0) { return "function"; }
 			static std::string typeNamingStr(int trailing = 0) { return typeStr(trailing); }
 		};

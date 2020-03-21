@@ -216,9 +216,9 @@ namespace csl {
 
 			template<typename S, typename P, typename SI = SamplerInfos<S>,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == BASIC) && ((SI::flags & IS_SHADOW) == 0) &&
+				(SI::access_type == SAMPLER) && (SI::type == BASIC) && !(SI::flags & SamplerFlags::IS_SHADOW) &&
 				IsVecF<P> &&
-				Infos<P>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
+				Infos<P>::rows == (SI::size + ((SI::flags & SamplerFlags::IS_ARRAY) ? 1 : 0))
 			> >
 				Vec< SI::scalar_type, 4> texture(S && sampler, P && point) {
 				return {
@@ -228,9 +228,9 @@ namespace csl {
 
 			template<typename S, typename P, typename SI = SamplerInfos<S>, typename B,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
+				(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == SamplerFlags::NONE) &&
 				IsVecF<P> && IsFloat<B> &&
-				Infos<P>::rows == (SI::size + ((SI::flags & IS_ARRAY) ? 1 : 0))
+				Infos<P>::rows == (SI::size + ((SI::flags & SamplerFlags::IS_ARRAY) ? 1 : 0))
 			> >
 				Vec< SI::scalar_type, 4> texture(S && sampler, P && point, B && bias) {
 				return { createFCallExp("texture", EX(S, sampler) , EX(P, point), EX(B, bias)) };
@@ -238,7 +238,7 @@ namespace csl {
 
 			template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == 0) &&
+				(SI::access_type == SAMPLER) && (SI::type == BASIC) && (SI::flags == SamplerFlags::NONE) &&
 				IsVecInteger<P> && EqualMat<L, Int> && Infos<P>::rows == SI::size
 			> >
 				Vec< SI::scalar_type, 4> texelFetch(S && sampler, P && point, L && lod) {
@@ -247,7 +247,7 @@ namespace csl {
 
 			template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == 0) &&
+				(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == SamplerFlags::NONE) &&
 				IsVecF<P> && Infos<P>::rows == (SI::type == CUBE ? 3 : SI::size) && IsFloat<L>
 			> >
 				Vec< SI::scalar_type, 4> textureLod(S && sampler, P && point, L && lod) {
@@ -323,7 +323,7 @@ namespace csl {
 
 			template<typename S, typename P, typename L, typename SI = SamplerInfos<S>,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == CUBE) && (SI::flags & IS_ARRAY) &&
+				(SI::access_type == SAMPLER) && (SI::type == CUBE) && (SI::flags & SamplerFlags::IS_ARRAY) &&
 				IsVecF<P> && Infos<P>::rows == 4 && IsFloat<L>
 			> >
 				Vec< SI::scalar_type, 4> textureLod(S && sampler, P && point, L && lod) {

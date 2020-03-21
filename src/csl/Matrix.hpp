@@ -46,19 +46,30 @@ namespace csl {
 
 		public:
 
-			explicit Matrix(const std::string & _name, uint flags)
-				: NamedObject<Matrix>(_name, flags)
+			explicit Matrix(const std::string& _name, ObjFlags obj_flags)
+				: NamedObject<Matrix>(_name, obj_flags)
 			{
 			}
 
-			Matrix(const std::string & name = "")
-				: Matrix(name, IS_TRACKED) { }
+			explicit Matrix(
+				const string& _name,
+				OpFlags ctor_flags
+			) : NamedObject<Matrix>(_name, ctor_flags)
+			{
+			}
+
+			Matrix(const std::string& name = "")
+				: Matrix(name, ObjFlags::IS_TRACKED)
+			{
+			}
 
 			template<size_t N>
-			Matrix(const char(&s)[N]) 
-				: Matrix(s, IS_TRACKED) { }
+			Matrix(const char(&s)[N])
+				: Matrix(s, ObjFlags::IS_TRACKED)
+			{
+			}
 
-			Matrix(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+			Matrix(const Ex & _ex, OpFlags ctor_flags = OpFlags::NONE, ObjFlags obj_flags = ObjFlags::IS_TRACKED, const std::string & s = "")
 				: NamedObject<Matrix>(_ex, ctor_flags, obj_flags, s)
 			{
 			}
@@ -77,7 +88,9 @@ namespace csl {
 			> >
 				explicit Matrix(U && u, V && v, Us && ...us)
 				: NamedObject<Matrix>(
-					PARENTHESIS | DISPLAY_TYPE, IS_TRACKED, "",
+					OpFlags::PARENTHESIS | OpFlags::DISPLAY_TYPE, 
+					ObjFlags::IS_TRACKED, 
+					"",
 					EX(U, u), EX(V, v), EX(Us, us)...)
 			{
 			}
@@ -90,8 +103,9 @@ namespace csl {
 			> >
 				Matrix(T && x)
 				: NamedObject<Matrix>(
-					EqualMat<Matrix, T> ? 0 : (DISPLAY_TYPE | PARENTHESIS),
-					IS_TRACKED, "",
+					EqualMat<Matrix, T> ? OpFlags::NONE : (OpFlags::DISPLAY_TYPE | OpFlags::PARENTHESIS),
+					ObjFlags::IS_TRACKED, 
+					"",
 					EX(T, x))
 			{
 			}
@@ -438,12 +452,19 @@ namespace csl {
 
 			//template<bool b = (N != 0), typename = std::enable_if_t<b> > //TODO should be here but prevents gl_ClipDistance
 			
-			ArrayImpl(const std::string & _name = "", uint flags = IS_TRACKED)
-				: NamedObject<ArrayImpl>(_name, flags)
+			ArrayImpl(const std::string & _name = "", ObjFlags obj_flags = ObjFlags::IS_TRACKED)
+				: NamedObject<ArrayImpl>(_name, obj_flags)
 			{
 			}
 
-			ArrayImpl(const Ex & _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string & s = "")
+			ArrayImpl(
+				const string& _name,
+				OpFlags ctor_flags
+			) : NamedObject<ArrayImpl>(_name, ctor_flags)
+			{
+			}
+
+			ArrayImpl(const Ex & _ex, OpFlags ctor_flags = OpFlags::NONE, ObjFlags obj_flags = ObjFlags::IS_TRACKED, const std::string & s = "")
 				: NamedObject<ArrayImpl>(_ex, ctor_flags, obj_flags, s)
 			{
 			}
@@ -452,7 +473,12 @@ namespace csl {
 				AllTrue<EqualMat<Us, T>...> && (N == 0 || sizeof...(Us) == N)
 			> >
 				ArrayImpl(Us && ... us)
-				: NamedObject<ArrayImpl<T, N>>(DISPLAY_TYPE | PARENTHESIS, IS_TRACKED | IS_USED, "", EX(Us, us)...)
+				: NamedObject<ArrayImpl<T, N>>(
+					OpFlags::DISPLAY_TYPE | OpFlags::PARENTHESIS,
+					ObjFlags::IS_TRACKED | ObjFlags::IS_USED, 
+					"",
+					EX(Us, us)...
+					)
 			{
 			}
 

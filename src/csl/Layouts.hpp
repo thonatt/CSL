@@ -106,27 +106,33 @@ namespace csl {
 		{
 			using T::exp;
 
-			Qualifier(const std::string& s = "", uint flags = 0)
-				: T(s, IS_BASE)
+			Qualifier(const std::string& s = "", ObjFlags flags = ObjFlags::NONE)
+				: T(s, ObjFlags::IS_BASE)
 			{
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
+			Qualifier(const std::string& s, OpFlags flags)
+				: T(s, ObjFlags::IS_BASE)
+			{
+				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), DECLARATION, flags, ObjFlags::IS_BASE);
+			}
+
 			template<size_t N>
-			Qualifier(const char(&s)[N], uint flags = 0) 
-				: T(s, IS_BASE)
+			Qualifier(const char(&s)[N], ObjFlags flags = ObjFlags::NONE)
+				: T(s, ObjFlags::IS_BASE)
 			{
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
 			Qualifier(const NamedObjectInit<T>& obj) 
-				: T(obj.name, IS_BASE)
+				: T(obj.name, ObjFlags::IS_BASE)
 			{
-				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
+				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, OpFlags::NONE, ObjFlags::IS_BASE, obj.exp);
 			}
 
-			Qualifier(const Ex& _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string& s = "")
-				: T(_ex, ctor_flags | IS_BASE, obj_flags, s)
+			Qualifier(const Ex& _ex, OpFlags ctor_flags = OpFlags::NONE, ObjFlags obj_flags = ObjFlags::IS_TRACKED, const std::string& s = "")
+				: T(_ex, ctor_flags, obj_flags | ObjFlags::IS_BASE, s)
 			{
 			}
 		};
@@ -140,26 +146,32 @@ namespace csl {
 			using Base::operator=; 
 			using Base::exp;
 			
-			Qualifier(const std::string& s = "", uint flags = 0) 
-				: Base(s, IS_BASE)
+			Qualifier(const std::string& s = "", ObjFlags flags = ObjFlags::NONE)
+				: Base(s, ObjFlags::IS_BASE)
 			{
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
+			Qualifier(const std::string& s, OpFlags flags)
+				: Base(s, ObjFlags::IS_BASE)
+			{
+				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), DECLARATION, flags, ObjFlags::IS_BASE);
+			}
+
 			template<size_t N>
-			Qualifier(const char(&s)[N], uint flags = 0) 
-				: Base(s, IS_BASE) {
+			Qualifier(const char(&s)[N], ObjFlags flags = ObjFlags::NONE)
+				: Base(s, ObjFlags::IS_BASE) {
 				exp = createDeclaration<Qualifier>(NamedObjectBase::strPtr(), flags);
 			}
 
 			Qualifier(const NamedObjectInit<Base>& obj)
-				: Base(obj.name, IS_BASE)
+				: Base(obj.name, ObjFlags::IS_BASE)
 			{
-				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, 0, obj.exp);
+				exp = createInit<Qualifier>(NamedObjectBase::strPtr(), INITIALISATION, OpFlags::NONE, ObjFlags::IS_BASE, obj.exp);
 			}
 
-			Qualifier(const Ex& _ex, uint ctor_flags = 0, uint obj_flags = IS_TRACKED, const std::string& s = "")
-				: Base(_ex, ctor_flags | IS_BASE, obj_flags, s)
+			Qualifier(const Ex& _ex, OpFlags ctor_flags = OpFlags::NONE, ObjFlags obj_flags = ObjFlags::IS_TRACKED, const std::string& s = "")
+				: Base(_ex, ctor_flags, obj_flags | ObjFlags::IS_BASE, s)
 			{
 			}
 		};

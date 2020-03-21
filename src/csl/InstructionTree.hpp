@@ -256,7 +256,7 @@ namespace csl {
 								if (ctor->ctor_status == INITIALISATION) {
 									//std::cout << "init : " << ctor->str() << " " << ctor->ctor_status << std::endl;
 									if (inits.size() > 0) {
-										ctor->flags |= MULTIPLE_INITS;
+										ctor->flags |= OpFlags::MULTIPLE_INITS;
 									}
 									inits.push_back(*it);
 								} else if (ctor->is_bool_ctor()) {

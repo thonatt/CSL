@@ -219,7 +219,7 @@ namespace csl {
 
 		// sampler types
 
-		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerFlags flags>
 		struct TypeStr<Sampler<aType, nType, N, sType, flags>> {
 			static string str(int trailing = 0) {
 				return
@@ -227,12 +227,12 @@ namespace csl {
 					AccessTypeInfo<aType>::str() +
 					(N != 0 ? std::to_string(N) + "D" : "") +
 					SamplerTypeInfo<sType>::str() +
-					(flags & IS_ARRAY ? "Array" : "") +
-					(flags & IS_SHADOW ? "Shadow" : "");
+					(flags & SamplerFlags::IS_ARRAY ? "Array" : "") +
+					(flags & SamplerFlags::IS_SHADOW ? "Shadow" : "");
 			}
 		};
 
-		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerFlags flags>
 		struct AutoNaming<Sampler<aType, nType, N, sType, flags>> {
 			using Type = NamingCounter<NamingCaterogy::SAMPLER>;
 		};
@@ -240,7 +240,7 @@ namespace csl {
 
 		template<> inline string TypeStr<atomic_uint>::str(int trailing) { return "atomic_uint"; }
 
-		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, uint flags>
+		template<AccessType aType, ScalarType nType, uint N, SamplerType sType, SamplerFlags flags>
 		struct TypeNamingStr<Sampler<aType, nType, N, sType, flags>> {
 			static string str(int trailing = 0) { return TypeStr<Sampler<aType, nType, N, sType, flags>>::str(trailing); }
 		};

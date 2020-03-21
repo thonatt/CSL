@@ -15,7 +15,8 @@ namespace csl {
 			return str_ptr;
 		}
 
-		enum NamedObjectFlags : uint {
+		enum class ObjFlags : uint {
+			NONE = 0,
 			IS_USED = 1 << 1,
 			IS_INIT = 1 << 2,
 			IS_TRACKED = 1 << 3,
@@ -23,22 +24,50 @@ namespace csl {
 			IS_BASE = 1 << 5
 		};
 
+		constexpr ObjFlags operator|(ObjFlags a, ObjFlags b) {
+			return static_cast<ObjFlags>(static_cast<uint>(a) | static_cast<uint>(b));
+		}
+		constexpr bool operator&(ObjFlags a, ObjFlags b) {
+			return static_cast<bool>(static_cast<uint>(a)& static_cast<uint>(b));
+		}	
+		constexpr ObjFlags operator~(ObjFlags a) {
+			return static_cast<ObjFlags>(~static_cast<uint>(a));
+		}
+		inline ObjFlags& operator&=(ObjFlags& a, ObjFlags b) {
+			a = static_cast<ObjFlags>(static_cast<uint>(a)& static_cast<uint>(b));
+			return a;
+		}
+		inline ObjFlags& operator|=(ObjFlags& a, ObjFlags b) {
+			a = a | b;
+			return a;
+		}
+
 		enum CtorStatus { DECLARATION, INITIALISATION, TEMP, FORWARD };
 		enum OperatorDisplayRule { NONE, IN_FRONT, IN_BETWEEN, IN_BETWEEN_NOSPACE, BEHIND };
-		//enum ParenthesisRule { USE_PARENTHESIS, NO_PARENTHESIS };
-		//enum CtorTypeDisplay { DISPLAY, HIDE};
+
 		enum class CtorPosition { MAIN_BLOCK, INSIDE_BLOCK };
 
-		enum OpFlags : uint {
+		enum class OpFlags : uint {
+			NONE = 0,
 			DISABLED = 1 << 1,
 			DISPLAY_TYPE = 1 << 2,
 			MULTIPLE_INITS = 1 << 3,
 			PARENTHESIS = 1 << 4,
 			MAIN_BLOCK = 1 << 5,
 			MEMBER_DECLARATION = 1 << 6,
-
 			BUILT_IN = DISABLED
 		};
+
+		constexpr OpFlags operator|(OpFlags a, OpFlags b) {
+			return static_cast<OpFlags>(static_cast<uint>(a) | static_cast<uint>(b));
+		}
+		constexpr bool operator&(OpFlags a, OpFlags b) {
+			return static_cast<bool>(static_cast<uint>(a)& static_cast<uint>(b));
+		}
+		inline OpFlags& operator|=(OpFlags& a, OpFlags b) {
+			a = a | b;
+			return a;
+		}
 
 		enum OperatorPrecedence : uint {
 
@@ -93,7 +122,7 @@ namespace csl {
 
 		struct OperatorBase {
 
-			OperatorBase(uint _flags = 0) : flags(_flags) {}
+			OperatorBase(OpFlags _flags = OpFlags::NONE) : flags(_flags) {}
 			virtual ~OperatorBase() = default;
 
 			virtual string str(int trailing) const {
@@ -120,20 +149,20 @@ namespace csl {
 			}
 
 			void disable() {
-				flags |= DISABLED;
+				flags |= OpFlags::DISABLED;
 			}
 
 			bool disabled() const {
-				return flags & DISABLED;
+				return flags & OpFlags::DISABLED;
 			}
 
 			bool isMemberDeclaration() const {
-				return flags & MEMBER_DECLARATION;
+				return flags & OpFlags::MEMBER_DECLARATION;
 			}
 
 			virtual Ex firstArg() { return Ex(); }
 
-			uint flags = 0;
+			OpFlags flags = OpFlags::NONE;
 		};
 
 		template<typename Operator, typename ... Args>
@@ -214,13 +243,13 @@ namespace csl {
 		}
 
 		struct ConstructorBase : OperatorBase {
-			ConstructorBase(CtorStatus _status = INITIALISATION, uint _flags = 0)
+			ConstructorBase(CtorStatus _status = INITIALISATION, OpFlags _flags = OpFlags::NONE)
 				: OperatorBase(_flags), ctor_status(_status) { }
 
 			virtual ~ConstructorBase() = default;
 
 			CtorPosition position() const {
-				if (flags & MAIN_BLOCK) {
+				if (flags & OpFlags::MAIN_BLOCK) {
 					return CtorPosition::MAIN_BLOCK;
 				} else {
 					return CtorPosition::INSIDE_BLOCK;
@@ -259,7 +288,7 @@ namespace csl {
 		struct Constructor : ArgsCall<N>, ConstructorBase {
 
 			virtual uint rank() const override {
-				if ((N == 0) || (flags & DISPLAY_TYPE)) {
+				if ((N == 0) || (flags & OpFlags::DISPLAY_TYPE)) {
 					return FUNCTION_CALL;
 				} else {
 					return ArgsCall<N>::args[0]->rank();
@@ -267,7 +296,7 @@ namespace csl {
 			}
 
 			template<typename ... Args>
-			Constructor(const stringPtr& _obj_name_ptr, CtorStatus _status, uint _flags, Args && ...  args)
+			Constructor(const stringPtr& _obj_name_ptr, CtorStatus _status, OpFlags _flags, Args && ...  args)
 				: ArgsCall<N>(std::forward<Args>(args)...), ConstructorBase(_status, _flags), obj_name_ptr(_obj_name_ptr)
 			{
 			}
@@ -279,7 +308,7 @@ namespace csl {
 			}
 
 			string lhs_type_str(int trailing) const {
-				if (flags & MULTIPLE_INITS) {
+				if (flags & OpFlags::MULTIPLE_INITS) {
 					return "";
 				}
 				return getTypeStr<T>(trailing);
@@ -295,10 +324,10 @@ namespace csl {
 
 			string rhs_str() const {
 				string str;
-				if (flags & DISPLAY_TYPE) {
+				if (flags & OpFlags::DISPLAY_TYPE) {
 					str += rhs_type_str();
 				}
-				if (flags & PARENTHESIS) {
+				if (flags & OpFlags::PARENTHESIS) {
 					str += ArgsCall<N>::args_str();
 				} else {
 					str += ArgsCall<N>::args_str_body();

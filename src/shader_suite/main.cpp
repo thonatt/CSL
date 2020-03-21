@@ -63,10 +63,7 @@ int main()
 	//display
 
 	auto seperator = [] {
-		for (int i = 0; i < 10; ++i) {
-			std::cout << "/////////";
-		}
-		std::cout << "\n\n";
+		std::cout << std::string(75, '/') <<  "\n\n";
 	};
 
 	for (std::string str : 
@@ -79,7 +76,7 @@ int main()
 		seperator();
 	}
 
-	for (const std::string& str :
+	for (std::string str :
 		{ blur_str, ambiant_str, ssao_str, discard_str ,
 	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
 		tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,

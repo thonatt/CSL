@@ -20,7 +20,8 @@
 
 #define CSL_PP_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP_PAIR(elem);
 #define CSL_PP_INIT_MEMBER_PARENT_IT(r, data, i, elem) , CSL_PP_MEMBER_NAME(elem)( \
-	core::createExp<core::MemberAccessor>(exp, CSL_PP_MEMBER_STR(elem)), core::MEMBER_DECLARATION, core::ALWAYS_EXP) 
+	core::createExp<core::MemberAccessor>(exp, CSL_PP_MEMBER_STR(elem)), \
+	core::OpFlags::MEMBER_DECLARATION, core::ObjFlags::ALWAYS_EXP) 
 
 //helpers for declaring members
 #define CSL_PP_QUALI_TYPENAME(Qualifier, Typename) \
@@ -40,11 +41,11 @@
 
 #define CSL_PP_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
 	CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
-	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::DISABLED);
+	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::OpFlags::DISABLED);
 
 #define CSL_PP_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
 	static CSL_PP_QUALI_TYPENAME(quali, CSL_PP_MEMBER_TYPE(elem)) \
-	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::DISABLED);
+	CSL_PP_MEMBER_NAME(elem)(CSL_PP_MEMBER_STR(elem), core::OpFlags::DISABLED);
 
 //internal macros for named/unnamed interface blocks
 
@@ -73,11 +74,11 @@
 		\
 		CSL_PP_ITERATE(CSL_PP_DECLARE_MEMBER_IT, __VA_ARGS__ ) \
 		\
-		TypenameId(const std::string & _name = "", core::uint _flags = core::IS_TRACKED) \
+		TypenameId(const std::string & _name = "", core::ObjFlags _flags = core::ObjFlags::IS_TRACKED) \
 			: core::NamedObject<TypenameId>(_name, _flags) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
-		TypenameId(const core::Ex & _ex, core::uint ctor_flags = 0, core::uint obj_flags = core::IS_TRACKED, const std::string & s = "" ) \
+		TypenameId(const core::Ex & _ex, core::OpFlags ctor_flags = core::OpFlags::NONE, core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED, const std::string & s = "" ) \
 			 : core::NamedObject<TypenameId>(_ex, ctor_flags, obj_flags, s) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
@@ -97,11 +98,11 @@
 
 #define CSL_PP_NAMED_INTERFACE(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	CSL_PP_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::IS_TRACKED);
+	CSL_PP_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::ObjFlags::IS_TRACKED);
 
 #define CSL_PP_BUILT_IN_NAMED_INTERFACE_IMPL(Qualifier, Typename, TypenameId, Name, ArraySize, ...) \
 	CSL_PP_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	static CSL_PP_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::BUILT_IN); 
+	static CSL_PP_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::OpFlags::BUILT_IN); 
 
 #define CSL_PP_BUILT_IN_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ...) \
 	CSL_PP_BUILT_IN_NAMED_INTERFACE_IMPL(Qualifier, Typename, CSL_PP_CONCAT(Typename, __COUNTER__), Name, ArraySize, __VA_ARGS__);
@@ -126,11 +127,11 @@
 		\
 		CSL_PP_ITERATE(CSL_PP_DECLARE_MEMBER_IT, __VA_ARGS__) \
 		\
-		StructTypename(const std::string & _name = "", core::uint _flags = core::IS_TRACKED) \
-			: core::NamedObject<StructTypename>(_name, _flags) \
+		StructTypename(const std::string & _name = "", core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED) \
+			: core::NamedObject<StructTypename>(_name, obj_flags) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
-		StructTypename(const core::Ex & _ex, core::uint ctor_flags = 0,	core::uint obj_flags = core::IS_TRACKED, const std::string & s = "") \
+		StructTypename(const core::Ex & _ex, core::OpFlags ctor_flags = core::OpFlags::NONE, core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED, const std::string & s = "") \
 			: core::NamedObject<StructTypename>(_ex, ctor_flags, obj_flags, s)	\
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
@@ -139,7 +140,7 @@
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(CSL_PP_ITERATE(CSL_PP_MEMBER_ARG_IT,__VA_ARGS__) bool dummy = false) \
-			: core::NamedObject<StructTypename>(core::DISPLAY_TYPE | core::PARENTHESIS, core::IS_TRACKED, "" CSL_PP_ITERATE(CSL_PP_MEMBER_ARG_EX_IT, __VA_ARGS__)) \
+			: core::NamedObject<StructTypename>(core::OpFlags::DISPLAY_TYPE | core::OpFlags::PARENTHESIS, core::ObjFlags::IS_TRACKED, "" CSL_PP_ITERATE(CSL_PP_MEMBER_ARG_EX_IT, __VA_ARGS__)) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
 		static std::string typeStr(int trailing = 0) { return CSL_PP_STR(StructTypename); } \

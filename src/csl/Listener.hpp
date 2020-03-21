@@ -242,13 +242,11 @@ namespace csl {
 		}
 
 		template<typename T, typename ... Args>
-		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, Args && ... args)
+		Ex createInit(const stringPtr & name, CtorStatus status, OpFlags ctor_flags, ObjFlags objFlags, Args && ... args)
 		{
-			//std::cout << "ctor : " << *name << " " << (bool)(ctor_flags & PARENTHESIS) << std::endl;
-
 			auto ctor = std::make_shared<Constructor<T, sizeof...(args)>>(name, status, ctor_flags, std::forward<Args>(args)...);
 			Ex expr = std::static_pointer_cast<OperatorBase>(ctor);
-			if (!(ctor_flags & IS_BASE)) {
+			if (!(objFlags & ObjFlags::IS_BASE)) {
 				listen().addEvent(expr);
 			}
 			return expr;

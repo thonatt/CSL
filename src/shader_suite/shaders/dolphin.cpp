@@ -1065,7 +1065,7 @@ std::string dolphinFragment() {
 				Uint swap = bitfieldExtract(ss.ac, 2, 2);
 				s.TexColor = Swizzle(swap, color);
 			} CSL_ELSE {
-				// Texture is disabled
+				// Texture is OpFlags::DISABLED
 				s.TexColor = ivec4(255, 255, 255, 255);
 			}
 

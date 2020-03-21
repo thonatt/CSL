@@ -12,23 +12,23 @@ namespace csl {
 
 		class NamedObjectBase {
 		public:
-			NamedObjectBase(const string & _name = "", uint _flags = IS_USED | IS_TRACKED)
-				: flags(_flags)
+			NamedObjectBase(const string & _name = "", ObjFlags obj_flags = ObjFlags::IS_USED | ObjFlags::IS_TRACKED)
+				: flags(obj_flags)
 			{
 				namePtr = std::make_shared<string>(_name);
 				//std::cout << "base " << *namePtr << " " << (int)(flags & IS_TRACKED) << std::endl;
 			}
 
 			bool isUsed() const {
-				return flags & IS_USED;
+				return flags & ObjFlags::IS_USED;
 			}
 
 			bool isTracked() const {
-				return flags & IS_TRACKED;
+				return flags & ObjFlags::IS_TRACKED;
 			}
 
 			void setNotUsed() {
-				flags = flags & ~(IS_USED);
+				flags &= ~(ObjFlags::IS_USED);
 			}
 
 			Ex alias() const {
@@ -42,8 +42,8 @@ namespace csl {
 
 			Ex getExRef() const
 			{
-				flags = flags | IS_USED;
-				if (flags & ALWAYS_EXP) {
+				flags |= ObjFlags::IS_USED;
+				if (flags & ObjFlags::ALWAYS_EXP) {
 					return exp;
 					//return getExTmp();
 				}
@@ -60,7 +60,7 @@ namespace csl {
 
 			Ex getExTmp() const
 			{
-				flags |= IS_USED;
+				flags |= ObjFlags::IS_USED;
 				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(exp)) {
 					ctor->setTemp();
 					ctor->disable();
@@ -81,7 +81,7 @@ namespace csl {
 
 			void checkDisabling()
 			{
-				if (!(flags & IS_TRACKED)) {
+				if (!(flags & ObjFlags::IS_TRACKED)) {
 					//std::cout << "disabling " << str() << std::endl;
 					exp->disable();
 				}
@@ -103,7 +103,7 @@ namespace csl {
 		protected:
 			stringPtr namePtr;
 			Ex exp;
-			mutable uint flags;
+			mutable ObjFlags flags;
 
 		public:
 
@@ -125,12 +125,12 @@ namespace csl {
 		};
 
 		template<typename T, typename ... Args>
-		Ex createInit(const stringPtr & name, CtorStatus status, uint ctor_flags, Args &&... args);
+		Ex createInit(const stringPtr& name, CtorStatus status, OpFlags ctor_flags, ObjFlags obj_flags, Args&&... args);
 
 		template<typename T, typename ... Args>
-		Ex createDeclaration(const stringPtr & name, uint ctor_flags, Args &&... args)
+		Ex createDeclaration(const stringPtr & name, ObjFlags obj_flags, Args &&... args)
 		{
-			return createInit<T, Args...>(name, DECLARATION, ctor_flags, std::forward<Args>(args)...);
+			return createInit<T, Args...>(name, DECLARATION, OpFlags::NONE, obj_flags, std::forward<Args>(args)...);
 		}
 
 		template<typename T>
@@ -142,46 +142,56 @@ namespace csl {
 			}
 
 		protected:
-			NamedObject(const string & _name = "", uint _flags = IS_TRACKED)
-				: NamedObjectBase(_name, _flags)
+			NamedObject(
+				const string & _name = "",
+				ObjFlags obj_flags = ObjFlags::IS_TRACKED
+			) : NamedObjectBase(_name, obj_flags)
 			{
 				checkName();
+				exp = createDeclaration<T>(strPtr(), obj_flags);
+				checkDisabling();
+			}
 
-				exp = createDeclaration<T>(NamedObjectBase::strPtr(), _flags);
-
+			NamedObject(
+				const string& _name,
+				OpFlags ctor_flags 
+			) : NamedObjectBase(_name, ObjFlags::IS_TRACKED)
+			{
+				checkName();
+				exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, ObjFlags::IS_TRACKED);
 				checkDisabling();
 			}
 
 			NamedObject(
 				const Ex & _ex,
-				uint ctor_flags = 0,
-				uint obj_flags = IS_TRACKED,
+				OpFlags ctor_flags = OpFlags::NONE,
+				ObjFlags obj_flags = ObjFlags::IS_TRACKED,
 				const string & s = ""
 			) : NamedObjectBase(s, obj_flags)
 			{
 				checkName();
-				exp = createInit<T>(strPtr(), FORWARD, ctor_flags, _ex);
+				exp = createInit<T>(strPtr(), FORWARD, ctor_flags, obj_flags, _ex);
 				checkDisabling();
 			}
 
 			template<typename ... Args>
 			NamedObject(
-				uint ctor_flags,
-				uint obj_flags,
+				OpFlags ctor_flags,
+				ObjFlags obj_flags,
 				const string & s,
 				Args &&... args
 			) : NamedObjectBase(s, obj_flags)
 			{
 				checkName();
-				exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, std::forward<Args>(args) ...);
+				exp = createInit<T>(strPtr(), INITIALISATION, ctor_flags, obj_flags, std::forward<Args>(args) ...);
 				checkDisabling();
 			}
 
-			NamedObject(const NamedObjectInit<T> & obj_init) : NamedObjectBase(obj_init.name, IS_TRACKED | IS_USED)
+			NamedObject(const NamedObjectInit<T> & obj_init)
+				: NamedObjectBase(obj_init.name, ObjFlags::IS_TRACKED | ObjFlags::IS_USED)
 			{
 				checkName();
-
-				exp = createInit<T>(strPtr(), INITIALISATION, 0, obj_init.exp);
+				exp = createInit<T>(strPtr(), INITIALISATION, OpFlags::NONE, ObjFlags::NONE, obj_init.exp);
 			}
 
 			void checkName()
