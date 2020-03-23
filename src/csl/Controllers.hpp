@@ -309,8 +309,10 @@ namespace csl {
 					interface_block->str(out, trailing, DEFAULT);
 					out << "\n";
 				}
+
 				declarations->str(out, trailing, DEFAULT);
 				out << "\n";
+
 				for (const auto & fun : functions) {
 					fun->str(out, trailing, DEFAULT);
 				}

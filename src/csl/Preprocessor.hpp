@@ -15,6 +15,18 @@
 #define CSL_PP_STRIP(x) CSL_PP_EAT x		
 #define CSL_PP_PAIR(x) CSL_PP_REM x
 
+//helpers for list args retrieval
+#define CSL_PP_FORWARD(x) x
+#define CSL_PP_REMOVE_PARENTHESIS(x) CSL_PP_FORWARD( CSL_PP_REM x )
+
+#define CSL_PP_ADD_COMMA_INTERNAL(...) (__VA_ARGS__),
+#define CSL_PP_ADD_COMMA(x) CSL_PP_ADD_COMMA_INTERNAL x
+#define CSL_PP_FIRST(x,...) x
+#define CSL_PP_LIST_FIRST(...) CSL_PP_FORWARD( CSL_PP_FIRST(__VA_ARGS__) )
+
+#define CSL_PP_GET_TYPE_PARENTHESIS(...) CSL_PP_LIST_FIRST( CSL_PP_ADD_COMMA(__VA_ARGS__) )
+#define CSL_PP_GET_TYPE_LIST(x) CSL_PP_REMOVE_PARENTHESIS(CSL_PP_GET_TYPE_PARENTHESIS(x))
+
 //helpers wrapping up BOOST_PP
 #define CSL_PP_STR(arg) BOOST_PP_STRINGIZE(arg)
 #define CSL_PP_IS_EMPTY(arg) BOOST_PP_IS_EMPTY(arg)

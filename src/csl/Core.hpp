@@ -13,6 +13,13 @@
 #include <iso646.h>
 #endif
 
+#define CSL_VERSION_MAJOR 0
+#define CSL_VERSION_MINOR 1
+
+#define CSL_MAX_MINOR_VERSION 1000
+
+#define CSL_VERSION (CSL_VERSION_MAJOR * CSL_MAX_MINOR_VERSION + CSL_VERSION_MINOR)
+
 #include "Shaders.hpp"
 
 #pragma warning( pop ) //4522

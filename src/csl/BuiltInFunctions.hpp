@@ -138,7 +138,7 @@ namespace csl {
 
 			template<typename S, typename P, typename DX, typename DY, typename SI = SamplerInfos<S>,
 				typename = std::enable_if_t<
-				(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == 0) &&
+				(SI::access_type == SAMPLER) && (SI::type == BASIC || SI::type == CUBE) && (SI::flags == SamplerFlags::NONE) &&
 				IsVecF<P> && Infos<P>::rows == (SI::type == CUBE ? 3 : SI::size) && EqualMat<P, DX> && EqualMat<P, DY>
 			> >
 				Vec< SI::scalar_type, 4> textureGrad(S&& sampler, P&& point, DX&& dx, DY&& dy) {

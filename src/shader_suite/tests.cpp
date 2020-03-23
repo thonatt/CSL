@@ -203,6 +203,15 @@ void testsCompliance()
 	static_assert(!validInverse<csl::vec3>(0), "bouh");
 }
 
+void testList()
+{
+	//CSL_BLOCK((a, b) c, d);
+
+	//CSL_BLOCK(() c, d);
+
+	//CSL_PP_ADD_COMMA(() a )
+}
+
 void testArgsOrder()
 {
 

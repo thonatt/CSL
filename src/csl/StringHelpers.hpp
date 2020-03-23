@@ -42,31 +42,31 @@ namespace csl {
 			static string getNextName();
 
 		protected:
-			static string baseName();
+			static constexpr char baseName();
 			static CounterData counterData;
 		};
 		template<NamingCaterogy cat> CounterData NamingCounter<cat>::counterData = {};
 
-		template<> inline string NamingCounter<NamingCaterogy::SCALAR>::baseName() {
-			return "x";
+		template<> constexpr char NamingCounter<NamingCaterogy::SCALAR>::baseName() {
+			return 'x';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::VECTOR>::baseName() {
-			return "v";
+		template<> constexpr char NamingCounter<NamingCaterogy::VECTOR>::baseName() {
+			return 'v';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::MATRIX>::baseName() {
-			return "m";
+		template<> constexpr char NamingCounter<NamingCaterogy::MATRIX>::baseName() {
+			return 'm';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::SAMPLER>::baseName() {
-			return "s";
+		template<> constexpr char NamingCounter<NamingCaterogy::SAMPLER>::baseName() {
+			return 's';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::ARRAY>::baseName() {
-			return "A";
+		template<> constexpr char NamingCounter<NamingCaterogy::ARRAY>::baseName() {
+			return 'A';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::FUNCTION>::baseName() {
-			return "f";
+		template<> constexpr char NamingCounter<NamingCaterogy::FUNCTION>::baseName() {
+			return 'f';
 		}
-		template<> inline string NamingCounter<NamingCaterogy::OTHER>::baseName() {
-			return "X";
+		template<> constexpr char NamingCounter<NamingCaterogy::OTHER>::baseName() {
+			return 'X';
 		}
 		template<typename T> struct AutoNaming {
 			using Type = NamingCounter<NamingCaterogy::OTHER>;

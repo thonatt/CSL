@@ -148,4 +148,5 @@
 	}
 
 
-
+#define CSL_BLOCK(QualifiedTypename, Name, ...) \
+	CSL_PP_GET_TYPE_LIST(QualifiedTypename) "+" CSL_PP_STRIP(QualifiedTypename)

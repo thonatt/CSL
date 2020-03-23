@@ -23,6 +23,12 @@ namespace csl {
 				}
 			}
 
+			void add_comment(const std::string& text) {
+				if (currentShader) {
+					currentShader->add_statement<CommentInstruction>(text);
+				}
+			}
+
 			/////////////////////////////////////////////////
 
 			void addEvent(const Ex & ex) {
@@ -379,6 +385,8 @@ namespace csl {
 		}
 
 	}
+
+	inline void addComment(const std::string& text) { core::listen().add_comment(text); }
 
 	inline void lineBreak(int n = 1) { core::listen().add_blank_line(n); }
 

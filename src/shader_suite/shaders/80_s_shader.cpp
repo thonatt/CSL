@@ -8,6 +8,12 @@ std::string eightiesShader() {
 
 	Shader shader;
 
+	addComment(R"(
+ This shader was generated using the CSL library (https://github.com/thonatt/CSL).
+ Adapted from http://shadertoy.com/view/ttBGRD by Simon Rodriguez.
+ To display the central text, a texture must be attached to iChannel0 as done in the original shader.
+	)");
+
 	/// Noise helpers.	
 	auto noise = declareFunc<Float, vec4>("noise",
 			[](Float p) {

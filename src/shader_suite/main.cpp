@@ -48,10 +48,16 @@ int main()
 
 	// Dolphin ubershaders
 	std::string dolphin_vertex_str = dolphinVertex();
+
+	auto dolphin_frag_start = std::chrono::steady_clock::now();
 	std::string dolphin_frag_str = dolphinFragment();
+	auto dolphin_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dolphin_frag_start);
 
 	//basic shaders
+	auto phong_frag_start = std::chrono::steady_clock::now();
 	std::string phongShading_str = phongShading();
+	auto phong_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - phong_frag_start);
+
 	std::string per_tri_normal_str = per_triangle_normal_geom();
 	std::string tesselation_control_str = tesselation_control_example();
 	std::string tesselation_evaluation_str = tesselation_evaluation_example();
@@ -77,17 +83,19 @@ int main()
 	}
 
 	for (std::string str :
-		{ blur_str, ambiant_str, ssao_str, discard_str ,
-	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
+	{ blur_str, ambiant_str, ssao_str, discard_str,
+		transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
 		tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,
-	dolphin_vertex_str, dolphin_frag_str
-		})
+		dolphin_vertex_str, dolphin_frag_str
+	})
 	{
 		std::cout << str;
 		seperator();
 	}
 
-	std::cout << "shader generation elapsed time : " << duration.count()/1000.0 << " ms" << std::endl;
-	
+	std::cout << "all shaders total generation elapsed time : " << duration.count() / 1000.0 << " ms" << std::endl;
+	std::cout << "phong fragment shader generation elapsed time : " << phong_frag_duration.count() / 1000.0 << " ms" << std::endl;
+	std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
+
 	return 0;
 }

@@ -357,9 +357,14 @@ namespace csl {
 
 		struct CommentInstruction : InstructionBase {
 			CommentInstruction(const std::string & s) : comment(s) {}
-
-			void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
-				stream << instruction_begin(trailing) << "//" << comment << std::endl;
+			
+			void str(std::stringstream& stream, int& trailing, uint otps) override {			
+				std::string line;
+				std::stringstream s;
+				s << comment;
+				while (std::getline(s, line)){
+					stream << instruction_begin(trailing) << "//" << line << "\n";
+				}			
 			}
 			std::string comment;
 		};
