@@ -203,8 +203,11 @@ void testsCompliance()
 	static_assert(!validInverse<csl::vec3>(0), "bouh");
 }
 
-void testList()
+void testLzist()
 {
+
+	using namespace csl;
+
 	//CSL_BLOCK((a, b) c, d);
 
 	//CSL_BLOCK(() c, d);

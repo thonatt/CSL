@@ -15,12 +15,12 @@ namespace csl {
 
 		template<typename T>
 		struct TypeStr {
-			static string str(int trailing) { return T::typeStr(trailing); }
+			static string str(int trailing = 0) { return T::typeStr(trailing); }
 		};
 
 		template<typename T>
-		string getTypeStr(int trailing = 0) {
-			return TypeStr<T>::str(trailing);
+		string getTypeStr() {
+			return TypeStr<T>::str();
 		};
 
 		template<typename T>
@@ -95,7 +95,7 @@ namespace csl {
 		};
 
 		template<uint N>
-		string arrayStr() { return "[" + (N > 0 ? std::to_string(N) : "") + "]"; }
+		string arrayStr() { return '[' + (N > 0 ? std::to_string(N) : "") + ']'; }
 
 		template<typename T, uint N>
 		struct TypeStrRHS<Array<T, N>> {
@@ -176,8 +176,8 @@ namespace csl {
 
 		template<ScalarType type, uint NR, uint NC>
 		struct TypeStr< Matrix<type, NR, NC> > {
-			static string str(int trailing = 0) {
-				return TypePrefixStr<type>::str() + "mat" + std::to_string(NC) + (NC == NR ? string("") : "x" + std::to_string(NR));
+			static string str() {
+				return TypePrefixStr<type>::str() + "mat" + std::to_string(NC) + (NC == NR ? "" : 'x' + std::to_string(NR));
 			}
 		};
 
@@ -225,7 +225,7 @@ namespace csl {
 				return
 					TypePrefixStr<nType>::str() +
 					AccessTypeInfo<aType>::str() +
-					(N != 0 ? std::to_string(N) + "D" : "") +
+					(N != 0 ? std::to_string(N) + 'D' : "") +
 					SamplerTypeInfo<sType>::str() +
 					(flags & SamplerFlags::IS_ARRAY ? "Array" : "") +
 					(flags & SamplerFlags::IS_SHADOW ? "Shadow" : "");
@@ -302,7 +302,7 @@ namespace csl {
 		template<QualifierType qType, typename T, typename ... LayoutArgs>
 		struct TypeStr < Qualifier<qType, T, LayoutImpl<LayoutArgs...> > > {
 			static string str(int trailing = 0) {
-				return TypeStr<typename LayoutImpl<LayoutArgs...>::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str(trailing);
+				return TypeStr<typename LayoutImpl<LayoutArgs...>::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + TypeStr<T>::str();
 			}
 		};
 
@@ -324,13 +324,13 @@ namespace csl {
 		template<typename T, uint N>
 		struct TypeNamingStr< Array<T, N> > {
 			static string str() {
-				return "array_" + TypeNamingStr<T>::str() + "_" + std::to_string(N);
+				return "array_" + TypeNamingStr<T>::str() + '_' + std::to_string(N);
 			}
 		};
 
 		template<typename T>
 		struct DeclarationStr {
-			static string str(const string & name, int trailing = 0) { return getTypeStr<T>(trailing) + " " + name; }
+			static string str(const string & name) { return getTypeStr<T>() + ' ' + name; }
 		};
 
 		template<> struct DeclarationStr<EmptyType> {
@@ -340,21 +340,21 @@ namespace csl {
 		template<QualifierType qType, typename T, typename Layout>
 		struct DeclarationStr<Qualifier<qType, T, Layout> > {
 			static string str(const string & name, int trailing = 0) {
-				return TypeStr<typename Layout::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + DeclarationStr<T>::str(name, trailing);
+				return TypeStr<typename Layout::CleanupArgs>::str() + QualifierTypeStr<qType>::str() + DeclarationStr<T>::str(name);
 			}
 		};
 
 		template<typename T, uint N>
 		struct DeclarationStr<Array<T, N>> {
 			static string str(const string & name, int trailing = 0) {
-				return DeclarationStr<T>::str(name, trailing) + arrayStr<N>();
+				return DeclarationStr<T>::str(name) + arrayStr<N>();
 			}
 		};
 
 		template<QualifierType qType, typename T, uint N, typename Layout>
 		struct DeclarationStr<Qualifier<qType, Array<T, N>, Layout> > {
 			static string str(const string & name, int trailing = 0) {
-				return DeclarationStr<Array<Qualifier<qType, T, Layout >, N>>::str(name, trailing);
+				return DeclarationStr<Array<Qualifier<qType, T, Layout >, N>>::str(name);
 			}
 		};
 

@@ -21,6 +21,8 @@
 
 #define GENTYPE_OP_GENTYPE(r, data, i, elem) ANYTYPE_OP_ANYTYPE(FLOAT, FLOAT, elem)
 
+#define GENITYPE_OP_GENITYPE(r, data, i, elem) ANYTYPE_OP_ANYTYPE(INT, INT, elem)
+
 #define RELATIONAL_GENTYPE_OP(r, data, i, elem) \
 	template<typename A, typename B, typename = std::enable_if_t< IsVecF<A> && EqualMat<A,B> > > \
 	Vec<BOOL, Infos<A>::rows> elem(A && a, B && b) { \
@@ -262,6 +264,8 @@ namespace csl {
 			}
 		
 			CSL_PP_ITERATE(GENTYPE_OP_GENTYPE, sinh, cosh, tanh, inversesqrt, sign, round, roundEven);
+
+			CSL_PP_ITERATE(GENITYPE_OP_GENITYPE, abs);
 
 			BVEC_OP_GENTYPE(isnan);
 		}

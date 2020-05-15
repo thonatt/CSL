@@ -53,7 +53,7 @@
 	struct TypenameId : core::NamedObject<TypenameId> { \
 		static_assert(CSL_PP_IS_EMPTY(ArraySize), "unnamed interface block cant be array"); \
 		TypenameId() = delete; \
-		static std::string typeStr(int trailing) { return CSL_PP_STR(Typename); } \
+		static std::string typeStr(int trailing = 0) { return CSL_PP_STR(Typename); } \
 	}; 
 
 #define CSL_PP_UNNAMED_INTERFACE(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
@@ -82,13 +82,13 @@
 			 : core::NamedObject<TypenameId>(_ex, ctor_flags, obj_flags, s) \
 			CSL_PP_ITERATE(CSL_PP_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
 		\
-		static std::string typeStr(int trailing) { \
+		static std::string typeStr(int trailing = 0) { \
 			return CSL_PP_STR(Typename) + core::InterfaceDeclarationStr<TypenameId CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__ )>::str( \
 				trailing CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__ ) \
 			); \
 		} \
 		\
-		static std::string typeNamingStr(int trailing) { \
+		static std::string typeNamingStr(int trailing = 0) { \
 			return CSL_PP_STR(Typename); \
 		} \
 	}; 

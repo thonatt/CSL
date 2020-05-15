@@ -143,7 +143,7 @@ namespace csl {
 
 			string checkForParenthesis(const Ex & exp) const {
 				if (inversion(exp)) {
-					return "(" + exp->str(0) + ")";
+					return '(' + exp->str(0) + ')';
 				}
 				return exp->str(0);
 			}
@@ -218,7 +218,7 @@ namespace csl {
 			}
 
 			string args_str() const {
-				return "(" + args_str_body() + ")";
+				return '(' + args_str_body() + ')';
 			}
 
 			std::array<Ex, N> args;
@@ -319,7 +319,7 @@ namespace csl {
 			}
 
 			virtual string lhs_str(int trailing) const {
-				return DeclarationStr<T>::str(obj_name(), trailing);
+				return DeclarationStr<T>::str(obj_name());
 			}
 
 			string rhs_str() const {
@@ -384,7 +384,7 @@ namespace csl {
 						obj_str = obj->str(0);
 					}
 				}
-				return obj_str + "." + member_str;
+				return obj_str + '.' + member_str;
 			}
 
 			void make_obj_tmp() {
@@ -408,7 +408,7 @@ namespace csl {
 			}
 
 			string str(int trailing) const {
-				return OperatorBase::checkForParenthesis(obj) + "." + FunctionCall<N>::str(0);
+				return OperatorBase::checkForParenthesis(obj) + '.' + FunctionCall<N>::str(0);
 			}
 
 			Ex obj;
@@ -419,7 +419,7 @@ namespace csl {
 			}
 
 			string str(int trailing) const {
-				return OperatorBase::checkForParenthesis(obj) + "[" + arg->str(0) + "]";
+				return OperatorBase::checkForParenthesis(obj) + '[' + arg->str(0) + ']';
 			}
 
 			Ex obj, arg;
@@ -495,7 +495,7 @@ namespace csl {
 					string s = ss.str();
 					s.erase(s.find_last_not_of('0') + 1, string::npos);
 					if (s.back() == '.') {
-						s += "0";
+						s += '0';
 					}
 					return s;
 				}
@@ -506,7 +506,7 @@ namespace csl {
 
 
 		template<> struct Litteral<bool> : OperatorBase {
-			Litteral(const bool & _b) : b(_b) {}
+			Litteral(bool _b) : b(_b) {}
 			virtual string str(int trailing) const { return b ? "true" : "false"; }
 			bool b;
 		};

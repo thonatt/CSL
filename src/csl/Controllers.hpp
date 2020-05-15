@@ -294,7 +294,7 @@ namespace csl {
 			virtual std::string header() const { return ""; }
 
 			std::string str() const {
-				int trailing = 1;
+				int trailing = 0;
 
 				std::stringstream out;
 

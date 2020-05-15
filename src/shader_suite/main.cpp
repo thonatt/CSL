@@ -97,5 +97,12 @@ int main()
 	std::cout << "phong fragment shader generation elapsed time : " << phong_frag_duration.count() / 1000.0 << " ms" << std::endl;
 	std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
 
+	// for profiling
+
+	for (std::size_t i = 0; i < 1000; ++i) {
+		dolphinVertex();
+		dolphinFragment();
+	}
+
 	return 0;
 }

@@ -629,7 +629,7 @@ namespace csl {
 		struct DisplayDeclaration<s, N, T, Ts...> {
 			static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
 				return
-					InstructionBase::instruction_begin(trailing) + DeclarationStr<T>::str(v[v.size() - N], trailing) +
+					InstructionBase::instruction_begin(trailing) + DeclarationStr<T>::str(v[v.size() - N]) +
 					((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
 					DisplayDeclaration<s, N - 1, Ts...>::str(v, trailing, separator);
 			}

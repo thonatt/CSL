@@ -12,17 +12,17 @@ namespace csl {
 		template<typename T>
 		struct MatrixConvertor { };
 
-		template<> struct MatrixConvertor<Int> {
-			operator int() {
-				return 0;
-			}
-		};
+		//template<> struct MatrixConvertor<Int> {
+		//	operator int() {
+		//		return 0;
+		//	}
+		//};
 
-		template<> struct MatrixConvertor<Uint> {
-			operator uint() {
-				return 0;
-			}
-		};
+		//template<> struct MatrixConvertor<Uint> {
+		//	operator uint() {
+		//		return 0;
+		//	}
+		//};
 
 		template<> struct MatrixConvertor<Bool> {
 			operator bool() &;
