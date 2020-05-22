@@ -32,7 +32,7 @@ namespace csl {
 				return out;
 			}
 
-			bool check(const ArgOrdering & other) const { return value == other.counter_value; }
+			bool check(const ArgOrdering& other) const { return value == other.counter_value; }
 
 			size_t value, counter_value;
 
@@ -97,29 +97,29 @@ namespace csl {
 			}
 
 			virtual ~InstructionBase() = default;
-			virtual void str(std::stringstream & stream, int & trailing, uint otps) { }
-			virtual void cout(int & trailing, uint otps = DEFAULT) {}
+			virtual void str(std::stringstream& stream, int& trailing, uint otps) { }
+			virtual void cout(int& trailing, uint otps = DEFAULT) {}
 		};
 
 		struct Block {
 			using Ptr = std::shared_ptr<Block>;
 
-			Block(const Block::Ptr & _parent = {}) : parent(_parent) {}
+			Block(const Block::Ptr& _parent = {}) : parent(_parent) {}
 
 			virtual ~Block() = default;
 
-			virtual void push_instruction(const InstructionBase::Ptr & i) {
+			virtual void push_instruction(const InstructionBase::Ptr& i) {
 				instructions.push_back(i);
 			}
 
-			virtual void str(std::stringstream & stream, int & trailing, uint opts) {
-				for (const auto & inst : instructions) {
+			virtual void str(std::stringstream& stream, int& trailing, uint opts) {
+				for (const auto& inst : instructions) {
 					inst->str(stream, trailing, opts);
 				}
 			}
 
-			virtual void cout(int & trailing, uint opts = DEFAULT) {
-				for (const auto & inst : instructions) {
+			virtual void cout(int& trailing, uint opts = DEFAULT) {
+				for (const auto& inst : instructions) {
 					inst->cout(trailing);
 				}
 			}
@@ -152,7 +152,7 @@ namespace csl {
 		struct ReturnBlock : ReturnBlockBase {
 			using Ptr = std::shared_ptr<ReturnBlock<ReturnType>>;
 
-			ReturnBlock(const Block::Ptr & _parent = {}) : ReturnBlockBase(_parent) {}
+			ReturnBlock(const Block::Ptr& _parent = {}) : ReturnBlockBase(_parent) {}
 			virtual ~ReturnBlock() = default;
 
 			virtual RunTimeInfos getType() const {
@@ -165,7 +165,7 @@ namespace csl {
 				return typeid(ReturnType).hash_code() == other_type_hash;
 			}
 
-			virtual void str(std::stringstream & stream, int & trailing, uint otps);
+			virtual void str(std::stringstream& stream, int& trailing, uint otps);
 
 			//virtual void cout(int & trailing, uint opts = DEFAULT);
 		};
@@ -173,10 +173,10 @@ namespace csl {
 		struct Statement : InstructionBase {
 			using Ptr = std::shared_ptr<Statement>;
 
-			Statement(const Ex & e = {}) : ex(e) {}
+			Statement(const Ex& e = {}) : ex(e) {}
 			virtual ~Statement() = default;
 
-			virtual void str(std::stringstream & stream, int & trailing, uint opts) {
+			virtual void str(std::stringstream& stream, int& trailing, uint opts) {
 				if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
 					stream << ((opts & NEW_LINE) ? instruction_begin(trailing, opts) : "");
 					if ((opts & IGNORE_TRAILING)) {
@@ -188,7 +188,7 @@ namespace csl {
 				}
 			}
 
-			virtual void cout(int & trailing, uint opts = SEMICOLON & NEW_LINE) {
+			virtual void cout(int& trailing, uint opts = SEMICOLON & NEW_LINE) {
 				if ((opts & IGNORE_DISABLE) || !ex->disabled()) {
 					std::cout <<
 						((opts & NEW_LINE) ? instruction_begin(trailing, opts) : "")
@@ -200,7 +200,7 @@ namespace csl {
 			Ex ex;
 		};
 
-		inline InstructionBase::Ptr toInstruction(const Ex & e) {
+		inline InstructionBase::Ptr toInstruction(const Ex& e) {
 			auto statement = std::make_shared<Statement>(e);
 			return std::dynamic_pointer_cast<InstructionBase>(statement);
 		}
@@ -213,7 +213,7 @@ namespace csl {
 				return std::static_pointer_cast<InstructionBase>(std::make_shared<EmptyStatement>(_flags));
 			}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				if (flags != 0) {
 					stream << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
 				} else {
@@ -221,7 +221,7 @@ namespace csl {
 				}
 			}
 
-			void cout(int & trailing, uint opts = 0) {
+			void cout(int& trailing, uint opts = 0) {
 				if (flags != 0) {
 					std::cout << Statement::instruction_begin(trailing, flags) << Statement::instruction_end(flags);
 				} else {
@@ -242,7 +242,7 @@ namespace csl {
 			Status status = INIT;
 			Ex stacked_condition;
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 
 				std::vector<InstructionBase::Ptr> inits, conditions, loops;
 				Status status = INIT;
@@ -322,9 +322,9 @@ namespace csl {
 		struct ReturnStatement : SpecialStatement {
 			using Ptr = std::shared_ptr<ReturnStatement>;
 
-			ReturnStatement(const Ex & e = {}) : SpecialStatement(e) {}
+			ReturnStatement(const Ex& e = {}) : SpecialStatement(e) {}
 
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
+			void str(std::stringstream& stream, int& trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << internal_str() << instruction_end(opts);
 			}
 
@@ -338,51 +338,51 @@ namespace csl {
 		};
 
 		struct ContinueStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
+			void str(std::stringstream& stream, int& trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "continue" << instruction_end(opts);
 			}
 		};
 
 		struct DiscardStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
+			void str(std::stringstream& stream, int& trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "discard" << instruction_end(opts);
 			}
 		};
 
 		struct BreakStatement : SpecialStatement {
-			void str(std::stringstream & stream, int & trailing, uint opts = SEMICOLON | NEW_LINE) {
+			void str(std::stringstream& stream, int& trailing, uint opts = SEMICOLON | NEW_LINE) {
 				stream << instruction_begin(trailing, opts) << "break" << instruction_end(opts);
 			}
 		};
 
 		struct CommentInstruction : InstructionBase {
-			CommentInstruction(const std::string & s) : comment(s) {}
-			
-			void str(std::stringstream& stream, int& trailing, uint otps) override {			
+			CommentInstruction(const std::string& s) : comment(s) {}
+
+			void str(std::stringstream& stream, int& trailing, uint otps) override {
 				std::string line;
 				std::stringstream s;
 				s << comment;
-				while (std::getline(s, line)){
+				while (std::getline(s, line)) {
 					stream << instruction_begin(trailing) << "//" << line << "\n";
-				}			
+				}
 			}
 			std::string comment;
 		};
 
 		struct EmitVertexInstruction : InstructionBase {
-			void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
+			void str(std::stringstream& stream, int& trailing, uint opts = DEFAULT) {
 				stream << instruction_begin(trailing) << "EmitVertex()" << instruction_end(opts);
 			}
 		};
 
 		struct EndPrimitiveInstruction : InstructionBase {
-			void str(std::stringstream & stream, int & trailing, uint opts = DEFAULT) {
+			void str(std::stringstream& stream, int& trailing, uint opts = DEFAULT) {
 				stream << instruction_begin(trailing) << "EndPrimitive()" << instruction_end(opts);
 			}
 		};
 
 		template<typename ReturnType>
-		void ReturnBlock<ReturnType>::str(std::stringstream & stream, int & trailing, uint opts)
+		void ReturnBlock<ReturnType>::str(std::stringstream& stream, int& trailing, uint opts)
 		{
 			Block::str(stream, trailing, opts);
 			//if (!std::is_same<ReturnType, void>::value && !ReturnBlockBase::hasReturnStatement) {
@@ -403,14 +403,14 @@ namespace csl {
 
 		template<typename ReturnTList, size_t it>
 		struct FDeclImpl<ReturnTList, it> {
-			static void str(std::stringstream & stream, int & trailing, uint opts,
-				const std::string & fname, const std::vector<OverloadData> & funcs) { }
+			static void str(std::stringstream& stream, int& trailing, uint opts,
+				const std::string& fname, const std::vector<OverloadData>& funcs) { }
 		};
 
 		template<typename ReturnTList, size_t it, typename F, typename ... Fs>
 		struct FDeclImpl<ReturnTList, it, F, Fs...> {
-			static void str(std::stringstream & stream, int & trailing,
-				uint opts, const std::string & fname, const std::vector<OverloadData> & funcs) {
+			static void str(std::stringstream& stream, int& trailing,
+				uint opts, const std::string& fname, const std::vector<OverloadData>& funcs) {
 
 				int dummy_trailing = 0;
 				//{
@@ -426,7 +426,7 @@ namespace csl {
 				stream << InstructionBase::instruction_begin(trailing, opts) <<
 					getTypeStr<typename ReturnTList::template GetType<it>>() << " " << fname << "(";
 
-				const auto & args = funcs[it].args->instructions;
+				const auto& args = funcs[it].args->instructions;
 				const int size = static_cast<int>(args.size());
 				if (getArgOrder() == ArgOrderEvaluation::LEFT_TO_RIGHT) {
 					for (int i = 0; i < size; ++i) {
@@ -457,7 +457,7 @@ namespace csl {
 		struct FuncDeclarationInstructionBase : InstructionBase {
 			using Ptr = std::shared_ptr<FuncDeclarationInstructionBase>;
 
-			FuncDeclarationInstructionBase(const std::string & name) : func_name(name) {
+			FuncDeclarationInstructionBase(const std::string& name) : func_name(name) {
 			}
 
 			std::vector<OverloadData> overloads;
@@ -468,12 +468,12 @@ namespace csl {
 		struct FuncDeclarationInstruction : FuncDeclarationInstructionBase {
 			using Ptr = std::shared_ptr<FuncDeclarationInstruction>;
 
-			FuncDeclarationInstruction(const std::string & name)
+			FuncDeclarationInstruction(const std::string& name)
 				: FuncDeclarationInstructionBase(name) {
 				FuncDeclarationInstructionBase::overloads.resize(sizeof...(Fs));
 			}
 
-			virtual void str(std::stringstream & stream, int & trailing, uint opts) override {
+			virtual void str(std::stringstream& stream, int& trailing, uint opts) override {
 				FDeclImpl<ReturnTList, 0, Fs...>::str(stream, trailing, opts,
 					FuncDeclarationInstructionBase::func_name,
 					FuncDeclarationInstructionBase::overloads
@@ -489,7 +489,7 @@ namespace csl {
 				body = std::make_shared<Block>();
 			}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "for( ";
 				args->str(stream, trailing, IGNORE_TRAILING);
 				stream << "){\n";
@@ -513,7 +513,7 @@ namespace csl {
 
 			IfInstruction(std::shared_ptr<IfInstruction> _parent = {}) : parent_if(_parent) {}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				const int numBodies = (int)bodies.size();
 				for (int i = 0; i < numBodies; ++i) {
 					if (bodies[i].condition) {
@@ -543,12 +543,12 @@ namespace csl {
 		struct WhileInstruction : InstructionBase {
 			using Ptr = std::shared_ptr<WhileInstruction>;
 
-			WhileInstruction(const Ex & ex, const Block::Ptr & parent) {
+			WhileInstruction(const Ex& ex, const Block::Ptr& parent) {
 				condition = std::make_shared<Statement>(ex);
 				body = std::make_shared<Block>(parent);
 			}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "while( ";
 				condition->str(stream, trailing, IGNORE_DISABLE);
 				stream << " ){\n";
@@ -565,14 +565,14 @@ namespace csl {
 		struct SwitchCase : InstructionBase {
 			using Ptr = std::shared_ptr<SwitchCase>;
 
-			SwitchCase(const Ex & ex, const Block::Ptr & parent) {
+			SwitchCase(const Ex& ex, const Block::Ptr& parent) {
 				if (ex) {
 					label = std::make_shared<Statement>(ex);
 				}
 				body = std::make_shared<Block>(parent);
 			}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				if (label) {
 					stream << instruction_begin(trailing, opts) << "case ";
 					label->str(stream, trailing, IGNORE_TRAILING);
@@ -593,19 +593,19 @@ namespace csl {
 		struct SwitchInstruction : InstructionBase {
 			using Ptr = std::shared_ptr<SwitchInstruction>;
 
-			SwitchInstruction(const Ex & ex, const Block::Ptr & parent, const SwitchInstruction::Ptr & _parent_switch = {}) {
+			SwitchInstruction(const Ex& ex, const Block::Ptr& parent, const SwitchInstruction::Ptr& _parent_switch = {}) {
 				condition = std::make_shared<Statement>(ex);
 				body = std::make_shared<Block>(parent);
 				parent_switch = _parent_switch;
 			}
 
-			void add_case(const Ex & ex, Block::Ptr & currentBlock) {
+			void add_case(const Ex& ex, Block::Ptr& currentBlock) {
 				current_case = std::make_shared<SwitchCase>(ex, body);
 				body->push_instruction(current_case);
 				currentBlock = current_case->body;
 			}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "switch( ";
 				condition->str(stream, trailing, IGNORE_DISABLE);
 				stream << " ){\n";
@@ -627,7 +627,7 @@ namespace csl {
 
 		template<SeparatorRule s, int N, typename T, typename ... Ts>
 		struct DisplayDeclaration<s, N, T, Ts...> {
-			static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+			static std::string str(const std::vector<std::string>& v, int& trailing, const std::string& separator) {
 				return
 					InstructionBase::instruction_begin(trailing) + DeclarationStr<T>::str(v[v.size() - N]) +
 					((s == SEP_AFTER_ALL || (s == SEP_IN_BETWEEN && N != 1)) ? separator : "") +
@@ -637,11 +637,11 @@ namespace csl {
 
 		template<SeparatorRule s, typename ... T>
 		struct DisplayDeclaration<s, 0, T...> {
-			static std::string str(const std::vector<std::string> & v, int & trailing, const std::string & separator) { return ""; }
+			static std::string str(const std::vector<std::string>& v, int& trailing, const std::string& separator) { return ""; }
 		};
 
 		template<SeparatorRule s, typename ... Ts>
-		std::string memberDeclarations(const std::vector<std::string> & v, int & trailing, const std::string & separator) {
+		std::string memberDeclarations(const std::vector<std::string>& v, int& trailing, const std::string& separator) {
 			return DisplayDeclaration<s, sizeof...(Ts), Ts...>::str(v, trailing, separator);
 		}
 
@@ -649,10 +649,10 @@ namespace csl {
 		struct StructDeclaration : InstructionBase {
 
 			template<typename ... Strings>
-			StructDeclaration(const std::string & _name, const Strings &... _names) :
+			StructDeclaration(const std::string& _name, const Strings&... _names) :
 				member_names{ _names... }, name(_name) {}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << "struct " << name << " {\n";
 				++trailing;
 				stream << memberDeclarations<SEP_AFTER_ALL, Args...>(member_names, trailing, ";\n");
@@ -668,10 +668,10 @@ namespace csl {
 		struct UnNamedInterfaceDeclaration : InstructionBase {
 
 			template<typename ... Strings>
-			UnNamedInterfaceDeclaration(const Strings &... _names) :
+			UnNamedInterfaceDeclaration(const Strings&... _names) :
 				member_names{ _names... } {}
 
-			void str(std::stringstream & stream, int & trailing, uint opts) {
+			void str(std::stringstream& stream, int& trailing, uint opts) {
 				stream << instruction_begin(trailing, opts) << getTypeStr<T>() << " {\n";
 				++trailing;
 				stream << memberDeclarations<SEP_AFTER_ALL, Args...>(member_names, trailing, ";\n");
@@ -686,7 +686,7 @@ namespace csl {
 		struct InterfaceDeclarationStr {
 
 			template<typename ... Strings>
-			static std::string str(int trailing, const Strings & ... member_names) {
+			static std::string str(int trailing, const Strings& ... member_names) {
 				std::string out = " {\n";
 				++trailing;
 				out += memberDeclarations<SEP_AFTER_ALL, Args...>({ member_names... }, trailing, ";\n");

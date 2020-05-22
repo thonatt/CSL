@@ -164,7 +164,7 @@ namespace csl {
 			void main(const F_Type & f) {
 				using ArgsTList = GetArgTList<F_Type>;
 				static_assert(EqualList<ArgsTList, TList<>> || EqualList<ArgsTList, TList<void>>, "main function should not have arguments");
-				Function<TList<void>, TList<F_Type>>("main", f);
+				(void)Function<TList<void>, TList<F_Type>>("main", f);
 			}
 
 			std::string str() {

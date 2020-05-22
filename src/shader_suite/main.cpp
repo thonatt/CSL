@@ -5,6 +5,8 @@
 #include <shaders/examples.h>
 
 #include "tests.h"
+#include "v2/AlgebraTypes.hpp"
+#include "v2/Swizzles.hpp"
 
 #include <iostream>
 #include <chrono>
@@ -99,10 +101,18 @@ int main()
 
 	// for profiling
 
-	for (std::size_t i = 0; i < 1000; ++i) {
+	for (std::size_t i = 0; i < 100; ++i) {
 		dolphinVertex();
 		dolphinFragment();
 	}
+
+	{
+		using namespace v2::swizzles::all;
+		//auto mixed = (r, x);
+
+		constexpr auto long_set = (x, x, x, y);
+	}
+
 
 	return 0;
 }
