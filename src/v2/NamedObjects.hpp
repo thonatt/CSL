@@ -2,17 +2,18 @@
 
 #include "Operators.hpp"
 
+#include <type_traits>
 #include <string>
 
 namespace v2 {
 
 	enum class ObjFlags {
-		IsTracked = 1 << 1,
-		IsConstructor = 1 << 2,
-		IsUsed = 1 << 3,
+		Tracked = 1 << 1,
+		Constructor = 1 << 2,
+		UsedAsRef = 1 << 3,
 		AlwaysExp = 1 << 4,
-		IsStructMember = 1 << 5,
-		Default = IsTracked | IsConstructor
+		StructMember = 1 << 5,
+		Default = Tracked | Constructor
 	};
 
 	constexpr ObjFlags operator|(ObjFlags a, ObjFlags b) {
@@ -37,30 +38,74 @@ namespace v2 {
 	public:
 
 		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : m_name(name), m_flags(flags) {
-
 		}
+
+		Expr get_expr_as_ref() const
+		{
+			m_flags |= ObjFlags::UsedAsRef;
+			if (static_cast<bool>(m_flags & ObjFlags::AlwaysExp)) {
+				return m_expr;
+			}
+			return {};
+		}
+
+		Expr get_expr_as_ref()
+		{
+			return static_cast<const NamedObjectBase*>(this)->get_expr_as_ref();
+		}
+
+		Expr get_expr_as_temp() const
+		{
+			m_flags |= ObjFlags::UsedAsRef;
+			return m_expr;
+		}
+
+		Expr get_expr_as_tmp()
+		{
+			return static_cast<const NamedObjectBase*>(this)->get_expr_as_temp();
+		}
+
+		Expr get_expr() & { return get_expr_as_ref(); }
+		Expr get_expr() const& { return get_expr_as_ref(); }
+		Expr get_expr() && { return get_expr_as_temp(); }
+		Expr get_expr() const&& { return get_expr_as_temp(); }
 
 	protected:
 		std::string m_name;
-		std::size_t m_id = 0;
 		Expr m_expr;
 		mutable ObjFlags m_flags;
 	};
 
+	template<typename T, typename ... Args>
+	Expr create_initialization(ObjFlags objFlags, Args&& ... args);
+
+	template<typename T, typename Enabler = void>
+	struct ExprGetter {
+		static Expr get_expr(T&& t) {
+			return std::forward<T>(t).get_expr();
+		}
+	};
+
 	template<typename T>
-	struct Counter;
+	Expr get_expr(T&& t) {
+		return ExprGetter<T>::get_expr(std::forward<T>(t));
+	}
 
 	template<typename T>
 	class NamedObject : public NamedObjectBase {
 	public:
-	private:
-		void checkName()
-		{
-			using AutoName = typename Counter<T>::Type;
-			if (m_name.empty()) {
-				m_name = AutoName::getNextName();
-			}
 
+		NamedObject(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : NamedObjectBase(name, flags) {
+			m_expr = make_expr<Constructor<T>>(CtorFlags::Declaration);
 		}
-	}
+
+	private:
+	};
+
+	template<typename T>
+	struct ExprGetter<T, std::enable_if_t<std::is_fundamental_v<T>>> {
+		static Expr get_expr(T&& t) {
+			return make_expr<Litteral<T>>(std::forward<T>(t));
+		}
+	};
 }

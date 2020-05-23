@@ -17,62 +17,90 @@ namespace v2 {
 	struct OperatorBase;
 	using Expr = std::shared_ptr<OperatorBase>;
 
+	enum class CtorFlags {
+		Declaration,
+		Initialisation,
+		Temporary,
+		Forward
+	};
+
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;
 
 		virtual void print_glsl() const {}
 		virtual void print_spirv() const {}
 
-		Op op = OpNop;
+		Op op = Op::OpNop;
 	};
 
 
 	template<typename Operator>
 	struct OperatorWrapper : OperatorBase {
 		virtual void print_glsl() const override {
-			GLSLstr<Operator>::call(op);
+			//GLSLstr<Operator>::call(op);
 		}
 
 		virtual void print_spirv() const override {
-			SPIRVstr<Operator>::call(op);
+			//SPIRVstr<Operator>::call(op);
 		}
 
-		Operator op;
+		template<typename ...Args>
+		OperatorWrapper(Args&& ...args) : m_op{ std::forward<Args>(args)... } { }
+
+		Operator m_op;
 	};
 
 
 	template<std::size_t N>
-	struct ArgsCall : OperatorBase {
-		virtual ~ArgsCall() = default;
+	struct ArgSeq {
+		virtual ~ArgSeq() = default;
 
 		template<typename ...Args>
-		ArgsCall(Args&& ... args) : arguments{ std::forward<Args>(args)... } { }
+		ArgSeq(Args&& ... args) : arguments{ std::forward<Args>(args)... } { }
 
 		const std::array<Expr, N> arguments;
 	};
 
 
 	template<std::size_t N>
-	struct FunCall : ArgsCall<N> {
+	struct FunCall : ArgSeq<N> {
+
 		template<typename ...Args>
-		FunCall(Args&& ...args) : ArgsCall<N>(std::forward<Args>(args)...) { }
+		FunCall(Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...) { }
+	};
+
+	struct ConstructorBase : OperatorBase {
+		virtual ~ConstructorBase() = default;
+
+		ConstructorBase(const CtorFlags flags) : m_flags(flags) {}
+
+		CtorFlags m_flags;
+	};
+
+	template<typename T, typename ...Args>
+	struct Constructor : ConstructorBase, ArgSeq<sizeof...(Args)> {
+
+		template<typename ...Args>
+		Constructor(const CtorFlags flags, Args&& ...args) : ConstructorBase(flags), ArgSeq<sizeof...(Args)>(std::forward<Args>(args)...) { }
 	};
 
 	template<typename F, std::size_t N = F::arg_count>
-	struct CustomFunCall : ArgsCall<N> {
+	struct CustomFunCall : ArgSeq<N> {
+
 		template<typename ... Args>
-		CustomFunCall(Args&& ...args) : ArgsCall<N>(std::forward<Args>(args)...) { }
+		CustomFunCall(Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...) { }
 	};
 
 	template<typename T>
 	struct Litteral : OperatorBase {
+
 		Litteral(const T t) : value(t) { }
 		const T value;
 	};
 
-	template <typename T, typename ... Args>
-	Expr make_operator(Args&& ...args) {
-		return std::static_pointer_cast<OperatorBase>(std::make_shared<OperatorWrapper<T>>(std::forward<Args>(args)...));
+	template <typename Operator, typename ... Args>
+	Expr make_expr(Args&& ...args) {
+		return std::static_pointer_cast<OperatorBase>(std::make_shared<OperatorWrapper<Operator>>(std::forward<Args>(args)...));
 	}
 
 

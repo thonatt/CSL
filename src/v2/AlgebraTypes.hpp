@@ -1,95 +1,117 @@
 #pragma once
 
+#include "NamedObjects.hpp"
+#include "Swizzles.hpp"
+#include "Types.hpp"
+
 #include <typeinfo>
 #include <vector>
 #include <array>
 
 namespace v2 {
 
-	template<std::size_t N>
-	class Array {};
-
-	template<typename T>
-	struct Infos {
-		static constexpr bool IsArray = false;
-		static constexpr bool IsConst = false;
-		static constexpr bool IsConstant = false;
-	};
-
-	template<typename T>
-	struct Infos<const T> : Infos<T> {
-		static constexpr bool IsConst = true;
-	};
-
-	template<>
-	struct Infos<float> {
-		static constexpr bool IsArray = false;
-		static constexpr bool IsConst = false;
-		static constexpr bool IsConstant = true;
-	};
-
-	template<std::size_t N>
-	struct Infos<Array<N>> {
-		static constexpr bool IsArray = true;
-	};
-
-	template<typename T, std::size_t R, std::size_t C, typename ... Qs>
-	class Matrix;
-
-	template<typename T, std::size_t R, typename ... Qs>
-	using Vector = Matrix<T, R, 1, Qs...>;
-
-	template<typename T, typename ... Qs>
-	using Scalar = Vector<T, 1, Qs...>;
-
-
 	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
-	class Matrix
-	{
+	class Matrix : public NamedObject<Matrix<T, R, C, Qs...>> {
 	public:
 
-		static constexpr bool IsArray = (Infos<Qs>::IsArray || ...);
-		using ArrayComponent = Matrix<T, R, C>;
-		using Row = Matrix<T, 1, C>;
-		using Col = Matrix<T, R, 1>;
-		using Scalar = Matrix<T, 1, 1>;
+		using This = Matrix;
+		using Row = Matrix<T, 1, C, Qs...>;
+		using Col = Matrix<T, R, 1, Qs...>;
+		using Scalar = Matrix<T, 1, 1, Qs...>;
+
+		template<std::size_t RowCount>
+		using SubCol = Vector<T, RowCount, Qs...>;
+
+		static constexpr std::size_t RowCount = R;
+		static constexpr std::size_t ColCount = C;
+		static constexpr bool IsScalar = (R == 1 && C == 1);
 
 		template<std::size_t OtherC>
 		using MatrixMul = Matrix<T, R, OtherC>;
 
+		using Base = NamedObject<Matrix<T, R, C, Qs...>>;
+
 	public:
-		Matrix() {}
+		Matrix() : Base() {}
 
 		template<std::size_t N>
-		Matrix(const char(&name)[N]) {}
+		Matrix(const char(&name)[N]) : Base(name) {}
+
+		template<typename U, typename V, typename ...Vs,
+			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<Matrix, U, V, Vs...> > >
+			Matrix(U&& u, V&& v, Vs&&...vs) {
+
+		}
 
 		template<typename Other>
 		Matrix operator*(Other&& other) {
-			static_assert(!IsArray, "No operator* for arrays");
 			return {};
 		}
+
+		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::Size <= R)> >
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const& {
+			return {};
+		}
+
+		template<typename Index, typename = std::enable_if_t<!IsScalar && Infos<Index>::IsInteger > >
+		std::conditional_t<C == 1, Scalar, Col> operator[](Index&& index) const&
+		{
+			//get_expr(std::forward<Index>(index));
+			return { };
+		}
+
+
+	};
+
+	template< typename T, std::size_t N, std::size_t R, std::size_t C, typename ... Qs>
+	class MatrixArray {
+	public:
+		using ArrayComponent = Matrix<T, R, C, Qs...>;
 
 		template<typename Index>
 		ArrayComponent operator [](Index&& index) {
-			static_assert(IsArray, "T is not an array type");
 			return {};
 		}
 	};
 
-	//template<typename T, std::size_t R, std::size_t C>
-	//Matrix()->Matrix<T, R, C>;
+	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
+	class MatrixInterface : public std::conditional_t<IsArray<Qs...>, MatrixArray<T, 0, R, C, Qs...>, Matrix<T, R, C, Qs...>>
+	{
+	public:
+		using Derived = std::conditional_t<IsArray<Qs...>, MatrixArray<T, 0, R, C, Qs...>, Matrix<T, R, C, Qs...>>;
+		using Derived::Derived;
+	};
 
-	//template<std::size_t N, typename T, std::size_t R, std::size_t C>
-	//Matrix(const char(&)[N])->Matrix<T, R, C>;
+	template<typename T, std::size_t R, typename ... Qs>
+	using VectorInterface = MatrixInterface<T, R, 1, Qs...>;
+
+	template<typename T, typename ... Qs>
+	using ScalarInterface = VectorInterface<T, 1, Qs...>;
+
 
 	template<typename ... Qs>
-	class vec3 : public Vector<float, 1, Qs...> {
+	class mat3 : public MatrixInterface<float, 3, 3, Qs...> {
 	public:
-		using Base = Vector<float, 1, Qs...>;
+		using Base = MatrixInterface<float, 3, 3, Qs...>;
 		using Base::Base;
 	};
 
+	mat3()->mat3<>;
+	
+	template<typename U, typename V, typename ...Vs>
+	mat3(U&&, V&&, Vs&&...)->mat3<>;
+
+	template<typename ... Qs> struct Infos<mat3<Qs...>> : Infos<Matrix<float, 3, 3, Qs...>> {};
+
+	template<typename ... Qs>
+	class vec3 : public VectorInterface<float, 3, Qs...> {
+	public:
+		using Base = VectorInterface<float, 3, Qs...>;
+		using Base::Base;
+	};
 	vec3()->vec3<>;
+
+	template<typename ... Qs> struct Infos<vec3<Qs...>> : Infos<Vector<float, 3, Qs...>> {};
 
 	template<std::size_t N>
 	vec3(const char(&)[N])->vec3<>;

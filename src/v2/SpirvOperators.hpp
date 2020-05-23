@@ -2,7 +2,7 @@
 
 namespace v2 {
 
-	enum Op {
+	enum class Op {
 		OpNop = 0,
 		OpUndef = 1,
 		OpSourceContinued = 2,

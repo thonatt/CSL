@@ -5,6 +5,8 @@
 #include <shaders/examples.h>
 
 #include "tests.h"
+
+#include "v2/NamedObjects.hpp"
 #include "v2/AlgebraTypes.hpp"
 #include "v2/Swizzles.hpp"
 
@@ -44,7 +46,7 @@ int main()
 	// Shading Language Cookbook
 	std::string discard_str = discardFrag();
 	std::string transfeedBack_str = transfeedBackVertex();
-	
+
 	// Shadertoy example
 	std::string eightiesShader_str = eightiesShader();
 
@@ -71,14 +73,14 @@ int main()
 	//display
 
 	auto seperator = [] {
-		std::cout << std::string(75, '/') <<  "\n\n";
+		std::cout << std::string(75, '/') << "\n\n";
 	};
 
-	for (std::string str : 
-		{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str ,
+	for (std::string str :
+	{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str,
 		functions_str, structure_str, structs_str, interface_str,
 		struct_interface_comma_str, shader_stage_str, variations_str
-		})
+	})
 	{
 		std::cout << str;
 		seperator();
@@ -107,10 +109,30 @@ int main()
 	}
 
 	{
+		using namespace v2;
 		using namespace v2::swizzles::all;
 		//auto mixed = (r, x);
 
+		constexpr auto short_set = (x, y);
+		constexpr auto repet_set = (x, x);
 		constexpr auto long_set = (x, x, x, y);
+
+
+		struct Q {};
+
+		vec3<Q> v;
+
+		mat3 m = mat3(v,v,v);
+
+		v[short_set] = v[short_set];
+		//v[repet_set] = v[short_set];
+		v[short_set] = v[repet_set];
+
+		auto e2 = get_expr(v);
+		auto e3 = get_expr(3);
+
+		//decltype(v[3])::This;
+		//decltype(m[3])::This;
 	}
 
 
