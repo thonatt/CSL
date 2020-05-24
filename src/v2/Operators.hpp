@@ -14,25 +14,44 @@ namespace v2 {
 	template<typename T>
 	struct SPIRVstr;
 
+	template<typename T>
+	struct OperatorDebug;
+
+	struct DebugData;
+
 	struct OperatorBase;
 	using Expr = std::shared_ptr<OperatorBase>;
 
-	enum class CtorFlags {
+	enum class CtorFlags : std::size_t {
 		Declaration,
 		Initialisation,
 		Temporary,
 		Forward
 	};
 
+	constexpr CtorFlags operator|(CtorFlags a, CtorFlags b) {
+		return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+	}
+	constexpr bool operator&(CtorFlags a, CtorFlags b) {
+		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+	}
+	constexpr CtorFlags operator~(CtorFlags a) {
+		return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
+	}
+	inline CtorFlags& operator|=(CtorFlags& a, CtorFlags b) {
+		a = a | b;
+		return a;
+	}
+
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;
 
 		virtual void print_glsl() const {}
 		virtual void print_spirv() const {}
+		virtual void print_debug(DebugData& data) const {}
 
 		Op op = Op::OpNop;
 	};
-
 
 	template<typename Operator>
 	struct OperatorWrapper : OperatorBase {
@@ -44,12 +63,27 @@ namespace v2 {
 			//SPIRVstr<Operator>::call(op);
 		}
 
-		template<typename ...Args>
-		OperatorWrapper(Args&& ...args) : m_op{ std::forward<Args>(args)... } { }
+		virtual void print_debug(DebugData& data) const override {
+			OperatorDebug<Operator>::call(m_operator, data);
+		}
 
-		Operator m_op;
+		template<typename ...Args>
+		OperatorWrapper(Args&& ...args) : m_operator{ std::forward<Args>(args)... } { }
+
+		OperatorWrapper(Operator&& op) : m_operator(std::move(op)) { }
+
+		Operator m_operator;
 	};
 
+	template <typename Operator, typename ... Args>
+	Expr make_expr(Args&& ...args) {
+		return std::static_pointer_cast<OperatorBase>(std::make_shared<OperatorWrapper<Operator>>(std::forward<Args>(args)...));
+	}
+
+	struct Reference {
+		Reference(const std::size_t id) : m_id(id) {}
+		std::size_t m_id;
+	};
 
 	template<std::size_t N>
 	struct ArgSeq {
@@ -69,19 +103,39 @@ namespace v2 {
 		FunCall(Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...) { }
 	};
 
-	struct ConstructorBase : OperatorBase {
+	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
 
 		ConstructorBase(const CtorFlags flags) : m_flags(flags) {}
 
+		void set_as_temp() {
+			if (m_flags & CtorFlags::Initialisation) {
+				m_flags |= CtorFlags::Temporary;
+			}
+		}
+
 		CtorFlags m_flags;
 	};
 
-	template<typename T, typename ...Args>
-	struct Constructor : ConstructorBase, ArgSeq<sizeof...(Args)> {
+	template<typename T, std::size_t N>
+	struct Constructor : ConstructorBase, ArgSeq<N> {
+
+		using ArgSeq<N>::arguments;
 
 		template<typename ...Args>
-		Constructor(const CtorFlags flags, Args&& ...args) : ConstructorBase(flags), ArgSeq<sizeof...(Args)>(std::forward<Args>(args)...) { }
+		Constructor(const CtorFlags flags, Args&& ...args) : ConstructorBase(flags), ArgSeq<N>(std::forward<Args>(args)...) { }
+	};
+
+	struct ConstructorWrapper {
+		
+		template<typename T, typename ...Args>
+		static ConstructorWrapper create(const CtorFlags flags, Args&& ...args) {
+			ConstructorWrapper out;
+			out.m_ctor = std::static_pointer_cast<ConstructorBase>(std::make_shared<Constructor<T, sizeof...(Args)>>(flags, std::forward<Args>(args)...));
+			return out;
+		}
+
+		std::shared_ptr<ConstructorBase> m_ctor;
 	};
 
 	template<typename F, std::size_t N = F::arg_count>
@@ -92,33 +146,10 @@ namespace v2 {
 	};
 
 	template<typename T>
-	struct Litteral : OperatorBase {
+	struct Litteral {
 
 		Litteral(const T t) : value(t) { }
 		const T value;
 	};
-
-	template <typename Operator, typename ... Args>
-	Expr make_expr(Args&& ...args) {
-		return std::static_pointer_cast<OperatorBase>(std::make_shared<OperatorWrapper<Operator>>(std::forward<Args>(args)...));
-	}
-
-
-	//// language implementations
-
-	//template<int N>
-	//struct GLSLstr<FunCall<N>> {
-	//	static void call(const FunCall<N>& fcall) {
-	//		std::cout << fcall.arg_count() << std::endl;
-	//	}
-	//};
-
-
-	//template<int N>
-	//struct SPIRVstr<FunCall<N>> {
-	//	static void call(const FunCall<N>& fcall) {
-	//		std::cout << fcall.arg_count() + "_1" << std::endl;
-	//	}
-	//};
 
 }

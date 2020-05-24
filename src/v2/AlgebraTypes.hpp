@@ -8,6 +8,8 @@
 #include <vector>
 #include <array>
 
+#define EXPR(type, var) (get_expr(std::forward<type>(var)))
+
 namespace v2 {
 
 	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
@@ -35,11 +37,11 @@ namespace v2 {
 		Matrix() : Base() {}
 
 		template<std::size_t N>
-		Matrix(const char(&name)[N]) : Base(name) {}
+		explicit Matrix(const char(&name)[N]) : Base(name) {}
 
 		template<typename U, typename V, typename ...Vs,
 			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<Matrix, U, V, Vs...> > >
-			Matrix(U&& u, V&& v, Vs&&...vs) {
+			explicit Matrix(U&& u, V&& v, Vs&&...vs) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(V, v), EXPR(Vs, vs)...) {
 
 		}
 
@@ -97,7 +99,7 @@ namespace v2 {
 	};
 
 	mat3()->mat3<>;
-	
+
 	template<typename U, typename V, typename ...Vs>
 	mat3(U&&, V&&, Vs&&...)->mat3<>;
 
@@ -139,3 +141,5 @@ namespace v2 {
 	}
 
 } //namespace csl
+
+#undef EXPR

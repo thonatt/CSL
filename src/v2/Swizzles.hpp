@@ -48,13 +48,6 @@ namespace v2 {
 	template<char c, char... chars>
 	class Swizzle {
 
-	private:
-		using Set = detail_swizzling::SwizzleSet<c>;
-		
-		static_assert(sizeof...(chars) <= 3, "maximum swizzling size is 4");
-		static_assert(Set(), "invalid swizzle set");
-		static_assert((std::is_same_v<Set, detail_swizzling::SwizzleSet<chars>>&& ...), "swizzle sets cant be mixed");
-
 	public:
 		static constexpr bool Unique = detail_swizzling::are_unique<c, chars...>;
 		static constexpr std::size_t Size = 1 + sizeof...(chars);
@@ -63,10 +56,18 @@ namespace v2 {
 
 		template<char other_c>
 		constexpr Swizzle<c, chars..., other_c>
-			operator,(const Swizzle<other_c>& other) const
+			operator,(Swizzle<other_c>) const
 		{
 			return { };
 		}
+
+	private:
+		using Set = detail_swizzling::SwizzleSet<c>;
+
+		static_assert(Size <= 4, "Maximum swizzling size is 4");
+		static_assert(Set(), "Invalid swizzle set");
+		static_assert((std::is_same_v<Set, detail_swizzling::SwizzleSet<chars>>&& ...), "Swizzle sets cannot be mixed");
+
 	};
 
 	namespace swizzles {

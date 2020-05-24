@@ -9,9 +9,28 @@
 #include "v2/NamedObjects.hpp"
 #include "v2/AlgebraTypes.hpp"
 #include "v2/Swizzles.hpp"
+#include "v2/Controllers.hpp"
+#include "v2/Listeners.hpp"
 
 #include <iostream>
 #include <chrono>
+
+void testv2() 
+{
+	using namespace v2;
+	
+	auto shader = std::make_shared<ShaderController>();
+	listen().current_shader = shader;
+	
+	{
+		vec3 v;
+		vec3 vv("vv");
+
+		mat3 m = mat3(v, vv, v);
+	}
+	
+	shader->print_debug();
+}
 
 int main()
 {
@@ -102,11 +121,10 @@ int main()
 	std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
 
 	// for profiling
-
-	for (std::size_t i = 0; i < 100; ++i) {
-		dolphinVertex();
-		dolphinFragment();
-	}
+	//for (std::size_t i = 0; i < 100; ++i) {
+	//	dolphinVertex();
+	//	dolphinFragment();
+	//}
 
 	{
 		using namespace v2;
@@ -133,8 +151,11 @@ int main()
 
 		//decltype(v[3])::This;
 		//decltype(m[3])::This;
+
+		ShaderController shader;
 	}
 
+	testv2();
 
 	return 0;
 }

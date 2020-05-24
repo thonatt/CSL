@@ -56,6 +56,9 @@ namespace v2 {
 	template<typename T, typename U, typename ...Ts>
 	constexpr bool SameScalarType<T, U, Ts...> = std::is_same_v<typename Infos<T>::ScalarType, typename Infos<U>::ScalarType>  && SameScalarType<U, Ts...>;
 
+	template<typename T>
+	constexpr bool IsInteger = std::is_same_v<Infos<T>::ScalarType, int> || std::is_same_v<Infos<T>::ScalarType, uint>;
+
 	template<>
 	struct Infos<float> : Infos<Matrix<float, 1, 1>> {
 		static constexpr bool IsConstant = true;
