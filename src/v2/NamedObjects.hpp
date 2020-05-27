@@ -62,17 +62,20 @@ namespace v2 {
 		Expr get_expr_as_temp() const
 		{
 			m_flags |= ObjFlags::UsedAsRef;
+			if (m_flags & ObjFlags::Constructor) {
+				std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->set_as_temp();
+			}
 			return m_expr;
 		}
 
-		Expr get_expr_as_tmp()
+		Expr get_expr_as_temp()
 		{
 			return static_cast<const NamedObjectBase*>(this)->get_expr_as_temp();
 		}
 
-		Expr get_this_expr() & { return get_expr_as_ref(); }
+		Expr get_this_expr()& { return get_expr_as_ref(); }
 		Expr get_this_expr() const& { return get_expr_as_ref(); }
-		Expr get_this_expr() && { return get_expr_as_temp(); }
+		Expr get_this_expr()&& { return get_expr_as_temp(); }
 		Expr get_this_expr() const&& { return get_expr_as_temp(); }
 
 	protected:
@@ -87,7 +90,7 @@ namespace v2 {
 	inline std::size_t NamedObjectBase::counter = 0;
 
 	template<typename T, typename ... Args>
-	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&& ... args);
+	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args);
 
 	template<typename T, typename Enabler = void>
 	struct ExprGetter {
@@ -105,13 +108,17 @@ namespace v2 {
 	class NamedObject : public NamedObjectBase {
 	public:
 
-		NamedObject(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : NamedObjectBase(name, flags) {
-			m_expr = create_variable_expr<T>(flags, CtorFlags::Declaration);
+		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(name, obj_flags) {
+			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
 		}
 
 		template<typename ... Args>
 		NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args) : NamedObjectBase(name, obj_flags) {
-			m_expr = create_variable_expr<T>(obj_flags, ctor_flags, std::forward<Args>(args)...);
+			m_expr = create_variable_expr<T>(obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
+		}
+
+		NamedObject(Expr&& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags) {
+			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, std::forward<Expr>(expr)); ;
 		}
 
 	private:

@@ -2,7 +2,7 @@
 
 namespace v2 {
 
-	enum class Op {
+	enum class SpirvOp {
 		OpNop = 0,
 		OpUndef = 1,
 		OpSourceContinued = 2,

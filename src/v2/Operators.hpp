@@ -8,6 +8,12 @@
 
 namespace v2 {
 
+	enum class Op {
+		CWiseMul,
+		MatrixTimesScalar,
+		MatrixTimesMatrix,
+	};
+
 	template<typename T>
 	struct GLSLstr;
 
@@ -50,7 +56,6 @@ namespace v2 {
 		virtual void print_spirv() const {}
 		virtual void print_debug(DebugData& data) const {}
 
-		Op op = Op::OpNop;
 	};
 
 	template<typename Operator>
@@ -106,14 +111,17 @@ namespace v2 {
 	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
 
-		ConstructorBase(const CtorFlags flags) : m_flags(flags) {}
+		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_flags(flags), m_variable_id(variable_id) {}
 
 		void set_as_temp() {
 			if (m_flags & CtorFlags::Initialisation) {
-				m_flags |= CtorFlags::Temporary;
+				m_flags = CtorFlags::Temporary;
 			}
 		}
 
+		virtual void print_debug(DebugData& data) const {}
+
+		std::size_t m_variable_id;
 		CtorFlags m_flags;
 	};
 
@@ -123,19 +131,58 @@ namespace v2 {
 		using ArgSeq<N>::arguments;
 
 		template<typename ...Args>
-		Constructor(const CtorFlags flags, Args&& ...args) : ConstructorBase(flags), ArgSeq<N>(std::forward<Args>(args)...) { }
+		Constructor(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) : ConstructorBase(flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
+
+		virtual void print_debug(DebugData& data) const override;
 	};
 
 	struct ConstructorWrapper {
-		
+
 		template<typename T, typename ...Args>
-		static ConstructorWrapper create(const CtorFlags flags, Args&& ...args) {
-			ConstructorWrapper out;
-			out.m_ctor = std::static_pointer_cast<ConstructorBase>(std::make_shared<Constructor<T, sizeof...(Args)>>(flags, std::forward<Args>(args)...));
-			return out;
+		static ConstructorWrapper create(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) {
+			return ConstructorWrapper{ std::static_pointer_cast<ConstructorBase>(std::make_shared<Constructor<T, sizeof...(Args)>>(flags, variable_id, std::forward<Args>(args)...)) };
 		}
 
 		std::shared_ptr<ConstructorBase> m_ctor;
+	};
+
+	struct ArraySubscript {
+		Expr m_obj, m_index;
+	};
+
+	struct SwizzlingBase {
+		virtual ~SwizzlingBase() = default;
+
+		SwizzlingBase(const Expr& expr) : m_obj(expr) { }
+
+		virtual void print_debug(DebugData& data) const {}
+
+		Expr m_obj;
+	};
+
+	template<typename S>
+	struct Swizzling : SwizzlingBase {
+		Swizzling(const Expr& expr) : SwizzlingBase(expr) { }
+
+		virtual void print_debug(DebugData& data) const override;
+	};
+
+	struct SwizzlingWrapper {
+
+		template<typename S>
+		static SwizzlingWrapper create(const Expr& expr) {
+			return SwizzlingWrapper{ std::static_pointer_cast<SwizzlingBase>(std::make_shared<Swizzling<S>>(expr)) };
+		}
+
+		std::shared_ptr<SwizzlingBase> m_swizzle;
+	};
+
+	struct BinaryOperator {
+
+		BinaryOperator(const Op op, const Expr& lhs, const Expr& rhs) : m_op(op), m_lhs(lhs), m_rhs(rhs) { }
+
+		Expr m_lhs, m_rhs;
+		Op m_op;
 	};
 
 	template<typename F, std::size_t N = F::arg_count>

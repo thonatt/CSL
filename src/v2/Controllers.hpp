@@ -1,11 +1,11 @@
 #pragma once
 
 #include "ShaderTree.hpp"
-#include "Debug.hpp"
-
 #include <cassert>
 
 namespace v2 {
+
+	struct DebugData;
 
 	struct ControllerBase {
 
@@ -275,13 +275,10 @@ namespace v2 {
 			current_block = m_declarations;
 		}
 
-		void print_debug() {
-			DebugData data;
+		void print_debug(DebugData& data) {		
 			for (const auto& i : m_declarations->m_instructions) {
 				i->print_debug(data);
-				//data.stream << "\n";
 			}
-			std::cout << data.stream.str() << std::endl;
 		}
 
 		template<typename Struct>

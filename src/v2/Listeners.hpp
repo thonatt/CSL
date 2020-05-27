@@ -1,8 +1,12 @@
 #pragma once
 
+#include "AlgebraTypes.hpp"
 #include "Controllers.hpp"
+
 #include "NamedObjects.hpp"
 #include "Types.hpp"
+
+#include "Debug.hpp"
 
 namespace v2 {
 
@@ -196,10 +200,9 @@ namespace v2 {
 	/////////////////////////////
 
 	template<typename T, typename ... Args>
-	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&& ... args)
+	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		auto ctor = std::make_shared<OperatorWrapper<ConstructorWrapper>>(ConstructorWrapper::create<T>(ctor_flags, std::forward<Args>(args)...));
-		Expr expr = std::static_pointer_cast<OperatorBase>(ctor);
+		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(ctor_flags, variable_id, std::forward<Args>(args)...));
 		if (!(obj_flags & ObjFlags::StructMember)) {
 			listen().push_expression(expr);
 		}

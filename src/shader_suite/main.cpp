@@ -6,30 +6,43 @@
 
 #include "tests.h"
 
-#include "v2/NamedObjects.hpp"
-#include "v2/AlgebraTypes.hpp"
-#include "v2/Swizzles.hpp"
-#include "v2/Controllers.hpp"
 #include "v2/Listeners.hpp"
 
 #include <iostream>
 #include <chrono>
 
-void testv2() 
+void testv2()
 {
 	using namespace v2;
-	
+
 	auto shader = std::make_shared<ShaderController>();
 	listen().current_shader = shader;
-	
-	{
-		vec3 v;
-		vec3 vv("vv");
 
-		mat3 m = mat3(v, vv, v);
+	{
+		using namespace v2::swizzles::rgba;
+
+		Float<Uniform, Layout<Binding<0>>> f;
+		vec3 v;
+		vec3<Uniform, Array<5,7>> av;
+		mat3 m;
+
+
+		auto vf = v * f;
+		auto fv = f * v;
+		auto ff = f * f;
+		auto vv = v * v;
+		auto mf = m * f;
+		auto mv = m * v;
+		auto mm = m * m;
+
+		mat3 mu = mat3(vec3(0.0, f, v[g]), v, av[2][3]);
 	}
-	
-	shader->print_debug();
+
+	std::cout << std::endl;
+
+	DebugData data;
+	shader->print_debug(data);
+	std::cout << data.stream.str() << std::endl;
 }
 
 int main()
@@ -125,35 +138,6 @@ int main()
 	//	dolphinVertex();
 	//	dolphinFragment();
 	//}
-
-	{
-		using namespace v2;
-		using namespace v2::swizzles::all;
-		//auto mixed = (r, x);
-
-		constexpr auto short_set = (x, y);
-		constexpr auto repet_set = (x, x);
-		constexpr auto long_set = (x, x, x, y);
-
-
-		struct Q {};
-
-		vec3<Q> v;
-
-		mat3 m = mat3(v,v,v);
-
-		v[short_set] = v[short_set];
-		//v[repet_set] = v[short_set];
-		v[short_set] = v[repet_set];
-
-		auto e2 = get_expr(v);
-		auto e3 = get_expr(3);
-
-		//decltype(v[3])::This;
-		//decltype(m[3])::This;
-
-		ShaderController shader;
-	}
 
 	testv2();
 
