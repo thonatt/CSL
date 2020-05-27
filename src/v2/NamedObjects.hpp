@@ -38,13 +38,6 @@ namespace v2 {
 			m_alias = make_expr<Reference>(id);
 		}
 
-		~NamedObjectBase()
-		{
-			if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef)) {
-				//std::dynamic_pointer_cast<OperatorWrapper<ConstructorBase>>(m_expr)->get_operator().set_as_temp();
-			}
-		}
-
 		Expr get_expr_as_ref() const
 		{
 			m_flags |= ObjFlags::UsedAsRef;

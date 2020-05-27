@@ -23,17 +23,32 @@ void testv2()
 
 		Float<Uniform, Layout<Binding<0>>> f;
 		vec3 v;
-		vec3<Uniform, Array<5,7>> av;
+		vec3<Uniform, Array<5, 7>> av;
 		mat3 m;
 
+		//{
+		//	auto vf = v * f;
+		//	auto fv = f * v;
+		//	auto ff = f * f;
+		//	auto vv = v * v;
+		//	auto mf = m * f;
+		//	auto mv = m * v;
+		//	auto mm = m * m;
+		//}
 
-		auto vf = v * f;
-		auto fv = f * v;
-		auto ff = f * f;
-		auto vv = v * v;
-		auto mf = m * f;
-		auto mv = m * v;
-		auto mm = m * m;
+		//{
+		//	auto vf = v + f;
+		//	auto fv = f + v;
+		//	auto ff = f + f;
+		//	auto vv = v + v;
+		//	auto mf = m + f;
+		//	auto mm = m + m;
+		//}
+
+		{
+			-f;
+			auto formula = f * (-m[0] * v[b, g, a] - m[1] * m[2]);
+		}
 
 		mat3 mu = mat3(vec3(0.0, f, v[g]), v, av[2][3]);
 	}

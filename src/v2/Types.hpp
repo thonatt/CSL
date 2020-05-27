@@ -18,17 +18,33 @@ namespace v2 {
 	template<>
 	struct SizeList<>
 	{
-		using Front = SizeList<>;
 		using Tail = SizeList<>;
 		static constexpr std::size_t Size = 0;
+
+		static constexpr std::size_t Front = 0;
+		static constexpr std::size_t Back = 0;
+
+		template<std::size_t M>
+		using PushFront = SizeList<M>;
+
+		template<std::size_t M>
+		using PushBack = SizeList<M>;
 	};
 
 	template<std::size_t N, std::size_t ...Ns>
 	struct SizeList<N, Ns...>
 	{
-		static constexpr std::size_t Size = 1 + sizeof...(Ns);
-		using Front = SizeList<N>;
 		using Tail = SizeList<Ns...>;
+
+		static constexpr std::size_t Size = 1 + sizeof...(Ns);
+		static constexpr std::size_t Front = N;
+		static constexpr std::size_t Back = (Size == 1 ? N : Tail::Back);
+		
+		template<std::size_t M>
+		using PushFront = SizeList<M, N, Ns...>;
+
+		template<std::size_t M>
+		using PushBack = SizeList<N, Ns..., M>;
 	};
 
 	template<typename List>
@@ -39,15 +55,30 @@ namespace v2 {
 		using Type = Array<Ns...>;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
 	// Type list utils
 
-	template<typename ... Args>
+	template<typename ... Ts>
 	struct TList {
-		using Tuple = std::tuple<Args...>;
-		template<std::size_t id> using GetType = typename std::tuple_element<id, Tuple>::type;
+		using Tuple = std::tuple<Ts...>;
 
-		static constexpr std::size_t Size = sizeof...(Args);
+		template<std::size_t Id> 
+		using GetType = typename std::tuple_element<Id, Tuple>::type;
+		
+		template<typename T>
+		using PushFront = TList<T, Ts...>;
+
+		template<typename T>
+		using PushBack = TList<Ts..., T>;
+
+		static constexpr std::size_t Size = sizeof...(Ts);
 	};
+
+	template<template<typename, typename> typename Pred, typename A, typename B>
+	constexpr bool EqualLists = false;
+
+	template<template<typename, typename> typename Pred, typename ...As, typename ...Bs>
+	constexpr bool EqualLists<Pred, TList<As...>, TList<Bs...>> = (sizeof...(As) == sizeof...(Bs)) && (Pred<As, Bs>::Value && ... && true);
 
 	template<typename T>
 	struct GetTList;
@@ -55,6 +86,27 @@ namespace v2 {
 	template<typename ...Args>
 	struct GetTList<std::tuple<Args...>> {
 		using Type = TList<Args...>;
+	};
+
+	template<template <typename> typename Pred, typename List, std::size_t Id>
+	class MatchingImpl {
+	public:
+		using Values = TList<>;
+		using Ids = SizeList<>;
+	};
+
+	template<template <typename> typename Pred, typename List>
+	using Matching = MatchingImpl<Pred, List, 0>;
+
+	template<template <typename> typename Pred, typename T, std::size_t Id, typename ...Ts>
+	class MatchingImpl<Pred, TList<T, Ts...>, Id> {
+	protected:
+		using Next = MatchingImpl<Pred, TList<Ts...>, Id + 1>;
+		using NextValues = typename Next::Values;
+		using NextIds = typename Next::Ids;
+	public:
+		using Values = std::conditional_t<Pred<T>::Value, typename NextValues::template PushFront<T>, NextValues>;
+		using Ids = std::conditional_t<Pred<T>::Value, typename NextIds::template PushFront<Id>, NextIds>;
 	};
 
 	template<std::size_t Id, typename List, std::size_t... Ids>
@@ -69,24 +121,6 @@ namespace v2 {
 
 	template <std::size_t Id, typename List>
 	using RemoveAt = typename GetTList<decltype(remove_at_impl<Id, List>(std::make_index_sequence<List::Size>{})) > ::Type;
-
-	template<template <typename> typename Pred, typename List, std::size_t CurrentId>
-	struct LastOfImpl {
-		static constexpr bool Exists = false;
-		static constexpr std::size_t Id = 0;
-	};
-
-	template<template <typename> typename Pred, typename List>
-	struct LastOf {
-		static constexpr bool Exists = LastOfImpl<Pred, List, 0>::Exists;
-		static constexpr std::size_t Id = LastOfImpl<Pred, List, 0>::Id;
-	};
-
-	template<template <typename> typename Pred, typename T, std::size_t CurrentId, typename ...Ts>
-	struct LastOfImpl<Pred, TList<T, Ts...>, CurrentId> {
-		static constexpr bool Exists = Pred<T>::Value || LastOfImpl<Pred, TList<Ts...>, CurrentId + 1>::Exists;
-		static constexpr std::size_t Id = std::max((Pred<T>::Value ? CurrentId : 0), LastOfImpl<Pred, TList<Ts...>, CurrentId + 1>::Id);
-	};
 
 	///////////////////////////////////
 
@@ -117,8 +151,15 @@ namespace v2 {
 	template<typename ...Qs>
 	struct ArrayInfos {
 		using List = TList<Qs...>;
-		static constexpr bool HasArray = LastOf<IsArray, List>::Exists;
-		static constexpr std::size_t Id = LastOf<IsArray, List>::Id;
+
+		template<typename T>
+		struct ArrayPred {
+			static bool constexpr Value = IsArray<T>::Value;
+		};
+
+		using Matches = Matching<ArrayPred, List>;
+		static constexpr bool HasArray = (Matches::Values::Size > 0);
+		static constexpr std::size_t Id = HasArray ? Matches::Ids::Back : 0;
 		using Dimensions = std::conditional_t<HasArray, typename IsArray<typename List::GetType<Id>>::Dimensions, SizeList<>>;
 		static constexpr bool Value = (Dimensions::Size > 0);
 	};
@@ -218,6 +259,13 @@ namespace v2 {
 		static constexpr Op Operator = (SameSize && Infos<A>::IsVec) ? Op::CWiseMul : (Infos<B>::IsScalar ? Op::MatrixTimesScalar : Op::MatrixTimesMatrix);
 	};
 
-	template<typename A>
-	constexpr Op ScalarMulType = IsInteger<A> ? Op::OpIMul : Op::OpFMul;
+	template<typename A, typename B>
+	struct AlgebraAddInfos {
+		static_assert(SameScalarType<A, B>);
+		static_assert(!Infos<A>::IsScalar || Infos<B>::IsScalar);
+
+		using ReturnType = typename Infos<A>::QualifierFree;
+		static constexpr Op OperatorAdd = SameSize<A, B> ? Op::CWiseAdd : Op::MatrixAddScalar;
+		static constexpr Op OperatorSub = SameSize<A, B> ? Op::CWiseSub : Op::MatrixSubScalar;
+	};
 }

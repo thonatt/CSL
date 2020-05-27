@@ -127,7 +127,7 @@ namespace v2 {
 		FuncDeclarationBase(const std::string& func_name) : m_func_name(func_name) {
 		}
 
-		const std::string m_func_name;
+		std::string m_func_name;
 		std::vector<OverloadData> m_overloads;
 	};
 

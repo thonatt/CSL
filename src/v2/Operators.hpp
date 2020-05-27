@@ -12,6 +12,11 @@ namespace v2 {
 		CWiseMul,
 		MatrixTimesScalar,
 		MatrixTimesMatrix,
+		CWiseAdd,
+		MatrixAddScalar,
+		CWiseSub,
+		MatrixSubScalar,
+		UnaryNegation
 	};
 
 	template<typename T>
@@ -133,7 +138,9 @@ namespace v2 {
 		template<typename ...Args>
 		Constructor(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) : ConstructorBase(flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
-		virtual void print_debug(DebugData& data) const override;
+		virtual void print_debug(DebugData& data) const override {
+			OperatorDebug<Constructor>::call(*this, data);
+		}
 	};
 
 	struct ConstructorWrapper {
@@ -164,7 +171,9 @@ namespace v2 {
 	struct Swizzling : SwizzlingBase {
 		Swizzling(const Expr& expr) : SwizzlingBase(expr) { }
 
-		virtual void print_debug(DebugData& data) const override;
+		virtual void print_debug(DebugData& data) const override {
+			OperatorDebug<Swizzling<S>>::call(*this, data);
+		}
 	};
 
 	struct SwizzlingWrapper {
@@ -175,6 +184,15 @@ namespace v2 {
 		}
 
 		std::shared_ptr<SwizzlingBase> m_swizzle;
+	};
+
+	struct UnaryOperator {
+
+		UnaryOperator(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
+
+		Expr m_arg;
+		Op m_op;
+
 	};
 
 	struct BinaryOperator {

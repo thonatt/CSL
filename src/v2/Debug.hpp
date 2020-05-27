@@ -266,23 +266,27 @@ namespace v2 {
 		}
 	};
 
-	template<typename T, std::size_t N>
-	inline void Constructor<T, N>::print_debug(DebugData& data) const
-	{
-		OperatorDebug<Constructor>::call(*this, data);
-	}
-
-	template<typename S>
-	inline void Swizzling<S>::print_debug(DebugData& data) const
-	{
-		OperatorDebug<Swizzling<S>>::call(*this, data);
-	}
+	template<>
+	struct OperatorDebug<UnaryOperator> {
+		static void call(const UnaryOperator& uop, DebugData& data) {
+			data << op_str(uop.m_op);
+			++data.trailing;
+			data.endl().add_trail();
+			uop.m_arg->print_debug(data);
+			--data.trailing;
+		}
+	};
 
 	inline const std::string& op_str(const Op op) {
 		static const std::unordered_map<Op, std::string> op_strs = {
-					{ Op::CWiseMul, "CWiseMul" },
-				{ Op::MatrixTimesScalar, "MatrixTimesScalar" },
-				{ Op::MatrixTimesMatrix, "MatrixTimesMatrix" },
+			{ Op::CWiseMul, "CWiseMul" },
+			{ Op::MatrixTimesScalar, "MatrixTimesScalar" },
+			{ Op::MatrixTimesMatrix, "MatrixTimesMatrix" },
+			{ Op::CWiseAdd, "CWiseAdd" },
+			{ Op::MatrixAddScalar, "MatrixAddScalar" },
+			{ Op::CWiseSub, "CWiseSub" },
+			{ Op::MatrixSubScalar, "MatrixSubScalar" },
+			{ Op::UnaryNegation, "UnaryNegation" }
 		};
 
 		return op_strs.at(op);
