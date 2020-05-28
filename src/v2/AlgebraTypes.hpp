@@ -19,12 +19,15 @@ namespace v2 {
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename Qs>
 	struct MatrixArrayIndirection;
 
-	template<typename ... Qs>
-	using RemoveArrayFromQualifiers = std::conditional_t<
-		ArrayInfos<Qs...>::HasArray,
-		RemoveAt<ArrayInfos<Qs...>::Id, TList<Qs...>>,
-		TList<Qs...>
-	>;
+	//template<typename ... Qs>
+	//using RemoveArrayFromQualifiers = std::conditional_t<
+	//	ArrayInfos<Qs...>::HasArray,
+	//	RemoveAt<ArrayInfos<Qs...>::Id, TList<Qs...>>,
+	//	TList<Qs...>
+	//>;
+
+	template<typename ...Qs>
+	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
 
 	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
 	using MatrixInterface = std::conditional_t<
@@ -64,7 +67,7 @@ namespace v2 {
 		template<std::size_t N>
 		explicit Matrix(const char(&name)[N]) : Base(name) {}
 
-		Matrix(Expr&& expr) : Base(std::forward<Expr>(expr)) { }
+		Matrix(const Expr& expr) : Base(expr) { }
 
 		Matrix(Matrix&& other) : Base(other) {}
 

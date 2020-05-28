@@ -3,6 +3,7 @@
 #include "NamedObjects.hpp"
 #include "Types.hpp"
 
+#include <type_traits>
 #include <utility>
 
 namespace v2 {
@@ -32,49 +33,21 @@ namespace v2 {
 		static constexpr bool Value = SameSize<A, B> && SameScalarType<A, B>;
 	};
 
-	template<typename F, typename ArgList>
-	struct FunCallMatchingPred {
-		static constexpr bool Value = EqualLists<TypeMatchingPred, GetArgTList<F>, ArgList>;
-	};
-
 	template<typename ReturnTypeList, typename FList, typename ArgList>
 	struct OverloadResolution {
 
 		template<typename F>
-		using FunMatchingPred = FunCallMatchingPred<F, ArgList>;
+		struct FunMatchingPred {
+			static constexpr bool Value = EqualLists<TypeMatchingPred, GetArgTList<F>, ArgList>;
+		};
 
 		using Candidates = typename Matching<FunMatchingPred, FList>::Ids;
 
 		static_assert(Candidates::Size >= 1, "No overload candidate found");
 		static_assert(Candidates::Size <= 1, "Multiple overload candidates found");
-		
-		using ReturnType = typename ReturnTypeList::GetType<Candidates::Front>;
+
+		using ReturnType = typename ReturnTypeList::template GetType<Candidates::Front>;
 	};
-
-	//using A = Matrix<float, 1, 1>;
-	//using B = Matrix<double, 1, 1>;
-	//constexpr bool v = TypeMatchingPred<A, B>::Value;
-
-
-	//constexpr bool value = EqualLists<TypeMatchingPred, TList<B, B>, TList<A, B>>;
-
-	//constexpr auto f = [](int a, double b) {};
-	//constexpr auto g = [](int a, int b) {};
-
-	//using F = decltype(f);
-	//using G = decltype(g);
-	//using ArgList = TList<int, int>;
-
-	//template<typename F>
-	//struct FPred {
-	//	static constexpr bool Value = EqualLists<TypeMatchingPred, GetArgTList<F>, ArgList>;
-	//};
-
-	//Matching<FPred, TList<F>>;
-	//Matching<FPred, TList<F, G>>;
-
-	//OverloadResolution<TList<bool, char>, TList<F, G>, TList<int, int>>::ReturnType;
-
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	//get minimal number of argument helpers from https://stackoverflow.com/a/57254989/4953963
@@ -113,7 +86,80 @@ namespace v2 {
 		call_with_first_args_empty(f, Subset<GetArgTList<F>, 0, min_number_of_args<F>() >{});
 	}
 
-	///////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	// functions argument evaluation order
 
+	enum class ArgEvaluationOrder {
+		LeftToRight, RightToLeft, NotSupported
+	};
+
+	struct ArgOrdering {
+
+		ArgOrdering(const std::size_t i) : value(i) {
+			static size_t counter = 0;
+			counter_value = counter;
+			++counter;
+		}
+
+		static ArgEvaluationOrder call(ArgOrdering a, ArgOrdering b, ArgOrdering c) {
+			ArgEvaluationOrder out;
+			if (a.check(a) && b.check(b) && c.check(c)) {
+				out = ArgEvaluationOrder::LeftToRight;
+			} else if (a.check(c) && b.check(b) && c.check(a)) {
+				out = ArgEvaluationOrder::RightToLeft;
+			} else {
+				out = ArgEvaluationOrder::NotSupported;
+			}
+			return out;
+		}
+
+		bool check(const ArgOrdering& other) const { return value == other.counter_value; }
+
+		std::size_t value, counter_value;
+
+	};
+
+	inline ArgEvaluationOrder get_arg_evaluation_order() {
+		static const ArgEvaluationOrder order = ArgOrdering::call(0, 1, 2);
+		return order;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// function objects
+
+	struct FuncBase : NamedObjectBase {
+		FuncBase(const std::string& name) : NamedObjectBase(name, ObjFlags::None) {}
+	};
+
+	template<typename ReturnTList, typename ... Fs>
+	struct Function : FuncBase {
+
+		using FuncTList = TList<Fs...>;
+
+		static_assert(ReturnTList::Size == FuncTList::Size, "Numbers of overloads and return types dont match");
+		static_assert(FuncTList::Size > 0, "Functions must have at least one overload");
+
+		Function(const std::string& name, Fs&& ... fs);
+
+		template<typename ... Args>
+		using ReturnType = typename OverloadResolution<ReturnTList, FuncTList, TList<std::remove_reference_t<Args>...>>::ReturnType;
+
+		template<typename ... Args>
+		ReturnType<Args...> operator()(Args&& ...args);
+	};
+
+
+	template<typename ... ReturnTypes, typename ... Fs >
+	Function<TList<ReturnTypes...>, Fs... >
+		define_function(const std::string& name, Fs&& ... fs)
+	{
+		return { name, std::forward<Fs>(fs)... };
+	}
+
+	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible_v<F, std::string> > >
+	Function<TList<ReturnTypes...>, F, Fs... > define_function(F&& f, Fs&& ... fs)
+	{
+		return { "", std::forward<F>(f), std::forward<Fs>(fs)... };
+	}
 
 }

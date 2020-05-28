@@ -124,24 +124,47 @@ namespace v2 {
 	struct FuncDeclarationBase {
 		using Ptr = std::shared_ptr<FuncDeclarationBase>;
 
-		FuncDeclarationBase(const std::string& func_name) : m_func_name(func_name) {
+		FuncDeclarationBase(const std::size_t fun_id) : m_id(fun_id) {
 		}
 
-		std::string m_func_name;
-		std::vector<OverloadData> m_overloads;
+		virtual void print_debug(DebugData& data) const {}
+
+		virtual const OverloadData& get_overload(const std::size_t i) const = 0;
+		virtual std::size_t overload_count() const = 0;
+
+		std::size_t m_id;
+		//std::string m_func_name;
+		//std::vector<OverloadData> m_overloads;
 	};
 
 	template<typename ReturnTList, typename ... Fs>
 	struct FuncDeclarationInstruction : FuncDeclarationBase {
 		using Ptr = std::shared_ptr<FuncDeclarationInstruction>;
 
-		constexpr static std::size_t N = sizeof...(Fs);
+		static constexpr std::size_t N = sizeof...(Fs);
 
-		FuncDeclarationInstruction(const std::string& name) : FuncDeclarationBase(name) {
-			m_overloads.resize(N);
+		FuncDeclarationInstruction(const std::size_t fun_id) : FuncDeclarationBase(fun_id) {
+			//m_overloads.resize(N);
 		}
 
-		//std::array<OverloadData, N> m_overloads
+		const OverloadData& get_overload(const std::size_t i) const override {
+			return m_overloads[i];
+		}
+
+		virtual std::size_t overload_count() const {
+			return N;
+		}
+
+		virtual void print_debug(DebugData& data) const override {
+			InstructionDebug<FuncDeclarationInstruction>::call(*this, data);
+		}
+
+		std::array<OverloadData, N> m_overloads;
+	};
+
+	struct FuncDeclarationWrapper {
+
+		std::shared_ptr<FuncDeclarationBase> m_func;
 	};
 
 	struct ForArgsBlock : Block {

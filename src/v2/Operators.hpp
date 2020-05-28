@@ -100,9 +100,9 @@ namespace v2 {
 		virtual ~ArgSeq() = default;
 
 		template<typename ...Args>
-		ArgSeq(Args&& ... args) : arguments{ std::forward<Args>(args)... } { }
+		ArgSeq(Args&& ... args) : m_args{ std::forward<Args>(args)... } { }
 
-		const std::array<Expr, N> arguments;
+		const std::array<Expr, N> m_args;
 	};
 
 
@@ -133,7 +133,7 @@ namespace v2 {
 	template<typename T, std::size_t N>
 	struct Constructor : ConstructorBase, ArgSeq<N> {
 
-		using ArgSeq<N>::arguments;
+		using ArgSeq<N>::m_args;
 
 		template<typename ...Args>
 		Constructor(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) : ConstructorBase(flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
@@ -203,11 +203,11 @@ namespace v2 {
 		Op m_op;
 	};
 
-	template<typename F, std::size_t N = F::arg_count>
-	struct CustomFunCall : ArgSeq<N> {
+	template<typename F, std::size_t N>
+	struct CustomFunCall : Reference, ArgSeq<N> {
 
 		template<typename ... Args>
-		CustomFunCall(Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...) { }
+		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 	};
 
 	template<typename T>

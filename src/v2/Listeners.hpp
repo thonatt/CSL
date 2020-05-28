@@ -6,6 +6,8 @@
 #include "NamedObjects.hpp"
 #include "Types.hpp"
 
+#include "Functions.hpp"
+
 #include "Debug.hpp"
 
 namespace v2 {
@@ -68,7 +70,7 @@ namespace v2 {
 
 		/////////////////////////////////////////////////
 
-		template<typename B, typename = std::enable_if_t< SameScalarType<B,bool> > >
+		template<typename B, typename = std::enable_if_t< SameScalarType<B, bool> > >
 		void begin_if(B&& condition) {
 			if (active && current_shader) {
 				current_shader->begin_if(get_expr(std::forward<B>(condition)));
@@ -169,9 +171,9 @@ namespace v2 {
 		/////////////////////////////////////////////////
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func(const std::string& name, Fs&& ... fs) {
+		void begin_func(const std::size_t fun_id, Fs&& ... fs) {
 			if (current_shader) {
-				current_shader->begin_func<ReturnTList>(name, std::forward<Fs>(fs)...);
+				current_shader->begin_func<ReturnTList>(fun_id, std::forward<Fs>(fs)...);
 			}
 		}
 
@@ -188,7 +190,7 @@ namespace v2 {
 		}
 
 		ShaderController::Ptr current_shader;
-		
+
 	};
 
 	inline MainListener& listen() {
@@ -198,6 +200,7 @@ namespace v2 {
 
 
 	/////////////////////////////
+	// definitions requiring listen() definition
 
 	template<typename T, typename ... Args>
 	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
@@ -207,6 +210,32 @@ namespace v2 {
 			listen().push_expression(expr);
 		}
 		return expr;
+	}
+
+	template<typename ReturnTList, typename ...Fs>
+	Function<ReturnTList, Fs...>::Function(const std::string& name, Fs&& ...fs) : FuncBase(name)
+	{
+		listen().begin_func<ReturnTList>(NamedObjectBase::id, std::forward<Fs>(fs)...);
+		((call_with_only_non_default_args(std::forward<Fs>(fs)), listen().next_overload()), ...);
+		listen().end_func();
+	}
+
+
+	template<typename ReturnTList, typename ...Fs>
+	template<typename ...Args>
+	typename Function<ReturnTList, Fs...>:: template ReturnType<Args...>
+		Function<ReturnTList, Fs...>::operator()(Args&& ...args)
+	{
+		using This = Function<ReturnTList, Fs...>;
+
+		const Expr expr = make_expr<CustomFunCall<This, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
+
+		//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
+		if constexpr (std::is_same_v<ReturnType<Args...>, void>) {
+			listen().push_expression(expr);
+		} else {
+			return ReturnType<Args...>(expr);
+		}
 	}
 
 }

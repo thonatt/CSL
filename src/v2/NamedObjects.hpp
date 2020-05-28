@@ -8,6 +8,7 @@
 namespace v2 {
 
 	enum class ObjFlags : std::size_t {
+		None = 0,
 		Tracked = 1 << 1,
 		Constructor = 1 << 2,
 		UsedAsRef = 1 << 3,
@@ -110,8 +111,8 @@ namespace v2 {
 			m_expr = create_variable_expr<T>(obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
 		}
 
-		NamedObject(Expr&& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags) {
-			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, std::forward<Expr>(expr)); ;
+		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags) {
+			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr); ;
 		}
 
 	private:

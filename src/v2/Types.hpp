@@ -59,19 +59,70 @@ namespace v2 {
 	// Type list utils
 
 	template<typename ... Ts>
-	struct TList {
-		using Tuple = std::tuple<Ts...>;
+	struct TList;
+
+	template<>
+	struct TList<> {
+		using Tuple = std::tuple<>;
+
+		using Front = void;
+		using Tail = TList<>;
+
+		template<std::size_t Id>
+		using GetType = void;
+
+		template<typename T>
+		using PushFront = TList<T>;
+
+		template<typename T>
+		using PushBack = TList<T>;
+
+		static constexpr std::size_t Size = 0;
+	};
+
+
+	template<typename T, typename ... Ts>
+	struct TList<T,Ts...> {
+		using Tuple = std::tuple<T, Ts...>;
+
+		using Front = T;
+		using Tail = TList<Ts...>;
 
 		template<std::size_t Id> 
 		using GetType = typename std::tuple_element<Id, Tuple>::type;
 		
-		template<typename T>
-		using PushFront = TList<T, Ts...>;
+		template<typename U>
+		using PushFront = TList<U, T, Ts...>;
 
-		template<typename T>
-		using PushBack = TList<Ts..., T>;
+		template<typename U>
+		using PushBack = TList<Ts..., T, U>;
 
-		static constexpr std::size_t Size = sizeof...(Ts);
+		static constexpr std::size_t Size = 1 + sizeof...(Ts);
+	};
+
+	template<typename TList, template<typename, std::size_t> typename F>
+	struct IterateOverListImpl {
+
+		template<std::size_t ...Ns, typename ...Args>
+		static void call(std::index_sequence<Ns...>, Args&& ... args) {
+			(F<typename TList::template GetType<Ns>, Ns>::call(std::forward<Args>(args)...),...);
+		}
+	};
+
+	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
+	void iterate_over_typelist(Args&& ...args) {
+		IterateOverListImpl<TList,F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
+	}
+
+	template<typename List, std::size_t first, typename Range>
+	struct SubsetImpl;
+
+	template<typename List, size_t first, size_t last>
+	using Subset = typename SubsetImpl<List, first, ::std::make_index_sequence<last - first>>::Type;
+
+	template<size_t first, size_t ... Is, typename ... Ts>
+	struct SubsetImpl<TList<Ts...>, first, ::std::index_sequence<Is...>> {
+		using Type = TList<::std::tuple_element_t<first + Is, ::std::tuple<Ts...>> ...>;
 	};
 
 	template<template<typename, typename> typename Pred, typename A, typename B>
@@ -109,18 +160,21 @@ namespace v2 {
 		using Ids = std::conditional_t<Pred<T>::Value, typename NextIds::template PushFront<Id>, NextIds>;
 	};
 
-	template<std::size_t Id, typename List, std::size_t... Ids>
-	auto remove_at_impl(std::index_sequence<Ids...>) -> decltype(std::tuple_cat(
-		std::declval<
-		std::conditional_t<(Id == Ids),
-		std::tuple<>,
-		std::tuple<typename List::GetType<Ids>>
-		>
-		>()...
-	));
+	template<typename IdList, typename List, std::size_t Id>
+	struct RemoveAtImpl {
+		using Type = List;
+	};
 
-	template <std::size_t Id, typename List>
-	using RemoveAt = typename GetTList<decltype(remove_at_impl<Id, List>(std::make_index_sequence<List::Size>{})) > ::Type;
+	template<typename IdList, typename List>
+	using RemoveAt = typename RemoveAtImpl<IdList, List, 0>::Type;
+
+	template<std::size_t Id, std::size_t ...Ids, typename T, typename ...Ts, std::size_t CurrentId>
+	struct RemoveAtImpl<SizeList<Id, Ids...>, TList<T, Ts...>, CurrentId> {
+		static constexpr bool RemoveCurrent = (Id == CurrentId);
+		using NextIds = std::conditional_t<RemoveCurrent, SizeList<Ids...>, SizeList<Id, Ids...>>;
+		using Next = typename RemoveAtImpl<NextIds, TList<Ts...>, CurrentId + 1>::Type;
+		using Type = std::conditional_t<RemoveCurrent, Next, typename Next::template PushFront<T>>;
+	};
 
 	///////////////////////////////////
 
@@ -159,8 +213,8 @@ namespace v2 {
 
 		using Matches = Matching<ArrayPred, List>;
 		static constexpr bool HasArray = (Matches::Values::Size > 0);
-		static constexpr std::size_t Id = HasArray ? Matches::Ids::Back : 0;
-		using Dimensions = std::conditional_t<HasArray, typename IsArray<typename List::GetType<Id>>::Dimensions, SizeList<>>;
+		static constexpr std::size_t Id = (HasArray ? Matches::Ids::Back : 0);
+		using Dimensions = std::conditional_t<HasArray, typename IsArray<typename List::template GetType<Id>>::Dimensions, SizeList<>>;
 		static constexpr bool Value = (Dimensions::Size > 0);
 	};
 
@@ -242,11 +296,13 @@ namespace v2 {
 		static constexpr bool IsConstant = true;
 	};
 
+	//template<>
+	//struct Infos<void> : Infos<Matrix<void, 0, 0>> {
+	//};
+
 	template<typename A, typename B>
 	struct AlgebraMulInfos {
 		static_assert(SameScalarType<A,B>);
-
-		// Scalar*Matrix get transformed into Matrix*Scalar
 		static_assert(!Infos<A>::IsScalar || Infos<B>::IsScalar);
 
 		using ScalarType = typename Infos<A>::ScalarType;

@@ -35,7 +35,7 @@ namespace v2 {
 
 	};
 
-
+	/////////////////////////////////////////////////////////////////////////////////////////
 	// qualifiers
 
 	template<typename QList>
@@ -87,6 +87,7 @@ namespace v2 {
 		}
 	};
 
+	///////////////////////////////////////////////////////////////////////////////////
 	// instructions
 
 	template<>
@@ -132,6 +133,73 @@ namespace v2 {
 
 			i.m_expr->print_debug(data);
 			data.endl();
+		}
+	};
+
+
+	template<>
+	struct InstructionDebug<FuncDeclarationWrapper> {
+		static void call(const FuncDeclarationWrapper& wrapper, DebugData& data) {
+			wrapper.m_func->print_debug(data);
+		}
+	};
+
+	template<>
+	struct InstructionDebug<FuncDeclarationBase> {
+		static void call(const FuncDeclarationBase& f, DebugData& data) { }
+	};
+
+	
+	template<std::size_t NumOverloads>
+	struct OverloadDebug {
+
+		template<typename T, std::size_t Id>
+		struct Get {
+			static void call(const std::array<OverloadData, NumOverloads>& overloads, DebugData& data) {
+				data.add_trail() << "Overload " << Id << " " << typeid(T).name();
+				++data.trailing;
+				data.endl().add_trail() << "Args";
+				++data.trailing;
+
+				if (overloads[Id].args->m_instructions.size() == 0) {
+					data.endl().add_trail();
+					data << "None";
+					data.endl();
+				}
+				for (const auto& i : overloads[Id].args->m_instructions) {
+					data.endl().add_trail();
+					i->print_debug(data);
+				}
+				--data.trailing;
+
+				data.add_trail() << "Body";
+				++data.trailing;
+				if (overloads[Id].body->m_instructions.size() == 0) {
+					data.endl().add_trail();
+					data << "Empty";
+					data.endl();
+				}
+				for (const auto& i : overloads[Id].body->m_instructions) {
+					data.endl().add_trail();
+					i->print_debug(data);
+				}
+				--data.trailing;
+				--data.trailing;
+			}
+		};
+
+	};
+
+
+	template<typename ReturnTList, typename ...Fs>
+	struct InstructionDebug<FuncDeclarationInstruction<ReturnTList, Fs...>> {
+		static void call(const FuncDeclarationInstruction<ReturnTList, Fs...>& f, DebugData& data) {
+			data.add_trail() << "Function declaration $" << f.m_id;
+			++data.trailing;
+			data.endl();
+
+			iterate_over_typelist<ReturnTList, OverloadDebug<sizeof...(Fs)>::template Get>(f.m_overloads, data);
+			--data.trailing;
 		}
 	};
 
@@ -188,7 +256,7 @@ namespace v2 {
 			++data.trailing;
 			for (std::size_t i = 0; i < N; ++i) {
 				data.endl().add_trail();
-				ctor.arguments[i]->print_debug(data);
+				ctor.m_args[i]->print_debug(data);
 			}
 			--data.trailing;
 		}
@@ -273,6 +341,23 @@ namespace v2 {
 			++data.trailing;
 			data.endl().add_trail();
 			uop.m_arg->print_debug(data);
+			--data.trailing;
+		}
+	};
+
+	template<typename F, std::size_t N>
+	struct OperatorDebug<CustomFunCall<F, N>> {
+		static void call(const CustomFunCall<F, N>& fun_call, DebugData& data) {
+			data << "custom function call ";
+			OperatorDebug<Reference>::call(fun_call, data);
+			++data.trailing;
+			if constexpr (N == 0) {
+				data.endl().add_trail() << "no arguments";
+			}
+			for (std::size_t i = 0; i < N; ++i) {
+				data.endl().add_trail();
+				fun_call.m_args[i]->print_debug(data);
+			}
 			--data.trailing;
 		}
 	};

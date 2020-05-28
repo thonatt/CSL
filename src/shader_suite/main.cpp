@@ -46,11 +46,22 @@ void testv2()
 		//}
 
 		{
-			-f;
 			auto formula = f * (-m[0] * v[b, g, a] - m[1] * m[2]);
 		}
 
 		mat3 mu = mat3(vec3(0.0, f, v[g]), v, av[2][3]);
+
+		auto fuu = define_function<vec3<>, Float<>>(
+			[](mat3<> m) {
+			m + m;
+		}, [](vec3<> v) {
+			v + v;
+		});
+
+		auto fun = define_function<void>([]() {});
+		fun();
+
+		fuu(m) + fuu(m*m);
 	}
 
 	std::cout << std::endl;

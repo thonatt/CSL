@@ -24,17 +24,18 @@ namespace v2 {
 	struct FunctionController : virtual ControllerBase {
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func_internal(const std::string& name) {
-			current_func = std::make_shared<FuncDeclarationInstruction<ReturnTList, Fs...>>(name);
-			current_func_num_args = { GetArgTList<Fs>::size ... };
-			current_func_parent = currentBlock;
-			current_func_overload = 0;
+		void begin_func_internal(const std::size_t fun_id) {
+			current_func = std::make_shared<FuncDeclarationInstruction<ReturnTList, Fs...>>(fun_id);
+			current_func_overloads_num_args = { GetArgTList<Fs>::Size ... };
+			current_func_parent = current_block;
+			current_overload = 0;
+			first_overload = true;
 			next_overload();
 		}
 
 		void check_num_args() {
 			if (current_func && current_overload_arg_counter == current_func_overloads_num_args[current_overload]) {
-				current_block = current_func->m_overloads[current_overload].body;
+				current_block = current_func->get_overload(current_overload).body;
 				feeding_args = false;
 			}
 		}
@@ -50,15 +51,17 @@ namespace v2 {
 			if (!current_func) {
 				return;
 			}
-
-			if (current_overload != 0) {
+			
+			if (first_overload) {
+				first_overload = false;
+			} else {
 				++current_overload;
 			}
-			
+
 			current_overload_arg_counter = 0;
 			feeding_args = true;
-			if (current_overload < current_func->m_overloads.size()) {
-				current_block = current_func->m_overloads[current_overload].args;
+			if (current_overload < current_func->overload_count()) {
+				current_block = current_func->get_overload(current_overload).args;
 				check_num_args();
 			}
 		}
@@ -75,6 +78,7 @@ namespace v2 {
 		std::size_t current_overload;
 		std::size_t current_overload_arg_counter;
 		bool feeding_args = true;
+		bool first_overload = true;
 	};
 
 	struct ForController : virtual ControllerBase {
@@ -279,6 +283,10 @@ namespace v2 {
 			for (const auto& i : m_declarations->m_instructions) {
 				i->print_debug(data);
 			}
+
+			for (const auto& f : m_functions) {
+				f->print_debug(data);
+			}
 		}
 
 		template<typename Struct>
@@ -292,9 +300,9 @@ namespace v2 {
 		}
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func(const std::string& name, const Fs& ... fs) {
-			begin_func_internal<ReturnTList, Fs...>(name);
-			m_functions.push_back(current_func);
+		void begin_func(const std::size_t fun_id, const Fs& ... fs) {
+			begin_func_internal<ReturnTList, Fs...>(fun_id);
+			m_functions.push_back(make_instruction<FuncDeclarationWrapper>(current_func));
 		}
 
 		ReturnBlockBase::Ptr get_return_block() {
