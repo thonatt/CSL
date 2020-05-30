@@ -124,4 +124,11 @@ namespace v2 {
 			return make_expr<Litteral<T>>(std::forward<T>(t));
 		}
 	};
+
+	template<typename T>
+	struct ExprGetter<T&, std::enable_if_t<std::is_fundamental_v<T>>> {
+		static Expr get_expr(const T& t) {
+			return make_expr<Litteral<T>>(t);
+		}
+	};
 }

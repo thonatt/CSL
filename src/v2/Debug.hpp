@@ -13,10 +13,10 @@ namespace v2 {
 
 	struct DebugData {
 		std::stringstream stream;
-		std::size_t trailing = 0;
+		int trailing = 0;
 
-		DebugData& add_trail() {
-			for (std::size_t t = 0; t < trailing; ++t) {
+		DebugData& trail() {
+			for (int t = 0; t < trailing; ++t) {
 				stream << "|  ";
 			}
 			return *this;
@@ -91,30 +91,63 @@ namespace v2 {
 	// instructions
 
 	template<>
-	struct InstructionDebug<SwitchInstruction> {
-		static void call(const SwitchInstruction& i, DebugData& data) {
-
-		}
-	};
-
-	template<>
-	struct InstructionDebug<SwitchCase> {
-		static void call(const SwitchCase& i, DebugData& data) {
-
-		}
-	};
-
-	template<>
 	struct InstructionDebug<IfInstruction> {
 		static void call(const IfInstruction& i, DebugData& data) {
 
+			for (std::size_t k = 0; k < i.m_cases.size(); ++k) {
+				data.endl().trail();
+				if (k == 0) {
+					data << "If ";
+					i.m_cases[k].condition->print_debug(data);
+				} else if (k != i.m_cases.size() - 1) {
+					data << "Else If ";
+					i.m_cases[k].condition->print_debug(data);
+				} else {
+					data << "Else ";
+				}
+
+				++data.trailing;
+				for (const auto& j : i.m_cases[k].body->m_instructions) {
+					j->print_debug(data);
+				}
+				--data.trailing;
+			}
+
+		}
+	};
+
+	template<>
+	struct InstructionDebug<WhileInstruction> {
+		static void call(const WhileInstruction& i, DebugData& data) {
+			data.endl().trail();
+			data << "While ";
+			i.m_condition->print_debug(data);
+			++data.trailing;
+			for (const auto& i : i.m_body->m_instructions) {
+				i->print_debug(data);
+			}
+			--data.trailing;
 		}
 	};
 
 	template<>
 	struct InstructionDebug<ForInstruction> {
 		static void call(const ForInstruction& i, DebugData& data) {
-
+			data.endl().trail() << "For";
+			++data.trailing;
+			data.endl().trail() << "Args";
+			++data.trailing;
+			for (const auto& arg : i.args->m_instructions) {
+				arg->print_debug(data);
+			}
+			--data.trailing;
+			data.endl().trail() << "Body";
+			++data.trailing;
+			for (const auto& j : i.body->m_instructions) {
+				j->print_debug(data);
+			}
+			--data.trailing;
+			--data.trailing;
 		}
 	};
 
@@ -122,6 +155,7 @@ namespace v2 {
 	struct InstructionDebug<Statement> {
 		static void call(const Statement& i, DebugData& data) {
 			if (!i.m_expr) {
+				data << "empty expr";
 				return;
 			}
 
@@ -131,11 +165,55 @@ namespace v2 {
 				}
 			}
 
+			data.endl().trail();
 			i.m_expr->print_debug(data);
-			data.endl();
 		}
 	};
 
+	template<>
+	struct InstructionDebug<SwitchInstruction> {
+		static void call(const SwitchInstruction& i, DebugData& data) {
+			data.endl().trail() << "Switch ";
+			i.m_condition->print_debug(data);
+			++data.trailing;
+			for (const auto& c : i.m_body->m_instructions) {
+				c->print_debug(data);
+			}
+			--data.trailing;
+		}
+	};
+
+	template<>
+	struct InstructionDebug<SwitchCase> {
+		static void call(const SwitchCase& i, DebugData& data) {
+			data.endl().trail();
+			if (i.m_label) {
+				data << "Case ";
+				i.m_label->print_debug(data);
+			} else {
+				data << "Default";
+			}			
+			++data.trailing;
+			for (const auto& j : i.m_body->m_instructions) {
+				j->print_debug(data);
+			}
+			--data.trailing;
+		}
+	};
+
+	template<>
+	struct InstructionDebug<BreakStatement> {
+		static void call(const BreakStatement& i, DebugData& data) {
+			data.endl().trail() << "Break";
+		}
+	};
+
+	template<>
+	struct InstructionDebug<ContinueStatement> {
+		static void call(const ContinueStatement& i, DebugData& data) {
+			data.endl().trail() << "Continue";
+		}
+	};
 
 	template<>
 	struct InstructionDebug<FuncDeclarationWrapper> {
@@ -149,38 +227,34 @@ namespace v2 {
 		static void call(const FuncDeclarationBase& f, DebugData& data) { }
 	};
 
-	
+
 	template<std::size_t NumOverloads>
 	struct OverloadDebug {
 
 		template<typename T, std::size_t Id>
 		struct Get {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, DebugData& data) {
-				data.add_trail() << "Overload " << Id << " " << typeid(T).name();
+				data.endl().trail() << "Overload " << Id << " returns " << typeid(T).name();
 				++data.trailing;
-				data.endl().add_trail() << "Args";
+				data.endl().trail() << "Args";
 				++data.trailing;
 
-				if (overloads[Id].args->m_instructions.size() == 0) {
-					data.endl().add_trail();
+				if (overloads[Id].args->m_instructions.empty()) {
+					data.endl().trail();
 					data << "None";
-					data.endl();
 				}
 				for (const auto& i : overloads[Id].args->m_instructions) {
-					data.endl().add_trail();
 					i->print_debug(data);
 				}
 				--data.trailing;
 
-				data.add_trail() << "Body";
+				data.endl().trail() << "Body";
 				++data.trailing;
-				if (overloads[Id].body->m_instructions.size() == 0) {
-					data.endl().add_trail();
+				if (overloads[Id].body->m_instructions.empty()) {
+					data.endl().trail();
 					data << "Empty";
-					data.endl();
 				}
 				for (const auto& i : overloads[Id].body->m_instructions) {
-					data.endl().add_trail();
 					i->print_debug(data);
 				}
 				--data.trailing;
@@ -190,14 +264,11 @@ namespace v2 {
 
 	};
 
-
 	template<typename ReturnTList, typename ...Fs>
 	struct InstructionDebug<FuncDeclarationInstruction<ReturnTList, Fs...>> {
 		static void call(const FuncDeclarationInstruction<ReturnTList, Fs...>& f, DebugData& data) {
-			data.add_trail() << "Function declaration $" << f.m_id;
+			data.endl().trail() << "Function declaration $" << f.m_id;
 			++data.trailing;
-			data.endl();
-
 			iterate_over_typelist<ReturnTList, OverloadDebug<sizeof...(Fs)>::template Get>(f.m_overloads, data);
 			--data.trailing;
 		}
@@ -222,7 +293,9 @@ namespace v2 {
 
 	template<>
 	struct OperatorDebug<ConstructorBase> {
-		static void call(const ConstructorBase& ctor, DebugData& data) { }
+		static void call(const ConstructorBase& ctor, DebugData& data) {
+			data << " base ctor";
+		}
 	};
 
 	template<typename T, std::size_t N>
@@ -242,20 +315,21 @@ namespace v2 {
 			if (ctor.m_flags != CtorFlags::Temporary) {
 				using ArrayDimensions = typename T::ArrayDimensions;
 				if constexpr (ArrayDimensions::Size > 0) {
-					data.endl().add_trail() << "  array size : ";
+					data.endl().trail() << "  array size : ";
 					DebugQualifier<ArraySizePrinter<ArrayDimensions>>::print_debug(data);
 				}
 
 				using Qualifiers = typename T::Qualifiers;
 				if constexpr (Qualifiers::Size > 0) {
-					data.endl().add_trail() << "  qualifiers : ";
+					data.endl().trail() << "  qualifiers : ";
 					DebugQualifier<Qualifiers>::print_debug(data);
 				}
 			}
 
 			++data.trailing;
 			for (std::size_t i = 0; i < N; ++i) {
-				data.endl().add_trail();
+				data.endl().trail();
+
 				ctor.m_args[i]->print_debug(data);
 			}
 			--data.trailing;
@@ -267,9 +341,9 @@ namespace v2 {
 		static void call(const ArraySubscript& subscript, DebugData& data) {
 			data << "Array subscript";
 			++data.trailing;
-			data.endl().add_trail() << "from ";
+			data.endl().trail() << "from ";
 			subscript.m_obj->print_debug(data);
-			data.endl().add_trail() << "at index ";
+			data.endl().trail() << "at index ";
 			subscript.m_index->print_debug(data);
 			--data.trailing;
 		}
@@ -294,9 +368,9 @@ namespace v2 {
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, DebugData& data) {
 			data << "Swizzle";
 			++data.trailing;
-			data.endl().add_trail();
+			data.endl().trail();
 			swizzle.m_obj->print_debug(data);
-			data.endl().add_trail() << c;
+			data.endl().trail() << c;
 			((data << chars), ...);
 			--data.trailing;
 		}
@@ -306,7 +380,9 @@ namespace v2 {
 	struct OperatorDebug<Litteral<T>> {
 		static void call(const Litteral<T>& litteral, DebugData& data) {
 			data << "Constant " << typeid(typename Infos<T>::ScalarType).name() << " ";
-			if (std::is_integral_v<T>) {
+			if constexpr (std::is_same_v<T, bool>) {
+				data << std::boolalpha << litteral.value;
+			} else if constexpr (std::is_integral_v<T>) {
 				data << litteral.value;
 			} else {
 				std::stringstream ss;
@@ -326,9 +402,9 @@ namespace v2 {
 		static void call(const BinaryOperator& bop, DebugData& data) {
 			data << op_str(bop.m_op);
 			++data.trailing;
-			data.endl().add_trail();
+			data.endl().trail();
 			bop.m_lhs->print_debug(data);
-			data.endl().add_trail();
+			data.endl().trail();
 			bop.m_rhs->print_debug(data);
 			--data.trailing;
 		}
@@ -339,7 +415,7 @@ namespace v2 {
 		static void call(const UnaryOperator& uop, DebugData& data) {
 			data << op_str(uop.m_op);
 			++data.trailing;
-			data.endl().add_trail();
+			data.endl().trail();
 			uop.m_arg->print_debug(data);
 			--data.trailing;
 		}
@@ -352,10 +428,10 @@ namespace v2 {
 			OperatorDebug<Reference>::call(fun_call, data);
 			++data.trailing;
 			if constexpr (N == 0) {
-				data.endl().add_trail() << "no arguments";
+				data.endl().trail() << "no arguments";
 			}
 			for (std::size_t i = 0; i < N; ++i) {
-				data.endl().add_trail();
+				data.endl().trail();
 				fun_call.m_args[i]->print_debug(data);
 			}
 			--data.trailing;
@@ -371,7 +447,8 @@ namespace v2 {
 			{ Op::MatrixAddScalar, "MatrixAddScalar" },
 			{ Op::CWiseSub, "CWiseSub" },
 			{ Op::MatrixSubScalar, "MatrixSubScalar" },
-			{ Op::UnaryNegation, "UnaryNegation" }
+			{ Op::UnaryNegation, "UnaryNegation" },
+			{ Op::Assignment, "Assignment" }
 		};
 
 		return op_strs.at(op);

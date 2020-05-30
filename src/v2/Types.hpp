@@ -252,9 +252,11 @@ namespace v2 {
 		static constexpr std::size_t RowCount = R;
 		static constexpr std::size_t ColCount = C;
 
+		static constexpr bool IsBool = std::is_same_v<T, bool>;
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
-		static constexpr bool IsBool = std::is_same_v<T, bool>;
+		
+		using Type = Matrix<T, R, C, Qs...>;
 		using ScalarType = T;
 		using QualifierFree = Matrix<T, R, C>;
 	};
@@ -296,6 +298,11 @@ namespace v2 {
 		static constexpr bool IsConstant = true;
 	};
 
+	template<>
+	struct Infos<bool> : Infos<Matrix<bool, 1, 1, TList<>>> {
+		static constexpr bool IsConstant = true;
+	};
+
 	//template<>
 	//struct Infos<void> : Infos<Matrix<void, 0, 0>> {
 	//};
@@ -324,4 +331,11 @@ namespace v2 {
 		static constexpr Op OperatorAdd = SameSize<A, B> ? Op::CWiseAdd : Op::MatrixAddScalar;
 		static constexpr Op OperatorSub = SameSize<A, B> ? Op::CWiseSub : Op::MatrixSubScalar;
 	};
+
+	template<typename T, typename ... Qs>
+	struct QualifiedIndirection;
+
+	template<typename T, typename ... Qs>
+	using Qualify = typename QualifiedIndirection<typename Infos<T>::Type, Qs...>::Type;
+
 }

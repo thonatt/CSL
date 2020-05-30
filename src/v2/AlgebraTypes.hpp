@@ -19,13 +19,6 @@ namespace v2 {
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename Qs>
 	struct MatrixArrayIndirection;
 
-	//template<typename ... Qs>
-	//using RemoveArrayFromQualifiers = std::conditional_t<
-	//	ArrayInfos<Qs...>::HasArray,
-	//	RemoveAt<ArrayInfos<Qs...>::Id, TList<Qs...>>,
-	//	TList<Qs...>
-	//>;
-
 	template<typename ...Qs>
 	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
 
@@ -71,8 +64,17 @@ namespace v2 {
 
 		Matrix(Matrix&& other) : Base(other) {}
 
-		//TODO replace me
-		Matrix operator=(const Matrix& other) { return {}; }
+
+		template<typename M, typename = std::enable_if_t<SameSize<Matrix,M> && SameScalarType<Matrix,M>>>
+		Matrix operator=(M&& other) & { 
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), EXPR(M,other)) };
+		}
+
+		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
+		Matrix operator=(M&& other)&& {
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(M,other)) };
+		}
+
 
 		template<typename U, typename V, typename ...Vs,
 			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<Matrix, U, V, Vs...> > >
@@ -185,56 +187,87 @@ namespace v2 {
 		using Type = MatrixArray<T, Ds, R, C, Qs...>;
 	};
 
-	template<typename T, std::size_t R, typename ... Qs>
-	using VectorInterface = MatrixInterface<T, R, 1, Qs...>;
+	using vec3 = Vector<float, 3>;
 
-	template<typename T, typename ... Qs>
-	using ScalarInterface = VectorInterface<T, 1, Qs...>;
+	using mat4 = Matrix<float, 4, 4>;
+	using mat3 = Matrix<float, 3, 3>;
 
-	template<typename ... Qs>
-	class mat3 : public MatrixInterface<float, 3, 3, Qs...> {
-	public:
-		using Base = MatrixInterface<float, 3, 3, Qs...>;
-		using Base::Base;
+	using Float = Scalar<float>;
+
+	using Int = Scalar<int>;
+
+	using Bool = Scalar<bool>;
+
+	template<typename T, std::size_t R, std::size_t C, typename ... Qs>
+	struct QualifiedIndirection<Matrix<T, R, C>, Qs... > {
+		using Type = MatrixInterface<T, R, C, Qs...>;
 	};
 
-	mat3()->mat3<>;
+	//template<typename T, std::size_t R, typename ... Qs>
+	//using VectorInterface = MatrixInterface<T, R, 1, Qs...>;
 
-	template<typename U, typename V, typename ...Vs>
-	mat3(U&&, V&&, Vs&&...)->mat3<>;
+	//template<typename T, typename ... Qs>
+	//using ScalarInterface = VectorInterface<T, 1, Qs...>;
 
-	template<typename ... Qs> struct Infos<mat3<Qs...>> : Infos<MatrixInterface<float, 3, 3, Qs...>> {};
+	//template<typename ... Qs>
+	//class mat3 : public MatrixInterface<float, 3, 3, Qs...> {
+	//public:
+	//	using Base = MatrixInterface<float, 3, 3, Qs...>;
+	//	using Base::Base;
+	//};
 
-	template<typename ... Qs>
-	class vec3 : public VectorInterface<float, 3, Qs...> {
-	public:
-		using Base = VectorInterface<float, 3, Qs...>;
-		using Base::Base;
-	};
-	vec3()->vec3<>;
+	//mat3()->mat3<>;
 
-	template<typename U, typename V, typename ...Vs>
-	vec3(U&&, V&&, Vs&&...)->vec3<>;
+	//template<typename U, typename V, typename ...Vs>
+	//mat3(U&&, V&&, Vs&&...)->mat3<>;
 
-	template<typename ... Qs> struct Infos<vec3<Qs...>> : Infos<MatrixInterface<float, 3, 1, Qs...>> {};
+	//template<typename ... Qs> struct Infos<mat3<Qs...>> : Infos<MatrixInterface<float, 3, 3, Qs...>> {};
 
-	template<std::size_t N>
-	vec3(const char(&)[N])->vec3<>;
+	//template<typename ... Qs>
+	//class vec3 : public VectorInterface<float, 3, Qs...> {
+	//public:
+	//	using Base = VectorInterface<float, 3, Qs...>;
+	//	using Base::Base;
+	//	using Base::operator=;
+	//};
+	//vec3()->vec3<>;
+
+	//template<typename U, typename V, typename ...Vs>
+	//vec3(U&&, V&&, Vs&&...)->vec3<>;
+
+	//template<typename ... Qs> struct Infos<vec3<Qs...>> : Infos<MatrixInterface<float, 3, 1, Qs...>> {};
+
+	//template<std::size_t N>
+	//vec3(const char(&)[N])->vec3<>;
 
 
-	template<typename ... Qs>
-	class Float : public ScalarInterface<float, Qs...> {
-	public:
-		using Base = ScalarInterface<float, Qs...>;
-		using Base::Base;
-	};
+	//template<typename ... Qs>
+	//class Float : public ScalarInterface<float, Qs...> {
+	//public:
+	//	using Base = ScalarInterface<float, Qs...>;
+	//	using Base::Base;
+	//};
 
-	Float()->Float<>;
+	//Float()->Float<>;
 
-	template<std::size_t N>
-	Float(const char(&)[N])->Float<>;
+	//template<std::size_t N>
+	//Float(const char(&)[N])->Float<>;
 
-	template<typename ... Qs> struct Infos<Float<Qs...>> : Infos<MatrixInterface<float, 1, 1, Qs...>> {};
+	//template<typename ... Qs> struct Infos<Float<Qs...>> : Infos<MatrixInterface<float, 1, 1, Qs...>> {};
+
+	//template<typename ... Qs>
+	//class Int : public ScalarInterface<int, Qs...> {
+	//public:
+	//	using Base = ScalarInterface<int, Qs...>;
+	//	using Base::Base;
+	//};
+
+	//Int()->Int<>;
+
+	//template<std::size_t N>
+	//Int(const char(&)[N])->Int<>;
+
+	//template<typename ... Qs> struct Infos<Int<Qs...>> : Infos<MatrixInterface<int, 1, 1, Qs...>> {};
 
 } //namespace csl
 

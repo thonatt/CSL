@@ -87,7 +87,7 @@ namespace v2 {
 	}
 
 	struct SpecialStatement : Statement {
-		using Statement::Statement;
+		SpecialStatement(const Expr& expr = {}) : Statement(expr) { }
 		virtual ~SpecialStatement() = default;
 	};
 
@@ -193,7 +193,7 @@ namespace v2 {
 			Block::Ptr body;
 		};
 
-		IfInstruction(const Ptr& parent) : m_parent_if(parent) {}
+		IfInstruction(const Ptr& parent_if) : m_parent_if(parent_if) {}
 
 		std::vector<IfCase> m_cases;
 		Ptr m_parent_if;
@@ -203,9 +203,9 @@ namespace v2 {
 	struct WhileInstruction : InstructionBase {
 		using Ptr = std::shared_ptr<InstructionWrapper<WhileInstruction>>;
 
-		WhileInstruction(const Expr& expr, const Block::Ptr& parent) {
+		WhileInstruction(const Expr& expr, const Block::Ptr& parent_block) {
 			m_condition = expr;
-			m_body = std::make_shared<Block>(parent);
+			m_body = std::make_shared<Block>(parent_block);
 		}
 
 		Expr m_condition;

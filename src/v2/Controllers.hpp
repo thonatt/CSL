@@ -125,8 +125,8 @@ namespace v2 {
 			current_if = std::make_shared<InstructionWrapper<IfInstruction>>(current_if);
 			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block) };
 			get().m_cases.push_back(if_case);
-			current_block = if_case.body;
 			push_instruction(current_if);
+			current_block = if_case.body;
 		}
 
 		void begin_else() {
@@ -176,10 +176,10 @@ namespace v2 {
 
 	struct WhileController : virtual ControllerBase {
 
-		void begin_while(const Expr& expr) {
-			auto while_instruction = std::make_shared<WhileInstruction>(expr, current_block);
-			push_instruction(while_instruction);
-			current_block = while_instruction->m_body;
+		virtual void begin_while(const Expr& expr) {
+			auto current_while = std::make_shared<InstructionWrapper<WhileInstruction>>(expr, current_block);
+			push_instruction(current_while);
+			current_block = current_while->m_instruction.m_body;
 		}
 
 		virtual void end_while() {
@@ -194,7 +194,7 @@ namespace v2 {
 			return current_switch->m_instruction;
 		}
 
-		void begin_switch(const Expr& expr) {
+		virtual void begin_switch(const Expr& expr) {
 			current_switch = std::make_shared<InstructionWrapper<SwitchInstruction>>(expr, current_block, current_switch);
 			push_instruction(current_switch);
 			current_block = get().m_body;
@@ -230,6 +230,7 @@ namespace v2 {
 
 		virtual void begin_for() override {
 			check_end_if();
+			check_func_args();
 			ForController::begin_for();
 		}
 
@@ -238,9 +239,20 @@ namespace v2 {
 			ForController::end_for();
 		}
 
+		virtual void begin_while(const Expr& expr) override {
+			check_func_args();
+			WhileController::begin_while(expr);
+		}
+
 		virtual void end_while() override {
 			check_end_if();
 			WhileController::end_while();
+		}
+
+		virtual void begin_switch(const Expr& expr) override {
+			check_end_if();
+			check_func_args();
+			SwitchController::begin_switch(expr);
 		}
 
 		virtual void add_case(const Expr& expr) override {
@@ -324,7 +336,7 @@ namespace v2 {
 
 		template<typename S, typename ... Args>
 		void add_statement(Args&& ... args) {
-			push_instruction(std::make_shared<S>(std::forward<Args>(args)...));
+			push_instruction(make_instruction<S>(std::forward<Args>(args)...));
 		}
 	};
 }

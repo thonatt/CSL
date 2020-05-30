@@ -16,7 +16,8 @@ namespace v2 {
 		MatrixAddScalar,
 		CWiseSub,
 		MatrixSubScalar,
-		UnaryNegation
+		UnaryNegation,
+		Assignment
 	};
 
 	template<typename T>

@@ -70,7 +70,7 @@ namespace v2 {
 
 		/////////////////////////////////////////////////
 
-		template<typename B, typename = std::enable_if_t< SameScalarType<B, bool> > >
+		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar && Infos<B>::IsBool > >
 		void begin_if(B&& condition) {
 			if (active && current_shader) {
 				current_shader->begin_if(get_expr(std::forward<B>(condition)));
@@ -83,7 +83,7 @@ namespace v2 {
 			}
 		}
 
-		template<typename B, typename = std::enable_if_t< SameScalarType<B, bool> > >
+		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar && Infos<B>::IsBool > >
 		void begin_else_if(B&& condition) {
 			if (current_shader) {
 				current_shader->begin_else_if(get_expr(std::forward<B>(condition)));
@@ -198,6 +198,71 @@ namespace v2 {
 		return overmind;
 	}
 
+	// special listeners
+
+	struct WhileListener {
+		operator bool() const {
+			if (first) {
+				first = false;
+				return true;
+			}
+			return false;
+		}
+		mutable bool first = true;
+
+		~WhileListener() {
+			listen().end_while();
+		}
+	};
+
+	struct IfListener {
+		operator bool() const { return true; }
+		~IfListener() {
+			listen().end_if_sub_block();
+		}
+	};
+
+	struct ElseListener {
+		operator bool() const { return false; }
+		~ElseListener() {
+			listen().end_if();
+		}
+	};
+
+	struct SwitchListener {
+		~SwitchListener() {
+			listen().end_switch();
+		}
+
+		operator std::size_t() const {
+			++count;
+			if (count == 1) {
+				listen().active = false;
+			} else if (count == 2) {
+				listen().active = true;
+			}
+			return (count > 2) ? static_cast<std::size_t>(0) : unlikely_case;
+		}
+
+		mutable std::size_t count = 0;
+		static constexpr std::size_t unlikely_case = 13;
+	};
+
+	struct ForListener {
+		~ForListener() {
+			listen().end_for();
+		}
+
+		explicit operator bool() const {
+			if (first) {
+				first = false;
+				return true;
+			}
+			return false;
+		}
+
+		mutable bool first = true;
+	};
 
 	/////////////////////////////
 	// definitions requiring listen() definition
@@ -237,5 +302,39 @@ namespace v2 {
 			return ReturnType<Args...>(expr);
 		}
 	}
+
+#define CSL_IF(condition) \
+	listen().check_begin_if(); listen().begin_if(condition); if(IfListener _csl_begin_if_ = {})
+
+#define CSL_ELSE \
+	else {} listen().begin_else(); if(ElseListener _csl_begin_else_ = {}) {} else 
+
+#define CSL_ELSE_IF(condition) \
+	else if(false){} listen().delay_end_if(); listen().begin_else_if(condition); if(false) {} else if(IfListener _csl_begin_else_if_ = {})
+
+#define CSL_WHILE(condition) \
+	listen().begin_while(condition); for(WhileListener _csl_begin_while_; _csl_begin_while_; )
+
+#define CSL_FOR(...) \
+	listen().begin_for(); listen().active = false; for( __VA_ARGS__ ){ break; } listen().active = true;  \
+	listen().begin_for_args(); __VA_ARGS__;  listen().begin_for_body(); \
+	for(ForListener _csl_begin_for_; _csl_begin_for_; )
+
+#define CSL_BREAK \
+	if(false){ break; } \
+	listen().add_statement<BreakStatement>();
+
+#define CSL_CONTINUE \
+	if(false){ continue; } \
+	listen().add_statement<ContinueStatement>();
+
+#define CSL_SWITCH(condition) \
+	listen().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = {})while(_csl_begin_switch_)
+
+#define CSL_CASE(value) \
+	listen().begin_switch_case(value); case value 
+
+#define CSL_DEFAULT \
+	listen().begin_switch_case(); default
 
 }
