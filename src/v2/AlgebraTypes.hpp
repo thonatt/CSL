@@ -62,11 +62,13 @@ namespace v2 {
 
 		Matrix(const Expr& expr) : Base(expr) { }
 
+
 		Matrix(Matrix&& other) : Base(other) {}
 
 
-		template<typename M, typename = std::enable_if_t<SameSize<Matrix,M> && SameScalarType<Matrix,M>>>
-		Matrix operator=(M&& other) & { 
+
+		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
+		Matrix operator=(M&& other)& {
 			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), EXPR(M,other)) };
 		}
 
@@ -109,14 +111,14 @@ namespace v2 {
 	// operator*
 
 	template<typename A, typename B, typename = std::enable_if_t<
-		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<B>::IsScalar || SameSize<A,B> || Infos<A>::ColCount == Infos<B>::RowCount)>>
+		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<B>::IsScalar || SameSize<A, B> || Infos<A>::ColCount == Infos<B>::RowCount)>>
 		typename AlgebraMulInfos<A, B>::ReturnType operator*(A&& a, B&& b)
 	{
 		return { make_expr<BinaryOperator>(AlgebraMulInfos<A, B>::Operator, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	template<typename A, typename B, typename = std::enable_if_t<
-		!Infos<A>::IsBool && SameScalarType<A, B> && !Infos<B>::IsScalar && (Infos<A>::IsScalar || ( !Infos<A>::IsSquare && Infos<A>::RowCount == Infos<B>::ColCount) ) >>
+		!Infos<A>::IsBool && SameScalarType<A, B> && !Infos<B>::IsScalar && (Infos<A>::IsScalar || (!Infos<A>::IsSquare && Infos<A>::RowCount == Infos<B>::ColCount)) >>
 		auto operator*(A&& a, B&& b)
 	{
 		return std::forward<B>(b) * std::forward<A>(a);
@@ -163,7 +165,23 @@ namespace v2 {
 
 		using ArrayComponent = MatrixInterface<T, R, C, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
 		static constexpr bool IsArray = true;
+
 		using ArrayDimensions = Ds;
+		static constexpr std::size_t ComponentCount = Ds::Front;
+
+		MatrixArray() : Base() {}
+
+		template<std::size_t N>
+		explicit MatrixArray(const char(&name)[N]) : Base(name) {}
+
+		MatrixArray(const Expr& expr) : Base(expr) { }
+
+		template<typename U, typename V, typename ... Us, typename = std::enable_if_t<
+			!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ... ) && (ComponentCount == 0  || 2 + sizeof...(Us) == ComponentCount)
+			>>
+			explicit MatrixArray(U&& u, V&& v, Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(Us, us)...)
+		{
+		}
 
 		template<typename Index>
 		ArrayComponent operator [](Index&& index) const& {

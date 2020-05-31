@@ -123,6 +123,7 @@ namespace v2 {
 
 	struct FuncDeclarationBase {
 		using Ptr = std::shared_ptr<FuncDeclarationBase>;
+		virtual ~FuncDeclarationBase() = default;
 
 		FuncDeclarationBase(const std::size_t fun_id) : m_id(fun_id) {
 		}
@@ -151,7 +152,7 @@ namespace v2 {
 			return m_overloads[i];
 		}
 
-		virtual std::size_t overload_count() const {
+		virtual std::size_t overload_count() const override {
 			return N;
 		}
 

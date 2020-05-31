@@ -117,7 +117,7 @@ namespace v2 {
 	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
 
-		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_flags(flags), m_variable_id(variable_id) {}
+		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_variable_id(variable_id), m_flags(flags) {}
 
 		void set_as_temp() {
 			if (m_flags & CtorFlags::Initialisation) {
@@ -198,7 +198,7 @@ namespace v2 {
 
 	struct BinaryOperator {
 
-		BinaryOperator(const Op op, const Expr& lhs, const Expr& rhs) : m_op(op), m_lhs(lhs), m_rhs(rhs) { }
+		BinaryOperator(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
 		Expr m_lhs, m_rhs;
 		Op m_op;

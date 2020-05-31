@@ -24,6 +24,10 @@ void testv2()
 		Qualify<Float, Layout<Binding<0>>> f;
 		vec3 v;
 		Qualify<vec3, Uniform, Array<5, 7>> av;
+		
+		using AA = decltype(av);
+		using A = typename AA::ArrayComponent;
+
 		mat3 m;
 
 		Qualify<float, Uniform> ff;

@@ -3,9 +3,6 @@
 #include "AlgebraTypes.hpp"
 #include "Controllers.hpp"
 
-#include "NamedObjects.hpp"
-#include "Types.hpp"
-
 #include "Functions.hpp"
 
 #include "Debug.hpp"

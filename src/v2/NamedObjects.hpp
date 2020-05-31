@@ -34,7 +34,7 @@ namespace v2 {
 	class NamedObjectBase {
 	public:
 
-		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : id(counter++), m_name(name), m_flags(flags)
+		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : m_name(name), id(counter++), m_flags(flags)
 		{
 			m_alias = make_expr<Reference>(id);
 		}

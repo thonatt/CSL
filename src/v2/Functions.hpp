@@ -17,6 +17,7 @@ namespace v2 {
 	struct FuncPtrInfo<ReturnType(Fun::*)(Args...) const> {
 		using ArgTup = std::tuple<Args...>;
 		using ArgTList = TList<Args...>;
+		using RType = ReturnType;
 	};
 
 	template<typename F>
@@ -24,6 +25,9 @@ namespace v2 {
 
 	template<typename F>
 	using GetArgTList = typename LambdaInfos<F>::ArgTList;
+
+	template<typename F>
+	using GetReturnType = typename LambdaInfos<F>::RType;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	// Overlad resolution helpers
@@ -138,6 +142,7 @@ namespace v2 {
 
 		static_assert(ReturnTList::Size == FuncTList::Size, "Numbers of overloads and return types dont match");
 		static_assert(FuncTList::Size > 0, "Functions must have at least one overload");
+		static_assert((std::is_same_v<GetReturnType<std::remove_reference_t<Fs>>, void>&& ...), "C++ return in CSL function, use CSL_RETURN instead");
 
 		Function(const std::string& name, Fs&& ... fs);
 

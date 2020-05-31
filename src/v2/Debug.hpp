@@ -41,41 +41,44 @@ namespace v2 {
 	template<typename QList>
 	struct DebugQualifier {
 		static void print_debug(DebugData& data) {
-			data.stream << "unspecified qualifier";
+			data << "unspecified qualifier";
 		}
 	};
 
 	template<typename Q, typename ...Qs>
 	struct DebugQualifier<TList<Q, Qs...>> {
 		static void print_debug(DebugData& data) {
-			DebugQualifier<Q>::print_debug(data);
-			(((data.stream << ", "), DebugQualifier<Qs>::print_debug(data)), ...);
+			data << typeid(Q).name();
+			(((data<< ", "), data << typeid(Qs).name()), ...);
+			
+			//DebugQualifier<Q>::print_debug(data);
+			//(((data << ", "), DebugQualifier<Qs>::print_debug(data)), ...);
 		}
 	};
 
-	template<>
-	struct DebugQualifier<Uniform> {
-		static void print_debug(DebugData& data) {
-			data.stream << "uniform";
-		}
-	};
+	//template<>
+	//struct DebugQualifier<Uniform> {
+	//	static void print_debug(DebugData& data) {
+	//		data.stream << "uniform";
+	//	}
+	//};
 
-	template<typename T, typename ...Ts>
-	struct DebugQualifier<Layout<T, Ts...>> {
-		static void print_debug(DebugData& data) {
-			data.stream << "layout(";
-			DebugQualifier<T>::print_debug(data);
-			(((data.stream << ", "), DebugQualifier<Ts>::print_debug(data)), ...);
-			data.stream << ")";
-		}
-	};
+	//template<typename T, typename ...Ts>
+	//struct DebugQualifier<Layout<T, Ts...>> {
+	//	static void print_debug(DebugData& data) {
+	//		data.stream << "layout(";
+	//		DebugQualifier<T>::print_debug(data);
+	//		(((data.stream << ", "), DebugQualifier<Ts>::print_debug(data)), ...);
+	//		data.stream << ")";
+	//	}
+	//};
 
-	template<std::size_t N>
-	struct DebugQualifier<Binding<N>> {
-		static void print_debug(DebugData& data) {
-			data.stream << "binding = " << N;
-		}
-	};
+	//template<std::size_t N>
+	//struct DebugQualifier<Binding<N>> {
+	//	static void print_debug(DebugData& data) {
+	//		data.stream << "binding = " << N;
+	//	}
+	//};
 
 	template<typename>
 	struct ArraySizePrinter { };

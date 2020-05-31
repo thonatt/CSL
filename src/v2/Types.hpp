@@ -240,6 +240,9 @@ namespace v2 {
 	template<typename T>
 	struct Infos<T&> : Infos<T> { };
 
+	template<typename T>
+	struct Infos<const T&> : Infos<T> { };
+
 	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
 	struct Infos<Matrix<T, R, C, Qs...>> {
 		static constexpr bool IsConst = false;
@@ -256,13 +259,16 @@ namespace v2 {
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
 		
+		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
+
 		using Type = Matrix<T, R, C, Qs...>;
 		using ScalarType = T;
 		using QualifierFree = Matrix<T, R, C>;
 	};
 
 	template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
-	struct Infos<MatrixArray<T, Ds, R, C, Qs...>> {
+	struct Infos<MatrixArray<T, Ds, R, C, Qs...>> : Infos<Matrix<T, R, C, Qs...>> {
+		//TODO fix me
 	};
 
 	template<typename ...Ts>
@@ -280,8 +286,14 @@ namespace v2 {
 	template<typename T, typename U, typename ...Ts>
 	constexpr bool SameScalarType<T, U, Ts...> = std::is_same_v<typename Infos<T>::ScalarType, typename Infos<U>::ScalarType> && SameScalarType<U, Ts...>;
 
+	template<typename A, typename B>
+	constexpr bool SameDimensions = std::is_same_v<typename Infos<A>::ArrayDimensions, typename Infos<B>::ArrayDimensions>;
+
+	template<typename A, typename B>
+	constexpr bool SameType = SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>;
+
 	template<typename T>
-	constexpr bool IsInteger = std::is_same_v<Infos<T>::ScalarType, int> || std::is_same_v<Infos<T>::ScalarType, uint>;
+	constexpr bool IsInteger = Infos<T>::IsInteger;
 
 	template<>
 	struct Infos<double> : Infos<Matrix<float, 1, 1>> {
@@ -317,9 +329,7 @@ namespace v2 {
 		static constexpr std::size_t OutColCount = Infos<std::conditional_t<Infos<B>::IsScalar, A, B>>::ColCount;
 		using ReturnType = Matrix<ScalarType, OutRowCount, OutColCount>;
 
-
-		static constexpr bool SameSize = SameSize<A, B>;
-		static constexpr Op Operator = (SameSize && Infos<A>::IsVec) ? Op::CWiseMul : (Infos<B>::IsScalar ? Op::MatrixTimesScalar : Op::MatrixTimesMatrix);
+		static constexpr Op Operator = (SameSize<A, B> && Infos<A>::IsVec) ? Op::CWiseMul : (Infos<B>::IsScalar ? Op::MatrixTimesScalar : Op::MatrixTimesMatrix);
 	};
 
 	template<typename A, typename B>
