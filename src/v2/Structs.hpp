@@ -6,147 +6,106 @@
 #include "Preprocessor.hpp"
 #include "NamedObjects.hpp"
 
+#include "AlgebraTypes.hpp"
+
+#include "Listeners.hpp"
+
 //helpers for member infos acces
-#define PP_CSL_MEMBER_TYPE(elem) PP_CSL_HEAD(elem)
-#define PP_CSL_MEMBER_NAME(elem) PP_CSL_STRIP(elem)
-#define PP_CSL_MEMBER_STR(elem) PP_CSL_STR(PP_CSL_MEMBER_NAME(elem))
-#define PP_CSL_MEMBER_TYPE_QUALI(quali, elem) GetQualifierType<quali, PP_CSL_MEMBER_TYPE(elem) >
+#define CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_HEAD(elem)
+#define CSL_PP2_MEMBER_NAME(elem) CSL_PP2_STRIP(elem)
+#define CSL_PP2_MEMBER_STR(elem) CSL_PP2_STR(CSL_PP2_MEMBER_NAME(elem))
+#define CSL_PP2_MEMBER_TYPE_QUALI(quali, elem) GetQualifierType<quali, CSL_PP2_MEMBER_TYPE(elem) >
 
 //macros used when iterating over members
-#define PP_CSL_MEMBER_TYPE_IT(r, data, i, elem) , PP_CSL_MEMBER_TYPE(elem)
-#define PP_CSL_MEMBER_STR_IT(r, data, i, elem) , PP_CSL_MEMBER_STR(elem)
-#define PP_CSL_MEMBER_ARG_IT(r, data, i, elem) PP_CSL_MEMBER_TYPE(elem) && PP_CSL_MEMBER_NAME(elem),
-#define PP_CSL_MEMBER_ARG_EX_IT(r, data, i, elem) , get_expr(std::forward<PP_CSL_MEMBER_TYPE(elem)>(PP_CSL_MEMBER_NAME(elem)))
+#define CSL_PP2_MEMBER_TYPE_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem)
+#define CSL_PP2_MEMBER_STR_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_STR(elem)
+#define CSL_PP2_MEMBER_ARG_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem),
+#define CSL_PP2_MEMBER_ARG_EX_IT(r, data, i, elem) , v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>(CSL_PP2_MEMBER_NAME(elem)))
 
-#define PP_CSL_DECLARE_MEMBER_IT(r, data, i, elem) PP_CSL_PAIR(elem);
-#define PP_CSL_INIT_MEMBER_PARENT_IT(r, data, i, elem) , PP_CSL_MEMBER_NAME(elem)( \
-	core::createExp<core::MemberAccessor>(exp, PP_CSL_MEMBER_STR(elem)), \
-	core::OpFlags::MEMBER_DECLARATION, core::ObjFlags::ALWAYS_EXP) 
+#define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_PAIR(elem);
+
+#define CSL_PP2_INIT_MEMBER_IT(r, data, i, elem) , CSL_PP2_MEMBER_NAME(elem) ( \
+	 v2::make_expr<v2::MemberAccessorWrapper>(v2::MemberAccessorWrapper::create<data, i>(Base::m_expr)), v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp )
 
 //helpers for declaring members
-#define PP_CSL_QUALI_TYPENAME(Qualifier, Typename) \
-	typename core::GetQualifier<Qualifier PP_CSL_COMMA_IF_NOT_EMPTY(Qualifier) Typename>::Type
+#define CSL_PP2_QUALI_TYPENAME(Qualifier, Typename) \
+	typename core::GetQualifier<Qualifier CSL_PP2_COMMA_IF_NOT_EMPTY(Qualifier) Typename>::Type
 
-#define PP_CSL_TYPENAME_ARRAY(Quali, Typename, ArraySize) \
-	Array<PP_CSL_QUALI_TYPENAME(Quali, Typename), ArraySize>
+#define CSL_PP2_TYPENAME_ARRAY(Quali, Typename, ArraySize) \
+	Array<CSL_PP2_QUALI_TYPENAME(Quali, Typename), ArraySize>
 
-#define PP_CSL_TYPENAME_NO_ARRAY(Quali, Typename, ArraySize) \
-	PP_CSL_QUALI_TYPENAME(Quali, Typename)
+#define CSL_PP2_TYPENAME_NO_ARRAY(Quali, Typename, ArraySize) \
+	CSL_PP2_QUALI_TYPENAME(Quali, Typename)
 
-#define PP_CSL_TYPENAME_FULL(Quali, Typename, ArraySize) \
-	PP_CSL_IF_EMPTY(ArraySize, \
-		PP_CSL_TYPENAME_NO_ARRAY, \
-		PP_CSL_TYPENAME_ARRAY \
+#define CSL_PP2_TYPENAME_FULL(Quali, Typename, ArraySize) \
+	CSL_PP2_IF_EMPTY(ArraySize, \
+		CSL_PP2_TYPENAME_NO_ARRAY, \
+		CSL_PP2_TYPENAME_ARRAY \
 	) (Quali, Typename, ArraySize)
 
-#define PP_CSL_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
-	PP_CSL_QUALI_TYPENAME(quali, PP_CSL_MEMBER_TYPE(elem)) \
-	PP_CSL_MEMBER_NAME(elem)(PP_CSL_MEMBER_STR(elem), core::OpFlags::DISABLED);
+#define CSL_PP2_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
+	CSL_PP2_QUALI_TYPENAME(quali, CSL_PP2_MEMBER_TYPE(elem)) \
+	CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), core::OpFlags::DISABLED);
 
-#define PP_CSL_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
-	static PP_CSL_QUALI_TYPENAME(quali, PP_CSL_MEMBER_TYPE(elem)) \
-	PP_CSL_MEMBER_NAME(elem)(PP_CSL_MEMBER_STR(elem), core::OpFlags::DISABLED);
+#define CSL_PP2_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION(r, quali, i, elem) \
+	static CSL_PP2_QUALI_TYPENAME(quali, CSL_PP2_MEMBER_TYPE(elem)) \
+	CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), core::OpFlags::DISABLED);
 
-//internal macros for named/unnamed interface blocks
 
-#define PP_CSL_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
-	struct TypenameId : core::NamedObject<TypenameId> { \
-		static_assert(PP_CSL_IS_EMPTY(ArraySize), "unnamed interface block cant be array"); \
-		TypenameId() = delete; \
-		static std::string typeStr(int trailing = 0) { return PP_CSL_STR(Typename); } \
-	}; 
+namespace v2 {
 
-#define PP_CSL_UNNAMED_INTERFACE(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
-	PP_CSL_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	core::listen().add_unnamed_interface_block<PP_CSL_QUALI_TYPENAME(Qualifier, TypenameId) PP_CSL_ITERATE(PP_CSL_MEMBER_TYPE_IT, __VA_ARGS__) >( \
-			"" PP_CSL_ITERATE(PP_CSL_MEMBER_STR_IT, __VA_ARGS__) ); \
-	PP_CSL_ITERATE_DATA(Qualifier, PP_CSL_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ ) 
+	struct TestStruct;
 
-#define PP_CSL_BUILT_IN_UNNAMED_INTERFACE_IMPL(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
-	PP_CSL_UNNAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	PP_CSL_ITERATE_DATA(Qualifier, PP_CSL_BUILT_IN_UNNAMED_INTERFACE_MEMBER_DECLARATION, __VA_ARGS__ );
 
-#define PP_CSL_BUILT_IN_UNNAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ... ) \
-	PP_CSL_BUILT_IN_UNNAMED_INTERFACE_IMPL(Qualifier, Typename, PP_CSL_CONCAT(Typename, __COUNTER__), Name, ArraySize, __VA_ARGS__ ) 
+	struct TestStruct : NamedObject<TestStruct> {
+		using Base = NamedObject<TestStruct>;
 
-#define PP_CSL_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, ...) \
-	struct TypenameId : public core::NamedObject<TypenameId> { \
+		vec3 m_v;
+		Float m_f;
+
+		using MemberTList = TList<vec3, Float>;
+		using ArrayDimensions = SizeList<>;
+		using Qualifiers = TList<>;
+
+		TestStruct(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+			: Base(name, obj_flags),
+			m_v( make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 0>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp ),
+			m_f( make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 1>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp )
+		{
+		}
+
+		static const std::string& get_member_name(const std::size_t member_id) {
+			static const std::vector<std::string> member_names = { "m_v", "m_f" };
+			return member_names[member_id];
+		}
+	};
+}
+
+
+#define CSL2_STRUCT(StructTypename, ...)  \
+	struct StructTypename; \
+	v2::listen().add_struct<StructTypename>(); \
+	struct StructTypename : public v2::NamedObject<StructTypename> { \
+		using Base = v2::NamedObject<StructTypename>;\
 		\
-		PP_CSL_ITERATE(PP_CSL_DECLARE_MEMBER_IT, __VA_ARGS__ ) \
+		CSL_PP2_ITERATE(CSL_PP2_DECLARE_MEMBER_IT, __VA_ARGS__) \
 		\
-		TypenameId(const std::string & _name = "", core::ObjFlags _flags = core::ObjFlags::IS_TRACKED) \
-			: core::NamedObject<TypenameId>(_name, _flags) \
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
+		using MemberTList = v2::TList< CSL_PP2_ITERATE(CSL_PP2_MEMBER_TYPE_IT, __VA_ARGS__) >; \
+		using ArrayDimensions = v2::SizeList<>; \
+		using Qualifiers = v2::TList<>; \
 		\
-		TypenameId(const core::Ex & _ex, core::OpFlags ctor_flags = core::OpFlags::NONE, core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED, const std::string & s = "" ) \
-			 : core::NamedObject<TypenameId>(_ex, ctor_flags, obj_flags, s) \
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
+		StructTypename(const std::string & name = "", const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
+			: Base(name, obj_flags) \
+			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
-		static std::string typeStr(int trailing = 0) { \
-			return PP_CSL_STR(Typename) + core::InterfaceDeclarationStr<TypenameId PP_CSL_ITERATE(PP_CSL_MEMBER_TYPE_IT, __VA_ARGS__ )>::str( \
-				trailing PP_CSL_ITERATE(PP_CSL_MEMBER_STR_IT, __VA_ARGS__ ) \
-			); \
+		StructTypename(const v2::Expr& expr, const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
+			: Base(expr, obj_flags) \
+			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		\
+		static const std::string& get_member_name(const std::size_t member_id) { \
+			static const std::vector<std::string> member_names = { CSL_PP2_ITERATE(CSL_PP2_MEMBER_STR_IT, __VA_ARGS__) }; \
+			return member_names[member_id]; \
 		} \
-		\
-		static std::string typeNamingStr(int trailing = 0) { \
-			return PP_CSL_STR(Typename); \
-		} \
-	}; 
-
-#define PP_CSL_DECLARATION(Qualifier, Typename, Name, ArraySize, Flags) \
-	PP_CSL_TYPENAME_FULL(Qualifier,Typename,ArraySize) Name(PP_CSL_STR(Name), Flags);
-
-#define PP_CSL_NAMED_INTERFACE(Qualifier, Typename, TypenameId, Name, ArraySize, ... ) \
-	PP_CSL_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	PP_CSL_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::ObjFlags::IS_TRACKED);
-
-#define PP_CSL_BUILT_IN_NAMED_INTERFACE_IMPL(Qualifier, Typename, TypenameId, Name, ArraySize, ...) \
-	PP_CSL_NAMED_INTERFACE_INTERNAL(Qualifier, Typename, TypenameId, Name, ArraySize, __VA_ARGS__ ); \
-	static PP_CSL_DECLARATION(Qualifier, TypenameId, Name, ArraySize, core::OpFlags::BUILT_IN); 
-
-#define PP_CSL_BUILT_IN_NAMED_INTERFACE(Qualifier, Typename, Name, ArraySize, ...) \
-	PP_CSL_BUILT_IN_NAMED_INTERFACE_IMPL(Qualifier, Typename, PP_CSL_CONCAT(Typename, __COUNTER__), Name, ArraySize, __VA_ARGS__);
-
-//actual macros
-
-#define CSL_INTERFACE_BLOCK(Qualifier, Typename, Name, ArraySize, ... ) \
-	static_assert(PP_CSL_NOT_EMPTY(Qualifier), "interface block must have In, Out or Uniform qualifier"); \
-	PP_CSL_IF_EMPTY(Name, \
-		PP_CSL_UNNAMED_INTERFACE, \
-		PP_CSL_NAMED_INTERFACE\
-	) ( \
-		Qualifier, Typename, PP_CSL_CONCAT(Typename, __COUNTER__), Name, ArraySize, __VA_ARGS__ \
-	)
-
-#define CSL_STRUCT(StructTypename,...)  \
-	core::listen().add_struct<true PP_CSL_ITERATE(PP_CSL_MEMBER_TYPE_IT, __VA_ARGS__) >(PP_CSL_STR(StructTypename) \
-				PP_CSL_ITERATE(PP_CSL_MEMBER_STR_IT, __VA_ARGS__) ); \
-	\
-	struct StructTypename : public core::NamedObject<StructTypename> { \
-		using core::NamedObject<StructTypename>::exp; \
-		\
-		PP_CSL_ITERATE(PP_CSL_DECLARE_MEMBER_IT, __VA_ARGS__) \
-		\
-		StructTypename(const std::string & _name = "", core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED) \
-			: core::NamedObject<StructTypename>(_name, obj_flags) \
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
-		\
-		StructTypename(const core::Ex & _ex, core::OpFlags ctor_flags = core::OpFlags::NONE, core::ObjFlags obj_flags = core::ObjFlags::IS_TRACKED, const std::string & s = "") \
-			: core::NamedObject<StructTypename>(_ex, ctor_flags, obj_flags, s)	\
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
-		\
-		StructTypename(const core::NamedObjectInit<StructTypename> & obj) \
-			: core::NamedObject<StructTypename>(obj)	\
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
-		\
-		StructTypename(PP_CSL_ITERATE(PP_CSL_MEMBER_ARG_IT,__VA_ARGS__) bool dummy = false) \
-			: core::NamedObject<StructTypename>(core::OpFlags::DISPLAY_TYPE | core::OpFlags::PARENTHESIS, core::ObjFlags::IS_TRACKED, "" PP_CSL_ITERATE(PP_CSL_MEMBER_ARG_EX_IT, __VA_ARGS__)) \
-			PP_CSL_ITERATE(PP_CSL_INIT_MEMBER_PARENT_IT, __VA_ARGS__) { } \
-		\
-		static std::string typeStr(int trailing = 0) { return PP_CSL_STR(StructTypename); } \
-		static std::string typeNamingStr(int trailing = 0) { return typeStr(); } \
 	}
 
 
-#define CSL_BLOCK(QualifiedTypename, Name, ...) \
-	PP_CSL_GET_TYPE_LIST(QualifiedTypename) "+" PP_CSL_STRIP(QualifiedTypename)

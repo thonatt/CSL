@@ -47,6 +47,22 @@ namespace v2 {
 		using PushBack = SizeList<N, Ns..., M>;
 	};
 
+	template<typename T, std::size_t Id>
+	struct GetValueAtImpl;
+
+	template<typename T, std::size_t Id>
+	constexpr std::size_t GetValueAt = GetValueAtImpl<T, Id>::Value;
+
+	template<std::size_t N, std::size_t ...Ns>
+	struct GetValueAtImpl<SizeList<N, Ns...>, 0> {
+		static constexpr std::size_t Value = N;
+	};
+
+	template<std::size_t Id, std::size_t N, std::size_t ...Ns>
+	struct GetValueAtImpl<SizeList<N, Ns...>, Id> {
+		static constexpr std::size_t Value = GetValueAt<SizeList<Ns...>, Id - 1>;
+	};
+
 	template<typename List>
 	struct GetArrayFromList;
 
@@ -229,6 +245,7 @@ namespace v2 {
 
 	template<typename T>
 	struct Infos {
+		static constexpr bool IsValid = false;
 		static constexpr bool IsArray = false;
 	};
 
@@ -259,6 +276,8 @@ namespace v2 {
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
 		
+		static constexpr bool IsValid = true;
+
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 
 		using Type = Matrix<T, R, C, Qs...>;
@@ -269,6 +288,18 @@ namespace v2 {
 	template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
 	struct Infos<MatrixArray<T, Ds, R, C, Qs...>> : Infos<Matrix<T, R, C, Qs...>> {
 		//TODO fix me
+	};
+
+	template<>
+	struct Infos<Expr> {
+		static constexpr std::size_t NumElements = 0;
+		using ScalarType = void;
+	};
+
+	template<>
+	struct Infos<ObjFlags> {
+		static constexpr std::size_t NumElements = 0;
+		using ScalarType = void;
 	};
 
 	template<typename ...Ts>
@@ -298,21 +329,25 @@ namespace v2 {
 	template<>
 	struct Infos<double> : Infos<Matrix<float, 1, 1>> {
 		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
 	};
 
 	template<>
 	struct Infos<float> : Infos<Matrix<float, 1, 1>> {
 		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
 	};
 
 	template<>
 	struct Infos<int> : Infos<Matrix<int, 1, 1, TList<>>> {
 		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
 	};
 
 	template<>
 	struct Infos<bool> : Infos<Matrix<bool, 1, 1, TList<>>> {
 		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
 	};
 
 	//template<>

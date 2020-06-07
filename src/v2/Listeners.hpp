@@ -268,9 +268,10 @@ namespace v2 {
 	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
 		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(ctor_flags, variable_id, std::forward<Args>(args)...));
-		if (!(obj_flags & ObjFlags::StructMember)) {
-			listen().push_expression(expr);
-		}
+		listen().push_expression(expr);
+		//if (!(obj_flags & ObjFlags::StructMember)) {
+		//	listen().push_expression(expr);
+		//}
 		return expr;
 	}
 

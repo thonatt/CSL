@@ -7,6 +7,7 @@
 #include "tests.h"
 
 #include "v2/Listeners.hpp"
+#include "v2/Structs.hpp"
 
 #include <iostream>
 #include <chrono>
@@ -18,78 +19,96 @@ void testv2()
 	auto shader = std::make_shared<ShaderController>();
 	listen().current_shader = shader;
 
+	CSL2_STRUCT( Plop, 
+		(vec3) v,
+		(Float) f
+	);
+	
+	CSL2_STRUCT(BigPlop,
+		(Plop) plop,
+		(Float) g
+	);
+
+	auto ffff = define_function<void>([&] {
+		BigPlop b;
+		b.plop.v* BigPlop().plop.f;
+	});
+
 	{
 		using namespace v2::swizzles::rgba;
 
-		Qualify<Float, Layout<Binding<0>>> f;
-		vec3 v;
-		Qualify<vec3, Uniform, Array<5, 7>> av;
-		
-		using AA = decltype(av);
-		using A = typename AA::ArrayComponent;
+		//Qualify<Float, Layout<Binding<0>>> f;
+		//vec3 v;
+		//Qualify<vec3, Uniform, Array<5, 7>> av;
 
-		mat3 m;
+		//using AA = decltype(av);
+		//using A = typename AA::ArrayComponent;
 
-		Qualify<float, Uniform> ff;
+		//mat3 m;
 
-		{
-			auto vf = v * f;
-			auto fv = f * v;
-			auto ff = f * f;
-			auto vv = v * v;
-			auto mf = m * f;
-			auto mv = m * v;
-			auto mm = m * m;
-		}
+		//listen().add_struct<TestStruct>();
 
-		{
-			auto vf = v + f;
-			auto fv = f + v;
-			auto ff = f + f;
-			auto vv = v + v;
-			auto mf = m + f;
-			auto mm = m + m;
-		}
+		//Qualify<float, Uniform> ff;
 
-		{
-			auto formula = f * (-m[0] * v[b, g, a] - m[1] * m[2]);
-		}
+		//{
+		//	auto vf = v * f;
+		//	auto fv = f * v;
+		//	auto ff = f * f;
+		//	auto vv = v * v;
+		//	auto mf = m * f;
+		//	auto mv = m * v;
+		//	auto mm = m * m;
+		//}
 
-		mat3 mu = mat3(vec3(0.0, f, v[g]), v, av[2][3]);
+		//{
+		//	auto vf = v + f;
+		//	auto fv = f + v;
+		//	auto ff = f + f;
+		//	auto vv = v + v;
+		//	auto mf = m + f;
+		//	auto mm = m + m;
+		//}
 
-		auto fuu = define_function<vec3, Float>(
-			[](mat3 m) {
-			CSL_WHILE(true) {
-				m + m;
-				CSL_BREAK;
-			}
-			CSL_FOR(Int w; false; ) {
-				w + w;
-				CSL_CONTINUE;
-			}
-		}, [](vec3 v) {
-			CSL_IF(true) {
-				v = v;
-			} CSL_ELSE_IF(false) {
-				CSL_IF(false) {
-					v - v;
-				}
-				v* v;
-			} CSL_ELSE{
-				v + v;
-			}
-		});
+		//{
+		//	auto formula = f * (-m[0] * v[b, g, a] - m[1] * m[2]);
+		//}
 
-		int i = 0;
-		CSL_SWITCH(i) {
-			CSL_CASE(0) : { Int j; }
-		CSL_DEFAULT: { vec3 kk; }
-		}
+		//mat3 mu = mat3(vec3(0.0, f, v[g]), v, av[2][3]);
 
-		auto fun = define_function<void>([]() {});
-		fun();
+		//auto fuu = define_function<vec3, Float>(
+		//	[](mat3 m) {
+		//	CSL_WHILE(true) {
+		//		m + m;
+		//		CSL_BREAK;
+		//	}
+		//	CSL_FOR(Int w; false; ) {
+		//		w + w;
+		//		CSL_CONTINUE;
+		//	}
+		//}, [](vec3 v) {
+		//	CSL_IF(true) {
+		//		v = v;
+		//	} CSL_ELSE_IF(false) {
+		//		CSL_IF(false) {
+		//			v - v;
+		//		}
+		//		v* v;
+		//	} CSL_ELSE{
+		//		v + v;
+		//	}
+		//});
 
-		fuu(m) + fuu(m * m);
+		//int i = 0;
+		//CSL_SWITCH(i) {
+		//	CSL_CASE(0) : { Int j; }
+		//CSL_DEFAULT: { vec3 kk; }
+		//}
+
+		//auto fun = define_function<void>([]() {});
+		//fun();
+
+		//fuu(m) + fuu(m * m);
+
 	}
 
 	std::cout << std::endl;

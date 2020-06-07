@@ -36,16 +36,38 @@ namespace v2 {
 
 		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : m_name(name), id(counter++), m_flags(flags)
 		{
-			m_alias = make_expr<Reference>(id);
+		}
+
+		void set_as_temp() const {
+			if (m_flags & ObjFlags::Constructor) {
+				auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor;
+				ctor->set_as_temp();
+
+				//auto tmp = ctor->first_arg();
+
+				//m_expr = ctor->first_arg();
+
+				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
+
+
+				//m_expr.swap(ctor->first_arg());
+			}
+
+			if (m_flags & ObjFlags::StructMember) {
+				std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(m_expr)->m_operator.m_member_accessor->set_as_temp();
+			}
 		}
 
 		Expr get_expr_as_ref() const
 		{
-			m_flags |= ObjFlags::UsedAsRef;
+			if (!(m_flags & ObjFlags::UsedAsRef)) {
+				m_flags |= ObjFlags::UsedAsRef;
+			}
 			if (m_flags & ObjFlags::AlwaysExp) {
 				return m_expr;
+				//return std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->first_arg();
 			}
-			return m_alias;
+			return make_expr<Reference>(id);
 		}
 
 		Expr get_expr_as_ref()
@@ -55,9 +77,9 @@ namespace v2 {
 
 		Expr get_expr_as_temp() const
 		{
-			m_flags |= ObjFlags::UsedAsRef;
-			if (m_flags & ObjFlags::Constructor) {
-				std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->set_as_temp();
+			if (!(m_flags & ObjFlags::UsedAsRef)) {
+				set_as_temp();
+				m_flags |= ObjFlags::UsedAsRef;
 			}
 			return m_expr;
 		}
@@ -75,7 +97,7 @@ namespace v2 {
 	protected:
 		std::string m_name;
 		std::size_t id;
-		Expr m_expr, m_alias;
+		mutable Expr m_expr;
 		mutable ObjFlags m_flags;
 
 		static std::size_t counter;
@@ -112,7 +134,11 @@ namespace v2 {
 		}
 
 		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags) {
-			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr); ;
+			if (obj_flags & ObjFlags::StructMember) {
+				m_expr = expr;
+			} else {
+				m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
+			}
 		}
 
 	private:

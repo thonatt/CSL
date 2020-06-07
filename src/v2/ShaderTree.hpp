@@ -36,7 +36,7 @@ namespace v2 {
 	};
 
 	template <typename Instruction, typename ... Args>
-	InstructionBase::Ptr make_instruction(Args&& ...args) 
+	InstructionBase::Ptr make_instruction(Args&& ...args)
 	{
 		return std::static_pointer_cast<InstructionBase>(std::make_shared<InstructionWrapper<Instruction>>(std::forward<Args>(args)...));
 	}
@@ -246,13 +246,31 @@ namespace v2 {
 		SwitchInstruction::Ptr m_parent_switch;
 	};
 
+	struct StructDeclarationBase {
+		virtual ~StructDeclarationBase() = default;
+
+
+		virtual void print_debug(DebugData& data) const { }
+	};
 
 	template<typename Struct>
-	struct StructDeclaration {
+	struct StructDeclaration : StructDeclarationBase {
+		virtual void print_debug(DebugData& data) const override {
+			InstructionDebug<StructDeclaration>::call(*this, data);
+		}
+	};
+
+	struct StructDeclarationWrapper {
+		template<typename S>
+		static StructDeclarationWrapper create() {
+			return StructDeclarationWrapper{ std::static_pointer_cast<StructDeclarationBase>(std::make_shared<StructDeclaration<S>>()) };
+		}
+
+		std::shared_ptr<StructDeclarationBase> m_struct;
 	};
 
 	template<typename Interface>
-	struct UnnamedInterfaceDeclaration  {
+	struct UnnamedInterfaceDeclaration {
 	};
 
 	template<typename Interface>

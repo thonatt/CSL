@@ -299,11 +299,15 @@ namespace v2 {
 			for (const auto& f : m_functions) {
 				f->print_debug(data);
 			}
+
+			for (const auto& s : m_structs) {
+				s->print_debug(data);
+			}
 		}
 
 		template<typename Struct>
 		void add_struct() {
-			m_structs.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<StructDeclaration<Struct>>()));
+			m_structs.push_back(make_instruction<StructDeclarationWrapper>(StructDeclarationWrapper::create<Struct>()));
 		}
 
 		template<typename Interface>

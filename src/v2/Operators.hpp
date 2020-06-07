@@ -88,7 +88,9 @@ namespace v2 {
 
 	template <typename Operator, typename ... Args>
 	Expr make_expr(Args&& ...args) {
-		return std::static_pointer_cast<OperatorBase>(std::make_shared<OperatorWrapper<Operator>>(std::forward<Args>(args)...));
+		auto wrapper = std::make_shared<OperatorWrapper<Operator>>(std::forward<Args>(args)...);
+		auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
+		return expr;
 	}
 
 	struct Reference {
@@ -116,16 +118,20 @@ namespace v2 {
 
 	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
+		virtual void print_debug(DebugData& data) const {}
 
 		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_variable_id(variable_id), m_flags(flags) {}
 
 		void set_as_temp() {
-			if (m_flags & CtorFlags::Initialisation) {
-				m_flags = CtorFlags::Temporary;
-			}
+			m_flags = CtorFlags::Temporary;
+			//if (m_flags & CtorFlags::Initialisation) {
+			//	m_flags = CtorFlags::Temporary;
+			//}
 		}
 
-		virtual void print_debug(DebugData& data) const {}
+		virtual Expr first_arg() const {
+			return {};
+		}
 
 		std::size_t m_variable_id;
 		CtorFlags m_flags;
@@ -138,6 +144,14 @@ namespace v2 {
 
 		template<typename ...Args>
 		Constructor(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) : ConstructorBase(flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
+
+		virtual Expr first_arg() const override {
+			if constexpr (N == 0) {
+				return {};
+			} else {
+				return ArgSeq<N>::m_args[0];
+			}		
+		}
 
 		virtual void print_debug(DebugData& data) const override {
 			OperatorDebug<Constructor>::call(*this, data);
@@ -186,6 +200,46 @@ namespace v2 {
 
 		std::shared_ptr<SwizzlingBase> m_swizzle;
 	};
+
+
+	struct MemberAccessorBase {
+		virtual ~MemberAccessorBase() = default;
+
+		virtual void print_debug(DebugData& data) const {}
+
+		MemberAccessorBase(const Expr& expr) : m_obj(expr) { }
+
+		void set_as_temp();
+
+		Expr m_obj;
+	};
+
+	template<typename S, std::size_t MemberId>
+	struct MemberAccessor : MemberAccessorBase {
+
+		MemberAccessor(const Expr& expr) : MemberAccessorBase(expr) { }
+
+		virtual void print_debug(DebugData& data) const override {
+			OperatorDebug<MemberAccessor<S, MemberId>>::call(*this, data);
+		}
+	};
+
+	struct MemberAccessorWrapper {
+		template<typename S, std::size_t MemberId>
+		static MemberAccessorWrapper create(const Expr& expr) {
+			return MemberAccessorWrapper{ std::static_pointer_cast<MemberAccessorBase>(std::make_shared<MemberAccessor<S, MemberId>>(expr)) };
+		}
+
+		std::shared_ptr<MemberAccessorBase> m_member_accessor;
+	};
+
+	inline void MemberAccessorBase::set_as_temp() {
+		if (auto parent_ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_obj)) {
+			parent_ctor->m_operator.m_ctor->set_as_temp();
+		} else {
+			std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(m_obj)->m_operator.m_member_accessor->set_as_temp();
+		}
+	}
 
 	struct UnaryOperator {
 

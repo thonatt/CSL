@@ -49,8 +49,8 @@ namespace v2 {
 	struct DebugQualifier<TList<Q, Qs...>> {
 		static void print_debug(DebugData& data) {
 			data << typeid(Q).name();
-			(((data<< ", "), data << typeid(Qs).name()), ...);
-			
+			(((data << ", "), data << typeid(Qs).name()), ...);
+
 			//DebugQualifier<Q>::print_debug(data);
 			//(((data << ", "), DebugQualifier<Qs>::print_debug(data)), ...);
 		}
@@ -195,7 +195,7 @@ namespace v2 {
 				i.m_label->print_debug(data);
 			} else {
 				data << "Default";
-			}			
+			}
 			++data.trailing;
 			for (const auto& j : i.m_body->m_instructions) {
 				j->print_debug(data);
@@ -277,6 +277,38 @@ namespace v2 {
 		}
 	};
 
+	template<>
+	struct InstructionDebug<StructDeclarationBase> {
+		static void call(const StructDeclarationBase& f, DebugData& data) { }
+	};
+
+	template<>
+	struct InstructionDebug<StructDeclarationWrapper> {
+		static void call(const StructDeclarationWrapper& wrapper, DebugData& data) {
+			wrapper.m_struct->print_debug(data);
+		}
+	};
+
+	template<typename S, typename T, std::size_t Id>
+	struct StructDeclarationMember {
+		static void call(DebugData& data) {
+			data.endl().trail() << typeid(T).name() << " " << S::get_member_name(Id);
+		}
+	};
+
+	template<typename S>
+	struct InstructionDebug<StructDeclaration<S>> {
+
+		template<typename T, std::size_t Id>
+		using StructMemberDeclaration = StructDeclarationMember<S, T, Id>;
+
+		static void call(const StructDeclaration<S>& s, DebugData& data) {
+			data.endl().trail() << "Struct declaration " << typeid(S).name();
+			++data.trailing;
+			iterate_over_typelist<typename S::MemberTList, StructMemberDeclaration>(data);
+			--data.trailing;
+		}
+	};
 	// operators
 
 
@@ -437,6 +469,36 @@ namespace v2 {
 				data.endl().trail();
 				fun_call.m_args[i]->print_debug(data);
 			}
+			--data.trailing;
+		}
+	};
+
+	template<>
+	struct OperatorDebug<MemberAccessorWrapper> {
+		static void call(const MemberAccessorWrapper& wrapper, DebugData& data) {
+			wrapper.m_member_accessor->print_debug(data);
+		}
+	};
+
+	template<typename S, std::size_t Id>
+	struct OperatorDebug<MemberAccessor<S, Id>> {
+		static void call(const MemberAccessor<S, Id>& accessor, DebugData& data) {
+			data << "Member accessor";
+			++data.trailing;
+			data.endl().trail();
+			auto ctor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(accessor.m_obj);
+			if (ctor_wrapper) {
+				auto ctor = ctor_wrapper->m_operator.m_ctor;
+				if (ctor->m_flags & CtorFlags::Temporary) {					
+					ctor->print_debug(data);
+				} else {
+					data << "$" << ctor->m_variable_id;
+				}
+			} else {
+				auto accessor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(accessor.m_obj);
+				accessor_wrapper->print_debug(data);
+			}
+			data.endl().trail() << S::get_member_name(Id);
 			--data.trailing;
 		}
 	};

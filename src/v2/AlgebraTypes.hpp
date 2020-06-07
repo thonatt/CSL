@@ -60,12 +60,12 @@ namespace v2 {
 		template<std::size_t N>
 		explicit Matrix(const char(&name)[N]) : Base(name) {}
 
-		Matrix(const Expr& expr) : Base(expr) { }
-
+		//Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
+		//Matrix(Expr && expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
+		//Matrix(Expr expr) : Base(expr, ObjFlags::Default) { }
+		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 
 		Matrix(Matrix&& other) : Base(other) {}
-
-
 
 		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
 		Matrix operator=(M&& other)& {
@@ -77,11 +77,10 @@ namespace v2 {
 			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(M,other)) };
 		}
 
-
-		template<typename U, typename V, typename ...Vs,
-			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<Matrix, U, V, Vs...> > >
-			explicit Matrix(U&& u, V&& v, Vs&&...vs) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(V, v), EXPR(Vs, vs)...) {
-
+		template<typename U, typename T, typename ...Ts,
+			typename = std::enable_if_t< (NumElements<U, T, Ts...> == R * C) && SameScalarType<Matrix, U, T, Ts...> > >
+			explicit Matrix(U&& u, T&& t, Ts&&...ts) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(T, t), EXPR(Ts, ts)...) 
+		{
 		}
 
 		// swizzling
@@ -177,7 +176,7 @@ namespace v2 {
 		MatrixArray(const Expr& expr) : Base(expr) { }
 
 		template<typename U, typename V, typename ... Us, typename = std::enable_if_t<
-			!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ... ) && (ComponentCount == 0  || 2 + sizeof...(Us) == ComponentCount)
+			!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ...) && (ComponentCount == 0 || 2 + sizeof...(Us) == ComponentCount)
 			>>
 			explicit MatrixArray(U&& u, V&& v, Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(Us, us)...)
 		{
