@@ -19,9 +19,6 @@ namespace v2 {
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename Qs>
 	struct MatrixArrayIndirection;
 
-	template<typename ...Qs>
-	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
-
 	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
 	using MatrixInterface = std::conditional_t<
 		ArrayInfos<Qs...>::Value,
@@ -30,8 +27,10 @@ namespace v2 {
 	>;
 
 	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	class Matrix : public NamedObject<Matrix<T, R, C, Qs...>> {
+	class Matrix : virtual public NamedObject<Matrix<T, R, C, Qs...>> {
 	public:
+
+		virtual ~Matrix() = default;
 
 		using Qualifiers = TList<Qs...>;
 
@@ -63,7 +62,7 @@ namespace v2 {
 		//Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 		//Matrix(Expr && expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 		//Matrix(Expr expr) : Base(expr, ObjFlags::Default) { }
-		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
+		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags), Base(expr, obj_flags) { }
 
 		Matrix(Matrix&& other) : Base(other) {}
 

@@ -35,10 +35,10 @@ namespace v2 {
 	using Expr = std::shared_ptr<OperatorBase>;
 
 	enum class CtorFlags : std::size_t {
-		Declaration,
-		Initialisation,
-		Temporary,
-		Forward
+		Declaration = 1 << 1,
+		Initialisation = 1 << 2,
+		Temporary = 1 << 3,
+		Unused = 1 << 4
 	};
 
 	constexpr CtorFlags operator|(CtorFlags a, CtorFlags b) {
@@ -124,9 +124,12 @@ namespace v2 {
 
 		void set_as_temp() {
 			m_flags = CtorFlags::Temporary;
-			//if (m_flags & CtorFlags::Initialisation) {
-			//	m_flags = CtorFlags::Temporary;
-			//}
+		}
+
+		void set_as_unused() {
+			if (m_flags & CtorFlags::Initialisation) {
+				m_flags = CtorFlags::Unused;
+			}		
 		}
 
 		virtual Expr first_arg() const {
@@ -150,7 +153,7 @@ namespace v2 {
 				return {};
 			} else {
 				return ArgSeq<N>::m_args[0];
-			}		
+			}
 		}
 
 		virtual void print_debug(DebugData& data) const override {

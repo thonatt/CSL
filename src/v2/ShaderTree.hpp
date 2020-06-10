@@ -139,12 +139,12 @@ namespace v2 {
 	};
 
 	template<typename ReturnTList, typename ... Fs>
-	struct FuncDeclarationInstruction : FuncDeclarationBase {
-		using Ptr = std::shared_ptr<FuncDeclarationInstruction>;
+	struct FuncDeclaration : FuncDeclarationBase {
+		using Ptr = std::shared_ptr<FuncDeclaration>;
 
 		static constexpr std::size_t N = sizeof...(Fs);
 
-		FuncDeclarationInstruction(const std::size_t fun_id) : FuncDeclarationBase(fun_id) {
+		FuncDeclaration(const std::size_t fun_id) : FuncDeclarationBase(fun_id) {
 			//m_overloads.resize(N);
 		}
 
@@ -157,7 +157,7 @@ namespace v2 {
 		}
 
 		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<FuncDeclarationInstruction>::call(*this, data);
+			InstructionDebug<FuncDeclaration>::call(*this, data);
 		}
 
 		std::array<OverloadData, N> m_overloads;

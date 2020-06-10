@@ -264,14 +264,19 @@ namespace v2 {
 	/////////////////////////////
 	// definitions requiring listen() definition
 
+	inline NamedObjectBase::~NamedObjectBase() {
+		if (!(m_flags & ObjFlags::UsedAsRef) && m_flags & ObjFlags::Constructor) {
+			std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->set_as_unused();
+		}
+	}
+
 	template<typename T, typename ... Args>
 	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
 		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(ctor_flags, variable_id, std::forward<Args>(args)...));
-		listen().push_expression(expr);
-		//if (!(obj_flags & ObjFlags::StructMember)) {
-		//	listen().push_expression(expr);
-		//}
+		if (obj_flags & ObjFlags::Tracked) {
+			listen().push_expression(expr);
+		}
 		return expr;
 	}
 

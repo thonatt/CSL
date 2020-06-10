@@ -85,7 +85,7 @@ namespace v2 {
 #define CSL2_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
 	v2::listen().add_struct<StructTypename>(); \
-	struct StructTypename : public v2::NamedObject<StructTypename> { \
+	struct StructTypename : virtual public v2::NamedObject<StructTypename> { \
 		using Base = v2::NamedObject<StructTypename>;\
 		\
 		CSL_PP2_ITERATE(CSL_PP2_DECLARE_MEMBER_IT, __VA_ARGS__) \
@@ -94,13 +94,32 @@ namespace v2 {
 		using ArrayDimensions = v2::SizeList<>; \
 		using Qualifiers = v2::TList<>; \
 		\
+		StructTypename(StructTypename && other) : Base(other) \
+			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		\
 		StructTypename(const std::string & name = "", const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
-			: Base(name, obj_flags) \
+			: NamedObjectBase(name, obj_flags), Base(name, obj_flags) \
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const v2::Expr& expr, const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
-			: Base(expr, obj_flags) \
+			: NamedObjectBase("", obj_flags), Base(expr, obj_flags) \
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		\
+		StructTypename operator=(const StructTypename& other) & { \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_ref()) }; \
+		} \
+		\
+		StructTypename operator=(const StructTypename& other) && { \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_ref()) }; \
+		} \
+		\
+		StructTypename operator=(StructTypename&& other) & { \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_temp()) }; \
+		} \
+		\
+		StructTypename operator=(StructTypename&& other) && { \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_temp()) }; \
+		} \
 		\
 		static const std::string& get_member_name(const std::size_t member_id) { \
 			static const std::vector<std::string> member_names = { CSL_PP2_ITERATE(CSL_PP2_MEMBER_STR_IT, __VA_ARGS__) }; \

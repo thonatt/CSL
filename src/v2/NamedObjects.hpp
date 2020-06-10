@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Operators.hpp"
+#include "Types.hpp"
 
 #include <type_traits>
 #include <string>
@@ -17,22 +18,23 @@ namespace v2 {
 		Default = Tracked | Constructor
 	};
 
-	constexpr ObjFlags operator|(ObjFlags a, ObjFlags b) {
+	constexpr ObjFlags operator|(const ObjFlags a, const ObjFlags b) {
 		return static_cast<ObjFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
 	}
-	constexpr bool operator&(ObjFlags a, ObjFlags b) {
+	constexpr bool operator&(const ObjFlags a, const ObjFlags b) {
 		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
 	}
-	constexpr ObjFlags operator~(ObjFlags a) {
+	constexpr ObjFlags operator~(const ObjFlags a) {
 		return static_cast<ObjFlags>(~static_cast<std::size_t>(a));
 	}
-	inline ObjFlags& operator|=(ObjFlags& a, ObjFlags b) {
+	inline ObjFlags& operator|=(ObjFlags& a, const ObjFlags b) {
 		a = a | b;
 		return a;
 	}
 
 	class NamedObjectBase {
 	public:
+		virtual ~NamedObjectBase();
 
 		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : m_name(name), id(counter++), m_flags(flags)
 		{
@@ -121,19 +123,24 @@ namespace v2 {
 	}
 
 	template<typename T>
-	class NamedObject : public NamedObjectBase {
+	class NamedObject : virtual public NamedObjectBase {
 	public:
 
-		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(name, obj_flags) {
+		virtual ~NamedObject() = default;
+
+		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+			: NamedObjectBase(name, obj_flags) {
 			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
 		}
 
 		template<typename ... Args>
-		NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args) : NamedObjectBase(name, obj_flags) {
+		NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args) 
+			: NamedObjectBase(name, obj_flags) {
 			m_expr = create_variable_expr<T>(obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
 		}
 
-		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags) {
+		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
+			: NamedObjectBase("", obj_flags) {
 			if (obj_flags & ObjFlags::StructMember) {
 				m_expr = expr;
 			} else {
@@ -142,6 +149,67 @@ namespace v2 {
 		}
 
 	private:
+	};
+
+
+	template<typename T, typename ...Qs>
+	struct TypeInterface : virtual NamedObject<TypeInterface<T, Qs... >>, virtual T {
+		using Qualifiers = TList<Qs...>;
+		using Base = NamedObject<TypeInterface<T, Qs... >>;
+
+		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(name, obj_flags), Base(name, obj_flags), T(Base::m_expr, ObjFlags::None) { }
+
+		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags), Base(expr, obj_flags), T(Base::m_expr, ObjFlags::None) {
+		
+		}
+
+		TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
+
+		//Expr get_this_expr()& { return Base::get_expr_as_ref(); }
+		//Expr get_this_expr() const& { return Base::get_expr_as_ref(); }
+		//Expr get_this_expr()&& { return Base::get_expr_as_temp(); }
+		//Expr get_this_expr() const&& { return Base::get_expr_as_temp(); }
+	};
+
+	template<typename T, typename Ds, typename ... Qs>
+	struct ArrayInterface : virtual NamedObject<ArrayInterface<T, Ds, Qs...>> {
+
+		virtual ~ArrayInterface() = default;
+
+		using Base = NamedObject<ArrayInterface<T, Ds, Qs...>>;
+
+		using ArrayDimensions = Ds;
+		using Qualifiers = TList<Qs...>;
+
+		static constexpr std::size_t ComponentCount = Ds::Front;
+
+		using ArrayComponent = Qualify<T, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
+		static constexpr bool IsArray = true;
+
+		ArrayInterface() : Base() {}
+
+		template<std::size_t N>
+		explicit ArrayInterface(const char(&name)[N]) : Base(name) {}
+
+		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags), Base(expr, obj_flags) { }
+
+		template<typename ... Us, typename = std::enable_if_t<
+			!(std::is_same_v<Expr, Us> || ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount)) && (SameType<Us, ArrayComponent>&& ...)
+			>>
+			explicit ArrayInterface(Us&& ... us) : NamedObjectBase("", ObjFlags::Default), Base("", ObjFlags::Default, CtorFlags::Initialisation, get_expr(std::forward<Us>(us))...)
+		{
+		}
+
+		template<typename Index>
+		ArrayComponent operator [](Index&& index) const& {
+			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), get_expr(std::forward<Index>(index))) };
+		}
+
+		template<typename Index>
+		ArrayComponent operator [](Index&& index) const&& {
+			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_temp(), get_expr(std::forward<Index>(index))) };
+		}
+
 	};
 
 	template<typename T>

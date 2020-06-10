@@ -118,7 +118,6 @@ namespace v2 {
 
 	template<typename TList, template<typename, std::size_t> typename F>
 	struct IterateOverListImpl {
-
 		template<std::size_t ...Ns, typename ...Args>
 		static void call(std::index_sequence<Ns...>, Args&& ... args) {
 			(F<typename TList::template GetType<Ns>, Ns>::call(std::forward<Args>(args)...),...);
@@ -205,6 +204,8 @@ namespace v2 {
 
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
 	class MatrixArray;
+
+	enum class ObjFlags : std::size_t;
 
 	template<typename T>
 	struct IsArray {
@@ -321,7 +322,7 @@ namespace v2 {
 	constexpr bool SameDimensions = std::is_same_v<typename Infos<A>::ArrayDimensions, typename Infos<B>::ArrayDimensions>;
 
 	template<typename A, typename B>
-	constexpr bool SameType = SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>;
+	constexpr bool SameType = std::is_same_v<A,B> || (SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>);
 
 	template<typename T>
 	constexpr bool IsInteger = Infos<T>::IsInteger;
@@ -377,10 +378,26 @@ namespace v2 {
 		static constexpr Op OperatorSub = SameSize<A, B> ? Op::CWiseSub : Op::MatrixSubScalar;
 	};
 
-	template<typename T, typename ... Qs>
-	struct QualifiedIndirection;
+	template<typename ...Qs>
+	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
+
+	template<typename T, typename Ds, typename ... Qs>
+	struct ArrayInterface;
+
+	template<typename T, typename ...Qs>
+	struct TypeInterface;
 
 	template<typename T, typename ... Qs>
-	using Qualify = typename QualifiedIndirection<typename Infos<T>::Type, Qs...>::Type;
+	struct QualifiedIndirection;
+	
+	template<typename T, typename ... Qs>
+	using Qualify = std::conditional_t<
+		ArrayInfos<Qs...>::Value,
+		ArrayInterface<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >,
+		TypeInterface<T, RemoveArrayFromQualifiers<Qs...> >
+	>;
+
+	//template<typename T, typename ... Qs>
+	//using Qualify = typename QualifiedIndirection<typename Infos<T>::Type, Qs...>::Type;
 
 }

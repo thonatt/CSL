@@ -25,7 +25,7 @@ namespace v2 {
 
 		template<typename ReturnTList, typename ... Fs>
 		void begin_func_internal(const std::size_t fun_id) {
-			current_func = std::make_shared<FuncDeclarationInstruction<ReturnTList, Fs...>>(fun_id);
+			current_func = std::make_shared<FuncDeclaration<ReturnTList, Fs...>>(fun_id);
 			current_func_overloads_num_args = { GetArgTList<Fs>::Size ... };
 			current_func_parent = current_block;
 			current_overload = 0;

@@ -268,8 +268,8 @@ namespace v2 {
 	};
 
 	template<typename ReturnTList, typename ...Fs>
-	struct InstructionDebug<FuncDeclarationInstruction<ReturnTList, Fs...>> {
-		static void call(const FuncDeclarationInstruction<ReturnTList, Fs...>& f, DebugData& data) {
+	struct InstructionDebug<FuncDeclaration<ReturnTList, Fs...>> {
+		static void call(const FuncDeclaration<ReturnTList, Fs...>& f, DebugData& data) {
 			data.endl().trail() << "Function declaration $" << f.m_id;
 			++data.trailing;
 			iterate_over_typelist<ReturnTList, OverloadDebug<sizeof...(Fs)>::template Get>(f.m_overloads, data);
@@ -340,13 +340,12 @@ namespace v2 {
 
 			static const std::unordered_map<CtorFlags, std::string> flag_strs = {
 				{ CtorFlags::Declaration, "Declaration" },
-				{ CtorFlags::Forward, "Forward" },
 				{ CtorFlags::Initialisation, "Initialisation" },
 				{ CtorFlags::Temporary, "Temporary" },
+				{ CtorFlags::Unused, "Unused" },
 			};
 
 			data << flag_strs.at(ctor.m_flags) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
-
 			if (ctor.m_flags != CtorFlags::Temporary) {
 				using ArrayDimensions = typename T::ArrayDimensions;
 				if constexpr (ArrayDimensions::Size > 0) {
@@ -489,7 +488,7 @@ namespace v2 {
 			auto ctor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(accessor.m_obj);
 			if (ctor_wrapper) {
 				auto ctor = ctor_wrapper->m_operator.m_ctor;
-				if (ctor->m_flags & CtorFlags::Temporary) {					
+				if (ctor->m_flags & CtorFlags::Temporary) {
 					ctor->print_debug(data);
 				} else {
 					data << "$" << ctor->m_variable_id;

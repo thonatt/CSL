@@ -19,7 +19,7 @@ void testv2()
 	auto shader = std::make_shared<ShaderController>();
 	listen().current_shader = shader;
 
-	CSL2_STRUCT( Plop, 
+	CSL2_STRUCT(Plop, 
 		(vec3) v,
 		(Float) f
 	);
@@ -33,6 +33,17 @@ void testv2()
 		BigPlop b;
 		b.plop.v* BigPlop().plop.f;
 	});
+
+	Qualify<Plop, Uniform, Array<3>> b;
+
+	{
+		Plop pp;
+		pp = b[2];
+	}
+
+
+	//Qualify<Plop, > plops;
+
 
 	{
 		using namespace v2::swizzles::rgba;
