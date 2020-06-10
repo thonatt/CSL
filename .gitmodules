@@ -1,0 +1,3 @@
+[submodule "src/shader_suite/extlibs/imgui"]
+	path = src/shader_suite/extlibs/imgui
+	url = https://github.com/ocornut/imgui.git
