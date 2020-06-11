@@ -39,7 +39,7 @@ namespace v2 {
 		static constexpr std::size_t Size = 1 + sizeof...(Ns);
 		static constexpr std::size_t Front = N;
 		static constexpr std::size_t Back = (Size == 1 ? N : Tail::Back);
-		
+
 		template<std::size_t M>
 		using PushFront = SizeList<M, N, Ns...>;
 
@@ -98,15 +98,15 @@ namespace v2 {
 
 
 	template<typename T, typename ... Ts>
-	struct TList<T,Ts...> {
+	struct TList<T, Ts...> {
 		using Tuple = std::tuple<T, Ts...>;
 
 		using Front = T;
 		using Tail = TList<Ts...>;
 
-		template<std::size_t Id> 
+		template<std::size_t Id>
 		using GetType = typename std::tuple_element<Id, Tuple>::type;
-		
+
 		template<typename U>
 		using PushFront = TList<U, T, Ts...>;
 
@@ -120,13 +120,13 @@ namespace v2 {
 	struct IterateOverListImpl {
 		template<std::size_t ...Ns, typename ...Args>
 		static void call(std::index_sequence<Ns...>, Args&& ... args) {
-			(F<typename TList::template GetType<Ns>, Ns>::call(std::forward<Args>(args)...),...);
+			(F<typename TList::template GetType<Ns>, Ns>::call(std::forward<Args>(args)...), ...);
 		}
 	};
 
 	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
 	void iterate_over_typelist(Args&& ...args) {
-		IterateOverListImpl<TList,F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
+		IterateOverListImpl<TList, F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
 	}
 
 	template<typename List, std::size_t first, typename Range>
@@ -276,7 +276,7 @@ namespace v2 {
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
-		
+
 		static constexpr bool IsValid = true;
 
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
@@ -291,6 +291,8 @@ namespace v2 {
 		//TODO fix me
 	};
 
+	//////////////////////////////////////////////////////////////
+
 	template<>
 	struct Infos<Expr> {
 		static constexpr std::size_t NumElements = 0;
@@ -302,6 +304,24 @@ namespace v2 {
 		static constexpr std::size_t NumElements = 0;
 		using ScalarType = void;
 	};
+
+	template<std::size_t N>
+	struct Infos<const char(&)[N]> {
+		static constexpr std::size_t NumElements = 0;
+		using ScalarType = void;
+		static constexpr std::size_t RowCount = 0;
+		static constexpr std::size_t ColCount = 0;
+	};
+
+	template<>
+	struct Infos<std::string> {
+		static constexpr std::size_t NumElements = 0;
+		using ScalarType = void;
+		static constexpr std::size_t RowCount = 0;
+		static constexpr std::size_t ColCount = 0;
+	};
+
+	////////////////////////////////////////////////////////////////////////
 
 	template<typename ...Ts>
 	constexpr std::size_t NumElements = (Infos<Ts>::NumElements + ...);
@@ -322,7 +342,7 @@ namespace v2 {
 	constexpr bool SameDimensions = std::is_same_v<typename Infos<A>::ArrayDimensions, typename Infos<B>::ArrayDimensions>;
 
 	template<typename A, typename B>
-	constexpr bool SameType = std::is_same_v<A,B> || (SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>);
+	constexpr bool SameType = std::is_same_v<A, B> || (SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>);
 
 	template<typename T>
 	constexpr bool IsInteger = Infos<T>::IsInteger;
@@ -357,7 +377,7 @@ namespace v2 {
 
 	template<typename A, typename B>
 	struct AlgebraMulInfos {
-		static_assert(SameScalarType<A,B>);
+		static_assert(SameScalarType<A, B>);
 		static_assert(!Infos<A>::IsScalar || Infos<B>::IsScalar);
 
 		using ScalarType = typename Infos<A>::ScalarType;
@@ -389,7 +409,7 @@ namespace v2 {
 
 	template<typename T, typename ... Qs>
 	struct QualifiedIndirection;
-	
+
 	template<typename T, typename ... Qs>
 	using Qualify = std::conditional_t<
 		ArrayInfos<Qs...>::Value,

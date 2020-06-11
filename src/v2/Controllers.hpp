@@ -5,7 +5,10 @@
 
 namespace v2 {
 
-	struct DebugData;
+	template<typename T>
+	struct ControllerImGui {
+		static void call(const T& t, ImGuiData& data) { }
+	};
 
 	struct ControllerBase {
 
@@ -66,7 +69,7 @@ namespace v2 {
 			}
 		}
 
-		void end_func() {
+		virtual void end_func() {
 			current_block = current_func_parent;
 			current_func_parent = {};
 			current_func = {};
@@ -265,6 +268,11 @@ namespace v2 {
 			SwitchController::end_switch();
 		}
 
+		virtual void end_func() override {
+			check_end_if();
+			FunctionController::end_func();
+		}
+
 		void push_expression(const Expr& expr) {
 			check_end_if();
 			check_func_args();
@@ -303,6 +311,12 @@ namespace v2 {
 			for (const auto& s : m_structs) {
 				s->print_debug(data);
 			}
+		}
+
+		// template to delay instantiation
+		template<typename Data>
+		void print_imgui(Data& data) {
+			ControllerImGui<ShaderController>::call(*this, data);
 		}
 
 		template<typename Struct>

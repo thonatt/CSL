@@ -26,10 +26,23 @@ namespace v2 {
 	template<typename T>
 	struct SPIRVstr;
 
+
+	////////////////////////////////////////////////////////
+
 	template<typename T>
 	struct OperatorDebug;
 
 	struct DebugData;
+
+	/////////////////////////////////////////////////////////
+
+	template<typename T>
+	struct OperatorImGui;
+
+	struct ImGuiData;
+
+	//////////////////////////////////////////////////////////
+
 
 	struct OperatorBase;
 	using Expr = std::shared_ptr<OperatorBase>;
@@ -61,6 +74,7 @@ namespace v2 {
 		virtual void print_glsl() const {}
 		virtual void print_spirv() const {}
 		virtual void print_debug(DebugData& data) const {}
+		virtual void print_imgui(ImGuiData& data) const {}
 
 	};
 
@@ -76,6 +90,9 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const override {
 			OperatorDebug<Operator>::call(m_operator, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			OperatorImGui<Operator>::call(m_operator, data);
 		}
 
 		template<typename ...Args>
@@ -119,6 +136,7 @@ namespace v2 {
 	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
 		virtual void print_debug(DebugData& data) const {}
+		virtual void print_imgui(ImGuiData& data) const {}
 
 		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_variable_id(variable_id), m_flags(flags) {}
 
@@ -159,6 +177,9 @@ namespace v2 {
 		virtual void print_debug(DebugData& data) const override {
 			OperatorDebug<Constructor>::call(*this, data);
 		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			OperatorImGui<Constructor>::call(*this, data);
+		}
 	};
 
 	struct ConstructorWrapper {
@@ -181,7 +202,7 @@ namespace v2 {
 		SwizzlingBase(const Expr& expr) : m_obj(expr) { }
 
 		virtual void print_debug(DebugData& data) const {}
-
+		virtual void print_imgui(ImGuiData& data) const {}
 		Expr m_obj;
 	};
 
@@ -191,6 +212,9 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const override {
 			OperatorDebug<Swizzling<S>>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			OperatorImGui<Swizzling<S>>::call(*this, data);
 		}
 	};
 
@@ -209,6 +233,7 @@ namespace v2 {
 		virtual ~MemberAccessorBase() = default;
 
 		virtual void print_debug(DebugData& data) const {}
+		virtual void print_imgui(ImGuiData& data) const {}
 
 		MemberAccessorBase(const Expr& expr) : m_obj(expr) { }
 
@@ -224,6 +249,9 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const override {
 			OperatorDebug<MemberAccessor<S, MemberId>>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
 	};
 

@@ -14,12 +14,16 @@ namespace v2 {
 		virtual ~InstructionBase() = default;
 
 		virtual void print_debug(DebugData& data) const { }
+		virtual void print_imgui(ImGuiData& data) const { }
 	};
 
 	template<typename Instruction>
 	struct InstructionDebug;
 
-	struct DebugData;
+	template<typename Instruction>
+	struct InstructionImGui {
+		static void call(const Instruction&, ImGuiData& data) { }
+	};
 
 	template<typename Instruction>
 	struct InstructionWrapper : InstructionBase {
@@ -27,6 +31,10 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const override {
 			InstructionDebug<Instruction>::call(m_instruction, data);
+		}
+
+		virtual void print_imgui(ImGuiData& data) const override {
+			InstructionImGui<Instruction>::call(m_instruction, data);
 		}
 
 		template<typename ...Args>
@@ -129,13 +137,12 @@ namespace v2 {
 		}
 
 		virtual void print_debug(DebugData& data) const {}
+		virtual void print_imgui(ImGuiData& data) const {}
 
 		virtual const OverloadData& get_overload(const std::size_t i) const = 0;
 		virtual std::size_t overload_count() const = 0;
 
 		std::size_t m_id;
-		//std::string m_func_name;
-		//std::vector<OverloadData> m_overloads;
 	};
 
 	template<typename ReturnTList, typename ... Fs>
@@ -145,7 +152,6 @@ namespace v2 {
 		static constexpr std::size_t N = sizeof...(Fs);
 
 		FuncDeclaration(const std::size_t fun_id) : FuncDeclarationBase(fun_id) {
-			//m_overloads.resize(N);
 		}
 
 		const OverloadData& get_overload(const std::size_t i) const override {
@@ -158,6 +164,9 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const override {
 			InstructionDebug<FuncDeclaration>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			InstructionImGui<FuncDeclaration>::call(*this, data);
 		}
 
 		std::array<OverloadData, N> m_overloads;
@@ -251,12 +260,16 @@ namespace v2 {
 
 
 		virtual void print_debug(DebugData& data) const { }
+		virtual void print_imgui(ImGuiData& data) const { }
 	};
 
 	template<typename Struct>
 	struct StructDeclaration : StructDeclarationBase {
 		virtual void print_debug(DebugData& data) const override {
 			InstructionDebug<StructDeclaration>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			InstructionImGui<StructDeclaration>::call(*this, data);
 		}
 	};
 

@@ -11,6 +11,157 @@
 
 #include <iostream>
 #include <chrono>
+#include <memory>
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <imgui.h>
+#include <examples/imgui_impl_glfw.h>
+#include <examples/imgui_impl_opengl3.h>
+
+#include "to_imgui.hpp"
+
+void main_loop()
+{
+	using namespace v2;
+
+	static auto shader = std::make_shared<ShaderController>();
+	listen().current_shader = shader;
+
+	static bool first = true;
+	static DebugData data;
+
+	if(first)
+	{
+		CSL2_STRUCT(Plop,
+			(vec3) v,
+			(Float) f
+		);
+
+		CSL2_STRUCT(BigPlop,
+			(Plop) plop,
+			(Float) g
+		);
+
+		auto ffff = define_function<void>([&] {
+			BigPlop b;
+			b.plop.v* BigPlop().plop.f;
+
+			CSL_IF(true) {
+				b.plop.v = b.plop.v;
+			}
+		});
+
+		Qualify<Plop, Uniform, Array<3>> b;
+
+		{
+			Plop pp;
+			pp = b[2];
+		}
+
+		shader->print_debug(data);
+		first = false;
+	}
+
+	if (ImGui::Begin("shader debug str")) {
+		ImGui::Text(data.stream.str().c_str());
+	}
+	ImGui::End();
+
+	ImGuiData imgui_data;
+	if (ImGui::Begin("shader imgui")) {
+		shader->print_imgui(imgui_data);
+	}
+	ImGui::End();
+}
+
+void create_context() 
+{
+
+	if (!glfwInit()) {
+		std::cout << "glfwInit Initialization failed " << std::endl;
+	}
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	if (!mode) {
+		return;
+	}
+	glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+	//window = glfwCreateWindow(mode->width, mode->height, name.c_str(), glfwGetPrimaryMonitor(), NULL);
+	auto window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(1600, 1000, "bouh", NULL, NULL), glfwDestroyWindow);
+
+	if (!window) {
+		std::cout << " Window or OpenGL context creation failed " << std::endl;
+	}
+
+	glfwMakeContextCurrent(window.get());
+	const int desired_fps = 60;
+	const int interval = mode->refreshRate / desired_fps - 1;
+	glfwSwapInterval(interval);
+
+	glfwSetMouseButtonCallback(window.get(), ImGui_ImplGlfw_MouseButtonCallback);
+	glfwSetKeyCallback(window.get(), ImGui_ImplGlfw_KeyCallback);
+	glfwSetCharCallback(window.get(), ImGui_ImplGlfw_CharCallback);
+	glfwSetScrollCallback(window.get(), ImGui_ImplGlfw_ScrollCallback);
+
+	const int version = gladLoadGL();
+	std::cout << "OpenGL version " << GLVersion.major << "." << GLVersion.minor << std::endl;
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;    
+
+	ImGui::StyleColorsDark();
+
+	//imgui scaling
+	float xscale, yscale;
+	glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &xscale, &yscale);
+
+	float scaling = std::max(xscale, yscale);
+	ImGui::GetStyle().ScaleAllSizes(scaling);
+	ImGui::GetIO().FontGlobalScale = scaling;
+
+	ImGui_ImplGlfw_InitForOpenGL(window.get(), false);
+	ImGui_ImplOpenGL3_Init("#version 410");
+
+	while (!glfwWindowShouldClose(window.get())) {
+
+		glClear((GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		glfwPollEvents();
+
+		
+		//if (keyReleased(GLFW_KEY_ESCAPE)) {
+		//	glfwSetWindowShouldClose(window.get(), GLFW_TRUE);
+		//}
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		if (ImGui::GetIO().KeysDown[GLFW_KEY_ESCAPE]) {
+			glfwSetWindowShouldClose(window.get(), GLFW_TRUE);
+		}
+
+		main_loop();
+
+		glClearColor(0, 0, 0, 0);
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glfwSwapBuffers(window.get());
+	}
+}
 
 void testv2()
 {
@@ -131,6 +282,8 @@ void testv2()
 
 int main()
 {
+	create_context();
+
 	//test_accessor();
 	testsCompliance();
 	//testArgCleaning();
