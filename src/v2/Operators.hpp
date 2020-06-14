@@ -20,12 +20,98 @@ namespace v2 {
 		Assignment
 	};
 
-	template<typename T>
-	struct GLSLstr;
+	enum class OperatorPrecedence : std::size_t
+	{
+		Alias = 10,
 
-	template<typename T>
-	struct SPIRVstr;
+		ArraySubscript = 20,
+		FunctionCall = 20,
+		FieldAccessor = 20,
+		Swizzle = 20,
+		Postfix = 20,
 
+		Prefix = 30,
+		Unary = 30,
+		Negation = 30,
+		OnesComplement = 30,
+
+		Division = 40,
+		Modulo = 41,
+		Multiply = 42,
+
+		Addition = 50,
+		Substraction = 50,
+
+		BitwiseShift = 60,
+
+		Relational = 70,
+
+		Equality = 80,
+
+		BitwiseAnd = 90,
+
+		BitwiseXor = 100,
+
+		BitwiseOr = 110,
+
+		LogicalAnd = 120,
+
+		LogicalXor = 130,
+
+		LogicalOr = 140,
+
+		Ternary = 150,
+
+		Assignment = 160,
+
+		Sequence = 170
+	};
+
+	//////////////////////////////////////////////////////////////
+
+	//template<typename ...Ts>
+	//struct VisitableBase {
+	//	virtual ~VisitableBase() = default;
+	//};
+
+	//template<typename T>
+	//struct VisitableBase<T> {
+	//	virtual void visit(T& visitor) const = 0;
+	//	virtual ~VisitableBase() = default;
+	//};
+
+	//template<typename T, typename ...Ts>
+	//struct VisitableBase<T, Ts...> : virtual  VisitableBase<T>, virtual VisitableBase<Ts...>
+	//{
+	//	using VisitableBase<T>::visit;
+	//	using VisitableBase<Ts...>::visit;
+	//	virtual ~VisitableBase() = default;
+	//};
+
+	//template<typename Visited, typename Visitor>
+	//struct Visiting {
+	//	static void call(const Visited& visited, Visitor& visitor) {
+	//		std::cout << "visiting " << typeid(Visited).name() << " with " << typeid(Visitor).name() << std::endl;
+	//	}
+	//};
+
+	//template<typename Visited, typename ...Ts>
+	//struct VisitableDerived {
+	//	virtual ~VisitableDerived() = default;
+	//};
+
+	//template<typename Visited, typename T>
+	//struct VisitableDerived<Visited, T> : virtual VisitableBase<T> {
+	//	virtual ~VisitableDerived() = default;
+	//	virtual void visit(T& visitor) const override {
+	//		Visiting<Visited, T>::call(static_cast<const Visited&>(*this), visitor);
+	//	}
+	//};
+
+	//template<typename Visited, typename T, typename ...Ts>
+	//struct VisitableDerived<Visited, T, Ts...> : VisitableDerived<Visited, T>, VisitableDerived<Visited, Ts...> {
+	//	virtual ~VisitableDerived() = default;
+	//};
 
 	////////////////////////////////////////////////////////
 
@@ -43,6 +129,12 @@ namespace v2 {
 
 	//////////////////////////////////////////////////////////
 
+	template<typename T>
+	struct OperatorGLSL;
+
+	struct GLSLData;
+
+	//////////////////////////////////////////////////////////
 
 	struct OperatorBase;
 	using Expr = std::shared_ptr<OperatorBase>;
@@ -71,19 +163,15 @@ namespace v2 {
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;
 
-		virtual void print_glsl() const {}
 		virtual void print_spirv() const {}
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
 	};
 
 	template<typename Operator>
 	struct OperatorWrapper : OperatorBase {
-		virtual void print_glsl() const override {
-			//GLSLstr<Operator>::call(op);
-		}
-
 		virtual void print_spirv() const override {
 			//SPIRVstr<Operator>::call(op);
 		}
@@ -93,6 +181,9 @@ namespace v2 {
 		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Operator>::call(m_operator, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			OperatorGLSL<Operator>::call(m_operator, data);
 		}
 
 		template<typename ...Args>
@@ -137,8 +228,10 @@ namespace v2 {
 		virtual ~ConstructorBase() = default;
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
-		ConstructorBase(const CtorFlags flags, const std::size_t variable_id) : m_variable_id(variable_id), m_flags(flags) {}
+		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id) 
+			: m_name(std::move(name)), m_variable_id(variable_id), m_flags(flags) {}
 
 		void set_as_temp() {
 			m_flags = CtorFlags::Temporary;
@@ -147,13 +240,14 @@ namespace v2 {
 		void set_as_unused() {
 			if (m_flags & CtorFlags::Initialisation) {
 				m_flags = CtorFlags::Unused;
-			}		
+			}
 		}
 
 		virtual Expr first_arg() const {
 			return {};
 		}
 
+		std::string m_name;
 		std::size_t m_variable_id;
 		CtorFlags m_flags;
 	};
@@ -164,7 +258,8 @@ namespace v2 {
 		using ArgSeq<N>::m_args;
 
 		template<typename ...Args>
-		Constructor(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) : ConstructorBase(flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
+		Constructor(const std::string& name, const CtorFlags flags, const std::size_t variable_id, Args&& ...args)
+			: ConstructorBase(name, flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
 		virtual Expr first_arg() const override {
 			if constexpr (N == 0) {
@@ -180,13 +275,16 @@ namespace v2 {
 		virtual void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Constructor>::call(*this, data);
 		}
+		virtual void print_glsl(GLSLData& data) const override {
+			OperatorGLSL<Constructor>::call(*this, data);
+		}
 	};
 
 	struct ConstructorWrapper {
 
 		template<typename T, typename ...Args>
-		static ConstructorWrapper create(const CtorFlags flags, const std::size_t variable_id, Args&& ...args) {
-			return ConstructorWrapper{ std::static_pointer_cast<ConstructorBase>(std::make_shared<Constructor<T, sizeof...(Args)>>(flags, variable_id, std::forward<Args>(args)...)) };
+		static ConstructorWrapper create(const std::string& name, const CtorFlags flags, const std::size_t variable_id, Args&& ...args) {
+			return ConstructorWrapper{ std::static_pointer_cast<ConstructorBase>(std::make_shared<Constructor<T, sizeof...(Args)>>(name, flags, variable_id, std::forward<Args>(args)...)) };
 		}
 
 		std::shared_ptr<ConstructorBase> m_ctor;
@@ -203,6 +301,8 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
+		virtual void print_glsl(GLSLData& data) const {}
+
 		Expr m_obj;
 	};
 
@@ -215,6 +315,9 @@ namespace v2 {
 		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Swizzling<S>>::call(*this, data);
+		}
+		virtual void print_glsl(ImGuiData& data) const override {
+			OperatorGLSL<Swizzling<S>>::call(*this, data);
 		}
 	};
 
@@ -234,6 +337,7 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
 		MemberAccessorBase(const Expr& expr) : m_obj(expr) { }
 
@@ -252,6 +356,9 @@ namespace v2 {
 		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			OperatorGLSL<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
 	};
 

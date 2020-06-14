@@ -132,7 +132,7 @@ namespace v2 {
 	// function objects
 
 	struct FuncBase : NamedObjectBase {
-		FuncBase(const std::string& name) : NamedObjectBase(name, ObjFlags::None) {}
+		FuncBase() : NamedObjectBase(ObjFlags::None) {}
 	};
 
 	template<typename ReturnTList, typename ... Fs>

@@ -35,6 +35,23 @@ namespace v2 {
 
 	};
 
+	template<>
+	struct ControllerDebug<ShaderController> {
+		static void call(const ShaderController& controller, DebugData& data) {
+			for (const auto& i : controller.m_declarations->m_instructions) {
+				i->print_debug(data);
+			}
+
+			for (const auto& f : controller.m_functions) {
+				f->print_debug(data);
+			}
+
+			for (const auto& s : controller.m_structs) {
+				s->print_debug(data);
+			}
+		}
+	};
+
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// qualifiers
 

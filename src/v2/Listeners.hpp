@@ -5,8 +5,6 @@
 
 #include "Functions.hpp"
 
-#include "Debug.hpp"
-
 namespace v2 {
 
 	struct MainListener {
@@ -168,9 +166,9 @@ namespace v2 {
 		/////////////////////////////////////////////////
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func(const std::size_t fun_id, Fs&& ... fs) {
+		void begin_func(const std::string& name, const std::size_t fun_id, Fs&& ... fs) {
 			if (current_shader) {
-				current_shader->begin_func<ReturnTList>(fun_id, std::forward<Fs>(fs)...);
+				current_shader->begin_func<ReturnTList>(name, fun_id, std::forward<Fs>(fs)...);
 			}
 		}
 
@@ -271,9 +269,9 @@ namespace v2 {
 	}
 
 	template<typename T, typename ... Args>
-	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
+	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(ctor_flags, variable_id, std::forward<Args>(args)...));
+		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(name, ctor_flags, variable_id, std::forward<Args>(args)...));
 		if (obj_flags & ObjFlags::Tracked) {
 			listen().push_expression(expr);
 		}
@@ -281,9 +279,9 @@ namespace v2 {
 	}
 
 	template<typename ReturnTList, typename ...Fs>
-	Function<ReturnTList, Fs...>::Function(const std::string& name, Fs&& ...fs) : FuncBase(name)
+	Function<ReturnTList, Fs...>::Function(const std::string& name, Fs&& ...fs) : FuncBase()
 	{
-		listen().begin_func<ReturnTList>(NamedObjectBase::id, std::forward<Fs>(fs)...);
+		listen().begin_func<ReturnTList>(name, NamedObjectBase::id, std::forward<Fs>(fs)...);
 		((call_with_only_non_default_args(std::forward<Fs>(fs)), listen().next_overload()), ...);
 		listen().end_func();
 	}

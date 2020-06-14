@@ -36,7 +36,7 @@ namespace v2 {
 	public:
 		virtual ~NamedObjectBase();
 
-		NamedObjectBase(const std::string& name = "", const ObjFlags flags = ObjFlags::Default) : m_name(name), id(counter++), m_flags(flags)
+		NamedObjectBase(const ObjFlags flags = ObjFlags::Default) : id(counter++), m_flags(flags)
 		{
 		}
 
@@ -47,7 +47,7 @@ namespace v2 {
 
 				//auto tmp = ctor->first_arg();
 
-				//m_expr = ctor->first_arg();
+				m_expr = ctor->first_arg();
 
 				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
 
@@ -97,7 +97,6 @@ namespace v2 {
 		Expr get_this_expr() const&& { return get_expr_as_temp(); }
 
 	protected:
-		std::string m_name;
 		std::size_t id;
 		mutable Expr m_expr;
 		mutable ObjFlags m_flags;
@@ -108,7 +107,7 @@ namespace v2 {
 	inline std::size_t NamedObjectBase::counter = 0;
 
 	template<typename T, typename ... Args>
-	Expr create_variable_expr(const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args);
+	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args);
 
 	template<typename T, typename Enabler = void>
 	struct ExprGetter {
@@ -129,22 +128,26 @@ namespace v2 {
 		virtual ~NamedObject() = default;
 
 		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(name, obj_flags) {
-			m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+			: NamedObjectBase(obj_flags) {
+			if (obj_flags & ObjFlags::Constructor) {
+				m_expr = create_variable_expr<T>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+			}
 		}
 
 		template<typename ... Args>
-		NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args) 
-			: NamedObjectBase(name, obj_flags) {
-			m_expr = create_variable_expr<T>(obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
+		NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args)
+			: NamedObjectBase(obj_flags) {
+			if (obj_flags & ObjFlags::Constructor) {
+				m_expr = create_variable_expr<T>(name, obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
+			}
 		}
 
 		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase("", obj_flags) {
+			: NamedObjectBase(obj_flags) {
 			if (obj_flags & ObjFlags::StructMember) {
 				m_expr = expr;
-			} else {
-				m_expr = create_variable_expr<T>(obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
+			} else if (obj_flags & ObjFlags::Constructor) {
+				m_expr = create_variable_expr<T>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
 			}
 		}
 
@@ -153,17 +156,22 @@ namespace v2 {
 
 
 	template<typename T, typename ...Qs>
-	struct TypeInterface : virtual NamedObject<TypeInterface<T, Qs... >>, virtual T {
+	struct TypeInterface : NamedObject<TypeInterface<T, Qs... >>, T {
 		using Qualifiers = TList<Qs...>;
+		using ArrayDimensions = SizeList<>;
+		using QualifierFree = T;
+
 		using Base = NamedObject<TypeInterface<T, Qs... >>;
 
-		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(name, obj_flags), Base(name, obj_flags), T(Base::m_expr, ObjFlags::None) { }
+		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+			: NamedObjectBase(obj_flags), Base(name, obj_flags), T(expr, ObjFlags::None) { }
 
-		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags), Base(expr, obj_flags), T(Base::m_expr, ObjFlags::None) {
-		
+		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
+			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(expr, ObjFlags::None) {
+
 		}
 
-		TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
+		//TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
 
 		//Expr get_this_expr()& { return Base::get_expr_as_ref(); }
 		//Expr get_this_expr() const& { return Base::get_expr_as_ref(); }
@@ -180,6 +188,7 @@ namespace v2 {
 
 		using ArrayDimensions = Ds;
 		using Qualifiers = TList<Qs...>;
+		using QualifierFree = T;
 
 		static constexpr std::size_t ComponentCount = Ds::Front;
 

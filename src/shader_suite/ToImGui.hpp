@@ -49,7 +49,7 @@ namespace v2 {
 
 		}
 		ImGuiData& operator<<(const std::string& str) {
-			ImGui::Text(str.c_str());
+			ImGui::TextWrapped(str.c_str());
 			return *this;
 		}
 
@@ -102,8 +102,10 @@ namespace v2 {
 
 	template<size_t ...Ns>
 	struct ImGuiQualifier<ArraySizePrinterImGui<SizeList<Ns...>>> {
-		static void print_debug(ImGuiData& data) {
-			((data.stream << "[" << Ns << "]"), ...);
+		static void print_glsl(ImGuiData& data) {
+			std::stringstream s;
+			((s << "[" << Ns << "]"), ...);
+			data << s.str();
 		}
 	};
 
@@ -204,7 +206,7 @@ namespace v2 {
 
 			std::string case_str;
 			if (i.m_label) {
-				"Case";
+				case_str = "Case";
 				i.m_label->print_imgui(data);
 			} else {
 				case_str = "Default";
@@ -354,7 +356,7 @@ namespace v2 {
 					if (ctor.m_flags != CtorFlags::Temporary) {
 						if constexpr (ArrayDimensions::Size > 0) {
 							data.node("array size", [&] {
-								ImGuiQualifier<ArraySizePrinter<ArrayDimensions>>::print(data);
+								ImGuiQualifier<ArraySizePrinterImGui<ArrayDimensions>>::print_glsl(data);
 							});
 
 						}

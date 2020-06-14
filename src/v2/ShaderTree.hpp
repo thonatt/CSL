@@ -15,6 +15,7 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const { }
 		virtual void print_imgui(ImGuiData& data) const { }
+		virtual void print_glsl(GLSLData& data) const { }
 	};
 
 	template<typename Instruction>
@@ -23,6 +24,11 @@ namespace v2 {
 	template<typename Instruction>
 	struct InstructionImGui {
 		static void call(const Instruction&, ImGuiData& data) { }
+	};
+
+	template<typename Instruction>
+	struct InstructionGLSL {
+		static void call(const Instruction&, GLSLData& data) { }
 	};
 
 	template<typename Instruction>
@@ -35,6 +41,10 @@ namespace v2 {
 
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<Instruction>::call(m_instruction, data);
+		}
+
+		virtual void print_glsl(GLSLData& data) const override {
+			InstructionGLSL<Instruction>::call(m_instruction, data);
 		}
 
 		template<typename ...Args>
@@ -133,15 +143,17 @@ namespace v2 {
 		using Ptr = std::shared_ptr<FuncDeclarationBase>;
 		virtual ~FuncDeclarationBase() = default;
 
-		FuncDeclarationBase(const std::size_t fun_id) : m_id(fun_id) {
+		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) : m_name(name), m_id(fun_id) {
 		}
 
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
 		virtual const OverloadData& get_overload(const std::size_t i) const = 0;
 		virtual std::size_t overload_count() const = 0;
 
+		std::string m_name;
 		std::size_t m_id;
 	};
 
@@ -151,7 +163,7 @@ namespace v2 {
 
 		static constexpr std::size_t N = sizeof...(Fs);
 
-		FuncDeclaration(const std::size_t fun_id) : FuncDeclarationBase(fun_id) {
+		FuncDeclaration(const std::string& name, const std::size_t fun_id) : FuncDeclarationBase(name, fun_id) {
 		}
 
 		const OverloadData& get_overload(const std::size_t i) const override {
@@ -167,6 +179,9 @@ namespace v2 {
 		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<FuncDeclaration>::call(*this, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			InstructionGLSL<FuncDeclaration>::call(*this, data);
 		}
 
 		std::array<OverloadData, N> m_overloads;
@@ -258,9 +273,9 @@ namespace v2 {
 	struct StructDeclarationBase {
 		virtual ~StructDeclarationBase() = default;
 
-
 		virtual void print_debug(DebugData& data) const { }
 		virtual void print_imgui(ImGuiData& data) const { }
+		virtual void print_glsl(GLSLData& data) const { }
 	};
 
 	template<typename Struct>
@@ -270,6 +285,9 @@ namespace v2 {
 		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<StructDeclaration>::call(*this, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			InstructionGLSL<StructDeclaration>::call(*this, data);
 		}
 	};
 

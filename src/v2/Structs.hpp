@@ -66,17 +66,22 @@ namespace v2 {
 		using MemberTList = TList<vec3, Float>;
 		using ArrayDimensions = SizeList<>;
 		using Qualifiers = TList<>;
+		using QualifierFree = TestStruct;
 
 		TestStruct(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
 			: Base(name, obj_flags),
-			m_v( make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 0>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp ),
-			m_f( make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 1>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp )
+			m_v(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 0>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp),
+			m_f(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 1>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp)
 		{
 		}
 
 		static const std::string& get_member_name(const std::size_t member_id) {
 			static const std::vector<std::string> member_names = { "m_v", "m_f" };
 			return member_names[member_id];
+		}
+		static const std::string& get_type_str() {
+			static const std::string type_str = CSL_PP2_STR(TestStruct);
+			return type_str;
 		}
 	};
 }
@@ -93,16 +98,17 @@ namespace v2 {
 		using MemberTList = v2::TList< CSL_PP2_ITERATE(CSL_PP2_MEMBER_TYPE_IT, __VA_ARGS__) >; \
 		using ArrayDimensions = v2::SizeList<>; \
 		using Qualifiers = v2::TList<>; \
+		using QualifierFree = StructTypename; \
 		\
 		StructTypename(StructTypename && other) : Base(other) \
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const std::string & name = "", const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
-			: NamedObjectBase(name, obj_flags), Base(name, obj_flags) \
+			: NamedObjectBase(obj_flags), Base(name, obj_flags) \
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const v2::Expr& expr, const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
-			: NamedObjectBase("", obj_flags), Base(expr, obj_flags) \
+			: NamedObjectBase(obj_flags), Base(expr, obj_flags) \
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename operator=(const StructTypename& other) & { \
@@ -124,6 +130,10 @@ namespace v2 {
 		static const std::string& get_member_name(const std::size_t member_id) { \
 			static const std::vector<std::string> member_names = { CSL_PP2_ITERATE(CSL_PP2_MEMBER_STR_IT, __VA_ARGS__) }; \
 			return member_names[member_id]; \
+		} \
+		static const std::string& get_type_str() { \
+			static const std::string type_str = CSL_PP2_STR(StructTypename); \
+			return type_str; \
 		} \
 	}
 

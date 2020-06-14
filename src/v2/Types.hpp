@@ -205,6 +205,12 @@ namespace v2 {
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
 	class MatrixArray;
 
+	template<typename T, typename Ds, typename ... Qs>
+	struct ArrayInterface;
+
+	template<typename T, typename ...Qs>
+	struct TypeInterface;
+
 	enum class ObjFlags : std::size_t;
 
 	template<typename T>
@@ -285,6 +291,16 @@ namespace v2 {
 		using ScalarType = T;
 		using QualifierFree = Matrix<T, R, C>;
 	};
+
+	template<typename T, typename Ds, typename ... Qs>
+	struct Infos<ArrayInterface<T, Ds, Qs...>> : Infos<T> {
+		using ArrayDimensions = Ds;
+	};
+
+	template<typename T, typename ...Qs>
+	struct Infos<TypeInterface<T, Qs...>> : Infos<T> {
+	};
+
 
 	template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
 	struct Infos<MatrixArray<T, Ds, R, C, Qs...>> : Infos<Matrix<T, R, C, Qs...>> {
@@ -400,12 +416,6 @@ namespace v2 {
 
 	template<typename ...Qs>
 	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
-
-	template<typename T, typename Ds, typename ... Qs>
-	struct ArrayInterface;
-
-	template<typename T, typename ...Qs>
-	struct TypeInterface;
 
 	template<typename T, typename ... Qs>
 	struct QualifiedIndirection;

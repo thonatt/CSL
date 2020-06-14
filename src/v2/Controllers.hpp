@@ -6,8 +6,18 @@
 namespace v2 {
 
 	template<typename T>
+	struct ControllerDebug {
+		static void call(const T&t, DebugData& data) { }
+	};
+
+	template<typename T>
 	struct ControllerImGui {
 		static void call(const T& t, ImGuiData& data) { }
+	};
+
+	template<typename T>
+	struct ControllerGLSL {
+		static void call(const T& t, GLSLData& data) { }
 	};
 
 	struct ControllerBase {
@@ -27,8 +37,8 @@ namespace v2 {
 	struct FunctionController : virtual ControllerBase {
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func_internal(const std::size_t fun_id) {
-			current_func = std::make_shared<FuncDeclaration<ReturnTList, Fs...>>(fun_id);
+		void begin_func_internal(const std::string& name, const std::size_t fun_id) {
+			current_func = std::make_shared<FuncDeclaration<ReturnTList, Fs...>>(name, fun_id);
 			current_func_overloads_num_args = { GetArgTList<Fs>::Size ... };
 			current_func_parent = current_block;
 			current_overload = 0;
@@ -299,24 +309,20 @@ namespace v2 {
 			current_block = m_declarations;
 		}
 
-		void print_debug(DebugData& data) {		
-			for (const auto& i : m_declarations->m_instructions) {
-				i->print_debug(data);
-			}
-
-			for (const auto& f : m_functions) {
-				f->print_debug(data);
-			}
-
-			for (const auto& s : m_structs) {
-				s->print_debug(data);
-			}
+		// template to delay instantiation
+		template<typename Data>
+		void print_debug(Data& data) {
+			ControllerDebug<ShaderController>::call(*this, data);
 		}
 
-		// template to delay instantiation
 		template<typename Data>
 		void print_imgui(Data& data) {
 			ControllerImGui<ShaderController>::call(*this, data);
+		}
+
+		template<typename Data>
+		void print_glsl(Data& data) {
+			ControllerGLSL<ShaderController>::call(*this, data);
 		}
 
 		template<typename Struct>
@@ -330,8 +336,8 @@ namespace v2 {
 		}
 
 		template<typename ReturnTList, typename ... Fs>
-		void begin_func(const std::size_t fun_id, const Fs& ... fs) {
-			begin_func_internal<ReturnTList, Fs...>(fun_id);
+		void begin_func(const std::string& name, const std::size_t fun_id, const Fs& ... fs) {
+			begin_func_internal<ReturnTList, Fs...>(name, fun_id);
 			m_functions.push_back(make_instruction<FuncDeclarationWrapper>(current_func));
 		}
 
