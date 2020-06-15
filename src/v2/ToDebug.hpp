@@ -360,6 +360,7 @@ namespace v2 {
 				{ CtorFlags::Initialisation, "Initialisation" },
 				{ CtorFlags::Temporary, "Temporary" },
 				{ CtorFlags::Unused, "Unused" },
+				{ CtorFlags::FunctionArgument, "FunctionArgument" },
 			};
 
 			data << flag_strs.at(ctor.m_flags) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
@@ -472,9 +473,9 @@ namespace v2 {
 		}
 	};
 
-	template<typename F, std::size_t N>
-	struct OperatorDebug<CustomFunCall<F, N>> {
-		static void call(const CustomFunCall<F, N>& fun_call, DebugData& data) {
+	template<typename F, typename ReturnType, std::size_t N>
+	struct OperatorDebug<CustomFunCall<F, ReturnType, N>> {
+		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, DebugData& data) {
 			data << "custom function call ";
 			OperatorDebug<Reference>::call(fun_call, data);
 			++data.trailing;

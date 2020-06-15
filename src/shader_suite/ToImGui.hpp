@@ -439,9 +439,9 @@ namespace v2 {
 		}
 	};
 
-	template<typename F, std::size_t N>
-	struct OperatorImGui<CustomFunCall<F, N>> {
-		static void call(const CustomFunCall<F, N>& fun_call, ImGuiData& data) {
+	template<typename F, typename ReturnType, std::size_t N>
+	struct OperatorImGui<CustomFunCall<F, ReturnType, N>> {
+		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, ImGuiData& data) {
 			data.node("custom function call", [&] {
 				OperatorImGui<Reference>::call(fun_call, data);
 				data.node("Args", [&] {

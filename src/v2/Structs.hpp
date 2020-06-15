@@ -90,7 +90,7 @@ namespace v2 {
 #define CSL2_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
 	v2::listen().add_struct<StructTypename>(); \
-	struct StructTypename : virtual public v2::NamedObject<StructTypename> { \
+	struct StructTypename : public v2::NamedObject<StructTypename> { \
 		using Base = v2::NamedObject<StructTypename>;\
 		\
 		CSL_PP2_ITERATE(CSL_PP2_DECLARE_MEMBER_IT, __VA_ARGS__) \

@@ -42,21 +42,27 @@ void test_shader_body(v2::ShaderController& shader, std::string& str)
 			(Float) g
 		);
 
-		//auto ffff = define_function<void>([&] {
-		//	BigPlop b;
-		//	b.plop.v* BigPlop().plop.f;
+		auto ffff = define_function<void>("f", [&](vec3 aa = "a", vec3 bb = "b") {
+			BigPlop b;
+			b.plop.v* BigPlop().plop.f;
 
-		//	CSL_IF(true) {
-		//		b.plop.v = b.plop.v;
-		//	}
-		//});
+			CSL_IF(true) {
+				b.plop.v = b.plop.v;
+			}
+		});
 
-		Qualify<vec3, Uniform, Array<3>> b;
+		using T = vec3;
 
+		Qualify<T, Uniform, Array<3, 2>> b;
+
+		auto m = define_function<void>("main", [&]
 		{
-			vec3 pp;
-			pp = b[2];
-		}
+			using namespace v2::swizzles::xyzw;
+			b[2][1][x, y, z];
+			ffff(b[2][1], b[2][1]);
+			//T pp;
+			//pp = b[2];
+		});
 
 		DebugData data;
 		shader.print_debug(data);

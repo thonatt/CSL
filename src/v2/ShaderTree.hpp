@@ -104,6 +104,16 @@ namespace v2 {
 		return std::static_pointer_cast<InstructionBase>(std::make_shared<InstructionWrapper<Statement>>(expr));
 	}
 
+	struct FunctionArgBlock : Block {
+		using Ptr = std::shared_ptr<FunctionArgBlock>;
+		void push_instruction(const InstructionBase::Ptr& i) override {
+			auto expr = std::dynamic_pointer_cast<InstructionWrapper<Statement>>(i)->m_instruction.m_expr;
+			auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(expr)->m_operator.m_ctor;
+			ctor->m_flags = CtorFlags::FunctionArgument;
+			m_instructions.push_back(i);
+		}
+	};
+
 	struct SpecialStatement : Statement {
 		SpecialStatement(const Expr& expr = {}) : Statement(expr) { }
 		virtual ~SpecialStatement() = default;
@@ -133,7 +143,7 @@ namespace v2 {
 
 	struct OverloadData {
 		OverloadData() {
-			args = std::make_shared<Block>();
+			args = std::make_shared<FunctionArgBlock>();
 			body = std::make_shared<Block>();
 		}
 		Block::Ptr args, body;

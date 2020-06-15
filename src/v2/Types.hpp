@@ -254,6 +254,11 @@ namespace v2 {
 	struct Infos {
 		static constexpr bool IsValid = false;
 		static constexpr bool IsArray = false;
+		static constexpr std::size_t RowCount = 0;
+		static constexpr std::size_t ColCount = 0;
+		static constexpr std::size_t NumElements = 0;
+		using ScalarType = void;
+		using ArrayDimensions = SizeList<>;
 	};
 
 	template<typename T>
@@ -299,6 +304,7 @@ namespace v2 {
 
 	template<typename T, typename ...Qs>
 	struct Infos<TypeInterface<T, Qs...>> : Infos<T> {
+		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 	};
 
 
@@ -309,33 +315,33 @@ namespace v2 {
 
 	//////////////////////////////////////////////////////////////
 
-	template<>
-	struct Infos<Expr> {
-		static constexpr std::size_t NumElements = 0;
-		using ScalarType = void;
-	};
+	//template<>
+	//struct Infos<Expr> {
+	//	static constexpr std::size_t NumElements = 0;
+	//	using ScalarType = void;
+	//};
 
-	template<>
-	struct Infos<ObjFlags> {
-		static constexpr std::size_t NumElements = 0;
-		using ScalarType = void;
-	};
+	//template<>
+	//struct Infos<ObjFlags> {
+	//	static constexpr std::size_t NumElements = 0;
+	//	using ScalarType = void;
+	//};
 
-	template<std::size_t N>
-	struct Infos<const char(&)[N]> {
-		static constexpr std::size_t NumElements = 0;
-		using ScalarType = void;
-		static constexpr std::size_t RowCount = 0;
-		static constexpr std::size_t ColCount = 0;
-	};
+	//template<std::size_t N>
+	//struct Infos<const char(&)[N]> {
+	//	static constexpr std::size_t NumElements = 0;
+	//	using ScalarType = void;
+	//	static constexpr std::size_t RowCount = 0;
+	//	static constexpr std::size_t ColCount = 0;
+	//};
 
-	template<>
-	struct Infos<std::string> {
-		static constexpr std::size_t NumElements = 0;
-		using ScalarType = void;
-		static constexpr std::size_t RowCount = 0;
-		static constexpr std::size_t ColCount = 0;
-	};
+	//template<>
+	//struct Infos<std::string> {
+	//	static constexpr std::size_t NumElements = 0;
+	//	using ScalarType = void;
+	//	static constexpr std::size_t RowCount = 0;
+	//	static constexpr std::size_t ColCount = 0;
+	//};
 
 	////////////////////////////////////////////////////////////////////////
 
@@ -420,11 +426,27 @@ namespace v2 {
 	template<typename T, typename ... Qs>
 	struct QualifiedIndirection;
 
+	template<typename T, typename QList>
+	struct TypeInterfaceIndirection;
+
+	template<typename T, typename ...Qs>
+	struct TypeInterfaceIndirection<T, TList<Qs...>> {
+		using Type = TypeInterface<T, Qs...>;
+	};
+
+	template<typename T, typename Ds, typename QList>
+	struct ArrayInterfaceIndirection;
+
+	template<typename T, typename Ds, typename ...Qs>
+	struct ArrayInterfaceIndirection<T, Ds, TList<Qs...>> {
+		using Type = ArrayInterface<T, Ds, Qs...>;
+	};
+
 	template<typename T, typename ... Qs>
 	using Qualify = std::conditional_t<
 		ArrayInfos<Qs...>::Value,
-		ArrayInterface<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >,
-		TypeInterface<T, RemoveArrayFromQualifiers<Qs...> >
+		typename ArrayInterfaceIndirection<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >::Type,
+		typename TypeInterfaceIndirection<T, RemoveArrayFromQualifiers<Qs...> >::Type
 	>;
 
 	//template<typename T, typename ... Qs>

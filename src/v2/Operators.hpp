@@ -140,25 +140,26 @@ namespace v2 {
 	using Expr = std::shared_ptr<OperatorBase>;
 
 	enum class CtorFlags : std::size_t {
-		Declaration = 1 << 1,
-		Initialisation = 1 << 2,
-		Temporary = 1 << 3,
-		Unused = 1 << 4
+		Declaration,
+		Initialisation,
+		Temporary,
+		Unused,
+		FunctionArgument
 	};
 
-	constexpr CtorFlags operator|(CtorFlags a, CtorFlags b) {
-		return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
-	}
+	//constexpr CtorFlags operator|(CtorFlags a, CtorFlags b) {
+	//	return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+	//}
 	constexpr bool operator&(CtorFlags a, CtorFlags b) {
 		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
 	}
-	constexpr CtorFlags operator~(CtorFlags a) {
-		return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
-	}
-	inline CtorFlags& operator|=(CtorFlags& a, CtorFlags b) {
-		a = a | b;
-		return a;
-	}
+	//constexpr CtorFlags operator~(CtorFlags a) {
+	//	return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
+	//}
+	//inline CtorFlags& operator|=(CtorFlags& a, CtorFlags b) {
+	//	a = a | b;
+	//	return a;
+	//}
 
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;
@@ -316,7 +317,7 @@ namespace v2 {
 		virtual void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Swizzling<S>>::call(*this, data);
 		}
-		virtual void print_glsl(ImGuiData& data) const override {
+		virtual void print_glsl(GLSLData& data) const override {
 			OperatorGLSL<Swizzling<S>>::call(*this, data);
 		}
 	};
@@ -396,7 +397,7 @@ namespace v2 {
 		Op m_op;
 	};
 
-	template<typename F, std::size_t N>
+	template<typename F, typename ReturnType, std::size_t N>
 	struct CustomFunCall : Reference, ArgSeq<N> {
 
 		template<typename ... Args>

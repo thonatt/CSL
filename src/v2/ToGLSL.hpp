@@ -270,10 +270,15 @@ namespace v2 {
 				if (ctor->m_operator.m_ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
+				if (ctor->m_operator.m_ctor->m_flags & CtorFlags::FunctionArgument) {
+					i.m_expr->print_glsl(data);
+					return;
+				}
 			}
 
 			data.endl().trail();
 			i.m_expr->print_glsl(data);
+			data << ";";
 		}
 	};
 
@@ -334,7 +339,6 @@ namespace v2 {
 		static void call(const FuncDeclarationBase& f, GLSLData& data) { }
 	};
 
-
 	template<std::size_t NumOverloads>
 	struct OverloadGLSL {
 		template<typename T, std::size_t Id>
@@ -342,13 +346,24 @@ namespace v2 {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
 				data.endl().endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
 				const auto& args = overloads[Id].args->m_instructions;
-				if (!args.empty()) {
-					args.front()->print_glsl(data);
+				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
+					if (!args.empty()) {
+						args.front()->print_glsl(data);
+					}
+					for (std::size_t i = 1; i < args.size(); ++i) {
+						data << ",";
+						args[i]->print_glsl(data);
+					}
+				} else {
+					if (!args.empty()) {
+						args.back()->print_glsl(data);
+					}
+					for (std::size_t i = 1; i < args.size(); ++i) {
+						data << ",";
+						args[args.size() - i - 1]->print_glsl(data);
+					}
 				}
-				for (std::size_t i = 1; i < args.size(); ++i) {
-					data << ",";
-					args[i]->print_glsl(data);
-				}
+				
 				data << ") {";
 				++data.trailing;
 				for (const auto& i : overloads[Id].body->m_instructions) {
@@ -448,16 +463,15 @@ namespace v2 {
 
 			switch (ctor.m_flags)
 			{
-			case CtorFlags::Declaration: {		
-				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name,ctor.m_variable_id)) + ";";
+			case CtorFlags::Declaration: {
+				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				break;
 			}
 			case CtorFlags::Initialisation: {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				data << " = ";
-				GLSLTypeStr<T>::get();
+				data << GLSLTypeStr<T>::get();
 				OperatorGLSL<ArgSeq<N>>::call(ctor, data);
-				data << ";";
 				break;
 			}
 			case CtorFlags::Temporary: {
@@ -467,8 +481,10 @@ namespace v2 {
 			}
 			case CtorFlags::Unused: {
 				ctor.first_arg()->print_glsl(data);
-				data << ";";
 				break;
+			}
+			case CtorFlags::FunctionArgument: {
+				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 			}
 			default:
 				break;
@@ -498,18 +514,14 @@ namespace v2 {
 		static void call(const SwizzlingBase& swizzle, GLSLData& data) { }
 	};
 
-
 	template<char c, char ... chars>
 	struct OperatorGLSL<Swizzling<Swizzle<c, chars...>>> {
 
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data) {
-			data << "Swizzle";
-			++data.trailing;
-			data.endl().trail();
 			swizzle.m_obj->print_glsl(data);
-			data.endl().trail() << c;
+			data << ".";
+			data << c;
 			((data << chars), ...);
-			--data.trailing;
 		}
 	};
 
@@ -553,20 +565,19 @@ namespace v2 {
 		}
 	};
 
-	template<typename F, std::size_t N>
-	struct OperatorGLSL<CustomFunCall<F, N>> {
-		static void call(const CustomFunCall<F, N>& fun_call, GLSLData& data) {
-			data << "custom function call ";
+	template<typename F, typename ReturnType, std::size_t N>
+	struct OperatorGLSL<CustomFunCall<F, ReturnType, N>> {
+		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, GLSLData& data) {
 			OperatorGLSL<Reference>::call(fun_call, data);
-			++data.trailing;
-			if constexpr (N == 0) {
-				data.endl().trail() << "no arguments";
+			data << "(";
+			if constexpr (N > 0) {
+				fun_call.m_args[0]->print_glsl(data);
+				for (std::size_t i = 1; i < N; ++i) {
+					data << ", ";
+					fun_call.m_args[i]->print_glsl(data);
+				}
 			}
-			for (std::size_t i = 0; i < N; ++i) {
-				data.endl().trail();
-				fun_call.m_args[i]->print_glsl(data);
-			}
-			--data.trailing;
+			data << ")";
 		}
 	};
 

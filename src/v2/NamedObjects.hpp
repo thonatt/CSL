@@ -164,10 +164,10 @@ namespace v2 {
 		using Base = NamedObject<TypeInterface<T, Qs... >>;
 
 		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(name, obj_flags), T(expr, ObjFlags::None) { }
+			: NamedObjectBase(obj_flags), Base(name, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) { }
 
 		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(expr, ObjFlags::None) {
+			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) {
 
 		}
 
@@ -200,7 +200,7 @@ namespace v2 {
 		template<std::size_t N>
 		explicit ArrayInterface(const char(&name)[N]) : Base(name) {}
 
-		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase("", obj_flags), Base(expr, obj_flags) { }
+		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
 
 		template<typename ... Us, typename = std::enable_if_t<
 			!(std::is_same_v<Expr, Us> || ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount)) && (SameType<Us, ArrayComponent>&& ...)

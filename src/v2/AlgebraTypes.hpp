@@ -57,7 +57,7 @@ namespace v2 {
 		Matrix() : Base() {}
 
 		template<std::size_t N>
-		explicit Matrix(const char(&name)[N]) : Base(name) {}
+		Matrix(const char(&name)[N]) : Base(name) {}
 
 		//Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 		//Matrix(Expr && expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
@@ -87,6 +87,11 @@ namespace v2 {
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::Size <= R)> >
 		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const& {
 			return { make_expr<SwizzlingWrapper>(SwizzlingWrapper::create<Swizzle>(NamedObjectBase::get_expr_as_ref())) };
+		}
+
+		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::Size <= R)> >
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const&& {
+			return { make_expr<SwizzlingWrapper>(SwizzlingWrapper::create<Swizzle>(NamedObjectBase::get_expr_as_temp())) };
 		}
 
 		// col access

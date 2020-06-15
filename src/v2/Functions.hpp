@@ -113,6 +113,7 @@ namespace v2 {
 				out = ArgEvaluationOrder::RightToLeft;
 			} else {
 				out = ArgEvaluationOrder::NotSupported;
+				throw std::runtime_error("ArgEvaluationOrder is not supported");
 			}
 			return out;
 		}
