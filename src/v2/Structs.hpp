@@ -86,10 +86,7 @@ namespace v2 {
 	};
 }
 
-
-#define CSL2_STRUCT(StructTypename, ...)  \
-	struct StructTypename; \
-	v2::listen().add_struct<StructTypename>(); \
+#define CSL_PP2_STRUCT(StructTypename, ...) \
 	struct StructTypename : public v2::NamedObject<StructTypename> { \
 		using Base = v2::NamedObject<StructTypename>;\
 		\
@@ -137,4 +134,9 @@ namespace v2 {
 		} \
 	}
 
+#define CSL2_STRUCT(StructTypename, ...)  \
+	struct StructTypename; \
+	v2::listen().add_struct<StructTypename>(); \
+	CSL_PP2_STRUCT(StructTypename, __VA_ARGS__ )
 
+#define CSL2_PP_UNNAMED_INTERFACE()

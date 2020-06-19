@@ -301,7 +301,7 @@ namespace v2 {
 		if constexpr (std::is_same_v<RType, void>) {
 			listen().push_expression(expr);
 		} else {
-			return RType(expr);
+			return { expr };
 		}
 	}
 

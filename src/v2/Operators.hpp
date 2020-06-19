@@ -140,11 +140,11 @@ namespace v2 {
 	using Expr = std::shared_ptr<OperatorBase>;
 
 	enum class CtorFlags : std::size_t {
-		Declaration,
-		Initialisation,
-		Temporary,
-		Unused,
-		FunctionArgument
+		Declaration = 1 << 1,
+		Initialisation = 1 << 2,
+		Temporary = 1 << 3,
+		Unused = 1 << 4,
+		FunctionArgument = 1 << 5
 	};
 
 	//constexpr CtorFlags operator|(CtorFlags a, CtorFlags b) {

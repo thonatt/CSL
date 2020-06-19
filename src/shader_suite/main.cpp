@@ -21,7 +21,7 @@
 #include <examples/imgui_impl_opengl3.h>
 
 #include "v2/ToDebug.hpp"
-#include "v2/ToGLSL.hpp"
+#include "v2/glsl/ToGLSL.hpp"
 #include "ToImGui.hpp"
 
 void test_shader_body(v2::ShaderController& shader, std::string& str)
@@ -33,16 +33,16 @@ void test_shader_body(v2::ShaderController& shader, std::string& str)
 	if (first)
 	{
 		CSL2_STRUCT(Plop,
-			(vec3) v,
-			(Float) f
+			(vec3)v,
+			(Float)f
 		);
 
 		CSL2_STRUCT(BigPlop,
-			(Plop) plop,
-			(Float) g
+			(Plop)plop,
+			(Float)g
 		);
 
-		auto ffff = define_function<void>("f", [&](vec3 aa = "a", vec3 bb = "b") {
+		auto ffff = define_function<vec3>("f", [&](vec3 aa = "a", vec3 bb = "b") {
 			BigPlop b;
 			b.plop.v* BigPlop().plop.f;
 
@@ -58,10 +58,10 @@ void test_shader_body(v2::ShaderController& shader, std::string& str)
 		auto m = define_function<void>("main", [&]
 		{
 			using namespace v2::swizzles::xyzw;
-			b[2][1][x, y, z];
-			ffff(b[2][1], b[2][1]);
-			//T pp;
-			//pp = b[2];
+			b[2][1][x, y, z][z, z, y];
+			ffff(b[2][1], b[2][1]) + ffff(b[2][1], b[2][1]);
+		//T pp;
+		//pp = b[2];
 		});
 
 		DebugData data;

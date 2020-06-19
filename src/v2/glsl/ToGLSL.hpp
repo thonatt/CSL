@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderTree.hpp"
+#include "../ShaderTree.hpp"
 
 #include <sstream>
 #include <typeinfo>

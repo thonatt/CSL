@@ -5,6 +5,7 @@ project(CSL_ShaderSuite)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
+# CSL
 file(GLOB ShaderSuiteApp "*.hpp" "*.cpp" "main.cpp" )
 source_group("Src" FILES ${ShaderSuiteApp})
 
@@ -16,6 +17,9 @@ source_group("Src\\csl" FILES ${CSL_CORE})
 
 file(GLOB CSL_CORE_v2 "./../v2/*.hpp")
 source_group("Src\\csl_v2" FILES ${CSL_CORE_v2})
+
+file(GLOB CSL_GLSL "./../v2/glsl/*.hpp")
+source_group("Src\\glsl" FILES ${CSL_GLSL})
 
 set(CSL_CORE_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../")
 set(CSL_SHADER_SUITE_SHADERS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
@@ -47,7 +51,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_DOCUMENT_INTERNALS OFF CACHE BOOL "")
 add_subdirectory(${CSL_SHADER_SUITE_GLFW_PATH})
 
-add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_CORE_v2} 
+add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_CORE_v2} ${CSL_GLSL}
 	${CSL_SHADER_SUITE_IMGUI_HEADERS} ${CSL_SHADER_SUITE_IMGUI_SRC} ${CSL_SHADER_SUITE_GLAD_SRC}
 )
 

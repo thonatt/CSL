@@ -154,10 +154,8 @@ namespace v2 {
 		ReturnType<Args...> operator()(Args&& ...args);
 	};
 
-
 	template<typename ... ReturnTypes, typename ... Fs >
-	Function<TList<ReturnTypes...>, Fs... >
-		define_function(const std::string& name, Fs&& ... fs)
+	Function<TList<ReturnTypes...>, Fs... > define_function(const std::string& name, Fs&& ... fs)
 	{
 		return { name, std::forward<Fs>(fs)... };
 	}
