@@ -52,39 +52,39 @@
 	CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), core::OpFlags::DISABLED);
 
 
-namespace v2 {
+//namespace v2 {
 
-	struct TestStruct;
-
-
-	struct TestStruct : NamedObject<TestStruct> {
-		using Base = NamedObject<TestStruct>;
-
-		vec3 m_v;
-		Float m_f;
-
-		using MemberTList = TList<vec3, Float>;
-		using ArrayDimensions = SizeList<>;
-		using Qualifiers = TList<>;
-		using QualifierFree = TestStruct;
-
-		TestStruct(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
-			: Base(name, obj_flags),
-			m_v(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 0>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp),
-			m_f(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 1>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp)
-		{
-		}
-
-		static const std::string& get_member_name(const std::size_t member_id) {
-			static const std::vector<std::string> member_names = { "m_v", "m_f" };
-			return member_names[member_id];
-		}
-		static const std::string& get_type_str() {
-			static const std::string type_str = CSL_PP2_STR(TestStruct);
-			return type_str;
-		}
-	};
-}
+//	struct TestStruct;
+//
+//
+//	struct TestStruct : NamedObject<TestStruct> {
+//		using Base = NamedObject<TestStruct>;
+//
+//		vec3 m_v;
+//		Float m_f;
+//
+//		using MemberTList = TList<vec3, Float>;
+//		using ArrayDimensions = SizeList<>;
+//		using Qualifiers = TList<>;
+//		using QualifierFree = TestStruct;
+//
+//		TestStruct(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+//			: Base(name, obj_flags),
+//			m_v(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 0>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp),
+//			m_f(make_expr<MemberAccessorWrapper>(MemberAccessorWrapper::create<TestStruct, 1>(Base::m_expr)), ObjFlags::StructMember | ObjFlags::AlwaysExp)
+//		{
+//		}
+//
+//		static const std::string& get_member_name(const std::size_t member_id) {
+//			static const std::vector<std::string> member_names = { "m_v", "m_f" };
+//			return member_names[member_id];
+//		}
+//		static const std::string& get_type_str() {
+//			static const std::string type_str = CSL_PP2_STR(TestStruct);
+//			return type_str;
+//		}
+//	};
+//}
 
 #define CSL_PP2_STRUCT(StructTypename, ...) \
 	struct StructTypename : public v2::NamedObject<StructTypename> { \

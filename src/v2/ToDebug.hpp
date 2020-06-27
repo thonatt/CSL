@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderTree.hpp"
+#include "InstructionTree.hpp"
 
 #include <sstream>
 #include <typeinfo>
@@ -236,6 +236,20 @@ namespace v2 {
 	};
 
 	template<>
+	struct InstructionDebug<DiscardStatement> {
+		static void call(const DiscardStatement& i, DebugData& data) {
+			data.endl().trail() << "Discard";
+		}
+	};
+
+	template<>
+	struct InstructionDebug<ReturnStatement> {
+		static void call(const ReturnStatement& i, DebugData& data) {
+			data.endl().trail() << "return";
+		}
+	};
+
+	template<>
 	struct InstructionDebug<FuncDeclarationWrapper> {
 		static void call(const FuncDeclarationWrapper& wrapper, DebugData& data) {
 			wrapper.m_func->print_debug(data);
@@ -328,11 +342,25 @@ namespace v2 {
 	};
 	// operators
 
+	template<std::size_t N>
+	struct OperatorDebug<ArgSeq<N>> {
+		static void call(const ArgSeq<N>& seq, DebugData& data) {
+			data << "(";
+			if constexpr (N > 0) {
+				seq.m_args[0]->print_debug(data);
+			}
+			for (std::size_t i = 1; i < N; ++i) {
+				data << ", ";
+				seq.m_args[i]->print_debug(data);
+			}
+			data << ")";
+		}
+	};
 
 	template<>
 	struct OperatorDebug<Reference> {
 		static void call(const Reference& ref, DebugData& data) {
-			data.stream << "$" << ref.m_id;
+			data << "$" << ref.m_id;
 		}
 	};
 
@@ -473,6 +501,24 @@ namespace v2 {
 		}
 	};
 
+
+	template<typename From, typename To>
+	struct OperatorDebug<ConvertorOperator<From, To>> {
+		static void call(const ConvertorOperator<From, To>& op, DebugData& data) {
+			data << "convertor ";
+			OperatorDebug<ArgSeq<1>>::call(op, data);
+		}
+	};
+
+
+	template<std::size_t N>
+	struct OperatorDebug<FunCall<N>> {
+		static void call(const FunCall<N>& fun_call, DebugData& data) {
+			data << imgui_op_str(fun_call.m_op);
+			OperatorDebug<ArgSeq<N>>::call(fun_call, data);
+		}
+	};
+
 	template<typename F, typename ReturnType, std::size_t N>
 	struct OperatorDebug<CustomFunCall<F, ReturnType, N>> {
 		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, DebugData& data) {
@@ -525,15 +571,23 @@ namespace v2 {
 			{ Op::CWiseMul, "CWiseMul" },
 			{ Op::MatrixTimesScalar, "MatrixTimesScalar" },
 			{ Op::MatrixTimesMatrix, "MatrixTimesMatrix" },
+			{ Op::ScalarTimesMatrix, "ScalarTimesMatrix" },
 			{ Op::CWiseAdd, "CWiseAdd" },
 			{ Op::MatrixAddScalar, "MatrixAddScalar" },
 			{ Op::CWiseSub, "CWiseSub" },
 			{ Op::MatrixSubScalar, "MatrixSubScalar" },
+			{ Op::ScalarSubMatrix, "ScalarSubMatrix" },
 			{ Op::UnaryNegation, "UnaryNegation" },
 			{ Op::Assignment, "Assignment" }
 		};
 
-		return op_strs.at(op);
+		auto it = op_strs.find(op);
+		if (it == op_strs.end()) {
+			static const std::string undefined = " undefined Op ";
+			return undefined;
+		} else {
+			return it->second;
+		}
 	}
 
 }

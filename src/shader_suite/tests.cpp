@@ -1,6 +1,105 @@
-#include "tests.h"
+#include "tests.hpp"
 
 #include <csl/Core.hpp>
+#include <chrono>
+
+void test_old()
+{
+	using Clock = std::chrono::high_resolution_clock;
+
+	auto t0 = Clock::now();
+
+	using namespace csl::frag_430;
+	Shader shader;
+
+	CSL_STRUCT(Plop,
+		(vec3)v,
+		(Float)f
+	);
+
+	CSL_STRUCT(BigPlop,
+		(Plop)plop,
+		(Float)g
+	);
+
+	auto ffff = declareFunc<vec3>("f", [&](vec3 aa = "a", vec3 bb = "b") {
+		BigPlop b;
+		b.plop.v* BigPlop().plop.f;
+
+		CSL_IF(true) {
+			b.plop.v = 2.0 * b.plop.v;
+		} CSL_ELSE_IF(false) {
+			b.plop.v = 3.0 * b.plop.v;
+		} CSL_ELSE{
+			b.plop.v = 4.0 * b.plop.v;
+		}
+	});
+
+	using T = vec3;
+
+	Array<Uniform<vec3>, 5> b;
+
+	Uniform<sampler2D> s;
+
+	auto m = declareFunc<void>("main", [&]
+	{
+		using namespace csl::swizzles::xyzw;
+
+		mat3 m("m");
+		vec3 v("v");
+		Float f("f");
+
+		m* v;
+		f* m;
+		m* f;
+		f* v;
+		v* f;
+		m* m;
+		v* v;
+		f* f;
+
+		m + m;
+		v + v;
+		f + f;
+		m + f;
+		f + m;
+		v + f;
+		f + v;
+
+		m - m;
+		v - v;
+		f - f;
+		m - f;
+		f - m;
+		v - f;
+		f - v;
+
+		m / m;
+		v / v;
+		f / f;
+		m / f;
+		f / m;
+		v / f;
+		f / v;
+
+		(f * (v + v))[x, y, z];
+		(f + f * f)* (f * f + f);
+
+		greaterThan(cos(dFdx(f)), sin(dFdy(f)));
+
+		texture(s, v[x, y]);
+	});
+
+	auto t1 = Clock::now();
+
+	std::string str = shader.str();
+
+	auto t2 = Clock::now();
+
+	std::cout << "csl old test traversal : " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() / 1000.0 << " ms" << std::endl;
+	std::cout << "csl old string generation : " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0 << " ms" << std::endl;
+}
+
 
 void testSwitch()
 {

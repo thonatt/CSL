@@ -5,6 +5,8 @@
 
 #include "Functions.hpp"
 
+#include "Preprocessor.hpp"
+
 namespace v2 {
 
 	struct MainListener {
@@ -184,7 +186,7 @@ namespace v2 {
 			}
 		}
 
-		ShaderController::Ptr current_shader;
+		ShaderController* current_shader = nullptr;
 
 	};
 
@@ -338,5 +340,15 @@ namespace v2 {
 
 #define CSL_DEFAULT \
 	listen().begin_switch_case(); default
+
+#define CSL_DISCARD \
+	_csl_only_available_in_discard_context_();
+
+#define CSL_RETURN_0() listen().add_statement<ReturnStatement>();
+#define CSL_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
+
+#define CSL_RETURN_X(x,arg,f, ...) f
+
+#define CSL_RETURN(...) CSL_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_RETURN_1(__VA_ARGS__), CSL_RETURN_0(__VA_ARGS__))
 
 }

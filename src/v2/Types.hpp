@@ -202,6 +202,23 @@ namespace v2 {
 	template<typename T, typename ...Qs>
 	using Scalar = Vector<T, 1, Qs...>;
 
+	enum class SamplerAccessType : std::size_t { Sampler, Image };
+	enum class SamplerType : std::size_t { Basic, Cube, Rectangle, MultiSample, Buffer, Atomic };
+	enum class SamplerFlags : std::size_t {
+		None = 0,
+		Array = 1 << 1,
+		Shadow = 1 << 2
+	};
+	constexpr SamplerFlags operator|(const SamplerFlags a, const SamplerFlags b) {
+		return static_cast<SamplerFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+	}
+	constexpr bool operator&(const SamplerFlags a, const SamplerFlags b) {
+		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+	}
+
+	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type = SamplerType::Basic, SamplerFlags Flags = SamplerFlags::None>
+	class Sampler;
+
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
 	class MatrixArray;
 
@@ -285,6 +302,7 @@ namespace v2 {
 		static constexpr std::size_t ColCount = C;
 
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
+		static constexpr bool IsFloat = std::is_same_v<T, float>;
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
 
@@ -307,6 +325,14 @@ namespace v2 {
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 	};
 
+	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType sType, SamplerFlags sFlags>
+	struct Infos<Sampler<Access, T, N, sType, sFlags>> {
+		using ScalarType = T;
+		static constexpr std::size_t DimensionCount = N;
+		static constexpr SamplerAccessType AccessType = Access;
+		static constexpr SamplerType Type = sType;
+		static constexpr SamplerFlags Flags = sFlags;
+	};
 
 	template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
 	struct Infos<MatrixArray<T, Ds, R, C, Qs...>> : Infos<Matrix<T, R, C, Qs...>> {
@@ -366,8 +392,20 @@ namespace v2 {
 	template<typename A, typename B>
 	constexpr bool SameType = std::is_same_v<A, B> || (SameSize<A, B> && SameScalarType<A, B> && SameDimensions<A, B>);
 
+	template<typename A, typename B>
+	constexpr bool SameMat = SameType<A, B> && SameSize<A, B>;
+
 	template<typename T>
 	constexpr bool IsInteger = Infos<T>::IsInteger;
+
+	template<typename T, typename Scalar>
+	constexpr bool IsVec = Infos<T>::IsVec && std::is_same_v<typename Infos<T>::ScalarType, Scalar>;
+
+	template<typename T>
+	constexpr bool IsVecF = IsVec<T, float>;
+
+	template<typename T>
+	constexpr bool IsFloat = SameMat<T, float>;
 
 	template<>
 	struct Infos<double> : Infos<Matrix<float, 1, 1>> {
@@ -387,6 +425,13 @@ namespace v2 {
 		static constexpr bool IsValid = true;
 	};
 
+
+	template<>
+	struct Infos<unsigned int> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
+		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
+	};
+
 	template<>
 	struct Infos<bool> : Infos<Matrix<bool, 1, 1, TList<>>> {
 		static constexpr bool IsConstant = true;
@@ -400,24 +445,34 @@ namespace v2 {
 	template<typename A, typename B>
 	struct AlgebraMulInfos {
 		static_assert(SameScalarType<A, B>);
-		static_assert(!Infos<A>::IsScalar || Infos<B>::IsScalar);
 
 		using ScalarType = typename Infos<A>::ScalarType;
-		static constexpr std::size_t OutRowCount = Infos<A>::RowCount;
+		static constexpr std::size_t OutRowCount = Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::RowCount;
 		static constexpr std::size_t OutColCount = Infos<std::conditional_t<Infos<B>::IsScalar, A, B>>::ColCount;
 		using ReturnType = Matrix<ScalarType, OutRowCount, OutColCount>;
 
-		static constexpr Op Operator = (SameSize<A, B> && Infos<A>::IsVec) ? Op::CWiseMul : (Infos<B>::IsScalar ? Op::MatrixTimesScalar : Op::MatrixTimesMatrix);
+		static constexpr Op Operator =
+			(SameSize<A, B> && Infos<A>::IsVec) ? Op::CWiseMul :
+			(Infos<A>::IsScalar) ? Op::ScalarTimesMatrix :
+			(Infos<B>::IsScalar) ? Op::MatrixTimesScalar : Op::MatrixTimesMatrix;
 	};
 
 	template<typename A, typename B>
-	struct AlgebraAddInfos {
+	struct AlgebraInfos {
 		static_assert(SameScalarType<A, B>);
-		static_assert(!Infos<A>::IsScalar || Infos<B>::IsScalar);
+		using ReturnType = typename Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::QualifierFree;
 
-		using ReturnType = typename Infos<A>::QualifierFree;
-		static constexpr Op OperatorAdd = SameSize<A, B> ? Op::CWiseAdd : Op::MatrixAddScalar;
-		static constexpr Op OperatorSub = SameSize<A, B> ? Op::CWiseSub : Op::MatrixSubScalar;
+		static constexpr Op OperatorAdd =
+			SameSize<A, B> ? Op::CWiseAdd :
+			(Infos<A>::IsScalar) ? Op::ScalarAddMatrix : Op::MatrixAddScalar;
+
+		static constexpr Op OperatorSub =
+			SameSize<A, B> ? Op::CWiseSub :
+			(Infos<A>::IsScalar) ? Op::ScalarSubMatrix : Op::MatrixSubScalar;
+
+		static constexpr Op OperatorDiv =
+			SameSize<A, B> ? Op::CWiseDiv :
+			(Infos<A>::IsScalar) ? Op::ScalarDivMatrix : Op::MatrixDivScalar;
 	};
 
 	template<typename ...Qs>

@@ -15,6 +15,7 @@ namespace v2 {
 		UsedAsRef = 1 << 3,
 		AlwaysExp = 1 << 4,
 		StructMember = 1 << 5,
+		BuiltIn = UsedAsRef | Constructor,
 		Default = Tracked | Constructor
 	};
 
@@ -47,11 +48,11 @@ namespace v2 {
 
 				//auto tmp = ctor->first_arg();
 
-				m_expr = ctor->first_arg();
-
+				if (ctor->arg_count() == 1) {
+					m_expr = ctor->first_arg();
+				}
+				
 				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
-
-
 				//m_expr.swap(ctor->first_arg());
 			}
 
@@ -79,9 +80,9 @@ namespace v2 {
 
 		Expr get_expr_as_temp() const
 		{
-			if (!(m_flags & ObjFlags::UsedAsRef)) {
-				set_as_temp();
+			if (!(m_flags & ObjFlags::UsedAsRef)) {			
 				m_flags |= ObjFlags::UsedAsRef;
+				set_as_temp();
 			}
 			return m_expr;
 		}
@@ -95,6 +96,10 @@ namespace v2 {
 		Expr get_this_expr() const& { return get_expr_as_ref(); }
 		Expr get_this_expr()&& { return get_expr_as_temp(); }
 		Expr get_this_expr() const&& { return get_expr_as_temp(); }
+
+		Expr get_plain_expr() const {
+			return m_expr;
+		}
 
 	protected:
 		std::size_t id;
@@ -162,6 +167,7 @@ namespace v2 {
 		using QualifierFree = T;
 
 		using Base = NamedObject<TypeInterface<T, Qs... >>;
+		using T::operator=;
 
 		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags), Base(name, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) { }
@@ -170,6 +176,7 @@ namespace v2 {
 			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) {
 
 		}
+
 
 		//TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
 
@@ -198,9 +205,11 @@ namespace v2 {
 		ArrayInterface() : Base() {}
 
 		template<std::size_t N>
-		explicit ArrayInterface(const char(&name)[N]) : Base(name) {}
+		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default) 
+			: Base(name, obj_flags) {}
 
-		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
+		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) 
+			: NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
 
 		template<typename ... Us, typename = std::enable_if_t<
 			!(std::is_same_v<Expr, Us> || ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount)) && (SameType<Us, ArrayComponent>&& ...)

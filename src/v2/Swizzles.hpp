@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <type_traits>
 
@@ -26,6 +27,27 @@ namespace v2 {
 		using SwizzleXYZW = CharSeq<'x', 'y', 'z', 'w'>;
 		using SwizzleSTPQ = CharSeq<'s', 't', 'p', 'q'>;
 
+		template<char c>
+		constexpr std::size_t SwizzleId = 0;
+
+		template<> constexpr std::size_t SwizzleId<'r'> = 1;
+		template<> constexpr std::size_t SwizzleId<'g'> = 2;
+		template<> constexpr std::size_t SwizzleId<'b'> = 3;
+		template<> constexpr std::size_t SwizzleId<'a'> = 4;
+
+		template<> constexpr std::size_t SwizzleId<'x'> = 1;
+		template<> constexpr std::size_t SwizzleId<'y'> = 2;
+		template<> constexpr std::size_t SwizzleId<'z'> = 3;
+		template<> constexpr std::size_t SwizzleId<'w'> = 4;
+
+		template<> constexpr std::size_t SwizzleId<'s'> = 1;
+		template<> constexpr std::size_t SwizzleId<'t'> = 2;
+		template<> constexpr std::size_t SwizzleId<'p'> = 3;
+		template<> constexpr std::size_t SwizzleId<'q'> = 4;
+
+		template<char ... chars>
+		constexpr std::size_t SwizzleHighestComponent = std::max({ SwizzleId<chars> ... });
+
 		template<char c, typename T>
 		constexpr bool is_in_set = false;
 
@@ -51,6 +73,7 @@ namespace v2 {
 	public:
 		static constexpr bool Unique = detail_swizzling::are_unique<c, chars...>;
 		static constexpr std::size_t Size = 1 + sizeof...(chars);
+		static constexpr std::size_t HighestComponent = detail_swizzling::SwizzleHighestComponent<c, chars...>;
 
 		constexpr Swizzle() { }
 

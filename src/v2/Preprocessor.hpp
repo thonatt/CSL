@@ -18,6 +18,8 @@
 // 
 #define TEST_FIRST(x,y) x
 #define TEST_SECOND(x,y) y
+#define FIRST(x) TEST_FIRST x
+#define SECOND(x) TEST_SECOND x
 
 // helpers for list args retrieval
 #define CSL_PP2_FORWARD(x) x
@@ -32,12 +34,14 @@
 #define CSL_PP2_HEAD(elem) BOOST_PP_SEQ_HEAD(elem)
 #define CSL_PP2_IF_EMPTY(arg,t,f) BOOST_PP_IIF(BOOST_PP_IS_EMPTY(arg),t,f)
 #define CSL_PP2_NOT_EMPTY(arg) BOOST_PP_COMPL(BOOST_PP_IS_EMPTY(arg))
+#define CSL_PP2_COMMA BOOST_PP_COMMA()
 #define CSL_PP2_COMMA_IF(arg) BOOST_PP_COMMA_IF(arg)
 #define CSL_PP2_COMMA_IF_NOT_EMPTY(arg) CSL_PP2_COMMA_IF(CSL_PP2_NOT_EMPTY(arg))
+#define CSL_PP2_COUNT(...) BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)
 
 #define CSL_PP2_ITERATE(macro, ...) \
-	BOOST_PP_SEQ_FOR_EACH_I(macro, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
+	BOOST_PP_SEQ_FOR_EACH_I(macro, ,BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
 
 #define CSL_PP2_ITERATE_DATA(data, macro, ...) \
-	BOOST_PP_SEQ_FOR_EACH_I(macro, data, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
+	BOOST_PP_SEQ_FOR_EACH_I(macro, data,BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
 

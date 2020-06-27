@@ -122,7 +122,10 @@ namespace v2 {
 	struct ReturnStatement : SpecialStatement {
 		using Ptr = std::shared_ptr<ReturnStatement>;
 
-		ReturnStatement(const Expr& expr) : SpecialStatement(expr) {}
+		ReturnStatement() : SpecialStatement(Expr()) {}
+
+		template<typename T>
+		ReturnStatement(T && t) : SpecialStatement(get_expr(std::forward<T>(t))) {}
 
 	};
 

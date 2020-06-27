@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 
+void test_old();
+
 void testSwitch();
 
 void testStructsMacros();

@@ -8,25 +8,70 @@
 
 namespace v2 {
 
-	enum class Op {
+	enum class Op : std::size_t {
 		CWiseMul,
 		MatrixTimesScalar,
+		ScalarTimesMatrix,
 		MatrixTimesMatrix,
 		CWiseAdd,
 		MatrixAddScalar,
+		ScalarAddMatrix,
 		CWiseSub,
 		MatrixSubScalar,
+		ScalarSubMatrix,
+		CWiseDiv,
+		MatrixDivScalar,
+		ScalarDivMatrix,
 		UnaryNegation,
-		Assignment
+		Assignment,
+		ScalarLessThanScalar,
+		// glsl 1.1
+		dFdx,
+		dFdy,
+		abs,
+		sin,
+		cos,
+		tan,
+		exp,
+		log,
+		sqrt,
+		floor,
+		ceil,
+		fract,
+		exp2,
+		log2,
+		normalize,
+		atan,
+		acos,
+		asin,
+		radians,
+		degrees,
+		greaterThan,
+		lessThan,
+		greaterThanEqual,
+		lessThenEqual,
+		equal,
+		notEqual,
+		max,
+		min,
+		mod,
+		mix,
+		dot,
+		smoothstep,
+		length,
+		clamp,
+		distance,
+		// glsl 1.3
+		texture
 	};
 
-	enum class OperatorPrecedence : std::size_t
+	enum class Precedence : std::size_t
 	{
 		Alias = 10,
 
 		ArraySubscript = 20,
 		FunctionCall = 20,
-		FieldAccessor = 20,
+		MemberAccessor = 20,
 		Swizzle = 20,
 		Postfix = 20,
 
@@ -64,8 +109,14 @@ namespace v2 {
 
 		Assignment = 160,
 
-		Sequence = 170
+		Sequence = 170,
+
+		NoExtraParenthesis = 900
 	};
+
+	inline bool operator<(const Precedence a, const Precedence b) {
+		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
+	}
 
 	//////////////////////////////////////////////////////////////
 
@@ -167,24 +218,25 @@ namespace v2 {
 		virtual void print_spirv() const {}
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data) const {}
+		virtual void print_glsl(GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) const {}
 
 	};
 
 	template<typename Operator>
-	struct OperatorWrapper : OperatorBase {
-		virtual void print_spirv() const override {
+	struct OperatorWrapper final : OperatorBase {
+		
+		void print_spirv() const override {
 			//SPIRVstr<Operator>::call(op);
 		}
 
-		virtual void print_debug(DebugData& data) const override {
+		void print_debug(DebugData& data) const override {
 			OperatorDebug<Operator>::call(m_operator, data);
 		}
-		virtual void print_imgui(ImGuiData& data) const override {
+		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Operator>::call(m_operator, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
-			OperatorGLSL<Operator>::call(m_operator, data);
+		void print_glsl(GLSLData& data, const Precedence precedence) const override {
+			OperatorGLSL<Operator>::call(m_operator, data, precedence);
 		}
 
 		template<typename ...Args>
@@ -222,17 +274,26 @@ namespace v2 {
 	struct FunCall : ArgSeq<N> {
 
 		template<typename ...Args>
-		FunCall(Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...) { }
+		FunCall(const Op op, Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...), m_op(op) { }
+
+		Op m_op;
 	};
+
+	template <typename ... Args>
+	Expr make_funcall(const Op op, Args&& ...args) {
+		auto wrapper = std::make_shared<OperatorWrapper<FunCall<sizeof...(Args)>>>(op, std::forward<Args>(args)...);
+		auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
+		return expr;
+	}
 
 	struct ConstructorBase {
 		virtual ~ConstructorBase() = default;
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data) const {}
+		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
-		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id) 
-			: m_name(std::move(name)), m_variable_id(variable_id), m_flags(flags) {}
+		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id)
+			: m_name(name), m_variable_id(variable_id), m_flags(flags) {}
 
 		void set_as_temp() {
 			m_flags = CtorFlags::Temporary;
@@ -247,6 +308,9 @@ namespace v2 {
 		virtual Expr first_arg() const {
 			return {};
 		}
+		virtual std::size_t arg_count() const {
+			return 0;
+		}
 
 		std::string m_name;
 		std::size_t m_variable_id;
@@ -254,7 +318,7 @@ namespace v2 {
 	};
 
 	template<typename T, std::size_t N>
-	struct Constructor : ConstructorBase, ArgSeq<N> {
+	struct Constructor final : ConstructorBase, ArgSeq<N> {
 
 		using ArgSeq<N>::m_args;
 
@@ -262,7 +326,7 @@ namespace v2 {
 		Constructor(const std::string& name, const CtorFlags flags, const std::size_t variable_id, Args&& ...args)
 			: ConstructorBase(name, flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
-		virtual Expr first_arg() const override {
+		Expr first_arg() const override {
 			if constexpr (N == 0) {
 				return {};
 			} else {
@@ -270,14 +334,20 @@ namespace v2 {
 			}
 		}
 
-		virtual void print_debug(DebugData& data) const override {
+		std::size_t arg_count() const override {
+			return N;
+		}
+
+		void print_debug(DebugData& data) const override {
 			OperatorDebug<Constructor>::call(*this, data);
 		}
-		virtual void print_imgui(ImGuiData& data) const override {
+
+		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Constructor>::call(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
-			OperatorGLSL<Constructor>::call(*this, data);
+
+		void print_glsl(GLSLData& data, const Precedence precedence) const override {
+			OperatorGLSL<Constructor>::call(*this, data, precedence);
 		}
 	};
 
@@ -302,23 +372,23 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data) const {}
+		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
 		Expr m_obj;
 	};
 
 	template<typename S>
-	struct Swizzling : SwizzlingBase {
+	struct Swizzling final : SwizzlingBase {
 		Swizzling(const Expr& expr) : SwizzlingBase(expr) { }
 
-		virtual void print_debug(DebugData& data) const override {
+		void print_debug(DebugData& data) const override {
 			OperatorDebug<Swizzling<S>>::call(*this, data);
 		}
-		virtual void print_imgui(ImGuiData& data) const override {
+		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Swizzling<S>>::call(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
-			OperatorGLSL<Swizzling<S>>::call(*this, data);
+		void print_glsl(GLSLData& data, const Precedence precedence) const override {
+			OperatorGLSL<Swizzling<S>>::call(*this, data, precedence);
 		}
 	};
 
@@ -338,7 +408,7 @@ namespace v2 {
 
 		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data) const {}
+		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
 		MemberAccessorBase(const Expr& expr) : m_obj(expr) { }
 
@@ -348,18 +418,18 @@ namespace v2 {
 	};
 
 	template<typename S, std::size_t MemberId>
-	struct MemberAccessor : MemberAccessorBase {
+	struct MemberAccessor final : MemberAccessorBase {
 
 		MemberAccessor(const Expr& expr) : MemberAccessorBase(expr) { }
 
-		virtual void print_debug(DebugData& data) const override {
+		void print_debug(DebugData& data) const override {
 			OperatorDebug<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
-		virtual void print_imgui(ImGuiData& data) const override {
+		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
-			OperatorGLSL<MemberAccessor<S, MemberId>>::call(*this, data);
+		void print_glsl(GLSLData& data, const Precedence precedence) const override {
+			OperatorGLSL<MemberAccessor<S, MemberId>>::call(*this, data, precedence);
 		}
 	};
 
@@ -397,8 +467,13 @@ namespace v2 {
 		Op m_op;
 	};
 
+	template<typename From, typename To>
+	struct ConvertorOperator : ArgSeq<1> {
+		ConvertorOperator(const Expr& obj) : ArgSeq<1>(obj) {}
+	};
+
 	template<typename F, typename ReturnType, std::size_t N>
-	struct CustomFunCall : Reference, ArgSeq<N> {
+	struct CustomFunCall final : Reference, ArgSeq<N> {
 
 		template<typename ... Args>
 		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }

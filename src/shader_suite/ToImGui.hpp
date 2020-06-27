@@ -1,7 +1,7 @@
 #pragma once
 
 #include <v2/Types.hpp>
-#include <v2/ShaderTree.hpp>
+#include <v2/InstructionTree.hpp>
 #include <v2/Swizzles.hpp>
 
 #include <sstream>
@@ -235,6 +235,13 @@ namespace v2 {
 	};
 
 	template<>
+	struct InstructionImGui<ReturnStatement> {
+		static void call(const ReturnStatement& i, ImGuiData& data) {
+			data << "Return";
+		}
+	};
+
+	template<>
 	struct InstructionImGui<FuncDeclarationWrapper> {
 		static void call(const FuncDeclarationWrapper& wrapper, ImGuiData& data) {
 			wrapper.m_func->print_imgui(data);
@@ -310,6 +317,18 @@ namespace v2 {
 	};
 	// operators
 
+	template<std::size_t N>
+	struct OperatorImGui<ArgSeq<N>> {
+		static void call(const ArgSeq<N>& seq, ImGuiData& data) {
+			if constexpr (N > 0) {
+				seq.m_args[0]->print_imgui(data);
+			}
+			for (std::size_t i = 1; i < N; ++i) {
+				data << ", ";
+				seq.m_args[i]->print_imgui(data);
+			}
+		}
+	};
 
 	template<>
 	struct OperatorImGui<Reference> {
@@ -439,6 +458,24 @@ namespace v2 {
 		}
 	};
 
+	template<typename From, typename To>
+	struct OperatorImGui<ConvertorOperator<From, To>> {
+		static void call(const ConvertorOperator<From, To>& op, ImGuiData& data) {
+			data.node("convertor", [&] {
+				op.m_args[0]->print_imgui(data);
+			});
+		}
+	};
+
+	template<std::size_t N>
+	struct OperatorImGui<FunCall<N>> {
+		static void call(const FunCall<N>& fun_call, ImGuiData& data) {
+			data.node(imgui_op_str(fun_call.m_op), [&] {
+				OperatorImGui<ArgSeq<N>>::call(fun_call, data);
+			});
+		}
+	};
+
 	template<typename F, typename ReturnType, std::size_t N>
 	struct OperatorImGui<CustomFunCall<F, ReturnType, N>> {
 		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, ImGuiData& data) {
@@ -486,18 +523,27 @@ namespace v2 {
 
 	inline const std::string& imgui_op_str(const Op op) {
 		static const std::unordered_map<Op, std::string> op_strs = {
-			{ Op::CWiseMul, "CWiseMul" },
-			{ Op::MatrixTimesScalar, "MatrixTimesScalar" },
-			{ Op::MatrixTimesMatrix, "MatrixTimesMatrix" },
-			{ Op::CWiseAdd, "CWiseAdd" },
-			{ Op::MatrixAddScalar, "MatrixAddScalar" },
-			{ Op::CWiseSub, "CWiseSub" },
-			{ Op::MatrixSubScalar, "MatrixSubScalar" },
-			{ Op::UnaryNegation, "UnaryNegation" },
-			{ Op::Assignment, "Assignment" }
+			{ Op::CWiseMul, "*" },
+			{ Op::MatrixTimesScalar, "*" },
+			{ Op::MatrixTimesMatrix, "*" },
+			{ Op::ScalarTimesMatrix, "*" },
+			{ Op::CWiseAdd, " + " },
+			{ Op::MatrixAddScalar, " + " },
+			{ Op::ScalarAddMatrix, " + " },
+			{ Op::CWiseSub, " - " },
+			{ Op::MatrixSubScalar, " - " },
+			{ Op::ScalarSubMatrix, " - " },
+			{ Op::UnaryNegation, "!" },
+			{ Op::Assignment, " = " }
 		};
 
-		return op_strs.at(op);
+		auto it = op_strs.find(op);
+		if (it == op_strs.end()) {
+			static const std::string undefined = " undefined Op ";
+			return undefined;
+		} else {
+			return it->second;
+		}
 	}
 
 }

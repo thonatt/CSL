@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderTree.hpp"
+#include "InstructionTree.hpp"
 #include <cassert>
 
 namespace v2 {
@@ -309,19 +309,28 @@ namespace v2 {
 			current_block = m_declarations;
 		}
 
+		template<typename F>
+		void main(F&& f) {
+			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>);
+
+			(void)define_function<void>("main", f);
+		}
+
 		// template to delay instantiation
 		template<typename Data>
-		void print_debug(Data& data) {
+		void print_debug(Data& data) const {
 			ControllerDebug<ShaderController>::call(*this, data);
 		}
 
+		// template to delay instantiation
 		template<typename Data>
-		void print_imgui(Data& data) {
+		void print_imgui(Data& data) const {
 			ControllerImGui<ShaderController>::call(*this, data);
 		}
 
+		// template to delay instantiation
 		template<typename Data>
-		void print_glsl(Data& data) {
+		void print_glsl(Data& data) const {
 			ControllerGLSL<ShaderController>::call(*this, data);
 		}
 

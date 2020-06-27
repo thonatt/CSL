@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../ShaderTree.hpp"
+#include "../InstructionTree.hpp"
+#include "../Preprocessor.hpp"
+
+#include "Shaders.hpp"
 
 #include <sstream>
 #include <typeinfo>
@@ -14,8 +17,10 @@ namespace v2 {
 	struct GLSLData {
 		std::stringstream stream;
 
+		std::unordered_map<std::size_t, std::size_t> global_to_local;
 		std::unordered_map<std::size_t, std::string> func_names;
 		std::unordered_map<std::size_t, std::string> var_names;
+
 		int trailing = 0;
 
 		GLSLData& trail() {
@@ -36,16 +41,40 @@ namespace v2 {
 			return *this;
 		}
 
+		void check_for_parenthesis(const Expr& expr, const Precedence parent, const Precedence current)
+		{
+			const bool inversion = (parent < current);
+			if (inversion) {
+				stream << "(";
+			}
+			expr->print_glsl(*this, current);
+			if (inversion) {
+				stream << ")";
+			}
+		}
+
 		const std::string& register_var_name(const std::string& name, const std::size_t id)
 		{
 			return var_names.emplace(id, name.empty() ? "x" + std::to_string(var_names.size()) : name).first->second;
 		}
 
+		template<typename ...T>
+		void register_builtins(const T&... vars) {
+			(register_builtins(vars), ...);
+		}
+
+		template<typename T>
+		void register_builtins(const T& var) {
+			auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(var.get_plain_expr())->m_operator.m_ctor;
+			register_var_name(ctor->m_name, ctor->m_variable_id);
+		}
 	};
 
 	template<>
 	struct ControllerGLSL<ShaderController> {
 		static void call(const ShaderController& controller, GLSLData& data) {
+
+
 			for (const auto& s : controller.m_structs) {
 				s->print_glsl(data);
 				data.endl();
@@ -61,6 +90,96 @@ namespace v2 {
 		}
 	};
 
+	// operators infos 
+
+	struct OpInfos {
+		Precedence m_precendence;
+		std::string m_str;
+	};
+
+#define MAKE_OP_IT(r, data, i, elem) { CSL_PP2_CONCAT(Op::,elem), { Precedence::FunctionCall, CSL_PP2_STR(elem) }},
+
+	inline const std::unordered_map<Op, OpInfos>& glsl_op_infos() {
+		static const std::unordered_map<Op, OpInfos> op_infos = {
+			{ Op::CWiseMul, { Precedence::Multiply, "*" } },
+			{ Op::MatrixTimesScalar, { Precedence::Multiply, "*" }  },
+			{ Op::MatrixTimesMatrix, { Precedence::Multiply, "*" } },
+			{ Op::ScalarTimesMatrix, { Precedence::Multiply, "*" }  },
+			{ Op::CWiseDiv, { Precedence::Division, "/" } },
+			{ Op::MatrixDivScalar, { Precedence::Division, "/" } },
+			{ Op::ScalarDivMatrix, { Precedence::Division, "/" } },
+			{ Op::CWiseAdd, { Precedence::Addition, " + "} },
+			{ Op::MatrixAddScalar, { Precedence::Addition, " + "}},
+			{ Op::ScalarAddMatrix, { Precedence::Addition, " + "} },
+			{ Op::CWiseSub, { Precedence::Substraction, " - " } },
+			{ Op::MatrixSubScalar, { Precedence::Substraction, " - " }},
+			{ Op::ScalarSubMatrix, { Precedence::Substraction, " - " } },
+			{ Op::UnaryNegation, { Precedence::Unary, "!" }},
+			{ Op::Assignment, { Precedence::Assignment, " = "} },
+			{ Op::ScalarLessThanScalar, { Precedence::Relational, " < "} },
+			CSL_PP2_ITERATE(MAKE_OP_IT,
+			dFdx,
+			dFdy,
+			abs,
+			sin,
+			cos,
+			tan,
+			exp,
+			log,
+			sqrt,
+			floor,
+			ceil,
+			fract,
+			exp2,
+			log2,
+			normalize,
+			atan,
+			acos,
+			asin,
+			radians,
+			degrees,
+			greaterThan,
+			lessThan,
+			greaterThanEqual,
+			lessThenEqual,
+			equal,
+			notEqual,
+			max,
+			min,
+			mod,
+			mix,
+			dot,
+			smoothstep,
+			length,
+			clamp,
+			distance,
+			texture)
+		};
+
+		return op_infos;
+	}
+
+#undef MAKE_OP_IT
+
+	inline const std::string& glsl_op_str(const Op op) {
+		auto it = glsl_op_infos().find(op);
+		if (it == glsl_op_infos().end()) {
+			static const std::string undefined = " undefined Op ";
+			return undefined;
+		} else {
+			return it->second.m_str;
+		}
+	}
+
+	inline Precedence glsl_op_precedence(const Op op) {
+		auto it = glsl_op_infos().find(op);
+		if (it == glsl_op_infos().end()) {
+			return Precedence::Alias;
+		} else {
+			return it->second.m_precendence;
+		}
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// qualifiers
 
@@ -71,7 +190,29 @@ namespace v2 {
 		}
 	};
 
-	template<> inline std::string GLSLQualifier<Uniform>::get() { return "uniform"; }
+	template<typename ...Qs>
+	struct GLSLQualifier<glsl::Layout<Qs...>> {
+		static std::string get() {
+			std::string s = "layout(";
+			((s += GLSLQualifier<Qs>::get()), ...);
+			s += ")";
+			return s;
+		}
+	};
+
+	template<std::size_t N>
+	struct GLSLQualifier<glsl::Location<N>> {
+		static std::string get() {
+			return "location = " + std::to_string(N);
+		}
+	};
+
+#define CSL_QUALIFIER_STR_IT(name, str) \
+	template<> inline std::string GLSLQualifier<CSL_PP2_CONCAT(glsl::,name)>::get() { return CSL_PP2_STR(str); }
+
+	CSL_QUALIFIER_STR_IT(Uniform, uniform);
+	CSL_QUALIFIER_STR_IT(In, in);
+	CSL_QUALIFIER_STR_IT(Out, out);
 
 	template<typename Q, typename ...Qs>
 	struct GLSLQualifier<TList<Q, Qs...>> {
@@ -79,7 +220,7 @@ namespace v2 {
 			static const std::string str = [] {
 				std::string s;
 				s += GLSLQualifier<Q>::get();
-				((s += ", " + GLSLQualifier<Qs>::get()), ...);
+				((s += " " + GLSLQualifier<Qs>::get()), ...);
 				return s;
 			}();
 			return str;
@@ -121,7 +262,7 @@ namespace v2 {
 	template<> inline std::string GLSLTypeStr<void>::get() { return "void"; }
 	template<> inline std::string GLSLTypeStr<bool>::get() { return "bool"; }
 	template<> inline std::string GLSLTypeStr<int>::get() { return "int"; }
-	template<> inline std::string GLSLTypeStr<unsigned int>::get() { return "unsigned int"; }
+	template<> inline std::string GLSLTypeStr<unsigned int>::get() { return "uint"; }
 	template<> inline std::string GLSLTypeStr<float>::get() { return "float"; }
 	template<> inline std::string GLSLTypeStr<double>::get() { return "double"; }
 
@@ -152,13 +293,49 @@ namespace v2 {
 		}
 	};
 
+	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags>
+	struct GLSLTypeStr<Sampler<Access, T, N, Type, Flags>> {
+		static const std::string& get() {
+			static const std::unordered_map<SamplerAccessType, std::string> sampler_access_strs = {
+				{ SamplerAccessType::Sampler, "sampler" },
+				{ SamplerAccessType::Image, "image"}
+			};
+
+			static const std::unordered_map<SamplerType, std::string> sampler_type_strs = {
+				{ SamplerType::Basic, "" },
+				{ SamplerType::Cube, "Cube"},
+				{ SamplerType::Rectangle , "Rect"},
+				{ SamplerType::MultiSample, "MS"},
+				{ SamplerType::Buffer, "Buffer"},
+			};
+
+			static const std::string type_str = [] {
+				return TypePrefixStr<T>::get() +
+					sampler_access_strs.find(Access)->second +
+					(N != 0 ? std::to_string(N) + 'D' : "") +
+					sampler_type_strs.find(Type)->second +
+					(Flags & SamplerFlags::Array ? "Array" : "") +
+					(Flags & SamplerFlags::Shadow ? "Shadow" : "");
+			}();
+			return type_str;
+		}
+	};
+
+	template<>
+	struct GLSLTypeStr<glsl::atomic_uint>
+	{
+		static const std::string& get() {
+			static const std::string type_str = "atomic_uint";
+			return type_str;
+		}
+	};
+
 	template<typename T, typename ...Qs>
 	struct GLSLTypeStr<TypeInterface<T, Qs...>> {
 		static std::string get() {
 			return GLSLTypeStr<T>::get();
 		}
 	};
-
 
 	template<typename T, typename Ds, typename ...Qs>
 	struct GLSLTypeStr<ArrayInterface<T, Ds, Qs...>> {
@@ -202,16 +379,16 @@ namespace v2 {
 				data.endl().trail();
 				if (k == 0) {
 					data << "if (";
-					i.m_cases[k].condition->print_glsl(data);
+					i.m_cases[k].condition->print_glsl(data, Precedence::Alias);
 					data << ")";
 				} else if (k != i.m_cases.size() - 1) {
 					data << "else if (";
-					i.m_cases[k].condition->print_glsl(data);
+					i.m_cases[k].condition->print_glsl(data, Precedence::Alias);
 					data << ")";
 				} else {
 					data << "else ";
 				}
-				data << "{";
+				data.endl().trail() << "{";
 				++data.trailing;
 				for (const auto& j : i.m_cases[k].body->m_instructions) {
 					j->print_glsl(data);
@@ -228,7 +405,7 @@ namespace v2 {
 		static void call(const WhileInstruction& i, GLSLData& data) {
 			data.endl().trail();
 			data << "While ";
-			i.m_condition->print_glsl(data);
+			i.m_condition->print_glsl(data, Precedence::Alias);
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
 				i->print_glsl(data);
@@ -271,13 +448,13 @@ namespace v2 {
 					return;
 				}
 				if (ctor->m_operator.m_ctor->m_flags & CtorFlags::FunctionArgument) {
-					i.m_expr->print_glsl(data);
+					i.m_expr->print_glsl(data, Precedence::Alias);
 					return;
 				}
 			}
 
 			data.endl().trail();
-			i.m_expr->print_glsl(data);
+			i.m_expr->print_glsl(data, Precedence::Alias);
 			data << ";";
 		}
 	};
@@ -286,7 +463,7 @@ namespace v2 {
 	struct InstructionGLSL<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, GLSLData& data) {
 			data.endl().trail() << "Switch ";
-			i.m_condition->print_glsl(data);
+			i.m_condition->print_glsl(data, Precedence::Alias);
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
 				c->print_glsl(data);
@@ -301,7 +478,7 @@ namespace v2 {
 			data.endl().trail();
 			if (i.m_label) {
 				data << "Case ";
-				i.m_label->print_glsl(data);
+				i.m_label->print_glsl(data, Precedence::Alias);
 			} else {
 				data << "Default";
 			}
@@ -316,14 +493,25 @@ namespace v2 {
 	template<>
 	struct InstructionGLSL<BreakStatement> {
 		static void call(const BreakStatement& i, GLSLData& data) {
-			data.endl().trail() << "Break";
+			data.endl().trail() << "break";
 		}
 	};
 
 	template<>
 	struct InstructionGLSL<ContinueStatement> {
 		static void call(const ContinueStatement& i, GLSLData& data) {
-			data.endl().trail() << "Continue";
+			data.endl().trail() << "continue";
+		}
+	};
+
+	template<>
+	struct InstructionGLSL<ReturnStatement> {
+		static void call(const ReturnStatement& i, GLSLData& data) {
+			data.endl().trail() << "return";
+			if (i.m_expr) {
+				data << " ";
+				i.m_expr->print_glsl(data);
+			}
 		}
 	};
 
@@ -363,8 +551,9 @@ namespace v2 {
 						args[args.size() - i - 1]->print_glsl(data);
 					}
 				}
-				
-				data << ") {";
+
+				data << ")";
+				data.endl().trail() << "{";
 				++data.trailing;
 				for (const auto& i : overloads[Id].body->m_instructions) {
 					i->print_glsl(data);
@@ -410,7 +599,8 @@ namespace v2 {
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<S, T, Id>;
 
 		static void call(const StructDeclaration<S>& s, GLSLData& data) {
-			data.endl().trail() << "struct " << GLSLTypeStr<S>::get() << " {";
+			data.endl().trail() << "struct " << GLSLTypeStr<S>::get();
+			data.endl().trail() << "{";
 			++data.trailing;
 			iterate_over_typelist<typename S::MemberTList, StructMemberDeclaration>(data);
 			--data.trailing;
@@ -422,14 +612,14 @@ namespace v2 {
 
 	template<std::size_t N>
 	struct OperatorGLSL<ArgSeq<N>> {
-		static void call(const ArgSeq<N>& seq, GLSLData& data) {
+		static void call(const ArgSeq<N>& seq, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 			data << "(";
 			if constexpr (N > 0) {
-				seq.m_args[0]->print_glsl(data);
+				seq.m_args[0]->print_glsl(data, precedence);
 			}
 			for (std::size_t i = 1; i < N; ++i) {
 				data << ", ";
-				seq.m_args[i]->print_glsl(data);
+				seq.m_args[i]->print_glsl(data, precedence);
 			}
 			data << ")";
 		}
@@ -437,21 +627,21 @@ namespace v2 {
 
 	template<>
 	struct OperatorGLSL<Reference> {
-		static void call(const Reference& ref, GLSLData& data) {
+		static void call(const Reference& ref, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 			data.stream << data.var_names.find(ref.m_id)->second;
 		}
 	};
 
 	template<>
 	struct OperatorGLSL<ConstructorWrapper> {
-		static void call(const ConstructorWrapper& wrapper, GLSLData& data) {
-			wrapper.m_ctor->print_glsl(data);
+		static void call(const ConstructorWrapper& wrapper, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
+			wrapper.m_ctor->print_glsl(data, Precedence::FunctionCall);
 		}
 	};
 
 	template<>
 	struct OperatorGLSL<ConstructorBase> {
-		static void call(const ConstructorBase& ctor, GLSLData& data) {
+		static void call(const ConstructorBase& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 			data << " base ctor";
 		}
 	};
@@ -459,7 +649,7 @@ namespace v2 {
 	template<typename T, std::size_t N>
 	struct OperatorGLSL<Constructor<T, N>> {
 
-		static void call(const Constructor<T, N>& ctor, GLSLData& data) {
+		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 
 			switch (ctor.m_flags)
 			{
@@ -485,6 +675,7 @@ namespace v2 {
 			}
 			case CtorFlags::FunctionArgument: {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
+				break;
 			}
 			default:
 				break;
@@ -494,31 +685,31 @@ namespace v2 {
 
 	template<>
 	struct OperatorGLSL<ArraySubscript> {
-		static void call(const ArraySubscript& subscript, GLSLData& data) {
-			subscript.m_obj->print_glsl(data);
+		static void call(const ArraySubscript& subscript, GLSLData& data, const Precedence precedence) {
+			subscript.m_obj->print_glsl(data, Precedence::ArraySubscript);
 			data << "[";
-			subscript.m_index->print_glsl(data);
+			subscript.m_index->print_glsl(data, Precedence::ArraySubscript);
 			data << "]";
 		}
 	};
 
 	template<>
 	struct OperatorGLSL<SwizzlingWrapper> {
-		static void call(const SwizzlingWrapper& wrapper, GLSLData& data) {
-			wrapper.m_swizzle->print_glsl(data);
+		static void call(const SwizzlingWrapper& wrapper, GLSLData& data, const Precedence precedence) {
+			wrapper.m_swizzle->print_glsl(data, Precedence::Swizzle);
 		}
 	};
 
 	template<>
 	struct OperatorGLSL<SwizzlingBase> {
-		static void call(const SwizzlingBase& swizzle, GLSLData& data) { }
+		static void call(const SwizzlingBase& swizzle, GLSLData& data, const Precedence precedence) { }
 	};
 
 	template<char c, char ... chars>
 	struct OperatorGLSL<Swizzling<Swizzle<c, chars...>>> {
 
-		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data) {
-			swizzle.m_obj->print_glsl(data);
+		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
+			swizzle.m_obj->print_glsl(data, Precedence::Swizzle);
 			data << ".";
 			data << c;
 			((data << chars), ...);
@@ -527,7 +718,7 @@ namespace v2 {
 
 	template<typename T>
 	struct OperatorGLSL<Litteral<T>> {
-		static void call(const Litteral<T>& litteral, GLSLData& data) {
+		static void call(const Litteral<T>& litteral, GLSLData& data, const Precedence precedence) {
 			if constexpr (std::is_same_v<T, bool>) {
 				data << std::boolalpha << litteral.value;
 			} else if constexpr (std::is_integral_v<T>) {
@@ -547,34 +738,58 @@ namespace v2 {
 
 	template<>
 	struct OperatorGLSL<BinaryOperator> {
-		static void call(const BinaryOperator& bop, GLSLData& data) {
-			bop.m_lhs->print_glsl(data);
+		static void call(const BinaryOperator& bop, GLSLData& data, const Precedence precedence) {
+			const Precedence bop_precendence = glsl_op_precedence(bop.m_op);
+			const bool inversion = (precedence < bop_precendence);
+			if (inversion) {
+				data << "(";
+			}
+			bop.m_lhs->print_glsl(data, bop_precendence);
 			data << glsl_op_str(bop.m_op);
-			bop.m_rhs->print_glsl(data);
+			bop.m_rhs->print_glsl(data, bop_precendence);
+			if (inversion) {
+				data << ")";
+			}
 		}
 	};
 
 	template<>
 	struct OperatorGLSL<UnaryOperator> {
-		static void call(const UnaryOperator& uop, GLSLData& data) {
+		static void call(const UnaryOperator& uop, GLSLData& data, const Precedence precedence) {
 			data << glsl_op_str(uop.m_op);
 			++data.trailing;
 			data.endl().trail();
-			uop.m_arg->print_glsl(data);
+			uop.m_arg->print_glsl(data, Precedence::Unary);
 			--data.trailing;
+		}
+	};
+
+	template<typename From, typename To>
+	struct OperatorGLSL<ConvertorOperator<From, To>> {
+		static void call(const ConvertorOperator<From, To>& op, GLSLData& data, const Precedence precedence) {
+			data << GLSLTypeStr<To>::get();
+			OperatorGLSL<ArgSeq<1>>::call(op, data);
+		}
+	};
+
+	template<std::size_t N>
+	struct OperatorGLSL<FunCall<N>> {
+		static void call(const FunCall<N>& fun_call, GLSLData& data, const Precedence precedence) {
+			data << glsl_op_str(fun_call.m_op);
+			OperatorGLSL<ArgSeq<N>>::call(fun_call, data);
 		}
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
 	struct OperatorGLSL<CustomFunCall<F, ReturnType, N>> {
-		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, GLSLData& data) {
+		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, GLSLData& data, const Precedence precedence) {
 			OperatorGLSL<Reference>::call(fun_call, data);
 			data << "(";
 			if constexpr (N > 0) {
-				fun_call.m_args[0]->print_glsl(data);
+				fun_call.m_args[0]->print_glsl(data, precedence);
 				for (std::size_t i = 1; i < N; ++i) {
 					data << ", ";
-					fun_call.m_args[i]->print_glsl(data);
+					fun_call.m_args[i]->print_glsl(data, precedence);
 				}
 			}
 			data << ")";
@@ -583,44 +798,29 @@ namespace v2 {
 
 	template<>
 	struct OperatorGLSL<MemberAccessorWrapper> {
-		static void call(const MemberAccessorWrapper& wrapper, GLSLData& data) {
-			wrapper.m_member_accessor->print_glsl(data);
+		static void call(const MemberAccessorWrapper& wrapper, GLSLData& data, const Precedence precedence) {
+			wrapper.m_member_accessor->print_glsl(data, Precedence::MemberAccessor);
 		}
 	};
 
 	template<typename S, std::size_t Id>
 	struct OperatorGLSL<MemberAccessor<S, Id>> {
-		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data) {
+		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data, const Precedence precedence) {
 			auto ctor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(accessor.m_obj);
 			if (ctor_wrapper) {
 				auto ctor = ctor_wrapper->m_operator.m_ctor;
 				if (ctor->m_flags & CtorFlags::Temporary) {
-					ctor->print_glsl(data);
+					ctor->print_glsl(data, precedence);
 				} else {
 					data << data.var_names.find(ctor->m_variable_id)->second;
 				}
 			} else {
 				auto accessor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(accessor.m_obj);
-				accessor_wrapper->print_glsl(data);
+				accessor_wrapper->print_glsl(data, precedence);
 			}
 			data << "." << S::get_member_name(Id);
 		}
 	};
 
-	inline const std::string& glsl_op_str(const Op op) {
-		static const std::unordered_map<Op, std::string> op_strs = {
-			{ Op::CWiseMul, "*" },
-			{ Op::MatrixTimesScalar, "*" },
-			{ Op::MatrixTimesMatrix, "*" },
-			{ Op::CWiseAdd, " + " },
-			{ Op::MatrixAddScalar, " + " },
-			{ Op::CWiseSub, " - " },
-			{ Op::MatrixSubScalar, " - " },
-			{ Op::UnaryNegation, "!" },
-			{ Op::Assignment, " = " }
-		};
-
-		return op_strs.at(op);
-	}
 
 }
