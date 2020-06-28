@@ -190,6 +190,22 @@ namespace v2 {
 		}
 	};
 
+
+	template<>
+	struct InstructionDebug<ForArgStatement> {
+		static void call(const ForArgStatement i, DebugData& data) {
+			i.m_expr->print_debug(data);
+		}
+	};
+
+
+	template<>
+	struct InstructionDebug<ForIterationStatement> {
+		static void call(const ForIterationStatement i, DebugData& data) {
+			i.m_expr->print_debug(data);
+		}
+	};
+
 	template<>
 	struct InstructionDebug<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, DebugData& data) {

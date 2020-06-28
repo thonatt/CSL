@@ -125,6 +125,13 @@ namespace v2 {
 			(A, x), (B, minVal), (C, maxVal)
 		);
 
+		CSL_MAKE_OP_2(
+			IsVecF<A>&& IsVecF<B> && (SameMat<A CSL_PP2_COMMA B> || IsFloat<A> || IsFloat<B>),
+			Vector<float CSL_PP2_COMMA std::max(Infos<A>::RowCount CSL_PP2_COMMA Infos<B>::RowCount) >,
+			pow,
+			(A, a), (B, b)
+		);
+
 		CSL_PP2_ITERATE(FLOAT_OP_GENTYPE_2_IT,
 			distance,
 			dot
@@ -159,7 +166,7 @@ namespace v2 {
 
 		CSL_MAKE_OP_3(
 			(Infos<S>::AccessType == SamplerAccessType::Sampler) &&
-			(Infos<S>::Type & SamplerType::Basic) &&
+			(Infos<S>::Type == SamplerType::Basic) &&
 			!(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P> && IsFloat<B> &&
 			Infos<P>::RowCount == (Infos<S>::DimensionCount + ((Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),

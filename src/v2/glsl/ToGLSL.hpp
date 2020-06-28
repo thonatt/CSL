@@ -115,8 +115,17 @@ namespace v2 {
 			{ Op::MatrixSubScalar, { Precedence::Substraction, " - " }},
 			{ Op::ScalarSubMatrix, { Precedence::Substraction, " - " } },
 			{ Op::UnaryNegation, { Precedence::Unary, "!" }},
+			{ Op::UnarySub, { Precedence::Unary, "-" }},
 			{ Op::Assignment, { Precedence::Assignment, " = "} },
+			{ Op::AddAssignment, { Precedence::Assignment, " += "} },
+			{ Op::SubAssignment, { Precedence::Assignment, " -= "} },
+			{ Op::MulAssignment, { Precedence::Assignment, " *= "} },
 			{ Op::ScalarLessThanScalar, { Precedence::Relational, " < "} },
+			{ Op::ScalarGreaterThanScalar, { Precedence::Relational, " > "} },
+			{ Op::LogicalOr, { Precedence::LogicalOr, " || "} },
+			{ Op::LogicalAnd, { Precedence::LogicalAnd, " && "} },
+			{ Op::PostfixUnary, { Precedence::Postfix, "++"} },
+			{ Op::PrefixUnary, { Precedence::Prefix, "++"} },
 			CSL_PP2_ITERATE(MAKE_OP_IT,
 			dFdx,
 			dFdy,
@@ -153,7 +162,8 @@ namespace v2 {
 			length,
 			clamp,
 			distance,
-			texture)
+			texture,
+			pow)
 		};
 
 		return op_infos;
@@ -204,6 +214,13 @@ namespace v2 {
 	struct GLSLQualifier<glsl::Location<N>> {
 		static std::string get() {
 			return "location = " + std::to_string(N);
+		}
+	};
+
+	template<std::size_t N>
+	struct GLSLQualifier<glsl::Binding<N>> {
+		static std::string get() {
+			return "binding = " + std::to_string(N);
 		}
 	};
 
@@ -379,11 +396,11 @@ namespace v2 {
 				data.endl().trail();
 				if (k == 0) {
 					data << "if (";
-					i.m_cases[k].condition->print_glsl(data, Precedence::Alias);
+					i.m_cases[k].condition->print_glsl(data);
 					data << ")";
 				} else if (k != i.m_cases.size() - 1) {
 					data << "else if (";
-					i.m_cases[k].condition->print_glsl(data, Precedence::Alias);
+					i.m_cases[k].condition->print_glsl(data);
 					data << ")";
 				} else {
 					data << "else ";
@@ -403,35 +420,32 @@ namespace v2 {
 	template<>
 	struct InstructionGLSL<WhileInstruction> {
 		static void call(const WhileInstruction& i, GLSLData& data) {
-			data.endl().trail();
-			data << "While ";
-			i.m_condition->print_glsl(data, Precedence::Alias);
+			data.endl().trail() << "while(";
+			i.m_condition->print_glsl(data);
+			data << ") {";
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
 				i->print_glsl(data);
 			}
 			--data.trailing;
+			data.endl().trail() << "}";
 		}
 	};
 
 	template<>
 	struct InstructionGLSL<ForInstruction> {
 		static void call(const ForInstruction& i, GLSLData& data) {
-			data.endl().trail() << "For";
-			++data.trailing;
-			data.endl().trail() << "Args";
-			++data.trailing;
-			for (const auto& arg : i.args->m_instructions) {
-				arg->print_glsl(data);
+			data.endl().trail() << "for(";
+			for (const auto& j : i.args->m_instructions) {
+				j->print_glsl(data);
 			}
-			--data.trailing;
-			data.endl().trail() << "Body";
+			data << ") {";
 			++data.trailing;
 			for (const auto& j : i.body->m_instructions) {
 				j->print_glsl(data);
 			}
 			--data.trailing;
-			--data.trailing;
+			data.endl().trail() << "}";
 		}
 	};
 
@@ -456,6 +470,26 @@ namespace v2 {
 			data.endl().trail();
 			i.m_expr->print_glsl(data, Precedence::Alias);
 			data << ";";
+		}
+	};
+
+	template<>
+	struct InstructionGLSL<ForArgStatement> {
+		static void call(const ForArgStatement& i, GLSLData& data) {
+			if (i.m_expr) {
+				i.m_expr->print_glsl(data);
+				data << "; ";
+				return;
+			}
+		}
+	};
+
+	template<>
+	struct InstructionGLSL<ForIterationStatement> {
+		static void call(const ForIterationStatement& i, GLSLData& data) {
+			if (i.m_expr) {
+				i.m_expr->print_glsl(data);
+			}
 		}
 	};
 
@@ -512,6 +546,7 @@ namespace v2 {
 				data << " ";
 				i.m_expr->print_glsl(data);
 			}
+			data << ";";
 		}
 	};
 
@@ -539,7 +574,7 @@ namespace v2 {
 						args.front()->print_glsl(data);
 					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
-						data << ",";
+						data << ", ";
 						args[i]->print_glsl(data);
 					}
 				} else {
@@ -547,7 +582,7 @@ namespace v2 {
 						args.back()->print_glsl(data);
 					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
-						data << ",";
+						data << ", ";
 						args[args.size() - i - 1]->print_glsl(data);
 					}
 				}
@@ -628,6 +663,11 @@ namespace v2 {
 	template<>
 	struct OperatorGLSL<Reference> {
 		static void call(const Reference& ref, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
+			const auto it = data.var_names.find(ref.m_id);
+			if (it == data.var_names.end()) {
+				data.stream << "unregistered var";
+				return;
+			}
 			data.stream << data.var_names.find(ref.m_id)->second;
 		}
 	};
@@ -660,8 +700,12 @@ namespace v2 {
 			case CtorFlags::Initialisation: {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				data << " = ";
-				data << GLSLTypeStr<T>::get();
-				OperatorGLSL<ArgSeq<N>>::call(ctor, data);
+				if (ctor.arg_count() == 1) {
+					ctor.first_arg()->print_glsl(data);
+				} else {
+					data << GLSLTypeStr<T>::get();
+					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
+				}
 				break;
 			}
 			case CtorFlags::Temporary: {
@@ -757,18 +801,20 @@ namespace v2 {
 	struct OperatorGLSL<UnaryOperator> {
 		static void call(const UnaryOperator& uop, GLSLData& data, const Precedence precedence) {
 			data << glsl_op_str(uop.m_op);
-			++data.trailing;
-			data.endl().trail();
 			uop.m_arg->print_glsl(data, Precedence::Unary);
-			--data.trailing;
 		}
 	};
 
 	template<typename From, typename To>
 	struct OperatorGLSL<ConvertorOperator<From, To>> {
 		static void call(const ConvertorOperator<From, To>& op, GLSLData& data, const Precedence precedence) {
-			data << GLSLTypeStr<To>::get();
-			OperatorGLSL<ArgSeq<1>>::call(op, data);
+			if constexpr (SameMat<From, To>) {
+				op.m_args[0]->print_glsl(data);
+			} else {
+				data << GLSLTypeStr<To>::get();
+				OperatorGLSL<ArgSeq<1>>::call(op, data);
+			}
+
 		}
 	};
 

@@ -3,6 +3,7 @@
 #include "Operators.hpp"
 
 #include <array>
+#include <cassert>
 #include <memory>
 #include <string>
 #include <vector>
@@ -129,6 +130,13 @@ namespace v2 {
 
 	};
 
+	struct ForArgStatement : Statement {
+		ForArgStatement(const Expr& expr) : Statement(expr) { }
+	};
+	struct ForIterationStatement : Statement {
+		ForIterationStatement(const Expr& expr) : Statement(expr) { }
+	};
+
 	struct ContinueStatement : SpecialStatement {
 	};
 
@@ -209,8 +217,24 @@ namespace v2 {
 		using Ptr = std::shared_ptr<ForArgsBlock>;
 		using Block::Block;
 
-		Expr m_stacked_condition;
+		void push_instruction(const InstructionBase::Ptr& i) override {
+			auto expr = std::dynamic_pointer_cast<InstructionWrapper<Statement>>(i)->m_instruction.m_expr;
+			auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(expr)->m_operator.m_ctor;
+			if (ctor->m_flags & CtorFlags::Declaration) {
+				assert(m_instructions.empty());
+				m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+			} else if (ctor->m_flags & CtorFlags::Initialisation) {
+				if (m_instructions.size() <= 1) {
+					m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+				} else {
+					m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
+				}
+			} else {
+				assert(false);
+			}
+		}
 
+		Expr m_stacked_condition;
 	};
 
 	struct ForInstruction {

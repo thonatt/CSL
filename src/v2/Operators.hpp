@@ -23,8 +23,17 @@ namespace v2 {
 		MatrixDivScalar,
 		ScalarDivMatrix,
 		UnaryNegation,
+		UnarySub,
 		Assignment,
+		AddAssignment,
+		MulAssignment,
+		SubAssignment,
 		ScalarLessThanScalar,
+		ScalarGreaterThanScalar,
+		LogicalOr,
+		LogicalAnd,
+		PostfixUnary,
+		PrefixUnary,
 		// glsl 1.1
 		dFdx,
 		dFdy,
@@ -61,6 +70,7 @@ namespace v2 {
 		length,
 		clamp,
 		distance,
+		pow,
 		// glsl 1.3
 		texture
 	};

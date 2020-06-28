@@ -54,6 +54,12 @@ namespace v2 {
 		using Base = NamedObject<Matrix<T, R, C, Qs...>>;
 
 	public:
+
+		//TODO move me
+		operator bool() {
+			return false;
+		}
+
 		Matrix() : Base() {}
 
 		template<std::size_t N>
@@ -67,7 +73,8 @@ namespace v2 {
 
 		Matrix(Matrix&& other) : Base(other) {}
 
-		template<typename M, typename = std::enable_if_t<SameSize<This, M>>>
+		//TODO add IsConvertibleTo<Infos<M>::ScalarType, This>
+		template<typename M, typename = std::enable_if_t< (SameSize<This, M> || Infos<M>::IsScalar)>>
 		Matrix(M&& other) : Matrix(make_expr<ConvertorOperator<M, This>>(EXPR(M, other))) { }
 
 		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
@@ -80,8 +87,9 @@ namespace v2 {
 			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(M,other)) };
 		}
 
+		//TODO add is_convertible_to
 		template<typename U, typename T, typename ...Ts,
-			typename = std::enable_if_t< (NumElements<U, T, Ts...> == R * C) && SameScalarType<Matrix, U, T, Ts...> > >
+			typename = std::enable_if_t< (NumElements<U, T, Ts...> == R * C) && SameScalarType<U, T, Ts...> > >
 			explicit Matrix(U&& u, T&& t, Ts&&...ts) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(T, t), EXPR(Ts, ts)...)
 		{
 		}
@@ -107,23 +115,62 @@ namespace v2 {
 		// unaries
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
 		QualifierFree operator-() const& {
-			return { make_expr<UnaryOperator>(Op::UnaryNegation, NamedObjectBase::get_expr_as_ref()) };
+			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
 		QualifierFree operator-() const&& {
-			return { make_expr<UnaryOperator>(Op::UnaryNegation, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		// X=
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator+=(A&& a)& {
-			(void)QualifierFree(make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::AddAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator+=(A&& a)&& {
-			(void)QualifierFree(make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::AddAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+		}
+
+		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
+		void operator-=(A&& a)& {
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::SubAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+		}
+
+		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
+		void operator-=(A&& a)&& {
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::SubAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+		}
+
+		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
+		void operator*=(A&& a)& {
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::MulAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+		}
+
+		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
+		void operator*=(A&& a)&& {
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::MulAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+		}
+
+		// ++
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator++()& {
+			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_ref())  };
+		}
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator++()&& {
+			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_temp()) };
+		}
+
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator++(int)& {
+			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_ref()) };
+		}
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator++(int)&& {
+			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 	};
@@ -168,15 +215,26 @@ namespace v2 {
 	}
 
 	// operator <
-	//template<typename A, typename B, typename = std::enable_if_t<
-	//	(!Infos<A>::IsBool && Infos<A>::IsScalar && Infos<B>::IsScalar)> >
-	//	Bool operator<(A&& a, B&& b) {
-	//	return { make_expr<BinaryOperator>(Op::ScalarLessThanScalar, EXPR(A,a), EXPR(B,b)) };
-	//}
-
-	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar >>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A,B> >>
 	Scalar<bool> operator<(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::ScalarLessThanScalar, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar >>
+	Scalar<bool> operator>(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::ScalarGreaterThanScalar, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	//operator ||
+	template<typename A, typename B, typename = std::enable_if_t< SameMat<A,bool> && SameMat<A, B>>>
+	Scalar<bool> operator||(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	//operator &&
+	template<typename A, typename B, typename = std::enable_if_t< SameMat<A, bool> && SameMat<A, B>>>
+	Scalar<bool> operator&&(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>

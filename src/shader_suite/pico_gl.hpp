@@ -162,8 +162,12 @@ struct GLFramebuffer {
 		glBindFramebuffer(target, m_id);
 	}
 
-	void init(const int w, const int h)
+	void resize(const int w, const int h)
 	{
+		if (m_w == w && m_h == h) {
+			return;
+		}
+
 		m_w = w;
 		m_h = h;
 
@@ -189,7 +193,7 @@ struct GLFramebuffer {
 
 	GLTexture m_color;
 	GLptr m_id, m_depth_id;
-	int m_w, m_h;
+	int m_w = 0, m_h = 0;
 
 };
 
