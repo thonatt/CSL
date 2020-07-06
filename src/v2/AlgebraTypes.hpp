@@ -73,6 +73,10 @@ namespace v2 {
 
 		Matrix(Matrix&& other) : Base(other) {}
 
+
+		Matrix(const NamedObjectInit<Matrix>& init) : Base(init) {}
+
+
 		//TODO add IsConvertibleTo<Infos<M>::ScalarType, This>
 		template<typename M, typename = std::enable_if_t< (SameSize<This, M> || Infos<M>::IsScalar)>>
 		Matrix(M&& other) : Matrix(make_expr<ConvertorOperator<M, This>>(EXPR(M, other))) { }

@@ -7,9 +7,12 @@
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 
+#include <any>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -38,64 +41,62 @@ struct GLProgram {
 
 	GLProgram() = default;
 
-	void init_from_source(const std::string& vertex, const std::string& frag) {
-		m_id = GLptr(
-			[](GLuint* ptr) { *ptr = glCreateProgram(); },
-			[](const GLuint* ptr) { glDeleteProgram(*ptr); }
-		);
-
-		auto create_shader = [](const GLenum type) {
-			return GLptr([type](GLuint* ptr) { *ptr = glCreateShader(type); },
-				[](const GLuint* ptr) { glDeleteShader(*ptr); });
-		};
-
-		GLptr vertex_gl = create_shader(GL_VERTEX_SHADER);
-		GLptr fragment_gl = create_shader(GL_FRAGMENT_SHADER);
-
-		struct ShaderCode {
-			GLuint id;
-			const char* code;
-		};
-		std::vector<ShaderCode> shaders_code = { { vertex_gl, vertex.c_str()} , { fragment_gl, frag.c_str() } };
-
-		for (const auto& shader : shaders_code) {
-			glShaderSource(shader.id, 1, &shader.code, NULL);
-			glCompileShader(shader.id);
-			{
-				int infoLogLength;
-				GLint compileStatus = GL_FALSE;
-				glGetShaderiv(shader.id, GL_COMPILE_STATUS, &compileStatus);
-				glGetShaderiv(shader.id, GL_INFO_LOG_LENGTH, &infoLogLength);
-				if (infoLogLength > 1) {
-					std::vector<char> errorMessage(static_cast<size_t>(infoLogLength) + 1);
-					glGetShaderInfoLog(shader.id, infoLogLength, NULL, errorMessage.data());
-					std::cout << "shader " << (compileStatus ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
-					std::cout << std::endl << std::endl << shader.code << std::endl;
-				}
-			}
-			glAttachShader(m_id, shader.id);
+	void set_shader_glsl(GLenum type, const std::string& code_str)
+	{
+		if (!m_id) {
+			m_id = GLptr(
+				[](GLuint* ptr) { *ptr = glCreateProgram(); },
+				[](const GLuint* ptr) { glDeleteProgram(*ptr); }
+			);
 		}
 
-		glLinkProgram(m_id);
+		GLptr shader = GLptr([type](GLuint* ptr) { *ptr = glCreateShader(type); },
+			[](const GLuint* ptr) { glDeleteShader(*ptr); });
+
+		const char* code = code_str.c_str();
+		glShaderSource(shader, 1, &code, NULL);
+		glCompileShader(shader);
 		{
 			int infoLogLength;
-			GLint linkStatus = GL_FALSE;
-			glGetProgramiv(m_id, GL_LINK_STATUS, &linkStatus);
-			glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &infoLogLength);
+			GLint compileStatus = GL_FALSE;
+			glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
 			if (infoLogLength > 1) {
 				std::vector<char> errorMessage(static_cast<size_t>(infoLogLength) + 1);
-				glGetProgramInfoLog(m_id, infoLogLength, NULL, errorMessage.data());
-				std::cout << "shader program " << (linkStatus ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
+				glGetShaderInfoLog(shader, infoLogLength, NULL, errorMessage.data());
+				std::cout << "shader " << (compileStatus ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
+				std::cout << std::endl << std::endl << code_str << std::endl;
 			}
 		}
+		glAttachShader(m_id, shader);
 
-		for (const auto& shader : shaders_code) {
-			glDetachShader(m_id, shader.id);
-		}
+		m_shaders[type] = shader;
 	}
 
 	void use() {
-		glUseProgram(m_id);
+		if (!m_link_status && !m_shaders.empty()) {
+			glLinkProgram(m_id);
+			{
+				int infoLogLength;
+				glGetProgramiv(m_id, GL_LINK_STATUS, &m_link_status);
+				glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &infoLogLength);
+				if (infoLogLength > 1) {
+					std::vector<char> errorMessage(static_cast<size_t>(infoLogLength) + 1);
+					glGetProgramInfoLog(m_id, infoLogLength, NULL, errorMessage.data());
+					std::cout << "shader program " << (m_link_status ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
+				}
+			}
+
+			for (const auto& shader : m_shaders) {
+				glDetachShader(m_id, shader.second);
+			}
+
+			m_shaders.clear();
+		}
+
+		if (m_link_status) {
+			glUseProgram(m_id);
+		}	
 	}
 
 	template<typename F, typename ...Args>
@@ -105,12 +106,14 @@ struct GLProgram {
 	}
 
 	GLptr m_id;
+	std::unordered_map<GLenum, GLptr> m_shaders;
+	GLint m_link_status = GL_FALSE;
 };
 
 struct GLTexture {
 
 	GLTexture() = default;
-	
+
 	void load(const std::string& filepath) {
 		int x, y, comp;
 		unsigned char* data = stbi_load(filepath.c_str(), &x, &y, &comp, 0);
@@ -150,7 +153,7 @@ struct GLTexture {
 struct GLFramebuffer {
 	GLFramebuffer() = default;
 
-	void clear() 
+	void clear()
 	{
 		bind();
 		glClearColor(0, 0, 0, 0);
@@ -197,22 +200,87 @@ struct GLFramebuffer {
 
 };
 
-struct GLvao {
+struct GLmesh {
+	GLmesh() = default;
 
-	GLvao() 
+	void init()
 	{
-		m_id = GLptr(
+		m_vao = GLptr(
 			[](GLuint* ptr) { glGenVertexArrays(1, ptr); },
 			[](const GLuint* ptr) { glDeleteVertexArrays(1, ptr); }
 		);
 	}
 
-	void bind()
-	{
-		glBindVertexArray(m_id);
+	void set_triangles(const std::vector<GLuint>& indices) {
+		m_indices_buffer = GLptr(
+			[](GLuint* ptr) { glGenBuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteBuffers(1, ptr); }
+		);
+		assert(m_vao);
+		assert(!indices.empty());
+
+		glBindVertexArray(m_vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices_buffer);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+		m_indices_count = static_cast<GLsizei>(indices.size());
 	}
 
-	GLptr m_id;
+	template<typename ...Ts>
+	void set_attributes(const std::vector<Ts>& ... attributes) {
+		set_attributes(std::make_index_sequence<sizeof...(Ts)>{}, attributes...);
+	}
+
+	template<std::size_t ...Is, typename ...Ts>
+	void set_attributes(std::index_sequence<Is...> const&, const std::vector<Ts>& ... attributes) {
+		assert(m_vao);
+
+		auto get_size = [](const auto& attribute) {
+			return attribute.size() * sizeof(attribute[0]);
+		};
+
+		const std::size_t vertex_data_size = (get_size(attributes) + ...);
+		std::vector<char> vertex_data(vertex_data_size);
+
+		std::size_t offset = 0;
+		auto setup_attribute = [&](const GLuint index, const auto& attribute) {
+			assert(get_size(attribute) > 0);
+
+			std::memcpy(vertex_data.data() + offset, attribute.data(), get_size(attribute));
+			glVertexAttribPointer(index, sizeof(attribute[0]) / sizeof(float), GL_FLOAT, GL_FALSE, 0, ((char*)0) + offset);
+			glEnableVertexAttribArray(index);
+			offset += get_size(attribute);
+			m_vertice_count = static_cast<GLsizei>(attribute.size());
+		};
+
+		m_vertex_buffer = GLptr(
+			[](GLuint* ptr) { glGenBuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteBuffers(1, ptr); }
+		);
+
+		glBindVertexArray(m_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+
+		(setup_attribute(Is, attributes), ...);
+
+		glBufferData(GL_ARRAY_BUFFER, vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW);
+	}
+
+	void draw()
+	{
+		assert(m_vao);
+
+		glBindVertexArray(m_vao);
+		if (m_indices_buffer) {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices_buffer);
+			glDrawElements(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0);
+		} else {
+			glDrawArrays(GL_TRIANGLES, 0, m_indices_count);
+		}
+		glBindVertexArray(0);
+	}
+
+	GLptr m_vao, m_indices_buffer, m_vertex_buffer;
+	GLsizei m_indices_count = 0, m_vertice_count = 0;
 };
 
 template<typename F>

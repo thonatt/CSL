@@ -71,8 +71,15 @@ namespace v2 {
 		clamp,
 		distance,
 		pow,
+		cross,
+
+		//glsl 1.2
+		transpose,
+
 		// glsl 1.3
-		texture
+		texture,
+		//glsl 1.4
+		inverse,
 	};
 
 	enum class Precedence : std::size_t

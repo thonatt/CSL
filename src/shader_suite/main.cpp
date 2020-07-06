@@ -9,6 +9,7 @@
 #include "v2/Listeners.hpp"
 #include "v2/Structs.hpp"
 
+#include <array>
 #include <iostream>
 #include <chrono>
 #include <filesystem>
@@ -37,8 +38,10 @@ double get_timing(F&& f)
 
 struct ShaderExample {
 
+	ShaderExample() = default;
+
 	template<typename ShaderCreation>
-	void init_shader(ShaderCreation&& f)
+	ShaderExample(ShaderCreation&& f)
 	{
 		using namespace v2;
 
@@ -61,15 +64,16 @@ struct ShaderExample {
 		});
 
 		m_controller = shader.get_base();
-
-
 	}
 
 	GLProgram m_program;
 	std::string m_debug_str, m_glsl_str;
 	v2::ShaderController m_controller;
+	std::string m_name;
 	double m_generation_timing, m_glsl_timing, m_debug_timing;
 };
+
+using ShaderPtr = std::shared_ptr<ShaderExample>;
 
 auto test_frag_ops()
 {
@@ -176,6 +180,41 @@ auto test_vert_quad()
 
 		gl_Position = vec4(-1.0 + x * 2.0, -1.0 + y * 2.0, 0.0, 1.0);
 		uv = vec2(x, y);
+	});
+
+	return shader;
+}
+
+auto vert_basic()
+{
+	using namespace v2::glsl::vert_420;
+	using namespace v2::swizzles::xyzw;
+	Shader shader;
+
+	Qualify<vec3, Layout<Location<0>>, In> pos("pos");
+	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
+	Qualify<vec2, Out> uv("uv");
+
+	shader.main([&]
+	{
+		gl_Position = vec4(2.0 * pos - 1.0, 1.0);
+		uv = in_uv;
+	});
+
+	return shader;
+}
+
+auto frag_basic()
+{
+	using namespace v2::glsl::frag_420;
+	using namespace v2::swizzles::xyzw;
+	Shader shader;
+
+	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+	Qualify<vec2, In> uv("uv");
+	shader.main([&]
+	{
+		color = vec4(mod(10.0 * uv, 1.0), 0.0, 1.0);
 	});
 
 	return shader;
@@ -458,79 +497,284 @@ auto test_tex()
 	return shader;
 }
 
-std::unordered_map<std::string, ShaderExample> get_all_suite()
+auto vertex_mvp()
 {
-	std::unordered_map<std::string, ShaderExample> suite;
+	using namespace v2::glsl::vert_420;
+	using namespace v2::swizzles::all;
+	Shader shader;
 
-	{
-		ShaderExample test_shader;
-		test_shader.init_shader(test_frag_ops);
-		suite.emplace("test", std::move(test_shader));
+	Qualify<vec3, Layout<Location<0>>, In> position("position");
+	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
+	//Qualify<vec3, Layout<Location<2>>, In> normal("normal");
+
+	Qualify<Float, Uniform> time("time");
+
+	Qualify<vec2, Layout<Location<0>>, Out> uv("uv");
+
+	shader.main([&] {
+		Float fov = Float(90.0) << "fov";
+		Float s = 1.0 / tan(fov / (2.0 * 180.0) * 3.141519265);
+		Float f = Float(100.0) << "near";
+		Float n = Float(0.01) << "far";
+		mat4 proj = mat4(
+			vec4(s, vec3(0.0)),
+			vec4(0.0, s, vec2(0.0)),
+			vec4(vec2(0.0), -(f + n) / (f - n), -1.0),
+			vec4(vec2(0.0), -2.0 * f * n / (f - n), 0.0)
+		) << "proj";
+
+		vec3 at = vec3(0, 0, 0) << "at";
+		vec3 up = vec3(0, 0, 1) << "up";
+		Float theta = mod(time / 5.0, 1.0) * 2.0 * 3.141519265;
+		vec3 eye = 3.3 * vec3(cos(theta), sin(theta), 1.0) << "eye";
+
+		vec3 z_axis = normalize(at - eye) << "z";
+		vec3 x_axis = normalize(cross(up, z_axis)) << "x";
+		vec3 y_axis = cross(z_axis, x_axis) << "y";
+
+		mat4 view = transpose(mat4(
+			vec4(x_axis, dot(x_axis, eye)),
+			vec4(y_axis, dot(y_axis, eye)),
+			vec4(z_axis, dot(z_axis, eye)),
+			vec4(vec3(0.0), 1.0))
+		) << "view";
+
+		gl_Position = proj * view * vec4(position, 1.0);
+		uv = in_uv;
+	});
+	return shader;
+}
+
+enum class ShaderGroup {
+	Test,
+	Examples,
+	Shadertoy,
+	Rendu,
+};
+
+struct ShaderSuite {
+
+	template<typename F>
+	void add_shader(const ShaderGroup group, const std::string& name, F&& f) {
+		auto shader = std::make_shared<ShaderExample>(std::forward<F>(f));
+		shader->m_name = name;
+		m_shaders.emplace(name, shader);
+		m_groups[group].emplace(name, shader);
 	}
+	std::unordered_map<ShaderGroup, std::unordered_map<std::string, ShaderPtr>> m_groups;
+	std::unordered_map<std::string, ShaderPtr> m_shaders;
+};
 
-	{
-		ShaderExample test_vertex;
-		test_vertex.init_shader(test_vert_quad);
-		suite.emplace("test_vertex", std::move(test_vertex));
-	}
+ShaderSuite get_all_suite()
+{
+	ShaderSuite suite;
 
-	{
-		ShaderExample test_frag;
-		test_frag.init_shader(test_frag_quad);
-		suite.emplace("test_frag", std::move(test_frag));
-	}
+	suite.add_shader(ShaderGroup::Test, "test", test_frag_ops);
+	suite.add_shader(ShaderGroup::Test, "test_vertex", test_vert_quad);
+	suite.add_shader(ShaderGroup::Test, "basic_vertex", vert_basic);
 
-	{
-		ShaderExample frag_80;
-		frag_80.init_shader(test_80);
-		suite.emplace("frag_80", std::move(frag_80));
-	}
+	suite.add_shader(ShaderGroup::Test, "basic_frag", frag_basic);
+	suite.add_shader(ShaderGroup::Examples, "test_frag", test_frag_quad);
 
-	{
-		ShaderExample tex_frag;
-		tex_frag.init_shader(test_tex);
-		suite.emplace("tex_frag", std::move(tex_frag));
-	}
+	suite.add_shader(ShaderGroup::Shadertoy, "frag_80", test_80);
+	suite.add_shader(ShaderGroup::Test, "tex_frag", test_tex);
 
+	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", vertex_mvp);
 	return suite;
 }
 
-struct LoopData {
-	std::unordered_map<std::string, ShaderExample> shader_suite;
-	GLTexture tex;
-	GLProgram program;
-	GLFramebuffer fb;
+struct LoopData;
+
+struct PipelineaBase {
+
+	struct ShaderActive {
+		ShaderPtr m_shader;
+		bool m_active = true;
+	};
+
+	void add_shader(const GLenum type, const std::pair<std::string, ShaderPtr>& shader)
+	{
+		m_shaders[type] = { shader.second };
+		m_program.set_shader_glsl(type, shader.second->m_glsl_str);
+	}
+
+	virtual void draw(LoopData& data) = 0;
+
+	GLProgram m_program;
+	std::unordered_map<GLenum, ShaderActive> m_shaders;
 };
+
+std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipelines(const LoopData& data);
+
+struct LoopData {
+
+	void init_once_gl()
+	{
+		static bool first = true;
+		if (!first) {
+			return;
+		}
+		first = false;
+
+		m_pipelines = get_all_pipelines(*this);
+
+		std::filesystem::path path = "../resources/shadertoy-font-25.png";
+		m_tex_letters.load(std::filesystem::absolute(path).string());
+
+		using v2 = std::array<float, 2>;
+		using v3 = std::array<float, 3>;
+
+		m_quad.init();
+		m_quad.set_triangles({ 0,1,2, 0,3,2 });
+		m_quad.set_attributes(
+			std::vector<v3>{ v3{ 0,0,0 }, v3{ 1,0,0 }, v3{ 1,1,0 }, v3{ 0,1,0 } },
+			std::vector<v2>{ v2{ 0,0 }, v2{ 1,0 }, v2{ 1,1 }, v2{ 0,1 } }
+		);
+
+		m_triangle.init();
+		m_triangle.set_triangles({ 0,1,2 });
+		m_triangle.set_attributes(
+			std::vector<v3>{ v3{ -1,-1,0 }, v3{ -1,1,0 }, v3{ 2,0,0 } },
+			std::vector<v2>{ v2{ 0,0 }, v2{ 1,0 }, v2{ 1,1 } }
+		);
+
+		m_current_pipeline = m_pipelines.begin()->second;
+	}
+
+	ShaderSuite m_shader_suite;
+	std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> m_pipelines;
+
+	std::shared_ptr<PipelineaBase> m_current_pipeline = {};
+	float m_time = 0.0f;
+	GLTexture m_tex_letters;
+	GLFramebuffer m_framebuffer;
+	GLmesh m_quad, m_triangle;
+};
+
+struct PipelineGrid final : PipelineaBase {
+	void draw(LoopData& data) override {
+		m_program.set_uniform("time", glUniform1f, data.m_time);
+		data.m_quad.draw();
+	}
+};
+
+struct Pipeline80 final : PipelineaBase {
+	void draw(LoopData& data) override {
+		m_program.set_uniform("iTime", glUniform1f, data.m_time);
+		m_program.set_uniform("iResolution", glUniform2f, (float)data.m_framebuffer.m_w, (float)data.m_framebuffer.m_h);
+		data.m_tex_letters.bind_slot(GL_TEXTURE0);
+		data.m_quad.draw();
+	}
+};
+
+struct PipelineTriangle : PipelineaBase {
+	void draw(LoopData& data) override {
+		m_program.set_uniform("time", glUniform1f, data.m_time);
+		data.m_triangle.draw();
+	}
+};
+
+std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipelines(const LoopData& data)
+{
+	std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> pipelines;
+	const auto& shaders = data.m_shader_suite.m_shaders;
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<Pipeline80>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("frag_80"));
+		pipelines.emplace("shader 80", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineGrid>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("test_frag"));
+		pipelines.emplace("grid", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineTriangle>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("test_frag"));
+		pipelines.emplace("triangle", pipeline);
+	}
+
+	return pipelines;
+}
 
 void main_loop(LoopData& data)
 {
-	using namespace v2;
-
 	enum class Mode : std::size_t {
 		Debug = 2, ImGui = 1, GLSL = 0, Timings = 3
 	};
 
 	static const std::unordered_map<Mode, std::string> mode_strs = {
-		{ Mode::Debug, "Debug"},
-		{ Mode::ImGui, "ImGui"},
 		{ Mode::GLSL, "GLSL"},
+		{ Mode::ImGui, "ImGui"},
+		{ Mode::Debug, "Debug"},
 		{ Mode::Timings, "Timings"}
 	};
 
-	static bool first = true;
-	if (first) {
-		std::filesystem::path path = "../resources/shadertoy-font-25.png";
-		data.tex.load(std::filesystem::absolute(path).string());
+	static const std::unordered_map<ShaderGroup, std::string> shader_group_strs = {
+		{ ShaderGroup::Test, "Test"},
+		{ ShaderGroup::Examples, "Examples"},
+		{ ShaderGroup::Shadertoy, "Shadertoy"},
+		{ ShaderGroup::Rendu, "Rendu"},
+	};
 
-		data.program.init_from_source(
-			data.shader_suite.find("test_vertex")->second.m_glsl_str,
-			data.shader_suite.find("frag_80")->second.m_glsl_str
-		);
+	static const std::unordered_map<GLenum, std::string> shader_type_strs = {
+		{ GL_VERTEX_SHADER, "Vertex"},
+		{ GL_FRAGMENT_SHADER, "Fragment"},
+	};
 
-		first = false;
-	}
+	data.init_once_gl();
 
-	static auto current_shader = data.shader_suite.begin();
+	static ShaderPtr current_shader = {};
+
+	auto display_code = [](const std::string& code) {
+		if (code.size() < 1000) {
+			ImGui::TextWrapped(code.c_str());
+		} else {
+			ImGui::TextUnformatted(code.data(), code.data() + code.size());
+		}
+	};
+
+	auto display_shader = [&](const auto& mode, const ShaderExample& shader, const float vertical_size) {
+		ImGui::BeginChild(("text" + shader.m_name).c_str(), ImVec2(0, vertical_size));
+		switch (mode.first)
+		{
+		case Mode::Debug:
+		{
+			display_code(shader.m_debug_str);
+			break;
+		}
+		case Mode::ImGui:
+		{
+			v2::ImGuiData data;
+			shader.m_controller.print_imgui(data);
+			break;
+		}
+		case Mode::GLSL:
+		{
+			display_code(shader.m_glsl_str);
+			break;
+		}
+		case Mode::Timings:
+		{
+			std::stringstream s;
+			s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
+			s << "Debug generation : " << shader.m_debug_timing << " ms\n";
+			s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
+			ImGui::TextWrapped(s.str().c_str());
+			break;
+		}
+		break;
+		default:
+			break;
+		}
+		ImGui::EndChild();
+	};
 
 	if (ImGui::Begin("Shader suite")) {
 
@@ -538,87 +782,106 @@ void main_loop(LoopData& data)
 		const float h = ImGui::GetContentRegionAvail().y;
 
 		ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
-		for (auto it = data.shader_suite.begin(); it != data.shader_suite.end(); ++it) {
-			if (ImGui::Selectable(it->first.c_str(), it == current_shader)) {
-				current_shader = it;
+
+		for (const auto& group : data.m_shader_suite.m_groups)
+		{
+			if (group.first == ShaderGroup::Test) {
+				continue;
+			}
+			ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
+			if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
+			{
+				for (auto it = group.second.begin(); it != group.second.end(); ++it) {
+					if (ImGui::Selectable(it->first.c_str(), it->second == current_shader)) {
+						current_shader = it->second;
+
+						bool pipeline_found = false;
+						for (const auto& pipeline : data.m_pipelines) {
+							for (const auto& shader : pipeline.second->m_shaders) {
+								if (current_shader->m_name == shader.second.m_shader->m_name) {
+									data.m_current_pipeline = pipeline.second;
+									pipeline_found = true;
+								}
+							}
+						}
+						if (!pipeline_found) {
+							data.m_current_pipeline = {};
+						}
+					}
+				}
+				ImGui::TreePop();
 			}
 		}
+
 		ImGui::EndChild();
 		ImGui::SameLine();
-		ImGui::BeginGroup();
+		ImGui::BeginChild("right pane", ImVec2(), true);
+
+		float active_shader_count = 0;
+		if (data.m_current_pipeline) {
+			int count = 0;
+			for (auto& shader : data.m_current_pipeline->m_shaders) {
+				if (count > 0) {
+					ImGui::SameLine();
+					ImGui::Text("->");
+					ImGui::SameLine();
+				}
+				ImGui::Checkbox((shader_type_strs.find(shader.first)->second + "##").c_str(), &shader.second.m_active);
+				if (shader.second.m_active) {
+					++active_shader_count;
+				}
+				++count;
+			}
+		}
+		ImGui::Separator();
 		const auto& shader = *current_shader;
-		if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable)) {
+
+		if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
 			for (const auto& mode : mode_strs) {
 				if (ImGui::BeginTabItem(mode.second.c_str())) {
-					ImGui::BeginChild("text");
-					switch (mode.first)
-					{
-					case Mode::Debug:
-					{
-						const auto& str = shader.second.m_debug_str;
-						ImGui::TextUnformatted(str.data(), str.data() + str.size());
-						break;
+					if (data.m_current_pipeline) {
+						int count = 0;
+						for (auto& shader : data.m_current_pipeline->m_shaders) {
+							if (!shader.second.m_active) {
+								continue;
+							}
+							if (count) {
+								ImGui::Separator();
+							}
+							const float margin = 3.0f * ImGui::GetFrameHeightWithSpacing() + 1.0f * ImGui::GetTextLineHeight();
+							display_shader(mode, *shader.second.m_shader, (h - margin) / active_shader_count);
+							++count;
+						}
+					} else if (current_shader) {
+						display_shader(mode, *current_shader, h);
 					}
-					case Mode::ImGui:
-					{
-						ImGuiData data;
-						shader.second.m_controller.print_imgui(data);
-						break;
-					}
-					case Mode::GLSL:
-					{
-						const auto& str = shader.second.m_glsl_str;
-						ImGui::TextUnformatted(str.data(), str.data() + str.size());
-						break;
-					}
-					case Mode::Timings:
-					{
-						std::stringstream s;
-						s << "shader traversal : " << shader.second.m_generation_timing << " ms\n";
-						s << "debug generation : " << shader.second.m_debug_timing << " ms\n";
-						s << "glsl generation : " << shader.second.m_glsl_timing << " ms\n";
-						ImGui::TextWrapped(s.str().c_str());
-						break;
-					}
-					break;
-					default:
-						break;
-					}
-					ImGui::EndChild();
 					ImGui::EndTabItem();
 				}
 			}
 			ImGui::EndTabBar();
 		}
-		ImGui::EndGroup();
+		ImGui::EndChild();
 	}
 	ImGui::End();
 
-	if (ImGui::Begin("OpenGL rendering")) {
+	data.m_time += ImGui::GetIO().DeltaTime;
 
-		static float time = 0.0f;
+	if (data.m_current_pipeline) {
+		if (ImGui::Begin("OpenGL rendering")) {
 
-		const float w = ImGui::GetContentRegionAvail().x;
-		const float h = ImGui::GetContentRegionAvail().y;
+			const float w = ImGui::GetContentRegionAvail().x;
+			const float h = ImGui::GetContentRegionAvail().y;
 
-		data.fb.resize(static_cast<int>(w), static_cast<int>(h));
+			data.m_framebuffer.clear();
+			data.m_framebuffer.resize(static_cast<int>(w), static_cast<int>(h));
+			glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
+			data.m_current_pipeline->m_program.use();
+			data.m_current_pipeline->draw(data);
 
-		GLvao vao;
-		data.fb.clear();
-		glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
-		data.program.use();
-		data.tex.bind_slot(GL_TEXTURE0);
-		data.program.set_uniform("iTime", glUniform1f, time);
-		data.program.set_uniform("iResolution", glUniform2f, w, h);
-		vao.bind();
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindVertexArray(0);
-
-		time += ImGui::GetIO().DeltaTime;
-
-		ImGui::Image((ImTextureID)(static_cast<std::size_t>(data.fb.m_color.m_gl)), ImVec2(w, h));
+			ImGui::Image((ImTextureID)(static_cast<std::size_t>(data.m_framebuffer.m_color.m_gl)), ImVec2(w, h));
+		}
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 int main()
@@ -629,12 +892,10 @@ int main()
 	//return 0;
 
 
-	test_old();
+	//test_old();
 
 	LoopData data;
-	data.shader_suite = get_all_suite();
-
-	std::cout << data.shader_suite.find("frag_80")->second.m_glsl_str << std::endl;
+	data.m_shader_suite = get_all_suite();
 
 	create_context_and_run([&] {
 		main_loop(data);

@@ -163,7 +163,10 @@ namespace v2 {
 			clamp,
 			distance,
 			texture,
-			pow)
+			pow, 
+			cross,
+			inverse,
+			transpose)
 		};
 
 		return op_infos;

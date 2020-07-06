@@ -127,10 +127,21 @@ namespace v2 {
 	}
 
 	template<typename T>
+	struct NamedObjectInit {
+		NamedObjectInit(const Expr& expr, const std::string& name) : m_expr(expr), m_name(name) {}
+		Expr m_expr;
+		std::string m_name;
+	};
+
+	template<typename T>
 	class NamedObject : virtual public NamedObjectBase {
 	public:
 
 		virtual ~NamedObject() = default;
+
+		NamedObjectInit<T> operator<<(const std::string& name) const&& {
+			return { get_expr_as_temp(), name };
+		}
 
 		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags) {
@@ -156,6 +167,13 @@ namespace v2 {
 			}
 		}
 
+		NamedObject(const NamedObjectInit<T>& init)
+			: NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef)
+		{
+			m_expr = create_variable_expr<T>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
+		}
+
+
 	private:
 	};
 
@@ -176,7 +194,6 @@ namespace v2 {
 			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) {
 
 		}
-
 
 		//TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
 

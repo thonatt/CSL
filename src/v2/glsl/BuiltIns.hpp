@@ -132,6 +132,13 @@ namespace v2 {
 			(A, a), (B, b)
 		);
 
+		CSL_MAKE_OP_2(
+			IsVecF<A >&& Infos<A>::RowCount == 3 && SameMat<A CSL_PP2_COMMA B> ,
+			Vector<float CSL_PP2_COMMA 3>,
+			cross,
+			(A, a), (B, b)
+		);
+
 		CSL_PP2_ITERATE(FLOAT_OP_GENTYPE_2_IT,
 			distance,
 			dot
@@ -148,6 +155,9 @@ namespace v2 {
 	namespace glsl_120 {
 		using namespace glsl_110;
 
+		CSL_MAKE_OP_1(Infos<A>::IsFloat && (Infos<A>::RowCount > 0) && (Infos<A>::ColCount > 0), Matrix<float CSL_PP2_COMMA Infos<A>::ColCount CSL_PP2_COMMA Infos<A>::RowCount>,
+			transpose,
+			(A, a));
 	}
 
 	namespace glsl_130 {
@@ -180,6 +190,9 @@ namespace v2 {
 	namespace glsl_140 {
 		using namespace glsl_130;
 
+		CSL_MAKE_OP_1(Infos<A>::IsSquare&& Infos<A>::IsFloat, Matrix<float CSL_PP2_COMMA Infos<A>::RowCount CSL_PP2_COMMA  Infos<A>::RowCount>,
+			inverse,
+			(A, a));
 	}
 
 	namespace glsl_150 {
