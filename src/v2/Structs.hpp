@@ -24,7 +24,7 @@
 #define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
 
 #define CSL_PP2_INIT_MEMBER_IT(r, data, i, elem) , CSL_PP2_MEMBER_NAME(elem) ( \
-	 v2::make_expr<v2::MemberAccessorWrapper>(v2::MemberAccessorWrapper::create<data, i>(Base::m_expr)), v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp )
+	 v2::make_expr<v2::MemberAccessor<data,i>>(Base::m_expr), v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp )
 
 //helpers for declaring members
 #define CSL_PP2_QUALI_TYPENAME(Qualifier, Typename) \
@@ -108,19 +108,19 @@
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename operator=(const StructTypename& other) & { \
-			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_ref()) }; \
+			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_ref()) }; \
 		} \
 		\
 		StructTypename operator=(const StructTypename& other) && { \
-			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_ref()) }; \
+			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_ref()) }; \
 		} \
 		\
 		StructTypename operator=(StructTypename&& other) & { \
-			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_temp()) }; \
+			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_temp()) }; \
 		} \
 		\
 		StructTypename operator=(StructTypename&& other) && { \
-			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_temp()) }; \
+			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_temp()) }; \
 		} \
 		\
 		static const std::string& get_member_name(const std::size_t member_id) { \

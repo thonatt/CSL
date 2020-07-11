@@ -176,8 +176,8 @@ namespace v2 {
 				return;
 			}
 
-			if (auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(i.m_expr)) {
-				if (ctor->m_operator.m_ctor->m_flags & CtorFlags::Temporary) {
+			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(i.m_expr)) {
+				if (ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
 			}
@@ -331,18 +331,18 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<Reference> {
-		static void call(const Reference& ref, ImGuiData& data) {
+	struct OperatorImGui<Reference<Dummy>> {
+		static void call(const Reference<Dummy>& ref, ImGuiData& data) {
 			data << ("$" + std::to_string(ref.m_id));
 		}
 	};
 
-	template<>
-	struct OperatorImGui<ConstructorWrapper> {
-		static void call(const ConstructorWrapper& wrapper, ImGuiData& data) {
-			wrapper.m_ctor->print_imgui(data);
-		}
-	};
+	//template<>
+	//struct OperatorImGui<ConstructorWrapper> {
+	//	static void call(const ConstructorWrapper& wrapper, ImGuiData& data) {
+	//		wrapper.m_ctor->print_imgui(data);
+	//	}
+	//};
 
 	template<>
 	struct OperatorImGui<ConstructorBase> {
@@ -394,8 +394,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<ArraySubscript> {
-		static void call(const ArraySubscript& subscript, ImGuiData& data) {
+	struct OperatorImGui<ArraySubscript<Dummy>> {
+		static void call(const ArraySubscript<Dummy>& subscript, ImGuiData& data) {
 			data.node("Array subscript", [&] {
 				data << "from ";
 				subscript.m_obj->print_imgui(data);
@@ -405,12 +405,12 @@ namespace v2 {
 		}
 	};
 
-	template<>
-	struct OperatorImGui<SwizzlingWrapper> {
-		static void call(const SwizzlingWrapper& wrapper, ImGuiData& data) {
-			wrapper.m_swizzle->print_imgui(data);
-		}
-	};
+	//template<>
+	//struct OperatorImGui<SwizzlingWrapper> {
+	//	static void call(const SwizzlingWrapper& wrapper, ImGuiData& data) {
+	//		wrapper.m_swizzle->print_imgui(data);
+	//	}
+	//};
 
 	template<>
 	struct OperatorImGui<SwizzlingBase> {
@@ -440,8 +440,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<BinaryOperator> {
-		static void call(const BinaryOperator& bop, ImGuiData& data) {
+	struct OperatorImGui<BinaryOperator<Dummy>> {
+		static void call(const BinaryOperator<Dummy>& bop, ImGuiData& data) {
 			data.node(imgui_op_str(bop.m_op), [&] {
 				bop.m_lhs->print_imgui(data);
 				bop.m_rhs->print_imgui(data);
@@ -450,8 +450,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<UnaryOperator> {
-		static void call(const UnaryOperator& uop, ImGuiData& data) {
+	struct OperatorImGui<UnaryOperator<Dummy>> {
+		static void call(const UnaryOperator<Dummy>& uop, ImGuiData& data) {
 			data.node(imgui_op_str(uop.m_op), [&] {
 				uop.m_arg->print_imgui(data);
 			});
@@ -459,8 +459,8 @@ namespace v2 {
 	};
 
 	template<typename From, typename To>
-	struct OperatorImGui<ConvertorOperator<From, To>> {
-		static void call(const ConvertorOperator<From, To>& op, ImGuiData& data) {
+	struct OperatorImGui<ConvertorOperator<Dummy, From, To>> {
+		static void call(const ConvertorOperator<Dummy, From, To>& op, ImGuiData& data) {
 			data.node("convertor", [&] {
 				op.m_args[0]->print_imgui(data);
 			});
@@ -477,10 +477,10 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
-	struct OperatorImGui<CustomFunCall<F, ReturnType, N>> {
-		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, ImGuiData& data) {
+	struct OperatorImGui<CustomFunCall<Dummy, F, ReturnType, N>> {
+		static void call(const CustomFunCall<Dummy, F, ReturnType, N>& fun_call, ImGuiData& data) {
 			data.node("custom function call", [&] {
-				OperatorImGui<Reference>::call(fun_call, data);
+				OperatorImGui<Reference<Dummy>>::call(fun_call, data);
 				data.node("Args", [&] {
 					if constexpr (N == 0) {
 						data << "no arguments";
@@ -493,27 +493,25 @@ namespace v2 {
 		}
 	};
 
-	template<>
-	struct OperatorImGui<MemberAccessorWrapper> {
-		static void call(const MemberAccessorWrapper& wrapper, ImGuiData& data) {
-			wrapper.m_member_accessor->print_imgui(data);
-		}
-	};
+	//template<>
+	//struct OperatorImGui<MemberAccessorWrapper> {
+	//	static void call(const MemberAccessorWrapper& wrapper, ImGuiData& data) {
+	//		wrapper.m_member_accessor->print_imgui(data);
+	//	}
+	//};
 
 	template<typename S, std::size_t Id>
 	struct OperatorImGui<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, ImGuiData& data) {
 			data.node("Member accessor", [&] {
-				auto ctor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(accessor.m_obj);
-				if (ctor_wrapper) {
-					auto ctor = ctor_wrapper->m_operator.m_ctor;
+				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(accessor.m_obj)) {
 					if (ctor->m_flags & CtorFlags::Temporary) {
 						ctor->print_imgui(data);
 					} else {
 						data << ("$" + std::to_string(ctor->m_variable_id));
 					}
 				} else {
-					auto accessor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(accessor.m_obj);
+					auto accessor_wrapper = std::dynamic_pointer_cast<MemberAccessorBase>(accessor.m_obj);
 					accessor_wrapper->print_imgui(data);
 				}
 				data << S::get_member_name(Id);

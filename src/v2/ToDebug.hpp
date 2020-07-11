@@ -179,8 +179,8 @@ namespace v2 {
 				return;
 			}
 
-			if (auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(i.m_expr)) {
-				if (ctor->m_operator.m_ctor->m_flags & CtorFlags::Temporary) {
+			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(i.m_expr)) {
+				if (ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
 			}
@@ -374,18 +374,18 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<Reference> {
-		static void call(const Reference& ref, DebugData& data) {
+	struct OperatorDebug<Reference<Dummy>> {
+		static void call(const Reference<Dummy>& ref, DebugData& data) {
 			data << "$" << ref.m_id;
 		}
 	};
 
-	template<>
-	struct OperatorDebug<ConstructorWrapper> {
-		static void call(const ConstructorWrapper& wrapper, DebugData& data) {
-			wrapper.m_ctor->print_debug(data);
-		}
-	};
+	//template<>
+	//struct OperatorDebug<ConstructorWrapper> {
+	//	static void call(const ConstructorWrapper& wrapper, DebugData& data) {
+	//		wrapper.m_ctor->print_debug(data);
+	//	}
+	//};
 
 	template<>
 	struct OperatorDebug<ConstructorBase> {
@@ -433,8 +433,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<ArraySubscript> {
-		static void call(const ArraySubscript& subscript, DebugData& data) {
+	struct OperatorDebug<ArraySubscript<Dummy>> {
+		static void call(const ArraySubscript<Dummy>& subscript, DebugData& data) {
 			data << "Array subscript";
 			++data.trailing;
 			data.endl().trail() << "from ";
@@ -445,12 +445,12 @@ namespace v2 {
 		}
 	};
 
-	template<>
-	struct OperatorDebug<SwizzlingWrapper> {
-		static void call(const SwizzlingWrapper& wrapper, DebugData& data) {
-			wrapper.m_swizzle->print_debug(data);
-		}
-	};
+	//template<>
+	//struct OperatorDebug<SwizzlingWrapper> {
+	//	static void call(const SwizzlingWrapper& wrapper, DebugData& data) {
+	//		wrapper.m_swizzle->print_debug(data);
+	//	}
+	//};
 
 	template<>
 	struct OperatorDebug<SwizzlingBase> {
@@ -494,8 +494,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<BinaryOperator> {
-		static void call(const BinaryOperator& bop, DebugData& data) {
+	struct OperatorDebug<BinaryOperator<Dummy>> {
+		static void call(const BinaryOperator<Dummy>& bop, DebugData& data) {
 			data << op_str(bop.m_op);
 			++data.trailing;
 			data.endl().trail();
@@ -507,8 +507,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<UnaryOperator> {
-		static void call(const UnaryOperator& uop, DebugData& data) {
+	struct OperatorDebug<UnaryOperator<Dummy>> {
+		static void call(const UnaryOperator<Dummy>& uop, DebugData& data) {
 			data << op_str(uop.m_op);
 			++data.trailing;
 			data.endl().trail();
@@ -519,8 +519,8 @@ namespace v2 {
 
 
 	template<typename From, typename To>
-	struct OperatorDebug<ConvertorOperator<From, To>> {
-		static void call(const ConvertorOperator<From, To>& op, DebugData& data) {
+	struct OperatorDebug<ConvertorOperator<Dummy,From, To>> {
+		static void call(const ConvertorOperator<Dummy, From, To>& op, DebugData& data) {
 			data << "convertor ";
 			OperatorDebug<ArgSeq<1>>::call(op, data);
 		}
@@ -536,10 +536,10 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
-	struct OperatorDebug<CustomFunCall<F, ReturnType, N>> {
-		static void call(const CustomFunCall<F, ReturnType, N>& fun_call, DebugData& data) {
+	struct OperatorDebug<CustomFunCall<Dummy, F, ReturnType, N>> {
+		static void call(const CustomFunCall<Dummy, F, ReturnType, N>& fun_call, DebugData& data) {
 			data << "custom function call ";
-			OperatorDebug<Reference>::call(fun_call, data);
+			OperatorDebug<Reference<Dummy>>::call(fun_call, data);
 			++data.trailing;
 			if constexpr (N == 0) {
 				data.endl().trail() << "no arguments";
@@ -552,12 +552,12 @@ namespace v2 {
 		}
 	};
 
-	template<>
-	struct OperatorDebug<MemberAccessorWrapper> {
-		static void call(const MemberAccessorWrapper& wrapper, DebugData& data) {
-			wrapper.m_member_accessor->print_debug(data);
-		}
-	};
+	//template<>
+	//struct OperatorDebug<MemberAccessorWrapper> {
+	//	static void call(const MemberAccessorWrapper& wrapper, DebugData& data) {
+	//		wrapper.m_member_accessor->print_debug(data);
+	//	}
+	//};
 
 	template<typename S, std::size_t Id>
 	struct OperatorDebug<MemberAccessor<S, Id>> {
@@ -565,16 +565,14 @@ namespace v2 {
 			data << "Member accessor";
 			++data.trailing;
 			data.endl().trail();
-			auto ctor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(accessor.m_obj);
-			if (ctor_wrapper) {
-				auto ctor = ctor_wrapper->m_operator.m_ctor;
+			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(accessor.m_obj)) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					ctor->print_debug(data);
 				} else {
 					data << "$" << ctor->m_variable_id;
 				}
 			} else {
-				auto accessor_wrapper = std::dynamic_pointer_cast<OperatorWrapper<MemberAccessorWrapper>>(accessor.m_obj);
+				auto accessor_wrapper = std::dynamic_pointer_cast<MemberAccessorBase>(accessor.m_obj);
 				accessor_wrapper->print_debug(data);
 			}
 			data.endl().trail() << S::get_member_name(Id);

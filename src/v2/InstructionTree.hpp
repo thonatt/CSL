@@ -109,7 +109,7 @@ namespace v2 {
 		using Ptr = std::shared_ptr<FunctionArgBlock>;
 		void push_instruction(const InstructionBase::Ptr& i) override {
 			auto expr = std::dynamic_pointer_cast<InstructionWrapper<Statement>>(i)->m_instruction.m_expr;
-			auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(expr)->m_operator.m_ctor;
+			auto ctor = std::dynamic_pointer_cast<ConstructorBase>(expr);
 			ctor->m_flags = CtorFlags::FunctionArgument;
 			m_instructions.push_back(i);
 		}
@@ -219,7 +219,7 @@ namespace v2 {
 
 		void push_instruction(const InstructionBase::Ptr& i) override {
 			auto expr = std::dynamic_pointer_cast<InstructionWrapper<Statement>>(i)->m_instruction.m_expr;
-			auto ctor = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(expr)->m_operator.m_ctor;
+			auto ctor = std::dynamic_pointer_cast<ConstructorBase>(expr);
 			if (ctor->m_flags & CtorFlags::Declaration) {
 				assert(m_instructions.empty());
 				m_instructions.push_back(make_instruction<ForArgStatement>(expr));

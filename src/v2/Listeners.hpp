@@ -266,14 +266,14 @@ namespace v2 {
 
 	inline NamedObjectBase::~NamedObjectBase() {
 		if (!(m_flags & ObjFlags::UsedAsRef) && m_flags & ObjFlags::Constructor) {
-			std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->set_as_unused();
+			std::dynamic_pointer_cast<ConstructorBase>(m_expr)->set_as_unused();
 		}
 	}
 
 	template<typename T, typename ... Args>
 	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		Expr expr = make_expr<ConstructorWrapper>(ConstructorWrapper::create<T>(name, ctor_flags, variable_id, std::forward<Args>(args)...));
+		Expr expr = make_expr<Constructor<T,sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
 		if (obj_flags & ObjFlags::Tracked) {
 			listen().push_expression(expr);
 		}
@@ -297,7 +297,7 @@ namespace v2 {
 		using This = Function<ReturnTList, Fs...>;
 		using RType = ReturnType<Args...>;
 
-		const Expr expr = make_expr<CustomFunCall<This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
+		const Expr expr = make_expr<CustomFunCall<Dummy,This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
 		//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 		if constexpr (std::is_same_v<RType, void>) {
