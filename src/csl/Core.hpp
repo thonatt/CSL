@@ -2,6 +2,7 @@
 
 #pragma warning( push )
 //variadic macros with empty arguments
+#pragma warning( disable : 4002)
 #pragma warning( disable : 4003)
 
 #pragma warning( push )

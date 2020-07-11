@@ -27,19 +27,19 @@ namespace v2 {
 #define CSL_MAKE_OP_1(condition, return_type, name, var) \
 	template<ARG_TYPE(var), typename = std::enable_if_t<condition>> \
 	return_type name (ARG(var)) { \
-		return { make_funcall(CSL_PP2_CONCAT(Op::,name), ARG_EXPR(var)) };  \
+		return { make_funcall(Op :: name, ARG_EXPR(var)) };  \
 	}
 
 #define CSL_MAKE_OP_2(condition, return_type, name, varA, varB) \
 	template<ARG_TYPE(varA), ARG_TYPE(varB), typename = std::enable_if_t<condition>> \
 	return_type name (ARG(varA), ARG(varB)) { \
-		return { make_funcall(CSL_PP2_CONCAT(Op::,name), ARG_EXPR(varA), ARG_EXPR(varB)) };  \
+		return { make_funcall( Op :: name, ARG_EXPR(varA), ARG_EXPR(varB)) };  \
 	}
 
 #define CSL_MAKE_OP_3(condition, return_type, name, varA, varB, varC) \
 	template<ARG_TYPE(varA), ARG_TYPE(varB), ARG_TYPE(varC), typename = std::enable_if_t<condition>> \
 	return_type name (ARG(varA), ARG(varB), ARG(varC)) { \
-		return { make_funcall(CSL_PP2_CONCAT(Op::,name), ARG_EXPR(varA), ARG_EXPR(varB), ARG_EXPR(varC)) };  \
+		return { make_funcall(Op :: name, ARG_EXPR(varA), ARG_EXPR(varB), ARG_EXPR(varC)) };  \
 	}
 
 #define GENXTYPE_OP_GENXTYPE(type_in, var_in, type_out, name) \

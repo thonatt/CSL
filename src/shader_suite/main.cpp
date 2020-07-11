@@ -81,13 +81,13 @@ auto test_frag_ops()
 	Shader shader;
 
 	CSL2_STRUCT(Plop,
-		(vec3)v,
-		(Float)f
+		(vec3, v),
+		(Float, f)
 	);
 
 	CSL2_STRUCT(BigPlop,
-		(Plop)plop,
-		(Float)g
+		(Plop, plop),
+		(Float, g)
 	);
 
 	auto ffff = define_function<vec3>("f", [&](vec3 aa = "a", vec3 bb = "b") {
@@ -513,7 +513,7 @@ auto vertex_mvp()
 
 	shader.main([&] {
 		Float fov = Float(90.0) << "fov";
-		Float s = 1.0 / tan(fov / (2.0 * 180.0) * 3.141519265);
+		Float s = 1.0 / tan(fov / (2.0 * 180.0) * 3.141519265) << "scale";
 		Float f = Float(100.0) << "near";
 		Float n = Float(0.01) << "far";
 		mat4 proj = mat4(
@@ -525,8 +525,8 @@ auto vertex_mvp()
 
 		vec3 at = vec3(0, 0, 0) << "at";
 		vec3 up = vec3(0, 0, 1) << "up";
-		Float theta = mod(time / 5.0, 1.0) * 2.0 * 3.141519265;
-		vec3 eye = 3.3 * vec3(cos(theta), sin(theta), 1.0) << "eye";
+		Float theta = mod(time / 5.0, 1.0) * 2.0 * 3.141519265 << "theta";
+		vec3 eye = 1.0 * vec3(cos(theta), sin(theta), 1.0) << "eye";
 
 		vec3 z_axis = normalize(at - eye) << "z";
 		vec3 x_axis = normalize(cross(up, z_axis)) << "x";
@@ -545,6 +545,24 @@ auto vertex_mvp()
 	return shader;
 }
 
+auto textured_mesh_frag()
+{
+	using namespace v2::glsl::frag_420;
+	using namespace v2::swizzles::all;
+	Shader shader;
+
+	Qualify<vec2, Layout<Location<0>>, In> uv("uv");
+	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
+
+	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+
+	shader.main([&] {
+		color = texture(tex, uv);
+	});
+	return shader;
+}
+
+
 enum class ShaderGroup {
 	Test,
 	Examples,
@@ -561,6 +579,7 @@ struct ShaderSuite {
 		m_shaders.emplace(name, shader);
 		m_groups[group].emplace(name, shader);
 	}
+
 	std::unordered_map<ShaderGroup, std::unordered_map<std::string, ShaderPtr>> m_groups;
 	std::unordered_map<std::string, ShaderPtr> m_shaders;
 };
@@ -569,7 +588,7 @@ ShaderSuite get_all_suite()
 {
 	ShaderSuite suite;
 
-	suite.add_shader(ShaderGroup::Test, "test", test_frag_ops);
+	suite.add_shader(ShaderGroup::Examples, "test", test_frag_ops);
 	suite.add_shader(ShaderGroup::Test, "test_vertex", test_vert_quad);
 	suite.add_shader(ShaderGroup::Test, "basic_vertex", vert_basic);
 
@@ -580,6 +599,8 @@ ShaderSuite get_all_suite()
 	suite.add_shader(ShaderGroup::Test, "tex_frag", test_tex);
 
 	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", vertex_mvp);
+	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
+
 	return suite;
 }
 
@@ -599,6 +620,7 @@ struct PipelineaBase {
 	}
 
 	virtual void draw(LoopData& data) = 0;
+	virtual ~PipelineaBase() = default;
 
 	GLProgram m_program;
 	std::unordered_map<GLenum, ShaderActive> m_shaders;
@@ -616,6 +638,8 @@ struct LoopData {
 		}
 		first = false;
 
+		m_framebuffer.add_attachments(GLformat());
+
 		m_pipelines = get_all_pipelines(*this);
 
 		std::filesystem::path path = "../resources/shadertoy-font-25.png";
@@ -624,9 +648,9 @@ struct LoopData {
 		using v2 = std::array<float, 2>;
 		using v3 = std::array<float, 3>;
 
-		m_quad.init();
-		m_quad.set_triangles({ 0,1,2, 0,3,2 });
-		m_quad.set_attributes(
+		m_screen_quad.init();
+		m_screen_quad.set_triangles({ 0,1,2, 0,3,2 });
+		m_screen_quad.set_attributes(
 			std::vector<v3>{ v3{ 0,0,0 }, v3{ 1,0,0 }, v3{ 1,1,0 }, v3{ 0,1,0 } },
 			std::vector<v2>{ v2{ 0,0 }, v2{ 1,0 }, v2{ 1,1 }, v2{ 0,1 } }
 		);
@@ -638,6 +662,42 @@ struct LoopData {
 			std::vector<v2>{ v2{ 0,0 }, v2{ 1,0 }, v2{ 1,1 } }
 		);
 
+		m_quad.init();
+		m_quad.set_triangles({ 0,1,2,0,3,2 });
+		m_quad.set_attributes(
+			std::vector<v3>{ v3{ -1,-1,0 }, v3{ -1,1,0 }, v3{ 1,1,0 }, v3{ 1,-1,0 } },
+			std::vector<v2>{ v2{ 0,0 }, v2{ 1,0 }, v2{ 1,1 }, v2{ 0,1 } }
+		);
+
+		const float t = (1.0f + std::sqrt(5.0f)) / 2.0f;
+		constexpr float pi = 3.14159265f;
+
+		m_isosphere.init();
+		m_isosphere.set_triangles({ 0, 11, 5 , 0, 5, 1, 0, 1, 7,0, 7, 10 , 0, 10, 11 , 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
+			3, 9, 4 ,3, 4, 2,3, 2, 6, 3, 6, 8, 3, 8, 9 , 4, 9, 5 , 2, 4, 11 ,6, 2, 10,8, 6, 7, 9, 8, 1 });
+
+		std::vector<v3> ps = {
+			{-1, t, 0}, {1, t, 0}, {-1, -t, 0}, {1, -t, 0},
+			{0, -1, t}, {0, 1, t}, {0, -1, -t}, {0, 1, -t},
+			{t, 0, -1}, {t, 0, 1}, {-t, 0, -1}, {-t, 0, 1}
+		};
+
+		std::vector<v3> ns(ps.size());
+		std::vector<v2> uvs(ps.size());
+		for (std::size_t i = 0; i < ps.size(); ++i) {
+			float norm = 0;
+			for (int j = 0; j < 3; ++j) {
+				norm += ps[i][j] * ps[i][j];
+			}
+			norm = 1.0f / std::sqrt(norm);
+			for (int j = 0; j < 3; ++j) {
+				ns[i][j] = ps[i][j] * norm;
+			}
+			uvs[i][0] = std::acos(ns[i][2]) / (2.0f * pi);
+			uvs[i][1] = std::atan2(ns[i][1], ns[i][0]) / pi;
+		}
+		m_isosphere.set_attributes(ps, uvs, ns);
+
 		m_current_pipeline = m_pipelines.begin()->second;
 	}
 
@@ -646,15 +706,16 @@ struct LoopData {
 
 	std::shared_ptr<PipelineaBase> m_current_pipeline = {};
 	float m_time = 0.0f;
-	GLTexture m_tex_letters;
+	GLTexture m_tex_letters, m_previous_rendering;
 	GLFramebuffer m_framebuffer;
-	GLmesh m_quad, m_triangle;
+	GLmesh m_isosphere, m_quad, m_screen_quad, m_triangle;
+	int m_w_screen, m_h_screen;
 };
 
 struct PipelineGrid final : PipelineaBase {
 	void draw(LoopData& data) override {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
-		data.m_quad.draw();
+		data.m_screen_quad.draw();
 	}
 };
 
@@ -663,14 +724,16 @@ struct Pipeline80 final : PipelineaBase {
 		m_program.set_uniform("iTime", glUniform1f, data.m_time);
 		m_program.set_uniform("iResolution", glUniform2f, (float)data.m_framebuffer.m_w, (float)data.m_framebuffer.m_h);
 		data.m_tex_letters.bind_slot(GL_TEXTURE0);
-		data.m_quad.draw();
+		data.m_screen_quad.draw();
 	}
 };
 
 struct PipelineTriangle : PipelineaBase {
 	void draw(LoopData& data) override {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
-		data.m_triangle.draw();
+		data.m_previous_rendering.bind_slot(GL_TEXTURE0);
+		glEnable(GL_DEPTH_TEST);
+		data.m_quad.draw();
 	}
 };
 
@@ -696,7 +759,7 @@ std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipeline
 	{
 		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineTriangle>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("test_frag"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("textured_mesh_frag"));
 		pipelines.emplace("triangle", pipeline);
 	}
 
@@ -834,7 +897,6 @@ void main_loop(LoopData& data)
 			}
 		}
 		ImGui::Separator();
-		const auto& shader = *current_shader;
 
 		if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
 			for (const auto& mode : mode_strs) {
@@ -853,7 +915,7 @@ void main_loop(LoopData& data)
 							++count;
 						}
 					} else if (current_shader) {
-						display_shader(mode, *current_shader, h);
+						display_shader(mode, *current_shader, h - 2.0f * ImGui::GetFrameHeightWithSpacing());
 					}
 					ImGui::EndTabItem();
 				}
@@ -866,22 +928,69 @@ void main_loop(LoopData& data)
 
 	data.m_time += ImGui::GetIO().DeltaTime;
 
+	{
+
+
+		glFlush();
+	}
+
 	if (data.m_current_pipeline) {
 		if (ImGui::Begin("OpenGL rendering")) {
 
 			const float w = ImGui::GetContentRegionAvail().x;
 			const float h = ImGui::GetContentRegionAvail().y;
 
-			data.m_framebuffer.clear();
 			data.m_framebuffer.resize(static_cast<int>(w), static_cast<int>(h));
+			data.m_framebuffer.clear();
+			data.m_framebuffer.bind_draw();
+
 			glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
 			data.m_current_pipeline->m_program.use();
 			data.m_current_pipeline->draw(data);
 
-			ImGui::Image((ImTextureID)(static_cast<std::size_t>(data.m_framebuffer.m_color.m_gl)), ImVec2(w, h));
+			ImGui::Image((ImTextureID)(static_cast<std::size_t>(data.m_framebuffer.m_attachments.front().m_gl)), ImVec2(w, h));
 		}
 		ImGui::End();
 	}
+}
+
+
+void test_polymorphic_vector()
+{
+	struct Base {
+		virtual void f() = 0;
+		virtual ~Base() { std::cout << "Dbase" << std::endl; }
+	};
+
+	struct DerivedA final : Base {
+		~DerivedA() { std::cout << "DA" << std::endl; }
+		void f() override { std::cout << "A" << std::endl; }
+	};
+
+	struct DerivedB : Base {
+		DerivedB(int j) : i(j) {}
+		virtual ~DerivedB() { std::cout << "DB" << std::endl; }
+		void f() override { std::cout << "B " << i << std::endl; }
+		int i = 0;
+	};
+
+	struct DerivedC final : DerivedB {
+		DerivedC(int j, float h) : DerivedB(j), g(h) {}
+		~DerivedC() { std::cout << "DC" << std::endl; }
+		void f() override { std::cout << "C " << i << " " << g << std::endl; }
+		float g = 1.0f;
+	};
+
+	v2::PolymorphicVector<Base, sizeof(DerivedC), alignof(DerivedC)> vec;
+
+	vec.emplace_back<DerivedB>(12);
+	vec.emplace_back<DerivedA>();
+	vec.emplace_back<DerivedC>(13, 3.2f);
+
+	for (std::size_t i = 0; i < vec.size(); ++i) {
+		vec[i].f();
+	}
+
 }
 
 int main()
@@ -891,13 +1000,33 @@ int main()
 	//}
 	//return 0;
 
+	//test_polymorphic_vector();
 
 	//test_old();
 
 	LoopData data;
 	data.m_shader_suite = get_all_suite();
 
-	create_context_and_run([&] {
+	auto before_clear = [&] {
+		data.m_previous_rendering.resize(data.m_w_screen, data.m_h_screen);
+
+		auto tmp = GLptr(
+			[](GLuint* ptr) { glGenFramebuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
+		);
+		glBindFramebuffer(GL_FRAMEBUFFER, tmp);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, data.m_previous_rendering.m_gl, 0);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, data.m_w_screen, data.m_h_screen, 0, data.m_h_screen, data.m_w_screen, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+		data.m_previous_rendering.bind();
+		glGenerateMipmap(GL_TEXTURE_2D);
+	};
+
+	create_context_and_run(before_clear, [&](GLFWwindow* window) {
+		glfwGetFramebufferSize(window, &data.m_w_screen, &data.m_h_screen);
 		main_loop(data);
 	});
 

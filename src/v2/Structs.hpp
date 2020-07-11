@@ -11,10 +11,9 @@
 #include "Listeners.hpp"
 
 //helpers for member infos acces
-#define CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_HEAD(elem)
-#define CSL_PP2_MEMBER_NAME(elem) CSL_PP2_STRIP(elem)
-#define CSL_PP2_MEMBER_STR(elem) CSL_PP2_STR(CSL_PP2_MEMBER_NAME(elem))
-#define CSL_PP2_MEMBER_TYPE_QUALI(quali, elem) GetQualifierType<quali, CSL_PP2_MEMBER_TYPE(elem) >
+#define CSL_PP2_MEMBER_TYPE(elem) FIRST(elem)
+#define CSL_PP2_MEMBER_NAME(elem) SECOND(elem)
+#define CSL_PP2_MEMBER_STR(elem) CSL_PP2_STR(FIRST(elem))
 
 //macros used when iterating over members
 #define CSL_PP2_MEMBER_TYPE_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem)
@@ -22,7 +21,7 @@
 #define CSL_PP2_MEMBER_ARG_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem),
 #define CSL_PP2_MEMBER_ARG_EX_IT(r, data, i, elem) , v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>(CSL_PP2_MEMBER_NAME(elem)))
 
-#define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_PAIR(elem);
+#define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
 
 #define CSL_PP2_INIT_MEMBER_IT(r, data, i, elem) , CSL_PP2_MEMBER_NAME(elem) ( \
 	 v2::make_expr<v2::MemberAccessorWrapper>(v2::MemberAccessorWrapper::create<data, i>(Base::m_expr)), v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp )

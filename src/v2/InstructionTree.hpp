@@ -292,7 +292,7 @@ namespace v2 {
 		SwitchInstruction(const Expr& expr, const Block::Ptr& parent, const Ptr& parent_switch) {
 			m_condition = expr;
 			m_body = std::make_shared<Block>(parent);
-			m_parent_switch = m_parent_switch;
+			m_parent_switch = parent_switch;
 		}
 
 		void add_case(const Expr& expr, Block::Ptr& current_block) {

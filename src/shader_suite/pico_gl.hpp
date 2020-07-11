@@ -96,7 +96,7 @@ struct GLProgram {
 
 		if (m_link_status) {
 			glUseProgram(m_id);
-		}	
+		}
 	}
 
 	template<typename F, typename ...Args>
@@ -110,6 +110,10 @@ struct GLProgram {
 	GLint m_link_status = GL_FALSE;
 };
 
+struct GLformat {
+	GLenum internal = GL_RGBA8, format = GL_RGBA, type = GL_UNSIGNED_BYTE;
+};
+
 struct GLTexture {
 
 	GLTexture() = default;
@@ -120,7 +124,7 @@ struct GLTexture {
 		if (!data) {
 			std::cout << "cant load " << filepath << std::endl;
 		}
-		init_gl(x, y, data);
+		init_gl(x, y, {}, data);
 		stbi_image_free(data);
 	}
 
@@ -128,17 +132,33 @@ struct GLTexture {
 		glBindTexture(GL_TEXTURE_2D, m_gl);
 	}
 
-	void init_gl(const int w, const int h, const void* data = nullptr) {
+	void resize(const int w, const int h)
+	{
+		if (w == m_w && h == m_h) {
+			return;
+		}
+		init_gl(w, h, m_format);
+	}
+
+	void init_gl(const int w, const int h, const GLformat gl_format = {}, const void* data = nullptr) {
 		m_gl = GLptr([](GLuint* ptr) { glGenTextures(1, ptr); },
 			[](const GLuint* ptr) { glDeleteTextures(1, ptr); });
 
 		bind();
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, w, h);
+
+		m_format = gl_format;
+		m_w = w;
+		m_h = h;
+
+		GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
+		glTexStorage2D(GL_TEXTURE_2D, lod_count, gl_format.internal, w, h);
+
 		if (data) {
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, gl_format.format, gl_format.type, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
@@ -148,6 +168,8 @@ struct GLTexture {
 	}
 
 	GLptr m_gl;
+	GLformat m_format;
+	int m_w = 0, m_h = 0;
 };
 
 struct GLFramebuffer {
@@ -156,13 +178,27 @@ struct GLFramebuffer {
 	void clear()
 	{
 		bind();
-		glClearColor(0, 0, 0, 0);
+		glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void bind(GLenum target = GL_FRAMEBUFFER)
+	void bind(const GLenum target = GL_FRAMEBUFFER)
 	{
 		glBindFramebuffer(target, m_id);
+	}
+
+	void bind_read(const GLenum attachment) {
+		bind();
+		glReadBuffer(attachment);
+	}
+
+	void bind_draw() {
+		bind();
+		std::vector<GLenum> attachments;
+		for (const auto& attachment : m_attachments) {
+			attachments.push_back(attachment.m_gl);
+		}
+		glDrawBuffers(static_cast<GLsizei>(m_attachments.size()), attachments.data());
 	}
 
 	void resize(const int w, const int h)
@@ -179,8 +215,6 @@ struct GLFramebuffer {
 			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
 		);
 
-		m_color.init_gl(w, h);
-
 		m_depth_id = GLptr(
 			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
 			[](const GLuint* ptr) { glDeleteRenderbuffers(1, ptr); }
@@ -191,10 +225,26 @@ struct GLFramebuffer {
 
 		bind();
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_id);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_color.m_gl, 0);
+
+		std::vector<GLTexture> tmp_attachments = m_attachments;
+		m_attachments.clear();
+		for (const auto& attachment : tmp_attachments) {
+			add_attachments(attachment.m_format);
+		}
 	}
 
-	GLTexture m_color;
+	template<typename ...Formats>
+	void add_attachments(const Formats ... formats) {
+		bind();
+		([this](const GLformat format) {
+			GLTexture attachment;
+			attachment.init_gl(m_w, m_h, format);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_attachments.size()), GL_TEXTURE_2D, attachment.m_gl, 0);
+			m_attachments.push_back(std::move(attachment));
+		}(formats), ...);
+	}
+
+	std::vector<GLTexture> m_attachments;
 	GLptr m_id, m_depth_id;
 	int m_w = 0, m_h = 0;
 
@@ -283,8 +333,8 @@ struct GLmesh {
 	GLsizei m_indices_count = 0, m_vertice_count = 0;
 };
 
-template<typename F>
-void create_context_and_run(F&& f)
+template<typename BeforeClearFun, typename LoopFun>
+void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fun)
 {
 	if (!glfwInit()) {
 		std::cout << "glfwInit Initialization failed " << std::endl;
@@ -322,6 +372,7 @@ void create_context_and_run(F&& f)
 	glfwSetScrollCallback(window.get(), ImGui_ImplGlfw_ScrollCallback);
 
 	const int version = gladLoadGL();
+	std::cout << "glad version : " << version << std::endl;
 	std::cout << "OpenGL version " << GLVersion.major << "." << GLVersion.minor << std::endl;
 
 	// Setup Dear ImGui context
@@ -344,6 +395,7 @@ void create_context_and_run(F&& f)
 	ImGui_ImplOpenGL3_Init("#version 410");
 
 	while (!glfwWindowShouldClose(window.get())) {
+		before_clear_fun();
 
 		glClear((GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		glfwPollEvents();
@@ -367,7 +419,7 @@ void create_context_and_run(F&& f)
 			ImGui::GetIO().FontGlobalScale = scale;
 		}
 
-		f();
+		loop_fun(window.get());
 
 		static bool show_imgui = false;
 		if (io.KeysDownDuration[GLFW_KEY_H] == 0) {

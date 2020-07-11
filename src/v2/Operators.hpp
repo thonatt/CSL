@@ -6,6 +6,9 @@
 #include <cstddef>
 #include <memory>
 
+#include <type_traits>
+#include <vector>
+
 namespace v2 {
 
 	enum class Op : std::size_t {
@@ -241,7 +244,7 @@ namespace v2 {
 
 	template<typename Operator>
 	struct OperatorWrapper final : OperatorBase {
-		
+
 		void print_spirv() const override {
 			//SPIRVstr<Operator>::call(op);
 		}
@@ -503,4 +506,42 @@ namespace v2 {
 		const T value;
 	};
 
+
+	template<typename Base, std::size_t MaxSizeof, std::size_t MaxAlignment>
+	struct PolymorphicVector {
+
+	public:
+		PolymorphicVector() = default;
+
+		template<typename Derived, typename ... Args>
+		void emplace_back(Args&& ...args) {
+			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
+			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
+			static_assert(alignof(Derived) <= MaxAlignment, "Derived alignement is too big");
+
+			m_buffer.push_back({});
+			new (&m_buffer.back()) Derived(std::forward<Args>(args)...);
+		}
+
+		Base& operator[](const std::size_t index) {
+			return *std::launder(reinterpret_cast<Base*>(&m_buffer[index]));
+		}
+
+		const Base& operator[](const std::size_t index) const {
+			return *std::launder(reinterpret_cast<const Base*>(&m_buffer[index]));
+		}
+
+		~PolymorphicVector() {
+			for (std::size_t i = m_buffer.size(); i > 0; --i) {
+				operator[](i - 1).~Base();
+			}
+		}
+
+		std::size_t size() const {
+			return m_buffer.size();
+		}
+
+	private:
+		std::vector<std::aligned_storage_t<MaxSizeof, MaxAlignment>> m_buffer;
+	};
 }

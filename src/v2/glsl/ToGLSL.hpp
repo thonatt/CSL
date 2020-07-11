@@ -97,7 +97,7 @@ namespace v2 {
 		std::string m_str;
 	};
 
-#define MAKE_OP_IT(r, data, i, elem) { CSL_PP2_CONCAT(Op::,elem), { Precedence::FunctionCall, CSL_PP2_STR(elem) }},
+#define MAKE_OP_IT(r, data, i, elem) {  Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
 
 	inline const std::unordered_map<Op, OpInfos>& glsl_op_infos() {
 		static const std::unordered_map<Op, OpInfos> op_infos = {
@@ -228,7 +228,7 @@ namespace v2 {
 	};
 
 #define CSL_QUALIFIER_STR_IT(name, str) \
-	template<> inline std::string GLSLQualifier<CSL_PP2_CONCAT(glsl::,name)>::get() { return CSL_PP2_STR(str); }
+	template<> inline std::string GLSLQualifier< glsl :: name>::get() { return CSL_PP2_STR(str); }
 
 	CSL_QUALIFIER_STR_IT(Uniform, uniform);
 	CSL_QUALIFIER_STR_IT(In, in);
