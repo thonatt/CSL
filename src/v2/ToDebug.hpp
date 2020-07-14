@@ -118,10 +118,10 @@ namespace v2 {
 				data.endl().trail();
 				if (k == 0) {
 					data << "If ";
-					i.m_cases[k].condition->print_debug(data);
+					retrieve_expr(i.m_cases[k].condition)->print_debug(data);
 				} else if (k != i.m_cases.size() - 1) {
 					data << "Else If ";
-					i.m_cases[k].condition->print_debug(data);
+					retrieve_expr(i.m_cases[k].condition)->print_debug(data);
 				} else {
 					data << "Else ";
 				}
@@ -141,7 +141,7 @@ namespace v2 {
 		static void call(const WhileInstruction& i, DebugData& data) {
 			data.endl().trail();
 			data << "While ";
-			i.m_condition->print_debug(data);
+			retrieve_expr(i.m_condition)->print_debug(data);
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
 				i->print_debug(data);
@@ -179,14 +179,14 @@ namespace v2 {
 				return;
 			}
 
-			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(i.m_expr)) {
+			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
 			}
 
 			data.endl().trail();
-			i.m_expr->print_debug(data);
+			retrieve_expr(i.m_expr)->print_debug(data);
 		}
 	};
 
@@ -194,7 +194,7 @@ namespace v2 {
 	template<>
 	struct InstructionDebug<ForArgStatement> {
 		static void call(const ForArgStatement i, DebugData& data) {
-			i.m_expr->print_debug(data);
+			retrieve_expr(i.m_expr)->print_debug(data);
 		}
 	};
 
@@ -202,7 +202,7 @@ namespace v2 {
 	template<>
 	struct InstructionDebug<ForIterationStatement> {
 		static void call(const ForIterationStatement i, DebugData& data) {
-			i.m_expr->print_debug(data);
+			retrieve_expr(i.m_expr)->print_debug(data);
 		}
 	};
 
@@ -210,7 +210,7 @@ namespace v2 {
 	struct InstructionDebug<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, DebugData& data) {
 			data.endl().trail() << "Switch ";
-			i.m_condition->print_debug(data);
+			retrieve_expr(i.m_condition)->print_debug(data);
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
 				c->print_debug(data);
@@ -225,7 +225,7 @@ namespace v2 {
 			data.endl().trail();
 			if (i.m_label) {
 				data << "Case ";
-				i.m_label->print_debug(data);
+				retrieve_expr(i.m_label)->print_debug(data);
 			} else {
 				data << "Default";
 			}
@@ -363,11 +363,11 @@ namespace v2 {
 		static void call(const ArgSeq<N>& seq, DebugData& data) {
 			data << "(";
 			if constexpr (N > 0) {
-				seq.m_args[0]->print_debug(data);
+				retrieve_expr(seq.m_args[0])->print_debug(data);
 			}
 			for (std::size_t i = 1; i < N; ++i) {
 				data << ", ";
-				seq.m_args[i]->print_debug(data);
+				retrieve_expr(seq.m_args[i])->print_debug(data);
 			}
 			data << ")";
 		}
@@ -425,8 +425,7 @@ namespace v2 {
 			++data.trailing;
 			for (std::size_t i = 0; i < N; ++i) {
 				data.endl().trail();
-
-				ctor.m_args[i]->print_debug(data);
+				retrieve_expr(ctor.m_args[i])->print_debug(data);
 			}
 			--data.trailing;
 		}
@@ -438,9 +437,9 @@ namespace v2 {
 			data << "Array subscript";
 			++data.trailing;
 			data.endl().trail() << "from ";
-			subscript.m_obj->print_debug(data);
+			retrieve_expr(subscript.m_obj)->print_debug(data);
 			data.endl().trail() << "at index ";
-			subscript.m_index->print_debug(data);
+			retrieve_expr(subscript.m_index)->print_debug(data);
 			--data.trailing;
 		}
 	};
@@ -465,7 +464,7 @@ namespace v2 {
 			data << "Swizzle";
 			++data.trailing;
 			data.endl().trail();
-			swizzle.m_obj->print_debug(data);
+			retrieve_expr(swizzle.m_obj)->print_debug(data);
 			data.endl().trail() << c;
 			((data << chars), ...);
 			--data.trailing;
@@ -499,9 +498,9 @@ namespace v2 {
 			data << op_str(bop.m_op);
 			++data.trailing;
 			data.endl().trail();
-			bop.m_lhs->print_debug(data);
+			retrieve_expr(bop.m_lhs)->print_debug(data);
 			data.endl().trail();
-			bop.m_rhs->print_debug(data);
+			retrieve_expr(bop.m_rhs)->print_debug(data);
 			--data.trailing;
 		}
 	};
@@ -512,14 +511,14 @@ namespace v2 {
 			data << op_str(uop.m_op);
 			++data.trailing;
 			data.endl().trail();
-			uop.m_arg->print_debug(data);
+			retrieve_expr(uop.m_arg)->print_debug(data);
 			--data.trailing;
 		}
 	};
 
 
 	template<typename From, typename To>
-	struct OperatorDebug<ConvertorOperator<Dummy,From, To>> {
+	struct OperatorDebug<ConvertorOperator<Dummy, From, To>> {
 		static void call(const ConvertorOperator<Dummy, From, To>& op, DebugData& data) {
 			data << "convertor ";
 			OperatorDebug<ArgSeq<1>>::call(op, data);
@@ -546,7 +545,7 @@ namespace v2 {
 			}
 			for (std::size_t i = 0; i < N; ++i) {
 				data.endl().trail();
-				fun_call.m_args[i]->print_debug(data);
+				retrieve_expr(fun_call.m_args[i])->print_debug(data);
 			}
 			--data.trailing;
 		}
@@ -565,14 +564,14 @@ namespace v2 {
 			data << "Member accessor";
 			++data.trailing;
 			data.endl().trail();
-			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(accessor.m_obj)) {
+			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					ctor->print_debug(data);
 				} else {
 					data << "$" << ctor->m_variable_id;
 				}
 			} else {
-				auto accessor_wrapper = std::dynamic_pointer_cast<MemberAccessorBase>(accessor.m_obj);
+				auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
 				accessor_wrapper->print_debug(data);
 			}
 			data.endl().trail() << S::get_member_name(Id);

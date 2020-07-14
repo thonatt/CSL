@@ -769,14 +769,14 @@ std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipeline
 void main_loop(LoopData& data)
 {
 	enum class Mode : std::size_t {
-		Debug = 2, ImGui = 1, GLSL = 0, Timings = 3
+		Debug = 2, ImGui = 1, GLSL = 0, Metrics = 3
 	};
 
 	static const std::unordered_map<Mode, std::string> mode_strs = {
 		{ Mode::GLSL, "GLSL"},
 		{ Mode::ImGui, "ImGui"},
 		{ Mode::Debug, "Debug"},
-		{ Mode::Timings, "Timings"}
+		{ Mode::Metrics, "Metrics"}
 	};
 
 	static const std::unordered_map<ShaderGroup, std::string> shader_group_strs = {
@@ -823,10 +823,24 @@ void main_loop(LoopData& data)
 			display_code(shader.m_glsl_str);
 			break;
 		}
-		case Mode::Timings:
+		case Mode::Metrics:
 		{
+
+			sizeof(v2::Expr);
+			sizeof(std::string);
+			sizeof(v2::ConstructorBase);
+			sizeof(v2::Constructor<v2::Matrix<float, 2, 2>, 0>);
+			sizeof(v2::ArgSeq<0>);
+			sizeof(v2::ConstructorBase) + sizeof(v2::ArgSeq<0>);
+
+			//std::size_t expr_allocations_count = 0;
+			//for (const auto& allocation : shader.m_controller.m_expr_allocations) {
+			//	expr_allocations_count += allocation.second;
+			//}
 			std::stringstream s;
 			s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
+			const auto& mem = shader.m_controller.m_memory_pool;
+			s << "\t Exprs, count : " << mem->m_objects_ids.size() << ", total size : " << mem->m_buffer.size() << "\n";
 			s << "Debug generation : " << shader.m_debug_timing << " ms\n";
 			s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
 			ImGui::TextWrapped(s.str().c_str());
@@ -967,7 +981,12 @@ void test_polymorphic_vector()
 		void f() override { std::cout << "A" << std::endl; }
 	};
 
-	struct DerivedB : Base {
+	struct E {
+		E() { std::cout << "E" << std::endl; }
+		~E() { std::cout << "DE" << std::endl; }
+	};
+
+	struct DerivedB : Base, E {
 		DerivedB(int j) : i(j) {}
 		virtual ~DerivedB() { std::cout << "DB" << std::endl; }
 		void f() override { std::cout << "B " << i << std::endl; }
@@ -981,26 +1000,63 @@ void test_polymorphic_vector()
 		float g = 1.0f;
 	};
 
-	v2::PolymorphicVector<Base, sizeof(DerivedC), alignof(DerivedC)> vec;
+	{
+		v2::PolymorphicVector<Base, sizeof(DerivedC), alignof(DerivedC)> vec;
 
-	vec.emplace_back<DerivedB>(12);
-	vec.emplace_back<DerivedA>();
-	vec.emplace_back<DerivedC>(13, 3.2f);
+		vec.emplace_back<DerivedB>(12);
+		vec.emplace_back<DerivedA>();
+		vec.emplace_back<DerivedC>(13, 3.2f);
 
-	for (std::size_t i = 0; i < vec.size(); ++i) {
-		vec[i].f();
+		for (std::size_t i = 0; i < vec.size(); ++i) {
+			vec[i].f();
+		}
 	}
+
+	{
+
+		constexpr std::size_t BandSize = 16;
+		v2::PolymorphicMemoryManager<Base, BandSize, sizeof(DerivedC), alignof(DerivedC)> memory;
+
+		std::cout << std::endl;
+
+		auto id1 = memory.emplace_back<DerivedB>(12);
+		auto id2 = memory.emplace_back<DerivedA>();
+		auto id3 = memory.emplace_back<DerivedC>(13, 3.2f);
+
+		std::cout << std::endl;
+
+		std::cout << sizeof(DerivedA) << std::endl;
+		std::cout << sizeof(DerivedB) << std::endl;
+		std::cout << sizeof(DerivedC) << std::endl;
+
+		std::cout << std::endl;
+
+		for (std::size_t i = 0; i < memory.m_buffers.size(); ++i) {
+			std::cout << memory.m_buffers[i].size() / ((i + 1) * BandSize) << std::endl;
+		}
+
+		std::cout << std::endl;
+
+		memory[id1].f();
+		memory[id2].f();
+		memory[id3].f();
+
+		std::cout << std::endl;
+	}
+
 
 }
 
 int main()
 {
+	//for profiling
 	//for (int i = 0; i < 100000; ++i) {
 	//	get_all_suite();
 	//}
 	//return 0;
 
 	//test_polymorphic_vector();
+	//return 0;
 
 	//test_old();
 

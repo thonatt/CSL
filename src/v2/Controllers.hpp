@@ -3,11 +3,13 @@
 #include "InstructionTree.hpp"
 #include <cassert>
 
+#include <map>
+
 namespace v2 {
 
 	template<typename T>
 	struct ControllerDebug {
-		static void call(const T&t, DebugData& data) { }
+		static void call(const T& t, DebugData& data) { }
 	};
 
 	template<typename T>
@@ -64,7 +66,7 @@ namespace v2 {
 			if (!current_func) {
 				return;
 			}
-			
+
 			if (first_overload) {
 				first_overload = false;
 			} else {
@@ -216,7 +218,7 @@ namespace v2 {
 		virtual void add_case(const Expr& expr) {
 			if (current_switch) {
 				get().add_case(expr, current_block);
-			}	
+			}
 		}
 
 		virtual void end_switch() {
@@ -226,7 +228,7 @@ namespace v2 {
 				}
 				current_block = current_block->m_parent;
 				current_switch = get().m_parent_switch;
-			}			
+			}
 		}
 
 		SwitchInstruction::Ptr current_switch;
@@ -304,15 +306,45 @@ namespace v2 {
 		std::vector<InstructionBase::Ptr> m_unnamed_interface_blocks;
 		std::vector<InstructionBase::Ptr> m_functions;
 
+		using BiggestType = Constructor<Matrix<float, 1, 1>, 4>;
+		using PolyVector = PolymorphicVector<OperatorBase, sizeof(BiggestType), alignof(BiggestType)>;
+		//std::shared_ptr<PolyVector> m_exprs;
+
+		using Memory = PolymorphicMemoryManager<OperatorBase, 8, sizeof(BiggestType), alignof(BiggestType)>;
+
+		//std::shared_ptr<Memory> m_memory;
+		//std::map<std::size_t, std::size_t> m_expr_allocations;
+
+		using MemoryPool = PolymorphicMemoryPool<OperatorBase, sizeof(BiggestType)>;
+		std::shared_ptr<MemoryPool> m_memory_pool;
+
+		//static Memory& get_static_memory() {
+		//	static Memory static_memory;
+		//	return static_memory;
+		//}
+
+		static MemoryPool& get_static_memory() {
+			static MemoryPool static_memory;
+			return static_memory;
+		}
+
 		ShaderController() {
 			m_declarations = std::make_shared<MainBlock>();
 			current_block = m_declarations;
+			//m_exprs = std::make_shared<PolyVector>();
+			//m_memory = std::make_shared<Memory>();
+			m_memory_pool = std::make_shared<MemoryPool>();
+
+			m_memory_pool->m_buffer.reserve(10000);
+			m_memory_pool->m_objects_ids.reserve(100);
+			//for (std::size_t i = 0; i < m_memory->m_buffers.size(); ++i) {
+			//	m_memory->m_buffers[i].reserve(10 * (i + 1) * 8);
+			//}
 		}
 
 		template<typename F>
 		void main(F&& f) {
 			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>);
-
 			(void)define_function<void>("main", f);
 		}
 

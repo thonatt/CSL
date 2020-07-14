@@ -47,7 +47,7 @@ namespace v2 {
 			if (inversion) {
 				stream << "(";
 			}
-			expr->print_glsl(*this, current);
+			retrieve_expr(expr)->print_glsl(*this, current);
 			if (inversion) {
 				stream << ")";
 			}
@@ -58,16 +58,22 @@ namespace v2 {
 			return var_names.emplace(id, name.empty() ? "x" + std::to_string(var_names.size()) : name).first->second;
 		}
 
-		template<typename ...T>
-		void register_builtins(const T&... vars) {
-			(register_builtins(vars), ...);
+		template<typename ...Ts>
+		void register_builtins(const Ts&... vars) {
+			([this](const auto& var) {
+				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(var.get_plain_expr()));
+				assert(ctor);
+				register_var_name(ctor->m_name, ctor->m_variable_id);
+			}(vars), ...);
+			//(register_builtins(vars), ...);
 		}
 
-		template<typename T>
-		void register_builtins(const T& var) {
-			auto ctor = std::dynamic_pointer_cast<ConstructorBase>(var.get_plain_expr());
-			register_var_name(ctor->m_name, ctor->m_variable_id);
-		}
+		//template<typename T>
+		//void register_builtins(const T& var) {
+		//	auto ctor = dynamic_cast<ConstructorBase*>(var.get_plain_expr());
+		//	assert(ctor);
+		//	register_var_name(ctor->m_name, ctor->m_variable_id);
+		//}
 	};
 
 	template<>
@@ -399,11 +405,11 @@ namespace v2 {
 				data.endl().trail();
 				if (k == 0) {
 					data << "if (";
-					i.m_cases[k].condition->print_glsl(data);
+					retrieve_expr(i.m_cases[k].condition)->print_glsl(data);
 					data << ")";
 				} else if (k != i.m_cases.size() - 1) {
 					data << "else if (";
-					i.m_cases[k].condition->print_glsl(data);
+					retrieve_expr(i.m_cases[k].condition)->print_glsl(data);
 					data << ")";
 				} else {
 					data << "else ";
@@ -424,7 +430,7 @@ namespace v2 {
 	struct InstructionGLSL<WhileInstruction> {
 		static void call(const WhileInstruction& i, GLSLData& data) {
 			data.endl().trail() << "while(";
-			i.m_condition->print_glsl(data);
+			retrieve_expr(i.m_condition)->print_glsl(data);
 			data << ") {";
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
@@ -460,18 +466,18 @@ namespace v2 {
 				return;
 			}
 
-			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(i.m_expr)) {
+			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
 				if (ctor->m_flags & CtorFlags::FunctionArgument) {
-					i.m_expr->print_glsl(data, Precedence::Alias);
+					retrieve_expr(i.m_expr)->print_glsl(data, Precedence::Alias);
 					return;
 				}
 			}
 
 			data.endl().trail();
-			i.m_expr->print_glsl(data, Precedence::Alias);
+			retrieve_expr(i.m_expr)->print_glsl(data, Precedence::Alias);
 			data << ";";
 		}
 	};
@@ -480,7 +486,7 @@ namespace v2 {
 	struct InstructionGLSL<ForArgStatement> {
 		static void call(const ForArgStatement& i, GLSLData& data) {
 			if (i.m_expr) {
-				i.m_expr->print_glsl(data);
+				retrieve_expr(i.m_expr)->print_glsl(data);
 				data << "; ";
 				return;
 			}
@@ -491,7 +497,7 @@ namespace v2 {
 	struct InstructionGLSL<ForIterationStatement> {
 		static void call(const ForIterationStatement& i, GLSLData& data) {
 			if (i.m_expr) {
-				i.m_expr->print_glsl(data);
+				retrieve_expr(i.m_expr)->print_glsl(data);
 			}
 		}
 	};
@@ -500,7 +506,7 @@ namespace v2 {
 	struct InstructionGLSL<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, GLSLData& data) {
 			data.endl().trail() << "Switch ";
-			i.m_condition->print_glsl(data, Precedence::Alias);
+			retrieve_expr(i.m_condition)->print_glsl(data, Precedence::Alias);
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
 				c->print_glsl(data);
@@ -515,7 +521,7 @@ namespace v2 {
 			data.endl().trail();
 			if (i.m_label) {
 				data << "Case ";
-				i.m_label->print_glsl(data, Precedence::Alias);
+				retrieve_expr(i.m_label)->print_glsl(data, Precedence::Alias);
 			} else {
 				data << "Default";
 			}
@@ -547,7 +553,7 @@ namespace v2 {
 			data.endl().trail() << "return";
 			if (i.m_expr) {
 				data << " ";
-				i.m_expr->print_glsl(data);
+				retrieve_expr(i.m_expr)->print_glsl(data);
 			}
 			data << ";";
 		}
@@ -653,11 +659,11 @@ namespace v2 {
 		static void call(const ArgSeq<N>& seq, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 			data << "(";
 			if constexpr (N > 0) {
-				seq.m_args[0]->print_glsl(data, precedence);
+				retrieve_expr(seq.m_args[0])->print_glsl(data, precedence);
 			}
 			for (std::size_t i = 1; i < N; ++i) {
 				data << ", ";
-				seq.m_args[i]->print_glsl(data, precedence);
+				retrieve_expr(seq.m_args[i])->print_glsl(data, precedence);
 			}
 			data << ")";
 		}
@@ -704,7 +710,7 @@ namespace v2 {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				data << " = ";
 				if (ctor.arg_count() == 1) {
-					ctor.first_arg()->print_glsl(data);
+					retrieve_expr(ctor.first_arg())->print_glsl(data);
 				} else {
 					data << GLSLTypeStr<T>::get();
 					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
@@ -717,7 +723,7 @@ namespace v2 {
 				break;
 			}
 			case CtorFlags::Unused: {
-				ctor.first_arg()->print_glsl(data);
+				retrieve_expr(ctor.first_arg())->print_glsl(data);
 				break;
 			}
 			case CtorFlags::FunctionArgument: {
@@ -733,9 +739,9 @@ namespace v2 {
 	template<>
 	struct OperatorGLSL<ArraySubscript<Dummy>> {
 		static void call(const ArraySubscript<Dummy>& subscript, GLSLData& data, const Precedence precedence) {
-			subscript.m_obj->print_glsl(data, Precedence::ArraySubscript);
+			retrieve_expr(subscript.m_obj)->print_glsl(data, Precedence::ArraySubscript);
 			data << "[";
-			subscript.m_index->print_glsl(data, Precedence::ArraySubscript);
+			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::ArraySubscript);
 			data << "]";
 		}
 	};
@@ -756,7 +762,7 @@ namespace v2 {
 	struct OperatorGLSL<Swizzling<Swizzle<c, chars...>>> {
 
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
-			swizzle.m_obj->print_glsl(data, Precedence::Swizzle);
+			retrieve_expr(swizzle.m_obj)->print_glsl(data, Precedence::Swizzle);
 			data << ".";
 			data << c;
 			((data << chars), ...);
@@ -791,9 +797,9 @@ namespace v2 {
 			if (inversion) {
 				data << "(";
 			}
-			bop.m_lhs->print_glsl(data, bop_precendence);
+			retrieve_expr(bop.m_lhs)->print_glsl(data, bop_precendence);
 			data << glsl_op_str(bop.m_op);
-			bop.m_rhs->print_glsl(data, bop_precendence);
+			retrieve_expr(bop.m_rhs)->print_glsl(data, bop_precendence);
 			if (inversion) {
 				data << ")";
 			}
@@ -804,7 +810,7 @@ namespace v2 {
 	struct OperatorGLSL<UnaryOperator<Dummy>> {
 		static void call(const UnaryOperator<Dummy>& uop, GLSLData& data, const Precedence precedence) {
 			data << glsl_op_str(uop.m_op);
-			uop.m_arg->print_glsl(data, Precedence::Unary);
+			retrieve_expr(uop.m_arg)->print_glsl(data, Precedence::Unary);
 		}
 	};
 
@@ -812,7 +818,7 @@ namespace v2 {
 	struct OperatorGLSL<ConvertorOperator<Dummy, From, To>> {
 		static void call(const ConvertorOperator<Dummy, From, To>& op, GLSLData& data, const Precedence precedence) {
 			if constexpr (SameMat<From, To>) {
-				op.m_args[0]->print_glsl(data);
+				retrieve_expr(op.m_args[0])->print_glsl(data);
 			} else {
 				data << GLSLTypeStr<To>::get();
 				OperatorGLSL<ArgSeq<1>>::call(op, data);
@@ -835,10 +841,10 @@ namespace v2 {
 			OperatorGLSL<Reference<Dummy>>::call(fun_call, data);
 			data << "(";
 			if constexpr (N > 0) {
-				fun_call.m_args[0]->print_glsl(data, precedence);
+				retrieve_expr(fun_call.m_args[0])->print_glsl(data, precedence);
 				for (std::size_t i = 1; i < N; ++i) {
 					data << ", ";
-					fun_call.m_args[i]->print_glsl(data, precedence);
+					retrieve_expr(fun_call.m_args[i])->print_glsl(data, precedence);
 				}
 			}
 			data << ")";
@@ -855,14 +861,14 @@ namespace v2 {
 	template<typename S, std::size_t Id>
 	struct OperatorGLSL<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data, const Precedence precedence) {
-			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(accessor.m_obj)) {
+			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					ctor->print_glsl(data, precedence);
 				} else {
 					data << data.var_names.find(ctor->m_variable_id)->second;
 				}
 			} else {
-				auto accessor_wrapper = std::dynamic_pointer_cast<MemberAccessorBase>(accessor.m_obj);
+				auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
 				accessor_wrapper->print_glsl(data, precedence);
 			}
 			data << "." << S::get_member_name(Id);

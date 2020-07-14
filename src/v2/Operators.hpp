@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace v2 {
@@ -84,6 +85,10 @@ namespace v2 {
 		//glsl 1.4
 		inverse,
 	};
+
+	std::ostream& operator<<(std::ostream& t, const Op op) {
+		return t << static_cast<std::size_t>(op);
+	}
 
 	enum class Precedence : std::size_t
 	{
@@ -217,7 +222,41 @@ namespace v2 {
 	//////////////////////////////////////////////////////////
 
 	struct OperatorBase;
-	using Expr = std::shared_ptr<OperatorBase>;
+
+	//using Expr = std::shared_ptr<OperatorBase>;
+
+	struct ExprOld
+	{
+		enum Status : std::uint8_t { Empty, Static, Default };
+
+		ExprOld() = default;
+		ExprOld(const std::size_t id, const std::size_t band) : m_id(static_cast<std::uint32_t>(id)), m_band(static_cast<uint8_t>(band)), m_status(Default) { }
+
+		operator bool() const {
+			return m_status != Empty;
+		}
+
+		std::uint32_t m_id = 0;
+		std::uint8_t m_band = 0;
+		Status m_status = Empty;
+	};
+
+	struct Expr
+	{
+		enum Status : std::uint8_t { Empty, Static, Default };
+
+		Expr() = default;
+		Expr(const std::size_t id) : m_id(static_cast<std::uint32_t>(id)), m_status(Default) { }
+
+		operator bool() const {
+			return m_status != Empty;
+		}
+
+		std::uint32_t m_id = 0;
+		Status m_status = Empty;
+	};
+
+	OperatorBase* retrieve_expr(const Expr index);
 
 	enum class CtorFlags : std::size_t {
 		Declaration = 1 << 1,
@@ -229,6 +268,10 @@ namespace v2 {
 
 	constexpr bool operator&(CtorFlags a, CtorFlags b) {
 		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+	}
+
+	std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
+		return t << static_cast<std::size_t>(op);
 	}
 
 	struct OperatorBase {
@@ -269,14 +312,11 @@ namespace v2 {
 	*/
 
 	template <typename Operator, typename ... Args>
-	Expr make_expr(Args&& ...args) {
-		auto wrapper = std::make_shared<Operator>(std::forward<Args>(args)...);
-		auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
-		return expr;
-	}
+	Expr make_expr(Args&& ...args);
 
 	template<typename Delayed>
-	struct Reference : OperatorBase {
+	struct Reference : OperatorBase
+	{
 		virtual ~Reference() = default;
 
 		Reference(const std::size_t id) : m_id(id) {}
@@ -297,9 +337,8 @@ namespace v2 {
 	};
 
 	template<std::size_t N>
-	struct ArgSeq {
-		virtual ~ArgSeq() = default;
-
+	struct ArgSeq
+	{
 		template<typename ...Args>
 		ArgSeq(Args&& ... args) : m_args{ std::forward<Args>(args)... } { }
 
@@ -308,8 +347,8 @@ namespace v2 {
 
 
 	template<std::size_t N>
-	struct FunCall final : OperatorBase, ArgSeq<N> {
-
+	struct FunCall final : OperatorBase, ArgSeq<N>
+	{
 		template<typename ...Args>
 		FunCall(const Op op, Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...), m_op(op) { }
 
@@ -329,19 +368,23 @@ namespace v2 {
 	};
 
 	template <typename ... Args>
-	Expr make_funcall(const Op op, Args&& ...args) {
-		auto wrapper = std::make_shared<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
-		auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
-		return expr;
+	Expr make_funcall(const Op op, Args&& ...args)
+	{
+		return listen().current_shader->m_memory_pool->emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
+		//return listen().current_shader->m_exprs->emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
+
+		//auto wrapper = std::make_shared<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
+		//auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
+		//return expr;
 	}
 
 	struct ConstructorBase : OperatorBase
 	{
 
-		virtual ~ConstructorBase() = default;
-		virtual void print_debug(DebugData& data) const = 0;
-		virtual void print_imgui(ImGuiData& data) const = 0;
-		virtual void print_glsl(GLSLData& data, const Precedence precedence) const = 0;
+		//virtual ~ConstructorBase() = default;
+		//virtual void print_debug(DebugData& data) const = 0;
+		//virtual void print_imgui(ImGuiData& data) const = 0;
+		//virtual void print_glsl(GLSLData& data, const Precedence precedence) const = 0;
 
 		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id)
 			: m_name(name), m_variable_id(variable_id), m_flags(flags) {}
@@ -502,10 +545,10 @@ namespace v2 {
 	//};
 
 	inline void MemberAccessorBase::set_as_temp() {
-		if (auto parent_ctor = std::dynamic_pointer_cast<ConstructorBase>(m_obj)) {
+		if (auto parent_ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_obj))) {
 			parent_ctor->set_as_temp();
 		} else {
-			std::dynamic_pointer_cast<MemberAccessorBase>(m_obj)->set_as_temp();
+			dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_obj))->set_as_temp();
 		}
 	}
 
@@ -615,16 +658,19 @@ namespace v2 {
 	{
 
 	public:
-		PolymorphicVector() = default;
+		PolymorphicVector() {
+			m_buffer.reserve(2000);
+		}
 
 		template<typename Derived, typename ... Args>
-		void emplace_back(Args&& ...args) {
+		Base* emplace_back(Args&& ...args) {
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
 			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
 			static_assert(alignof(Derived) <= MaxAlignment, "Derived alignement is too big");
 
 			m_buffer.push_back({});
 			new (&m_buffer.back()) Derived(std::forward<Args>(args)...);
+			return std::launder(reinterpret_cast<Base*>(&m_buffer.back()));
 		}
 
 		Base& operator[](const std::size_t index) {
@@ -647,5 +693,111 @@ namespace v2 {
 
 	private:
 		std::vector<std::aligned_storage_t<MaxSizeof, MaxAlignment>> m_buffer;
+	};
+
+	template<typename Base, std::size_t BandSize, std::size_t MaxSizeof, std::size_t MaxAlignment>
+	struct PolymorphicMemoryManager {
+
+		using IndexElt = std::size_t;
+		using Index = ExprOld; // std::pair<IndexElt, IndexElt>;
+
+		constexpr std::size_t get_element_size(const std::size_t band_id) {
+			return (1 + band_id) * BandSize;
+		}
+
+		template<typename Derived, typename ... Args>
+		Index emplace_back(Args&& ...args) {
+			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
+			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
+			static_assert(alignof(Derived) <= MaxAlignment, "Derived alignement is too big");
+
+			constexpr IndexElt band = (sizeof(Derived) - 1) / BandSize;
+			constexpr std::size_t derived_max_size = (1 + band) * BandSize;
+
+			const std::size_t current_size = m_buffers[band].size();
+			m_buffers[band].resize(current_size + derived_max_size);
+			new (&m_buffers[band][current_size]) Derived(std::forward<Args>(args)...);
+			return Index{ current_size, band };
+		}
+
+		Base& operator[](const Index pair) {
+			return *std::launder(reinterpret_cast<Base*>(&m_buffers[pair.m_band][pair.m_id]));
+		}
+
+		const Base& operator[](const Index pair) const {
+			return *std::launder(reinterpret_cast<const Base*>(&m_buffers[pair.m_band][pair.m_id]));
+		}
+
+		~PolymorphicMemoryManager() {
+			for (std::size_t i = 0; i < m_buffers.size(); ++i) {
+				const std::size_t item_size = (i + 1) * BandSize;
+				for (std::size_t j = 0; j < m_buffers[i].size(); j += item_size) {
+					operator[](Index{ j, i }).~Base();
+				}
+			}
+		}
+
+	public:
+		static constexpr std::size_t BandCount = 1 + (std::max(MaxSizeof, static_cast<std::size_t>(1)) - 1) / BandSize;
+		std::array<std::vector<char>, BandCount> m_buffers;
+	};
+
+	template<std::size_t N>
+	struct CanFit {
+		using Type = std::conditional_t<
+			(N <= 8),
+			uint8_t,
+			std::conditional_t<
+			(N <= 16),
+			uint16_t,
+			std::conditional_t<
+			(N <= 32),
+			uint32_t,
+			uint64_t
+			>
+			>
+		>;
+	};
+
+	template<typename Base, std::size_t MaxSizeof>
+	struct PolymorphicMemoryPool {
+
+		using Index = Expr;
+		//using DeltaOffsetType = typename CanFit<MaxSizeof>::Type;
+
+		template<typename Derived, typename ... Args>
+		Index emplace_back(Args&& ...args) {
+			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
+			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
+
+			constexpr std::size_t derived_size = sizeof(Derived);
+			constexpr std::size_t derived_alignment = alignof(Derived);
+
+			std::size_t current_size = m_buffer.size();
+			const char* data = m_buffer.data() + current_size;
+			current_size += reinterpret_cast<std::uintptr_t>(data) % derived_alignment;
+			m_buffer.resize(current_size + derived_size);
+			m_objects_ids.push_back(current_size);
+			new (&m_buffer[current_size]) Derived(std::forward<Args>(args)...);
+			return Index{ current_size };
+		}
+
+		Base& operator[](const Index index) {
+			return *std::launder(reinterpret_cast<Base*>(&m_buffer[index.m_id]));
+		}
+
+		const Base& operator[](const Index index) const {
+			return *std::launder(reinterpret_cast<const Base*>(&m_buffer[index.m_id]));
+		}
+
+		~PolymorphicMemoryPool() {
+			for (const std::size_t id : m_objects_ids) {
+				operator[](id).~Base();
+			}
+		}
+
+	public:
+		std::vector<char> m_buffer;
+		std::vector<std::size_t> m_objects_ids;
 	};
 }

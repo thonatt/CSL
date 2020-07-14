@@ -30,20 +30,29 @@ namespace v2 {
 
 			template<typename Data>
 			void print_debug(Data& data) {
+				auto previous_current_shader = listen().current_shader;
+				listen().current_shader = this;
 				ShaderController::print_debug(data);
+				listen().current_shader = previous_current_shader;
 			}
 
 			template<typename Data>
 			void print_imgui(Data& data) {
+				auto previous_current_shader = listen().current_shader;
+				listen().current_shader = this;
 				ShaderController::print_imgui(data);
+				listen().current_shader = previous_current_shader;
 			}
 
 			template<typename Data>
 			void print_glsl(Data& data) {
+				auto previous_current_shader = listen().current_shader;
+				listen().current_shader = this;
 				BuiltInRegisters<type, version>::call(data);
 				data << get_header();
 				data.endl();
 				ShaderController::print_glsl(data);
+				listen().current_shader = previous_current_shader;
 			}
 
 			template<typename F>
@@ -67,12 +76,12 @@ namespace v2 {
 		namespace vert_common {
 			using namespace shader_common;
 
-			Qualify<vec4, Out> gl_Position("gl_Position", ObjFlags::BuiltIn);
-			Qualify<Float, Out> gl_PointSize("gl_PointSize", ObjFlags::BuiltIn);
-			Qualify<Float, Out, Array<0> > gl_ClipDistance("gl_ClipDistance", ObjFlags::BuiltIn);
+			static Qualify<vec4, Out> gl_Position("gl_Position", ObjFlags::BuiltInConstructor);
+			static Qualify<Float, Out> gl_PointSize("gl_PointSize", ObjFlags::BuiltInConstructor);
+			static Qualify<Float, Out, Array<0> > gl_ClipDistance("gl_ClipDistance", ObjFlags::BuiltInConstructor);
 
-			const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltIn);
-			const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltIn);
+			static const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
+			static const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
 		}
 
 		template<GLSLversion version>
@@ -92,11 +101,11 @@ namespace v2 {
 
 			using namespace shader_common;
 
-			const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltIn);
-			const Qualify<Bool, In> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltIn);
-			const Qualify<vec2, In> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltIn);
+			static const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
+			static const Qualify<Bool, In> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
+			static const Qualify<vec2, In> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
 
-			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltIn);
+			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
 			inline void _csl_only_available_in_discard_context_() {
 				listen().add_statement<DiscardStatement>();

@@ -195,6 +195,24 @@ namespace v2 {
 		return overmind;
 	}
 
+	//OperatorBase* retrieve_expr(const Expr index)
+	//{
+	//	if (index.m_status == Expr::Static) {
+	//		return &ShaderController::get_static_memory().operator[](index);
+	//	}
+	//	auto current_shader = listen().current_shader;
+	//	auto memory = current_shader->m_memory;
+	//	return &memory->operator[](index);
+	//}
+
+	OperatorBase* retrieve_expr(const Expr index)
+	{
+		if (index.m_status == Expr::Static) {
+			return &ShaderController::get_static_memory().operator[](index);
+		}
+		return &listen().current_shader->m_memory_pool->operator[](index);
+	}
+
 	// special listeners
 
 	struct WhileListener {
@@ -264,16 +282,40 @@ namespace v2 {
 	/////////////////////////////
 	// definitions requiring listen() definition
 
+	template <typename Operator, typename ... Args>
+	Expr make_expr(Args&& ...args)
+	{
+		if (listen().current_shader) {
+			return listen().current_shader->m_memory_pool->emplace_back<Operator>(std::forward<Args>(args)...);
+			//return listen().current_shader->m_exprs->emplace_back<Operator>(std::forward<Args>(args)...);
+		} else {
+			Expr expr_id = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
+			expr_id.m_status = Expr::Static;
+			return expr_id;
+		}
+
+		//auto wrapper = std::make_shared<Operator>(std::forward<Args>(args)...);
+		//auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
+		//if (listen().current_shader) {
+		//	auto& allocations = listen().current_shader->m_expr_allocations;
+		//	if (allocations.find(sizeof(Operator)) == allocations.end()) {
+		//		std::cout << sizeof(Operator) << " " << typeid(Operator).name() << std::endl;
+		//	}
+		//	++allocations[sizeof(Operator)];
+		//}
+		//return expr.get();
+	}
+
 	inline NamedObjectBase::~NamedObjectBase() {
-		if (!(m_flags & ObjFlags::UsedAsRef) && m_flags & ObjFlags::Constructor) {
-			std::dynamic_pointer_cast<ConstructorBase>(m_expr)->set_as_unused();
+		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
+			dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
 		}
 	}
 
 	template<typename T, typename ... Args>
 	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		Expr expr = make_expr<Constructor<T,sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
+		Expr expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
 		if (obj_flags & ObjFlags::Tracked) {
 			listen().push_expression(expr);
 		}
@@ -297,7 +339,7 @@ namespace v2 {
 		using This = Function<ReturnTList, Fs...>;
 		using RType = ReturnType<Args...>;
 
-		const Expr expr = make_expr<CustomFunCall<Dummy,This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
+		const Expr expr = make_expr<CustomFunCall<Dummy, This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
 		//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 		if constexpr (std::is_same_v<RType, void>) {

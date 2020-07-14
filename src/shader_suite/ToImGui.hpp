@@ -46,8 +46,23 @@ namespace v2 {
 				}
 			}
 			return *this;
-
 		}
+
+		ImGuiData& node_vec_expr(const std::string& s, const std::vector<Expr>& vs) {
+			if (vs.empty()) {
+			} else if (vs.size() == 1) {
+				retrieve_expr(vs[0])->print_imgui(*this);
+			} else {
+				if (ImGui::TreeNode((s + "##" + std::to_string(counter++)).c_str())) {
+					for (const auto& v : vs) {
+						retrieve_expr(v)->print_imgui(*this);
+					}
+					ImGui::TreePop();
+				}
+			}
+			return *this;
+		}
+
 		ImGuiData& operator<<(const std::string& str) {
 			ImGui::TextWrapped(str.c_str());
 			return *this;
@@ -129,7 +144,7 @@ namespace v2 {
 				data.node(case_str, [&] {
 					if (k == 0 || k != i.m_cases.size() - 1) {
 						data.node("Condition", [&] {
-							i.m_cases[k].condition->print_imgui(data);
+							retrieve_expr(i.m_cases[k].condition)->print_imgui(data);
 						});
 					}
 
@@ -147,7 +162,7 @@ namespace v2 {
 		static void call(const WhileInstruction& i, ImGuiData& data) {
 			data.node("While", [&] {
 				data.node("Condition", [&] {
-					i.m_condition->print_imgui(data);
+					retrieve_expr(i.m_condition)->print_imgui(data);
 				});
 				for (const auto& i : i.m_body->m_instructions) {
 					i->print_imgui(data);
@@ -176,13 +191,13 @@ namespace v2 {
 				return;
 			}
 
-			if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(i.m_expr)) {
+			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
 				if (ctor->m_flags & CtorFlags::Temporary) {
 					return;
 				}
 			}
 
-			i.m_expr->print_imgui(data);
+			retrieve_expr(i.m_expr)->print_imgui(data);
 		}
 	};
 
@@ -191,7 +206,7 @@ namespace v2 {
 		static void call(const SwitchInstruction& i, ImGuiData& data) {
 			data.node("Switch", [&] {
 				data.node("Condition", [&] {
-					i.m_condition->print_imgui(data);
+					retrieve_expr(i.m_condition)->print_imgui(data);
 				});
 				for (const auto& c : i.m_body->m_instructions) {
 					c->print_imgui(data);
@@ -207,7 +222,7 @@ namespace v2 {
 			std::string case_str;
 			if (i.m_label) {
 				case_str = "Case";
-				i.m_label->print_imgui(data);
+				retrieve_expr(i.m_label)->print_imgui(data);
 			} else {
 				case_str = "Default";
 			}
@@ -321,11 +336,11 @@ namespace v2 {
 	struct OperatorImGui<ArgSeq<N>> {
 		static void call(const ArgSeq<N>& seq, ImGuiData& data) {
 			if constexpr (N > 0) {
-				seq.m_args[0]->print_imgui(data);
+				retrieve_expr(seq.m_args[0])->print_imgui(data);
 			}
 			for (std::size_t i = 1; i < N; ++i) {
 				data << ", ";
-				seq.m_args[i]->print_imgui(data);
+				retrieve_expr(seq.m_args[i])->print_imgui(data);
 			}
 		}
 	};
@@ -387,7 +402,7 @@ namespace v2 {
 						}
 					}
 
-					data.node_vec("Args", std::vector<Expr>(ctor.m_args.begin(), ctor.m_args.end()));
+					data.node_vec_expr("Args", std::vector<Expr>(ctor.m_args.begin(), ctor.m_args.end()));
 				});
 			}
 		}
@@ -398,9 +413,9 @@ namespace v2 {
 		static void call(const ArraySubscript<Dummy>& subscript, ImGuiData& data) {
 			data.node("Array subscript", [&] {
 				data << "from ";
-				subscript.m_obj->print_imgui(data);
+				retrieve_expr(subscript.m_obj)->print_imgui(data);
 				data << "at index ";
-				subscript.m_index->print_imgui(data);
+				retrieve_expr(subscript.m_index)->print_imgui(data);
 			});
 		}
 	};
@@ -423,7 +438,7 @@ namespace v2 {
 
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, ImGuiData& data) {
 			data.node("Swizzle", [&] {
-				swizzle.m_obj->print_imgui(data);
+				retrieve_expr(swizzle.m_obj)->print_imgui(data);
 				std::string swizzle;
 				swizzle += c;
 				((swizzle += chars), ...);
@@ -443,8 +458,8 @@ namespace v2 {
 	struct OperatorImGui<BinaryOperator<Dummy>> {
 		static void call(const BinaryOperator<Dummy>& bop, ImGuiData& data) {
 			data.node(imgui_op_str(bop.m_op), [&] {
-				bop.m_lhs->print_imgui(data);
-				bop.m_rhs->print_imgui(data);
+				retrieve_expr(bop.m_lhs)->print_imgui(data);
+				retrieve_expr(bop.m_rhs)->print_imgui(data);
 			});
 		}
 	};
@@ -453,7 +468,7 @@ namespace v2 {
 	struct OperatorImGui<UnaryOperator<Dummy>> {
 		static void call(const UnaryOperator<Dummy>& uop, ImGuiData& data) {
 			data.node(imgui_op_str(uop.m_op), [&] {
-				uop.m_arg->print_imgui(data);
+				retrieve_expr(uop.m_arg)->print_imgui(data);
 			});
 		}
 	};
@@ -462,7 +477,7 @@ namespace v2 {
 	struct OperatorImGui<ConvertorOperator<Dummy, From, To>> {
 		static void call(const ConvertorOperator<Dummy, From, To>& op, ImGuiData& data) {
 			data.node("convertor", [&] {
-				op.m_args[0]->print_imgui(data);
+				retrieve_expr(op.m_args[0])->print_imgui(data);
 			});
 		}
 	};
@@ -486,7 +501,7 @@ namespace v2 {
 						data << "no arguments";
 					}
 					for (std::size_t i = 0; i < N; ++i) {
-						fun_call.m_args[i]->print_imgui(data);
+						retrieve_expr(fun_call.m_args[i])->print_imgui(data);
 					}
 				});
 			});
@@ -504,14 +519,14 @@ namespace v2 {
 	struct OperatorImGui<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, ImGuiData& data) {
 			data.node("Member accessor", [&] {
-				if (auto ctor = std::dynamic_pointer_cast<ConstructorBase>(accessor.m_obj)) {
+				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
 					if (ctor->m_flags & CtorFlags::Temporary) {
 						ctor->print_imgui(data);
 					} else {
 						data << ("$" + std::to_string(ctor->m_variable_id));
 					}
 				} else {
-					auto accessor_wrapper = std::dynamic_pointer_cast<MemberAccessorBase>(accessor.m_obj);
+					auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
 					accessor_wrapper->print_imgui(data);
 				}
 				data << S::get_member_name(Id);

@@ -3,6 +3,7 @@
 #include "Operators.hpp"
 #include "Types.hpp"
 
+#include <cassert>
 #include <type_traits>
 #include <string>
 
@@ -15,7 +16,8 @@ namespace v2 {
 		UsedAsRef = 1 << 3,
 		AlwaysExp = 1 << 4,
 		StructMember = 1 << 5,
-		BuiltIn = UsedAsRef | Constructor,
+		BuiltIn = 1 << 6,
+		BuiltInConstructor = BuiltIn | UsedAsRef | Constructor,
 		Default = Tracked | Constructor
 	};
 
@@ -43,7 +45,9 @@ namespace v2 {
 
 		void set_as_temp() const {
 			if (m_flags & ObjFlags::Constructor) {
-				auto ctor = std::dynamic_pointer_cast<ConstructorBase>(m_expr);
+				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr));
+				assert(ctor);
+
 				ctor->set_as_temp();
 
 				//auto tmp = ctor->first_arg();
@@ -51,13 +55,15 @@ namespace v2 {
 				if (ctor->arg_count() == 1) {
 					m_expr = ctor->first_arg();
 				}
-				
+
 				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
 				//m_expr.swap(ctor->first_arg());
 			}
 
 			if (m_flags & ObjFlags::StructMember) {
-				std::dynamic_pointer_cast<MemberAccessorBase>(m_expr)->set_as_temp();
+				auto accessor = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_expr));
+				assert(accessor);
+				accessor->set_as_temp();
 			}
 		}
 
@@ -80,7 +86,7 @@ namespace v2 {
 
 		Expr get_expr_as_temp() const
 		{
-			if (!(m_flags & ObjFlags::UsedAsRef)) {			
+			if (!(m_flags & ObjFlags::UsedAsRef)) {
 				m_flags |= ObjFlags::UsedAsRef;
 				set_as_temp();
 			}
@@ -222,10 +228,10 @@ namespace v2 {
 		ArrayInterface() : Base() {}
 
 		template<std::size_t N>
-		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default) 
-			: Base(name, obj_flags) {}
+		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
+			: NamedObjectBase(obj_flags), Base(name, obj_flags) {}
 
-		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) 
+		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
 
 		template<typename ... Us, typename = std::enable_if_t<
