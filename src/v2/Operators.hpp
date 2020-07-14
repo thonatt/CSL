@@ -143,52 +143,6 @@ namespace v2 {
 		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
 	}
 
-	//////////////////////////////////////////////////////////////
-
-	//template<typename ...Ts>
-	//struct VisitableBase {
-	//	virtual ~VisitableBase() = default;
-	//};
-
-	//template<typename T>
-	//struct VisitableBase<T> {
-	//	virtual void visit(T& visitor) const = 0;
-	//	virtual ~VisitableBase() = default;
-	//};
-
-	//template<typename T, typename ...Ts>
-	//struct VisitableBase<T, Ts...> : virtual  VisitableBase<T>, virtual VisitableBase<Ts...>
-	//{
-	//	using VisitableBase<T>::visit;
-	//	using VisitableBase<Ts...>::visit;
-	//	virtual ~VisitableBase() = default;
-	//};
-
-	//template<typename Visited, typename Visitor>
-	//struct Visiting {
-	//	static void call(const Visited& visited, Visitor& visitor) {
-	//		std::cout << "visiting " << typeid(Visited).name() << " with " << typeid(Visitor).name() << std::endl;
-	//	}
-	//};
-
-	//template<typename Visited, typename ...Ts>
-	//struct VisitableDerived {
-	//	virtual ~VisitableDerived() = default;
-	//};
-
-	//template<typename Visited, typename T>
-	//struct VisitableDerived<Visited, T> : virtual VisitableBase<T> {
-	//	virtual ~VisitableDerived() = default;
-	//	virtual void visit(T& visitor) const override {
-	//		Visiting<Visited, T>::call(static_cast<const Visited&>(*this), visitor);
-	//	}
-	//};
-
-	//template<typename Visited, typename T, typename ...Ts>
-	//struct VisitableDerived<Visited, T, Ts...> : VisitableDerived<Visited, T>, VisitableDerived<Visited, Ts...> {
-	//	virtual ~VisitableDerived() = default;
-	//};
-
 	////////////////////////////////////////////////////////
 
 	struct DebugData;
@@ -284,42 +238,17 @@ namespace v2 {
 
 	};
 
-	/*
-	template<typename Operator>
-	struct OperatorWrapper final : OperatorBase {
-
-		void print_spirv() const override {
-			//SPIRVstr<Operator>::call(op);
-		}
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<Operator>::call(m_operator, data);
-		}
-		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Operator>::call(m_operator, data);
-		}
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Operator>::call(m_operator, data, precedence);
-		}
-
-		template<typename ...Args>
-		OperatorWrapper(Args&& ...args) : m_operator{ std::forward<Args>(args)... } { }
-
-		OperatorWrapper(Operator&& op) : m_operator(std::move(op)) { }
-
-		Operator m_operator;
-	};
-	*/
+	struct Dummy { };
 
 	template <typename Operator, typename ... Args>
 	Expr make_expr(Args&& ...args);
 
 	template<typename Delayed>
-	struct Reference : OperatorBase
+	struct ReferenceDelayed : OperatorBase
 	{
-		virtual ~Reference() = default;
+		virtual ~ReferenceDelayed() = default;
 
-		Reference(const std::size_t id) : m_id(id) {}
+		ReferenceDelayed(const std::size_t id) : m_id(id) {}
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<Reference>::call(*this, data);
@@ -335,6 +264,7 @@ namespace v2 {
 
 		std::size_t m_id;
 	};
+	using Reference = ReferenceDelayed<Dummy>;
 
 	template<std::size_t N>
 	struct ArgSeq
@@ -371,21 +301,10 @@ namespace v2 {
 	Expr make_funcall(const Op op, Args&& ...args)
 	{
 		return listen().current_shader->m_memory_pool->emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
-		//return listen().current_shader->m_exprs->emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
-
-		//auto wrapper = std::make_shared<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
-		//auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
-		//return expr;
 	}
 
 	struct ConstructorBase : OperatorBase
 	{
-
-		//virtual ~ConstructorBase() = default;
-		//virtual void print_debug(DebugData& data) const = 0;
-		//virtual void print_imgui(ImGuiData& data) const = 0;
-		//virtual void print_glsl(GLSLData& data, const Precedence precedence) const = 0;
-
 		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id)
 			: m_name(name), m_variable_id(variable_id), m_flags(flags) {}
 
@@ -447,7 +366,7 @@ namespace v2 {
 	};
 
 	template<typename Delayed>
-	struct ArraySubscript final : OperatorBase
+	struct ArraySubscriptDelayed final : OperatorBase
 	{
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<ArraySubscript>::call(*this, data);
@@ -463,6 +382,7 @@ namespace v2 {
 
 		Expr m_obj, m_index;
 	};
+	using ArraySubscript = ArraySubscriptDelayed<Dummy>;
 
 	struct SwizzlingBase : OperatorBase
 	{
@@ -492,17 +412,6 @@ namespace v2 {
 			OperatorGLSL<Swizzling<S>>::call(*this, data, precedence);
 		}
 	};
-
-	//struct SwizzlingWrapper {
-
-	//	template<typename S>
-	//	static SwizzlingWrapper create(const Expr& expr) {
-	//		return SwizzlingWrapper{ std::static_pointer_cast<SwizzlingBase>(std::make_shared<Swizzling<S>>(expr)) };
-	//	}
-
-	//	std::shared_ptr<SwizzlingBase> m_swizzle;
-	//};
-
 
 	struct MemberAccessorBase : OperatorBase
 	{
@@ -535,27 +444,20 @@ namespace v2 {
 		}
 	};
 
-	//struct MemberAccessorWrapper {
-	//	template<typename S, std::size_t MemberId>
-	//	static MemberAccessorWrapper create(const Expr& expr) {
-	//		return MemberAccessorWrapper{ std::static_pointer_cast<MemberAccessorBase>(std::make_shared<MemberAccessor<S, MemberId>>(expr)) };
-	//	}
-
-	//	std::shared_ptr<MemberAccessorBase> m_member_accessor;
-	//};
-
 	inline void MemberAccessorBase::set_as_temp() {
 		if (auto parent_ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_obj))) {
 			parent_ctor->set_as_temp();
 		} else {
-			dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_obj))->set_as_temp();
+			if (auto obj = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_obj))) {
+				obj->set_as_temp();
+			}
 		}
 	}
 
 	template<typename Delayed>
-	struct UnaryOperator final : OperatorBase
+	struct UnaryOperatorDelayed final : OperatorBase
 	{
-		UnaryOperator(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
+		UnaryOperatorDelayed(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<UnaryOperator>::call(*this, data);
@@ -573,11 +475,12 @@ namespace v2 {
 		Op m_op;
 
 	};
+	using UnaryOperator = UnaryOperatorDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct BinaryOperator final : OperatorBase
+	struct BinaryOperatorDelayed final : OperatorBase
 	{
-		BinaryOperator(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
+		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<BinaryOperator>::call(*this, data);
@@ -594,8 +497,9 @@ namespace v2 {
 		Expr m_lhs, m_rhs;
 		Op m_op;
 	};
+	using BinaryOperator = BinaryOperatorDelayed<Dummy>;
 
-	template<typename Delayed, typename From, typename To>
+	template<typename From, typename To>
 	struct ConvertorOperator final : OperatorBase, ArgSeq<1>
 	{
 		ConvertorOperator(const Expr& obj) : ArgSeq<1>(obj) {}
@@ -613,11 +517,11 @@ namespace v2 {
 		}
 	};
 
-	template<typename Delayed, typename F, typename ReturnType, std::size_t N>
-	struct CustomFunCall final : Reference<Delayed>, ArgSeq<N>
+	template<typename F, typename ReturnType, std::size_t N>
+	struct CustomFunCall final : Reference, ArgSeq<N>
 	{
 		template<typename ... Args>
-		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference<Delayed>(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }
+		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<CustomFunCall>::call(*this, data);
@@ -759,7 +663,7 @@ namespace v2 {
 		>;
 	};
 
-	template<typename Base, std::size_t MaxSizeof>
+	template<typename Base>
 	struct PolymorphicMemoryPool {
 
 		using Index = Expr;
@@ -768,7 +672,7 @@ namespace v2 {
 		template<typename Derived, typename ... Args>
 		Index emplace_back(Args&& ...args) {
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
-			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
+			//static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
 
 			constexpr std::size_t derived_size = sizeof(Derived);
 			constexpr std::size_t derived_alignment = alignof(Derived);

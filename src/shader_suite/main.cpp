@@ -1051,7 +1051,8 @@ int main()
 {
 	//for profiling
 	//for (int i = 0; i < 100000; ++i) {
-	//	get_all_suite();
+	//	//get_all_suite();
+	//	test_80();
 	//}
 	//return 0;
 

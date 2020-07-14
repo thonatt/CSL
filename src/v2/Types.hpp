@@ -10,8 +10,6 @@ namespace v2 {
 
 	using uint = std::uint32_t;
 
-	struct Dummy {};
-
 	//
 	template<std::size_t ...Ns>
 	struct SizeList;

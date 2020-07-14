@@ -79,16 +79,16 @@ namespace v2 {
 
 		//TODO add IsConvertibleTo<Infos<M>::ScalarType, This>
 		template<typename M, typename = std::enable_if_t< (SameSize<This, M> || Infos<M>::IsScalar)>>
-		Matrix(M&& other) : Matrix(make_expr<ConvertorOperator<Dummy, M, This>>(EXPR(M, other))) { }
+		Matrix(M&& other) : Matrix(make_expr<ConvertorOperator< M, This>>(EXPR(M, other))) { }
 
 		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
 		Matrix operator=(M&& other)& {
-			return { make_expr<BinaryOperator<Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), EXPR(M,other)) };
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), EXPR(M,other)) };
 		}
 
 		template<typename M, typename = std::enable_if_t<SameSize<Matrix, M> && SameScalarType<Matrix, M>>>
 		Matrix operator=(M&& other)&& {
-			return { make_expr<BinaryOperator<Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(M,other)) };
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), EXPR(M,other)) };
 		}
 
 		//TODO add is_convertible_to
@@ -113,68 +113,68 @@ namespace v2 {
 		template<typename Index, typename = std::enable_if_t<!IsScalar && Infos<Index>::IsInteger > >
 		std::conditional_t<C == 1, Scalar, Col> operator[](Index&& index) const&
 		{
-			return { make_expr<ArraySubscript<Dummy>>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
+			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
 		}
 
 		// unaries
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
 		QualifierFree operator-() const& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::UnarySub, NamedObjectBase::get_expr_as_ref()) };
+			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
 		QualifierFree operator-() const&& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::UnarySub, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		// X=
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator+=(A&& a)& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::AddAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::AddAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator+=(A&& a)&& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::AddAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::AddAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator-=(A&& a)& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::SubAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::SubAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator-=(A&& a)&& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::SubAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::SubAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator*=(A&& a)& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::MulAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::MulAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
 		}
 
 		template<typename A, typename = std::enable_if_t<!IsBool && SameScalarType<This, A> && (SameSize<This, A> || Infos<A>::IsScalar)>>
 		void operator*=(A&& a)&& {
-			(void)QualifierFree(make_expr<BinaryOperator<Dummy>>(Op::MulAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::MulAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
 		}
 
 		// ++
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::PrefixUnary, NamedObjectBase::get_expr_as_ref())  };
+			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_ref())  };
 		}
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()&& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::PrefixUnary, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++(int)& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::PostfixUnary, NamedObjectBase::get_expr_as_ref()) };
+			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_ref()) };
 		}
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++(int)&& {
-			return { make_expr<UnaryOperator<Dummy>>(Op::PostfixUnary, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 	};
@@ -184,7 +184,7 @@ namespace v2 {
 		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<A>::IsScalar || Infos<B>::IsScalar || SameSize<A, B> || Infos<A>::ColCount == Infos<B>::RowCount)>>
 		typename AlgebraMulInfos<A, B>::ReturnType operator*(A&& a, B&& b)
 	{
-		return { make_expr<BinaryOperator<Dummy>>(AlgebraMulInfos<A, B>::Operator, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(AlgebraMulInfos<A, B>::Operator, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	// operator /
@@ -192,7 +192,7 @@ namespace v2 {
 		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<A>::IsScalar || Infos<B>::IsScalar || SameSize<A, B>)>>
 		typename AlgebraInfos<A, B>::ReturnType operator/(A&& a, B&& b)
 	{
-		return { make_expr<BinaryOperator<Dummy>>(AlgebraInfos<A, B>::OperatorDiv, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(AlgebraInfos<A, B>::OperatorDiv, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	// operator +
@@ -200,7 +200,7 @@ namespace v2 {
 		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<A>::IsScalar || Infos<B>::IsScalar || SameSize<A, B>)>>
 		typename AlgebraInfos<A, B>::ReturnType operator+(A&& a, B&& b)
 	{
-		return { make_expr<BinaryOperator<Dummy>>(AlgebraInfos<A, B>::OperatorAdd, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(AlgebraInfos<A, B>::OperatorAdd, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	// operator -
@@ -208,7 +208,7 @@ namespace v2 {
 		!Infos<A>::IsBool && SameScalarType<A, B> && (Infos<B>::IsScalar || SameSize<A, B>)>>
 		typename AlgebraInfos<A, B>::ReturnType operator-(A&& a, B&& b)
 	{
-		return { make_expr<BinaryOperator<Dummy>>(AlgebraInfos<A, B>::OperatorSub, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(AlgebraInfos<A, B>::OperatorSub, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	template<typename A, typename B, typename = std::enable_if_t<
@@ -221,24 +221,24 @@ namespace v2 {
 	// operator <
 	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A,B> >>
 	Scalar<bool> operator<(A&& a, B&& b) {
-		return { make_expr<BinaryOperator<Dummy>>(Op::ScalarLessThanScalar, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(Op::ScalarLessThanScalar, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar >>
 	Scalar<bool> operator>(A&& a, B&& b) {
-		return { make_expr<BinaryOperator<Dummy>>(Op::ScalarGreaterThanScalar, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(Op::ScalarGreaterThanScalar, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//operator ||
 	template<typename A, typename B, typename = std::enable_if_t< SameMat<A,bool> && SameMat<A, B>>>
 	Scalar<bool> operator||(A&& a, B&& b) {
-		return { make_expr<BinaryOperator<Dummy>>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//operator &&
 	template<typename A, typename B, typename = std::enable_if_t< SameMat<A, bool> && SameMat<A, B>>>
 	Scalar<bool> operator&&(A&& a, B&& b) {
-		return { make_expr<BinaryOperator<Dummy>>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>

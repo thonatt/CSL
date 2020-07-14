@@ -45,15 +45,14 @@ namespace v2 {
 
 		void set_as_temp() const {
 			if (m_flags & ObjFlags::Constructor) {
-				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr));
-				assert(ctor);
+				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
+					ctor->set_as_temp();
 
-				ctor->set_as_temp();
+					//auto tmp = ctor->first_arg();
 
-				//auto tmp = ctor->first_arg();
-
-				if (ctor->arg_count() == 1) {
-					m_expr = ctor->first_arg();
+					if (ctor->arg_count() == 1) {
+						m_expr = ctor->first_arg();
+					}
 				}
 
 				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
@@ -61,9 +60,9 @@ namespace v2 {
 			}
 
 			if (m_flags & ObjFlags::StructMember) {
-				auto accessor = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_expr));
-				assert(accessor);
-				accessor->set_as_temp();
+				if (auto accessor = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_expr))) {
+					accessor->set_as_temp();
+				}
 			}
 		}
 
@@ -76,7 +75,7 @@ namespace v2 {
 				return m_expr;
 				//return std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->first_arg();
 			}
-			return make_expr<Reference<Dummy>>(id);
+			return make_expr<Reference>(id);
 		}
 
 		Expr get_expr_as_ref()

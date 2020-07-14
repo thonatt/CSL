@@ -346,8 +346,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<Reference<Dummy>> {
-		static void call(const Reference<Dummy>& ref, ImGuiData& data) {
+	struct OperatorImGui<Reference> {
+		static void call(const Reference& ref, ImGuiData& data) {
 			data << ("$" + std::to_string(ref.m_id));
 		}
 	};
@@ -409,8 +409,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<ArraySubscript<Dummy>> {
-		static void call(const ArraySubscript<Dummy>& subscript, ImGuiData& data) {
+	struct OperatorImGui<ArraySubscript> {
+		static void call(const ArraySubscript& subscript, ImGuiData& data) {
 			data.node("Array subscript", [&] {
 				data << "from ";
 				retrieve_expr(subscript.m_obj)->print_imgui(data);
@@ -455,8 +455,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<BinaryOperator<Dummy>> {
-		static void call(const BinaryOperator<Dummy>& bop, ImGuiData& data) {
+	struct OperatorImGui<BinaryOperator> {
+		static void call(const BinaryOperator& bop, ImGuiData& data) {
 			data.node(imgui_op_str(bop.m_op), [&] {
 				retrieve_expr(bop.m_lhs)->print_imgui(data);
 				retrieve_expr(bop.m_rhs)->print_imgui(data);
@@ -465,8 +465,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorImGui<UnaryOperator<Dummy>> {
-		static void call(const UnaryOperator<Dummy>& uop, ImGuiData& data) {
+	struct OperatorImGui<UnaryOperator> {
+		static void call(const UnaryOperator& uop, ImGuiData& data) {
 			data.node(imgui_op_str(uop.m_op), [&] {
 				retrieve_expr(uop.m_arg)->print_imgui(data);
 			});
@@ -474,8 +474,8 @@ namespace v2 {
 	};
 
 	template<typename From, typename To>
-	struct OperatorImGui<ConvertorOperator<Dummy, From, To>> {
-		static void call(const ConvertorOperator<Dummy, From, To>& op, ImGuiData& data) {
+	struct OperatorImGui<ConvertorOperator< From, To>> {
+		static void call(const ConvertorOperator< From, To>& op, ImGuiData& data) {
 			data.node("convertor", [&] {
 				retrieve_expr(op.m_args[0])->print_imgui(data);
 			});
@@ -492,10 +492,10 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
-	struct OperatorImGui<CustomFunCall<Dummy, F, ReturnType, N>> {
-		static void call(const CustomFunCall<Dummy, F, ReturnType, N>& fun_call, ImGuiData& data) {
+	struct OperatorImGui<CustomFunCall< F, ReturnType, N>> {
+		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, ImGuiData& data) {
 			data.node("custom function call", [&] {
-				OperatorImGui<Reference<Dummy>>::call(fun_call, data);
+				OperatorImGui<Reference>::call(fun_call, data);
 				data.node("Args", [&] {
 					if constexpr (N == 0) {
 						data << "no arguments";

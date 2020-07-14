@@ -374,8 +374,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<Reference<Dummy>> {
-		static void call(const Reference<Dummy>& ref, DebugData& data) {
+	struct OperatorDebug<Reference> {
+		static void call(const Reference& ref, DebugData& data) {
 			data << "$" << ref.m_id;
 		}
 	};
@@ -432,8 +432,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<ArraySubscript<Dummy>> {
-		static void call(const ArraySubscript<Dummy>& subscript, DebugData& data) {
+	struct OperatorDebug<ArraySubscript> {
+		static void call(const ArraySubscript& subscript, DebugData& data) {
 			data << "Array subscript";
 			++data.trailing;
 			data.endl().trail() << "from ";
@@ -493,8 +493,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<BinaryOperator<Dummy>> {
-		static void call(const BinaryOperator<Dummy>& bop, DebugData& data) {
+	struct OperatorDebug<BinaryOperator> {
+		static void call(const BinaryOperator& bop, DebugData& data) {
 			data << op_str(bop.m_op);
 			++data.trailing;
 			data.endl().trail();
@@ -506,8 +506,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorDebug<UnaryOperator<Dummy>> {
-		static void call(const UnaryOperator<Dummy>& uop, DebugData& data) {
+	struct OperatorDebug<UnaryOperator> {
+		static void call(const UnaryOperator& uop, DebugData& data) {
 			data << op_str(uop.m_op);
 			++data.trailing;
 			data.endl().trail();
@@ -518,8 +518,8 @@ namespace v2 {
 
 
 	template<typename From, typename To>
-	struct OperatorDebug<ConvertorOperator<Dummy, From, To>> {
-		static void call(const ConvertorOperator<Dummy, From, To>& op, DebugData& data) {
+	struct OperatorDebug<ConvertorOperator<From, To>> {
+		static void call(const ConvertorOperator< From, To>& op, DebugData& data) {
 			data << "convertor ";
 			OperatorDebug<ArgSeq<1>>::call(op, data);
 		}
@@ -535,10 +535,10 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
-	struct OperatorDebug<CustomFunCall<Dummy, F, ReturnType, N>> {
-		static void call(const CustomFunCall<Dummy, F, ReturnType, N>& fun_call, DebugData& data) {
+	struct OperatorDebug<CustomFunCall< F, ReturnType, N>> {
+		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, DebugData& data) {
 			data << "custom function call ";
-			OperatorDebug<Reference<Dummy>>::call(fun_call, data);
+			OperatorDebug<Reference>::call(fun_call, data);
 			++data.trailing;
 			if constexpr (N == 0) {
 				data.endl().trail() << "no arguments";
@@ -550,13 +550,6 @@ namespace v2 {
 			--data.trailing;
 		}
 	};
-
-	//template<>
-	//struct OperatorDebug<MemberAccessorWrapper> {
-	//	static void call(const MemberAccessorWrapper& wrapper, DebugData& data) {
-	//		wrapper.m_member_accessor->print_debug(data);
-	//	}
-	//};
 
 	template<typename S, std::size_t Id>
 	struct OperatorDebug<MemberAccessor<S, Id>> {

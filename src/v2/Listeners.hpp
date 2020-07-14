@@ -339,7 +339,7 @@ namespace v2 {
 		using This = Function<ReturnTList, Fs...>;
 		using RType = ReturnType<Args...>;
 
-		const Expr expr = make_expr<CustomFunCall<Dummy, This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
+		const Expr expr = make_expr<CustomFunCall< This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
 		//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 		if constexpr (std::is_same_v<RType, void>) {

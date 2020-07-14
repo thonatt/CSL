@@ -670,8 +670,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorGLSL<Reference<Dummy>> {
-		static void call(const Reference<Dummy>& ref, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
+	struct OperatorGLSL<Reference> {
+		static void call(const Reference& ref, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 			const auto it = data.var_names.find(ref.m_id);
 			if (it == data.var_names.end()) {
 				data.stream << "unregistered var";
@@ -737,8 +737,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorGLSL<ArraySubscript<Dummy>> {
-		static void call(const ArraySubscript<Dummy>& subscript, GLSLData& data, const Precedence precedence) {
+	struct OperatorGLSL<ArraySubscript> {
+		static void call(const ArraySubscript& subscript, GLSLData& data, const Precedence precedence) {
 			retrieve_expr(subscript.m_obj)->print_glsl(data, Precedence::ArraySubscript);
 			data << "[";
 			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::ArraySubscript);
@@ -790,8 +790,8 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorGLSL<BinaryOperator<Dummy>> {
-		static void call(const BinaryOperator<Dummy>& bop, GLSLData& data, const Precedence precedence) {
+	struct OperatorGLSL<BinaryOperator> {
+		static void call(const BinaryOperator& bop, GLSLData& data, const Precedence precedence) {
 			const Precedence bop_precendence = glsl_op_precedence(bop.m_op);
 			const bool inversion = (precedence < bop_precendence);
 			if (inversion) {
@@ -807,16 +807,16 @@ namespace v2 {
 	};
 
 	template<>
-	struct OperatorGLSL<UnaryOperator<Dummy>> {
-		static void call(const UnaryOperator<Dummy>& uop, GLSLData& data, const Precedence precedence) {
+	struct OperatorGLSL<UnaryOperator> {
+		static void call(const UnaryOperator& uop, GLSLData& data, const Precedence precedence) {
 			data << glsl_op_str(uop.m_op);
 			retrieve_expr(uop.m_arg)->print_glsl(data, Precedence::Unary);
 		}
 	};
 
 	template<typename From, typename To>
-	struct OperatorGLSL<ConvertorOperator<Dummy, From, To>> {
-		static void call(const ConvertorOperator<Dummy, From, To>& op, GLSLData& data, const Precedence precedence) {
+	struct OperatorGLSL<ConvertorOperator< From, To>> {
+		static void call(const ConvertorOperator< From, To>& op, GLSLData& data, const Precedence precedence) {
 			if constexpr (SameMat<From, To>) {
 				retrieve_expr(op.m_args[0])->print_glsl(data);
 			} else {
@@ -836,9 +836,9 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N >
-	struct OperatorGLSL<CustomFunCall<Dummy, F, ReturnType, N>> {
-		static void call(const CustomFunCall<Dummy, F, ReturnType, N>& fun_call, GLSLData& data, const Precedence precedence) {
-			OperatorGLSL<Reference<Dummy>>::call(fun_call, data);
+	struct OperatorGLSL<CustomFunCall< F, ReturnType, N>> {
+		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, GLSLData& data, const Precedence precedence) {
+			OperatorGLSL<Reference>::call(fun_call, data);
 			data << "(";
 			if constexpr (N > 0) {
 				retrieve_expr(fun_call.m_args[0])->print_glsl(data, precedence);

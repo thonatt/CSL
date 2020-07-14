@@ -108,19 +108,19 @@
 			CSL_PP2_ITERATE_DATA(StructTypename, CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename operator=(const StructTypename& other) & { \
-			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_ref()) }; \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_ref()) }; \
 		} \
 		\
 		StructTypename operator=(const StructTypename& other) && { \
-			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_ref()) }; \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_ref()) }; \
 		} \
 		\
 		StructTypename operator=(StructTypename&& other) & { \
-			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_temp()) }; \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_ref(), other.get_expr_as_temp()) }; \
 		} \
 		\
 		StructTypename operator=(StructTypename&& other) && { \
-			return { make_expr<BinaryOperator<v2::Dummy>>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_temp()) }; \
+			return { make_expr<BinaryOperator>(Op::Assignment, NamedObjectBase::get_expr_as_temp(), other.get_expr_as_temp()) }; \
 		} \
 		\
 		static const std::string& get_member_name(const std::size_t member_id) { \

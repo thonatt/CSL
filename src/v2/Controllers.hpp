@@ -315,7 +315,7 @@ namespace v2 {
 		//std::shared_ptr<Memory> m_memory;
 		//std::map<std::size_t, std::size_t> m_expr_allocations;
 
-		using MemoryPool = PolymorphicMemoryPool<OperatorBase, sizeof(BiggestType)>;
+		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
 		std::shared_ptr<MemoryPool> m_memory_pool;
 
 		//static Memory& get_static_memory() {
