@@ -1,6 +1,8 @@
 #pragma once
 
 #include "InstructionTree.hpp"
+#include "Functions.hpp"
+
 #include <cassert>
 
 #include <map>

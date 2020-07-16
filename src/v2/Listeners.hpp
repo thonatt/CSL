@@ -306,6 +306,12 @@ namespace v2 {
 		//return expr.get();
 	}
 
+	template <typename ... Args>
+	Expr make_funcall(const Op op, Args&& ...args)
+	{
+		return listen().current_shader->m_memory_pool.emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
+	}
+
 	inline NamedObjectBase::~NamedObjectBase() {
 		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
 			dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();

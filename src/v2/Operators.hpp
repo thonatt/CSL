@@ -251,15 +251,15 @@ namespace v2 {
 		ReferenceDelayed(const std::size_t id) : m_id(id) {}
 
 		void print_debug(DebugData& data) const override {
-			OperatorDebug<Reference>::call(*this, data);
+			OperatorDebug<ReferenceDelayed>::call(*this, data);
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Reference>::call(*this, data);
+			OperatorImGui<ReferenceDelayed>::call(*this, data);
 		}
 
 		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Reference>::call(*this, data, precedence);
+			OperatorGLSL<ReferenceDelayed>::call(*this, data, precedence);
 		}
 
 		std::size_t m_id;
@@ -298,10 +298,7 @@ namespace v2 {
 	};
 
 	template <typename ... Args>
-	Expr make_funcall(const Op op, Args&& ...args)
-	{
-		return listen().current_shader->m_memory_pool.emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
-	}
+	Expr make_funcall(const Op op, Args&& ...args);
 
 	struct ConstructorBase : OperatorBase
 	{
@@ -371,15 +368,15 @@ namespace v2 {
 	struct ArraySubscriptDelayed final : OperatorBase
 	{
 		void print_debug(DebugData& data) const override {
-			OperatorDebug<ArraySubscript>::call(*this, data);
+			OperatorDebug<ArraySubscriptDelayed>::call(*this, data);
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<ArraySubscript>::call(*this, data);
+			OperatorImGui<ArraySubscriptDelayed>::call(*this, data);
 		}
 
 		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<ArraySubscript>::call(*this, data, precedence);
+			OperatorGLSL<ArraySubscriptDelayed>::call(*this, data, precedence);
 		}
 
 		Expr m_obj, m_index;
@@ -462,15 +459,15 @@ namespace v2 {
 		UnaryOperatorDelayed(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
 
 		void print_debug(DebugData& data) const override {
-			OperatorDebug<UnaryOperator>::call(*this, data);
+			OperatorDebug<UnaryOperatorDelayed>::call(*this, data);
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<UnaryOperator>::call(*this, data);
+			OperatorImGui<UnaryOperatorDelayed>::call(*this, data);
 		}
 
 		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<UnaryOperator>::call(*this, data, precedence);
+			OperatorGLSL<UnaryOperatorDelayed>::call(*this, data, precedence);
 		}
 
 		Expr m_arg;
@@ -485,15 +482,15 @@ namespace v2 {
 		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
 		void print_debug(DebugData& data) const override {
-			OperatorDebug<BinaryOperator>::call(*this, data);
+			OperatorDebug<BinaryOperatorDelayed>::call(*this, data);
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<BinaryOperator>::call(*this, data);
+			OperatorImGui<BinaryOperatorDelayed>::call(*this, data);
 		}
 
 		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<BinaryOperator>::call(*this, data, precedence);
+			OperatorGLSL<BinaryOperatorDelayed>::call(*this, data, precedence);
 		}
 
 		Expr m_lhs, m_rhs;
