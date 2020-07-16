@@ -300,7 +300,7 @@ namespace v2 {
 	template <typename ... Args>
 	Expr make_funcall(const Op op, Args&& ...args)
 	{
-		return listen().current_shader->m_memory_pool->emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
+		return listen().current_shader->m_memory_pool.emplace_back<FunCall<sizeof...(Args)>>(op, std::forward<Args>(args)...);
 	}
 
 	struct ConstructorBase : OperatorBase

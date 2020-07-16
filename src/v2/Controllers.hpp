@@ -316,7 +316,8 @@ namespace v2 {
 		//std::map<std::size_t, std::size_t> m_expr_allocations;
 
 		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
-		std::shared_ptr<MemoryPool> m_memory_pool;
+		//std::shared_ptr<MemoryPool> m_memory_pool;
+		MemoryPool m_memory_pool;
 
 		//static Memory& get_static_memory() {
 		//	static Memory static_memory;
@@ -333,10 +334,10 @@ namespace v2 {
 			current_block = m_declarations;
 			//m_exprs = std::make_shared<PolyVector>();
 			//m_memory = std::make_shared<Memory>();
-			m_memory_pool = std::make_shared<MemoryPool>();
+			//m_memory_pool = std::make_shared<MemoryPool>();
 
-			m_memory_pool->m_buffer.reserve(10000);
-			m_memory_pool->m_objects_ids.reserve(100);
+			m_memory_pool.m_buffer.reserve(10000);
+			m_memory_pool.m_objects_ids.reserve(100);
 			//for (std::size_t i = 0; i < m_memory->m_buffers.size(); ++i) {
 			//	m_memory->m_buffers[i].reserve(10 * (i + 1) * 8);
 			//}

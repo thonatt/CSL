@@ -840,7 +840,7 @@ void main_loop(LoopData& data)
 			std::stringstream s;
 			s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
 			const auto& mem = shader.m_controller.m_memory_pool;
-			s << "\t Exprs, count : " << mem->m_objects_ids.size() << ", total size : " << mem->m_buffer.size() << "\n";
+			s << "\t Exprs, count : " << mem.m_objects_ids.size() << ", total size : " << mem.m_buffer.size() << "\n";
 			s << "Debug generation : " << shader.m_debug_timing << " ms\n";
 			s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
 			ImGui::TextWrapped(s.str().c_str());

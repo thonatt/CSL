@@ -210,7 +210,7 @@ namespace v2 {
 		if (index.m_status == Expr::Static) {
 			return &ShaderController::get_static_memory().operator[](index);
 		}
-		return &listen().current_shader->m_memory_pool->operator[](index);
+		return &listen().current_shader->m_memory_pool.operator[](index);
 	}
 
 	// special listeners
@@ -286,7 +286,7 @@ namespace v2 {
 	Expr make_expr(Args&& ...args)
 	{
 		if (listen().current_shader) {
-			return listen().current_shader->m_memory_pool->emplace_back<Operator>(std::forward<Args>(args)...);
+			return listen().current_shader->m_memory_pool.emplace_back<Operator>(std::forward<Args>(args)...);
 			//return listen().current_shader->m_exprs->emplace_back<Operator>(std::forward<Args>(args)...);
 		} else {
 			Expr expr_id = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);

@@ -26,7 +26,9 @@ namespace v2 {
 
 		public:
 			ShaderGLSL();
-			//ShaderGLSL(ShaderGLSL&& other) : ShaderController(static_cast<ShaderController&&>(other)) { }
+			//ShaderGLSL(ShaderGLSL&& other) {
+			//	std::swap(static_cast<ShaderController&>(*this), static_cast<ShaderController&>(other));
+			//}
 
 			~ShaderGLSL();
 
