@@ -71,8 +71,8 @@ namespace v2 {
 		std::size_t counter = 0;
 	};
 
-	template<>
-	struct ControllerImGui<ShaderController> {
+	template<typename Delayed>
+	struct ControllerImGui<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, ImGuiData& data) {
 			data.node("Declarations", [&] {
 				for (const auto& i : controller.m_declarations->m_instructions) {

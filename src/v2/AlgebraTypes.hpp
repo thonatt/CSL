@@ -92,9 +92,9 @@ namespace v2 {
 		}
 
 		//TODO add is_convertible_to
-		template<typename U, typename T, typename ...Ts,
-			typename = std::enable_if_t< (NumElements<U, T, Ts...> == R * C) && SameScalarType<U, T, Ts...> > >
-			explicit Matrix(U&& u, T&& t, Ts&&...ts) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(T, t), EXPR(Ts, ts)...)
+		template<typename U, typename V, typename ...Vs,
+			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<U, V, Vs...> > >
+			explicit Matrix(U&& u, V&& v, Vs&&...vs) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(U, u), EXPR(V, v), EXPR(Vs, vs)...)
 		{
 		}
 

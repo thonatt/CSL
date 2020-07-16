@@ -32,11 +32,11 @@ namespace v2 {
 
 			~ShaderGLSL();
 
-			template<typename Data>
+			template<typename Delayed, typename Data>
 			void print_debug(Data& data) {
 				auto previous_current_shader = listen().current_shader;
 				listen().current_shader = this;
-				ShaderController::print_debug(data);
+				ShaderController::print_debug<Delayed>(data);
 				listen().current_shader = previous_current_shader;
 			}
 
@@ -55,7 +55,7 @@ namespace v2 {
 				BuiltInRegisters<type, version>::call(data);
 				data << get_header();
 				data.endl();
-				ShaderController::print_glsl(data);
+				ShaderController::print_glsl<v2::Dummy>(data);
 				listen().current_shader = previous_current_shader;
 			}
 
@@ -93,7 +93,9 @@ namespace v2 {
 
 		template<GLSLversion version>
 		struct BuiltInRegisters<ShaderType::Vertex, version> {
-			static void call(GLSLData& data) {
+
+			template<typename Data>
+			static void call(Data& data) {
 				data.register_builtins(
 					vert_common::gl_Position,
 					vert_common::gl_PointSize,
@@ -121,7 +123,9 @@ namespace v2 {
 
 		template<GLSLversion version>
 		struct BuiltInRegisters<ShaderType::Fragment, version> {
-			static void call(GLSLData& data) {
+
+			template<typename Data>
+			static void call(Data& data) {
 				data.register_builtins(
 					frag_common::gl_FragCoord,
 					frag_common::gl_FrontFacing,

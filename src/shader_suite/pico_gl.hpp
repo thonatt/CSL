@@ -8,6 +8,7 @@
 #include <examples/imgui_impl_opengl3.h>
 
 #include <any>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>

@@ -35,8 +35,8 @@ namespace v2 {
 
 	};
 
-	template<>
-	struct ControllerDebug<ShaderController> {
+	template<typename Delayed>
+	struct ControllerDebug<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, DebugData& data) {
 			for (const auto& i : controller.m_declarations->m_instructions) {
 				i->print_debug(data);

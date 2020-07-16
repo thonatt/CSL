@@ -76,8 +76,8 @@ namespace v2 {
 		//}
 	};
 
-	template<>
-	struct ControllerGLSL<ShaderController> {
+	template<typename Delayed>
+	struct ControllerGLSL<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, GLSLData& data) {
 
 

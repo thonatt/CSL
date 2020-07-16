@@ -52,7 +52,7 @@ struct ShaderExample {
 		m_debug_timing = get_timing([&]
 		{
 			DebugData debug_data;
-			shader.print_debug(debug_data);
+			shader.print_debug<Dummy>(debug_data);
 			m_debug_str = debug_data.stream.str();
 		});
 
@@ -815,7 +815,7 @@ void main_loop(LoopData& data)
 		case Mode::ImGui:
 		{
 			v2::ImGuiData data;
-			shader.m_controller.print_imgui(data);
+			shader.m_controller.print_imgui<v2::Dummy>(data);
 			break;
 		}
 		case Mode::GLSL:
@@ -826,12 +826,12 @@ void main_loop(LoopData& data)
 		case Mode::Metrics:
 		{
 
-			sizeof(v2::Expr);
-			sizeof(std::string);
-			sizeof(v2::ConstructorBase);
-			sizeof(v2::Constructor<v2::Matrix<float, 2, 2>, 0>);
-			sizeof(v2::ArgSeq<0>);
-			sizeof(v2::ConstructorBase) + sizeof(v2::ArgSeq<0>);
+			//sizeof(v2::Expr);
+			//sizeof(std::string);
+			//sizeof(v2::ConstructorBase);
+			//sizeof(v2::Constructor<v2::Matrix<float, 2, 2>, 0>);
+			//sizeof(v2::ArgSeq<0>);
+			//sizeof(v2::ConstructorBase) + sizeof(v2::ArgSeq<0>);
 
 			//std::size_t expr_allocations_count = 0;
 			//for (const auto& allocation : shader.m_controller.m_expr_allocations) {

@@ -9,19 +9,25 @@
 
 namespace v2 {
 
-	template<typename T>
+	template<typename Delayed, typename T>
 	struct ControllerDebug {
-		static void call(const T& t, DebugData& data) { }
+
+		template<typename Data>
+		static void call(const T& t, Data& data) { }
 	};
 
-	template<typename T>
+	template<typename Delayed, typename T>
 	struct ControllerImGui {
-		static void call(const T& t, ImGuiData& data) { }
+
+		template<typename Data>
+		static void call(const T& t, Data& data) { }
 	};
 
-	template<typename T>
+	template<typename Delayed, typename T>
 	struct ControllerGLSL {
-		static void call(const T& t, GLSLData& data) { }
+
+		template<typename Data>
+		static void call(const T& t, Data& data) { }
 	};
 
 	struct ControllerBase {
@@ -370,21 +376,21 @@ namespace v2 {
 		}
 
 		// template to delay instantiation
-		template<typename Data>
+		template<typename Delayed, typename Data>
 		void print_debug(Data& data) const {
-			ControllerDebug<ShaderController>::call(*this, data);
+			ControllerDebug<Delayed, ShaderController>::call(*this, data);
 		}
 
 		// template to delay instantiation
-		template<typename Data>
+		template<typename Delayed, typename Data>
 		void print_imgui(Data& data) const {
-			ControllerImGui<ShaderController>::call(*this, data);
+			ControllerImGui<Delayed, ShaderController>::call(*this, data);
 		}
 
 		// template to delay instantiation
-		template<typename Data>
+		template<typename Delayed, typename Data>
 		void print_glsl(Data& data) const {
-			ControllerGLSL<ShaderController>::call(*this, data);
+			ControllerGLSL<Delayed, ShaderController>::call(*this, data);
 		}
 
 		template<typename Struct>
