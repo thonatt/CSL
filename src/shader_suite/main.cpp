@@ -63,7 +63,7 @@ struct ShaderExample {
 			m_glsl_str = glsl_data.stream.str();
 		});
 
-		m_controller = shader.get_base();
+		std::swap(m_controller, shader.get_base());
 	}
 
 	GLProgram m_program;

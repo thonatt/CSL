@@ -342,6 +342,24 @@ namespace v2 {
 			//}
 		}
 
+		//ShaderController(ShaderController&& other) :
+		//	m_declarations(std::move(other.m_declarations)),
+		//	m_structs(std::move(other.m_structs)),
+		//	m_unnamed_interface_blocks(std::move(other.m_unnamed_interface_blocks)),
+		//	m_functions(std::move(other.m_functions)),
+		//	m_memory_pool(std::move(other.m_memory_pool))
+		//{
+		//}
+
+		//ShaderController& operator=(ShaderController&& other) {
+		//	std::swap(m_declarations, other.m_declarations);
+		//	std::swap(m_structs, other.m_structs);
+		//	std::swap(m_unnamed_interface_blocks, other.m_unnamed_interface_blocks);
+		//	std::swap(m_functions, other.m_functions);
+		//	std::swap(m_memory_pool, other.m_memory_pool);
+		//	return *this;
+		//}
+
 		template<typename F>
 		void main(F&& f) {
 			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>);

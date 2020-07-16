@@ -305,6 +305,8 @@ namespace v2 {
 
 	struct ConstructorBase : OperatorBase
 	{
+		virtual ~ConstructorBase() = default;
+
 		ConstructorBase(const std::string& name, const CtorFlags flags, const std::size_t variable_id)
 			: m_name(name), m_variable_id(variable_id), m_flags(flags) {}
 
@@ -323,7 +325,7 @@ namespace v2 {
 		}
 		virtual std::size_t arg_count() const {
 			return 0;
-		}
+		}	
 
 		std::string m_name;
 		std::size_t m_variable_id;
@@ -669,6 +671,14 @@ namespace v2 {
 		using Index = Expr;
 		//using DeltaOffsetType = typename CanFit<MaxSizeof>::Type;
 
+		PolymorphicMemoryPool() = default;
+		//PolymorphicMemoryPool(PolymorphicMemoryPool&& other) : m_buffer(std::move(other.m_buffer)), m_objects_ids(std::move(other.m_objects_ids)) { }
+		//PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) {
+		//	m_buffer = std::move(other.m_buffer);
+		//	m_objects_ids = std::move(other.m_objects_ids);
+		//	return *this;
+		//}
+
 		template<typename Derived, typename ... Args>
 		Index emplace_back(Args&& ...args) {
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
@@ -695,8 +705,9 @@ namespace v2 {
 		}
 
 		~PolymorphicMemoryPool() {
-			for (const std::size_t id : m_objects_ids) {
-				operator[](id).~Base();
+			for (auto it = m_objects_ids.rbegin(); it != m_objects_ids.rend(); ++it) {
+				Base& obj = operator[](*it);
+				obj.~Base();
 			}
 		}
 

@@ -279,7 +279,7 @@ namespace v2 {
 		mutable bool first = true;
 	};
 
-	/////////////////////////////
+	///////////////////////////
 	// definitions requiring listen() definition
 
 	template <typename Operator, typename ... Args>

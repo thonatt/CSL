@@ -22,10 +22,12 @@ namespace v2 {
 		struct BuiltInRegisters;
 
 		template<ShaderType type, GLSLversion version>
-		class ShaderGLSL : private ShaderController {
+		class ShaderGLSL : protected ShaderController {
 
 		public:
 			ShaderGLSL();
+			//ShaderGLSL(ShaderGLSL&& other) : ShaderController(static_cast<ShaderController&&>(other)) { }
+
 			~ShaderGLSL();
 
 			template<typename Data>
@@ -62,6 +64,9 @@ namespace v2 {
 
 			const ShaderController& get_base() const {
 				return static_cast<const ShaderController&>(*this);
+			}
+			ShaderController& get_base() {
+				return static_cast<ShaderController&>(*this);
 			}
 
 		private:
