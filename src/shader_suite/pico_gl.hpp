@@ -19,6 +19,57 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define GL_ENUM_STR(name) { name, #name }
+inline void gl_check()
+{
+	static const std::map<GLenum, std::string> errors = {
+		GL_ENUM_STR(GL_INVALID_ENUM),
+		GL_ENUM_STR(GL_INVALID_VALUE),
+		GL_ENUM_STR(GL_INVALID_OPERATION),
+		GL_ENUM_STR(GL_STACK_OVERFLOW),
+		GL_ENUM_STR(GL_STACK_UNDERFLOW),
+		GL_ENUM_STR(GL_OUT_OF_MEMORY),
+		GL_ENUM_STR(GL_INVALID_FRAMEBUFFER_OPERATION)
+	};
+
+	const GLenum gl_err = glGetError();
+	if (gl_err) {
+		std::string err;
+		auto it = errors.find(gl_err);
+		if (it != errors.end()) {
+			err = it->second;
+		} else {
+			err = "UNKNOWN_GL_ERROR";
+		}
+	}
+}
+
+inline void gl_framebuffer_check(GLenum target)
+{
+	static const std::map<GLenum, std::string> errors = {
+		GL_ENUM_STR(GL_FRAMEBUFFER_UNDEFINED),
+		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT),
+		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
+		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER),
+		GL_ENUM_STR(GL_FRAMEBUFFER_UNSUPPORTED),
+		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE),
+		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS)
+	};
+
+	const GLenum status = glCheckFramebufferStatus(target);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		std::string err;
+		auto it = errors.find(status);
+		if (it != errors.end()) {
+			err = it->second;
+		} else {
+			err = "UNKNOWN_FRAMEBUFFER_ERROR";
+		}
+		std::cout << err << std::endl;
+	}
+}
+#undef GL_ENUM_STR
+
 class GLptr {
 
 public:
@@ -111,8 +162,8 @@ struct GLProgram {
 	GLint m_link_status = GL_FALSE;
 };
 
-struct GLformat {
-
+struct GLformat 
+{
 	GLformat() = default;
 	GLformat(const GLenum internal, const GLenum format, const GLenum type)
 		: m_internal(internal), m_format(format), m_type(type) { }
@@ -120,9 +171,30 @@ struct GLformat {
 	GLenum m_internal = GL_RGBA8, m_format = GL_RGBA, m_type = GL_UNSIGNED_BYTE;
 };
 
-struct GLTexture {
-
+struct GLTexture 
+{
 	GLTexture() = default;
+	GLTexture(const GLformat format, const GLsizei sample_count)
+		: m_format(format)
+	{
+		set_sample_count(sample_count);
+	}
+
+	bool multi_samples() const {
+		return m_sample_count > 1;
+	}
+
+	void set_sample_count(const GLsizei count) {
+		if (m_sample_count != count) {
+			m_sample_count = count;
+		}
+
+		if (multi_samples()) {
+			m_target = GL_TEXTURE_2D_MULTISAMPLE;
+		} else {
+			m_target = GL_TEXTURE_2D;
+		}
+	}
 
 	void load(const std::string& filepath) {
 		int x, y, comp;
@@ -130,12 +202,13 @@ struct GLTexture {
 		if (!data) {
 			std::cout << "cant load " << filepath << std::endl;
 		}
+		set_sample_count(1);
 		init_gl(x, y, {}, data);
 		stbi_image_free(data);
 	}
 
 	void bind() {
-		glBindTexture(GL_TEXTURE_2D, m_gl);
+		glBindTexture(m_target, m_gl);
 	}
 
 	void resize(const int w, const int h)
@@ -156,22 +229,29 @@ struct GLTexture {
 		m_w = w;
 		m_h = h;
 
-		GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
-		glTexStorage2D(GL_TEXTURE_2D, lod_count, gl_format.m_internal, w, h);
+		gl_check();
 
-		if (data) {
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
-			glGenerateMipmap(GL_TEXTURE_2D);
+		if (multi_samples()) {
+			glTexStorage2DMultisample(m_target, m_sample_count, m_format.m_internal, m_w, m_h, GL_TRUE);
+			gl_check();
+		} else {
+			GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
+			glTexStorage2D(m_target, lod_count, gl_format.m_internal, w, h);
+
+			if (data) {
+				glTexSubImage2D(m_target, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
+				glGenerateMipmap(m_target);
+			}
 		}
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
 	void set_swizzle_mask(const GLint r = GL_RED, const GLint g = GL_GREEN, const GLint b = GL_BLUE, const GLint a = GL_ALPHA) {
 		std::array<GLint, 4> swizzle_mask = { r, g, b, a };
 		bind();
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data());
+		glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data());
 	}
 
 	void bind_slot(const GLuint slot) {
@@ -181,37 +261,13 @@ struct GLTexture {
 
 	GLptr m_gl;
 	GLformat m_format;
+	GLenum m_target = GL_TEXTURE_2D;
+	GLsizei m_sample_count = 1;
 	int m_w = 0, m_h = 0;
 };
 
-#define ENUM_STR(name) { name, #name }
-
-inline void gl_framebuffer_check(GLenum target)
+struct GLFramebuffer
 {
-	static const std::map<GLenum, std::string> errors = {
-		ENUM_STR(GL_FRAMEBUFFER_UNDEFINED),
-		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT),
-		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
-		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER),
-		ENUM_STR(GL_FRAMEBUFFER_UNSUPPORTED),
-		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE),
-		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS)
-	};
-
-	GLenum status = glCheckFramebufferStatus(target);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
-		std::string err;
-		auto it = errors.find(status);
-		if (it != errors.end()) {
-			err = it->second;
-		} else {
-			err = "UNKNOWN_FRAMEBUFFER_ERROR";
-		}
-		std::cout << err << std::endl;
-	}
-}
-
-struct GLFramebuffer {
 	GLFramebuffer() = default;
 
 	void init_gl()
@@ -222,7 +278,7 @@ struct GLFramebuffer {
 		);
 	}
 
-	void clear(const float r = 0.4f, const float g = 0.4f, const float b = 0.4f, const float a = 1.0f)
+	void clear(const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f)
 	{
 		bind();
 		glClearColor(r, g, b, a);
@@ -259,25 +315,11 @@ struct GLFramebuffer {
 		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
-	//void blit_from(const GLenum attachment_to, const GLTexture& texture_from) {
-	//	
-	//	GLFramebuffer tmp;
-	//	tmp.init_gl();
-	//	tmp.bind(GL_READ_FRAMEBUFFER);
-	//	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_from.m_gl, 0);
-	//	bind_read(GL_COLOR_ATTACHMENT0);
-
-	//	bind_draw(attachment_to);
-	//	glViewport(0, 0, m_w, m_h);
-	//	glBlitFramebuffer(0, 0, texture_from.m_w, texture_from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	//}
-
-	void resize(const int w, const int h)
+	void resize(const int w, const int h, const GLsizei sample_count = 1)
 	{
 		if (m_w == w && m_h == h) {
 			return;
 		}
-
 		m_w = w;
 		m_h = h;
 
@@ -287,37 +329,55 @@ struct GLFramebuffer {
 			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
 			[](const GLuint* ptr) { glDeleteRenderbuffers(1, ptr); }
 		);
-
 		glBindRenderbuffer(GL_RENDERBUFFER, m_depth_id);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, w, h);
-
+		if (m_sample_count > 1) {
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_sample_count, GL_DEPTH_COMPONENT32, w, h);
+		} else {
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, w, h);
+		}
 		bind();
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_id);
 
 		std::vector<GLTexture> tmp_attachments = m_attachments;
 		m_attachments.clear();
 		for (const auto& attachment : tmp_attachments) {
-			add_attachments(attachment.m_format);
+			create_attachment(attachment.m_format);
 		}
 
 		gl_framebuffer_check(GL_FRAMEBUFFER);
 	}
 
-	template<typename ...Formats>
-	void add_attachments(const Formats ... formats) {
+	void add_attachment(const GLTexture& texture)
+	{
 		bind();
-		([this](const GLformat format) {
-			GLTexture attachment;
-			attachment.init_gl(m_w, m_h, format);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_attachments.size()), GL_TEXTURE_2D, attachment.m_gl, 0);
-			m_attachments.push_back(std::move(attachment));
-		}(formats), ...);
+		assert(texture.m_sample_count == m_sample_count);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_attachments.size()), texture.m_target, texture.m_gl, 0);
+		m_attachments.push_back(texture);
+	}
+
+	template<typename ... Texture>
+	void add_attachments(const Texture& ... texture)
+	{
+		((add_attachment(texture)), ...);
+	}
+
+	void create_attachment(const GLformat format)
+	{
+		GLTexture attachement;
+		attachement.set_sample_count(m_sample_count);
+		attachement.init_gl(m_w, m_h, format);
+		add_attachment(attachement);
+	}
+
+	template<typename ...Formats>
+	void create_attachments(const Formats ... formats) {
+		((create_attachment(formats)), ...);
 	}
 
 	std::vector<GLTexture> m_attachments;
 	GLptr m_id, m_depth_id;
+	GLsizei m_sample_count = 1;
 	int m_w = 0, m_h = 0;
-
 };
 
 struct GLmesh {
@@ -412,7 +472,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	}
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
