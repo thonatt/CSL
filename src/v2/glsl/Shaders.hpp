@@ -26,37 +26,28 @@ namespace v2 {
 
 		public:
 			ShaderGLSL();
-			//ShaderGLSL(ShaderGLSL&& other) {
-			//	std::swap(static_cast<ShaderController&>(*this), static_cast<ShaderController&>(other));
-			//}
+			ShaderGLSL(ShaderGLSL&& other) : ShaderController(std::move(other)) {
+				//std::cout << "ShaderGLSL(ShaderGLSL&&)" << std::endl;
+			}
 
 			~ShaderGLSL();
 
 			template<typename Delayed, typename Data>
 			void print_debug(Data& data) {
-				auto previous_current_shader = listen().current_shader;
-				listen().current_shader = this;
-				ShaderController::print_debug<Delayed>(data);
-				listen().current_shader = previous_current_shader;
+				ShaderController::print_debug<v2::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_imgui(Data& data) {
-				auto previous_current_shader = listen().current_shader;
-				listen().current_shader = this;
-				ShaderController::print_imgui(data);
-				listen().current_shader = previous_current_shader;
+				ShaderController::print_imgui<v2::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_glsl(Data& data) {
-				auto previous_current_shader = listen().current_shader;
-				listen().current_shader = this;
 				BuiltInRegisters<type, version>::call(data);
 				data << get_header();
 				data.endl();
 				ShaderController::print_glsl<v2::Dummy>(data);
-				listen().current_shader = previous_current_shader;
 			}
 
 			template<typename F>
@@ -117,7 +108,7 @@ namespace v2 {
 			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
 			inline void _csl_only_available_in_discard_context_() {
-				listen().add_statement<DiscardStatement>();
+				listen().add_statement<SpecialStatement<Discard>>();
 			}
 		}
 

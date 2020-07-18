@@ -80,18 +80,17 @@ namespace v2 {
 	struct ControllerGLSL<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, GLSLData& data) {
 
-
 			for (const auto& s : controller.m_structs) {
-				s->print_glsl(data);
+				retrieve_instruction(s)->print_glsl(data);
 				data.endl();
 			}
 
 			for (const auto& i : controller.m_declarations->m_instructions) {
-				i->print_glsl(data);
+				retrieve_instruction(i)->print_glsl(data);
 			}
 
 			for (const auto& f : controller.m_functions) {
-				f->print_glsl(data);
+				retrieve_instruction(f)->print_glsl(data);
 			}
 		}
 	};
@@ -417,7 +416,7 @@ namespace v2 {
 				data.endl().trail() << "{";
 				++data.trailing;
 				for (const auto& j : i.m_cases[k].body->m_instructions) {
-					j->print_glsl(data);
+					retrieve_instruction(j)->print_glsl(data);
 				}
 				--data.trailing;
 				data.endl().trail() << "}";
@@ -434,7 +433,7 @@ namespace v2 {
 			data << ") {";
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
-				i->print_glsl(data);
+				retrieve_instruction(i)->print_glsl(data);
 			}
 			--data.trailing;
 			data.endl().trail() << "}";
@@ -446,12 +445,12 @@ namespace v2 {
 		static void call(const ForInstruction& i, GLSLData& data) {
 			data.endl().trail() << "for(";
 			for (const auto& j : i.args->m_instructions) {
-				j->print_glsl(data);
+				retrieve_instruction(j)->print_glsl(data);
 			}
 			data << ") {";
 			++data.trailing;
 			for (const auto& j : i.body->m_instructions) {
-				j->print_glsl(data);
+				retrieve_instruction(j)->print_glsl(data);
 			}
 			--data.trailing;
 			data.endl().trail() << "}";
@@ -509,7 +508,7 @@ namespace v2 {
 			retrieve_expr(i.m_condition)->print_glsl(data, Precedence::Alias);
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
-				c->print_glsl(data);
+				retrieve_instruction(c)->print_glsl(data);
 			}
 			--data.trailing;
 		}
@@ -527,23 +526,9 @@ namespace v2 {
 			}
 			++data.trailing;
 			for (const auto& j : i.m_body->m_instructions) {
-				j->print_glsl(data);
+				retrieve_instruction(j)->print_glsl(data);
 			}
 			--data.trailing;
-		}
-	};
-
-	template<>
-	struct InstructionGLSL<BreakStatement> {
-		static void call(const BreakStatement& i, GLSLData& data) {
-			data.endl().trail() << "break";
-		}
-	};
-
-	template<>
-	struct InstructionGLSL<ContinueStatement> {
-		static void call(const ContinueStatement& i, GLSLData& data) {
-			data.endl().trail() << "continue";
 		}
 	};
 
@@ -559,10 +544,20 @@ namespace v2 {
 		}
 	};
 
+	template<typename T>
+	std::string SpecialStatementStr();
+
 	template<>
-	struct InstructionGLSL<FuncDeclarationWrapper> {
-		static void call(const FuncDeclarationWrapper& wrapper, GLSLData& data) {
-			wrapper.m_func->print_glsl(data);
+	inline std::string SpecialStatementStr<Discard>() { return "discard"; }
+	template<>
+	inline std::string SpecialStatementStr<Break>() { return "break"; }
+	template<>
+	inline std::string SpecialStatementStr<Continue>() { return "continue"; }
+
+	template<typename T>
+	struct InstructionGLSL<SpecialStatement<T>> {
+		static void call(const SpecialStatement<T>& i, GLSLData& data) {
+			data.endl().trail() << SpecialStatementStr<T>() << ";";
 		}
 	};
 
@@ -580,19 +575,19 @@ namespace v2 {
 				const auto& args = overloads[Id].args->m_instructions;
 				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
 					if (!args.empty()) {
-						args.front()->print_glsl(data);
+						retrieve_instruction(args.front())->print_glsl(data);
 					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data << ", ";
-						args[i]->print_glsl(data);
+						retrieve_instruction(args[i])->print_glsl(data);
 					}
 				} else {
 					if (!args.empty()) {
-						args.back()->print_glsl(data);
+						retrieve_instruction(args.back())->print_glsl(data);
 					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data << ", ";
-						args[args.size() - i - 1]->print_glsl(data);
+						retrieve_instruction(args[args.size() - i - 1])->print_glsl(data);
 					}
 				}
 
@@ -600,7 +595,7 @@ namespace v2 {
 				data.endl().trail() << "{";
 				++data.trailing;
 				for (const auto& i : overloads[Id].body->m_instructions) {
-					i->print_glsl(data);
+					retrieve_instruction(i)->print_glsl(data);
 				}
 				--data.trailing;
 				data.endl().trail() << "}";
@@ -620,13 +615,6 @@ namespace v2 {
 	template<>
 	struct InstructionGLSL<StructDeclarationBase> {
 		static void call(const StructDeclarationBase& f, GLSLData& data) { }
-	};
-
-	template<>
-	struct InstructionGLSL<StructDeclarationWrapper> {
-		static void call(const StructDeclarationWrapper& wrapper, GLSLData& data) {
-			wrapper.m_struct->print_glsl(data);
-		}
 	};
 
 	template<typename S, typename T, std::size_t Id>

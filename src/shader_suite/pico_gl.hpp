@@ -112,7 +112,12 @@ struct GLProgram {
 };
 
 struct GLformat {
-	GLenum internal = GL_RGBA8, format = GL_RGBA, type = GL_UNSIGNED_BYTE;
+
+	GLformat() = default;
+	GLformat(const GLenum internal, const GLenum format, const GLenum type)
+		: m_internal(internal), m_format(format), m_type(type) { }
+
+	GLenum m_internal = GL_RGBA8, m_format = GL_RGBA, m_type = GL_UNSIGNED_BYTE;
 };
 
 struct GLTexture {
@@ -152,15 +157,21 @@ struct GLTexture {
 		m_h = h;
 
 		GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
-		glTexStorage2D(GL_TEXTURE_2D, lod_count, gl_format.internal, w, h);
+		glTexStorage2D(GL_TEXTURE_2D, lod_count, gl_format.m_internal, w, h);
 
 		if (data) {
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, gl_format.format, gl_format.type, data);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+	void set_swizzle_mask(const GLint r = GL_RED, const GLint g = GL_GREEN, const GLint b = GL_BLUE, const GLint a = GL_ALPHA) {
+		std::array<GLint, 4> swizzle_mask = { r, g, b, a };
+		bind();
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data());
 	}
 
 	void bind_slot(const GLuint slot) {
@@ -173,34 +184,93 @@ struct GLTexture {
 	int m_w = 0, m_h = 0;
 };
 
+#define ENUM_STR(name) { name, #name }
+
+inline void gl_framebuffer_check(GLenum target)
+{
+	static const std::map<GLenum, std::string> errors = {
+		ENUM_STR(GL_FRAMEBUFFER_UNDEFINED),
+		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT),
+		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
+		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER),
+		ENUM_STR(GL_FRAMEBUFFER_UNSUPPORTED),
+		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE),
+		ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS)
+	};
+
+	GLenum status = glCheckFramebufferStatus(target);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		std::string err;
+		auto it = errors.find(status);
+		if (it != errors.end()) {
+			err = it->second;
+		} else {
+			err = "UNKNOWN_FRAMEBUFFER_ERROR";
+		}
+		std::cout << err << std::endl;
+	}
+}
+
 struct GLFramebuffer {
 	GLFramebuffer() = default;
 
-	void clear()
+	void init_gl()
+	{
+		m_id = GLptr(
+			[](GLuint* ptr) { glGenFramebuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
+		);
+	}
+
+	void clear(const float r = 0.4f, const float g = 0.4f, const float b = 0.4f, const float a = 1.0f)
 	{
 		bind();
-		glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+		glClearColor(r, g, b, a);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void bind(const GLenum target = GL_FRAMEBUFFER)
+	void bind(const GLenum target = GL_FRAMEBUFFER) const
 	{
 		glBindFramebuffer(target, m_id);
 	}
 
-	void bind_read(const GLenum attachment) {
-		bind();
+	void bind_read(const GLenum attachment) const {
+		bind(GL_READ_FRAMEBUFFER);
 		glReadBuffer(attachment);
 	}
 
 	void bind_draw() {
-		bind();
+		bind(GL_DRAW_FRAMEBUFFER);
 		std::vector<GLenum> attachments;
-		for (const auto& attachment : m_attachments) {
-			attachments.push_back(attachment.m_gl);
+		for (std::size_t i = 0; i < m_attachments.size(); ++i) {
+			attachments.push_back(GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i));
 		}
 		glDrawBuffers(static_cast<GLsizei>(m_attachments.size()), attachments.data());
 	}
+
+	void bind_draw(const GLenum attachment) {
+		bind();
+		glDrawBuffers(1, &attachment);
+	}
+
+	void blit_from(const GLFramebuffer& from, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
+		bind_draw(attachment_to);
+		from.bind_read(attachment_from);
+		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
+
+	//void blit_from(const GLenum attachment_to, const GLTexture& texture_from) {
+	//	
+	//	GLFramebuffer tmp;
+	//	tmp.init_gl();
+	//	tmp.bind(GL_READ_FRAMEBUFFER);
+	//	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_from.m_gl, 0);
+	//	bind_read(GL_COLOR_ATTACHMENT0);
+
+	//	bind_draw(attachment_to);
+	//	glViewport(0, 0, m_w, m_h);
+	//	glBlitFramebuffer(0, 0, texture_from.m_w, texture_from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	//}
 
 	void resize(const int w, const int h)
 	{
@@ -211,10 +281,7 @@ struct GLFramebuffer {
 		m_w = w;
 		m_h = h;
 
-		m_id = GLptr(
-			[](GLuint* ptr) { glGenFramebuffers(1, ptr); },
-			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
-		);
+		init_gl();
 
 		m_depth_id = GLptr(
 			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
@@ -232,6 +299,8 @@ struct GLFramebuffer {
 		for (const auto& attachment : tmp_attachments) {
 			add_attachments(attachment.m_format);
 		}
+
+		gl_framebuffer_check(GL_FRAMEBUFFER);
 	}
 
 	template<typename ...Formats>
@@ -398,6 +467,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	while (!glfwWindowShouldClose(window.get())) {
 		before_clear_fun();
 
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear((GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		glfwPollEvents();
 

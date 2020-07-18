@@ -197,17 +197,17 @@ namespace v2 {
 
 	struct Expr
 	{
-		enum Status : std::uint8_t { Empty, Static, Default };
+		enum class Status : std::uint8_t { Empty, Static, Default };
 
 		Expr() = default;
-		Expr(const std::size_t id) : m_id(static_cast<std::uint32_t>(id)), m_status(Default) { }
+		Expr(const std::size_t id) : m_id(static_cast<std::uint32_t>(id)), m_status(Status::Default) { }
 
 		operator bool() const {
-			return m_status != Empty;
+			return m_status != Status::Empty;
 		}
 
 		std::uint32_t m_id = 0;
-		Status m_status = Empty;
+		Status m_status = Status::Empty;
 	};
 
 	OperatorBase* retrieve_expr(const Expr index);
@@ -322,7 +322,7 @@ namespace v2 {
 		}
 		virtual std::size_t arg_count() const {
 			return 0;
-		}	
+		}
 
 		std::string m_name;
 		std::size_t m_variable_id;
@@ -668,13 +668,18 @@ namespace v2 {
 		using Index = Expr;
 		//using DeltaOffsetType = typename CanFit<MaxSizeof>::Type;
 
-		PolymorphicMemoryPool() = default;
-		//PolymorphicMemoryPool(PolymorphicMemoryPool&& other) : m_buffer(std::move(other.m_buffer)), m_objects_ids(std::move(other.m_objects_ids)) { }
-		//PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) {
-		//	m_buffer = std::move(other.m_buffer);
-		//	m_objects_ids = std::move(other.m_objects_ids);
-		//	return *this;
-		//}
+		PolymorphicMemoryPool() {
+			//std::cout << "PolymorphicMemoryPool ctor" << std::endl;
+		}
+
+		PolymorphicMemoryPool(PolymorphicMemoryPool&& other)
+			: m_buffer(std::move(other.m_buffer)), m_objects_ids(std::move(other.m_objects_ids)) { }
+
+		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) {
+			m_buffer = std::move(other.m_buffer);
+			m_objects_ids = std::move(other.m_objects_ids);
+			return *this;
+		}
 
 		template<typename Derived, typename ... Args>
 		Index emplace_back(Args&& ...args) {
@@ -702,7 +707,8 @@ namespace v2 {
 		}
 
 		~PolymorphicMemoryPool() {
-			for (auto it = m_objects_ids.rbegin(); it != m_objects_ids.rend(); ++it) {
+			//std::cout << "PolymorphicMemoryPool dtor " << m_objects_ids.size() << " objects" << std::endl;
+			for (auto it = m_objects_ids.begin(); it != m_objects_ids.end(); ++it) {
 				Base& obj = operator[](*it);
 				obj.~Base();
 			}

@@ -18,7 +18,7 @@ namespace v2 {
 
 		/////////////////////////////////////////////////
 
-		void push_expression(const Expr& ex) {
+		void push_expression(const Expr ex) {
 			if (active && current_shader) {
 				current_shader->push_expression(ex);
 			}
@@ -207,11 +207,17 @@ namespace v2 {
 
 	OperatorBase* retrieve_expr(const Expr index)
 	{
-		if (index.m_status == Expr::Static) {
+		if (index.m_status == Expr::Status::Static) {
 			return &ShaderController::get_static_memory().operator[](index);
 		}
 		return &listen().current_shader->m_memory_pool.operator[](index);
 	}
+
+	InstructionBase* retrieve_instruction(const InstructionIndex index)
+	{
+		return &listen().current_shader->m_instruction_pool.operator[](index);
+	}
+
 
 	// special listeners
 
@@ -290,7 +296,7 @@ namespace v2 {
 			//return listen().current_shader->m_exprs->emplace_back<Operator>(std::forward<Args>(args)...);
 		} else {
 			Expr expr_id = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
-			expr_id.m_status = Expr::Static;
+			expr_id.m_status = Expr::Status::Static;
 			return expr_id;
 		}
 
@@ -313,8 +319,12 @@ namespace v2 {
 	}
 
 	inline NamedObjectBase::~NamedObjectBase() {
-		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
-			dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
+		if (!(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && m_flags & ObjFlags::Constructor) {
+			//assert(listen().current_shader);
+			//assert(!listen().current_shader->m_memory_pool.m_objects_ids.empty(), "variable at shader scope unused");
+			if (listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
+				dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
+			}
 		}
 	}
 
@@ -326,6 +336,12 @@ namespace v2 {
 			listen().push_expression(expr);
 		}
 		return expr;
+	}
+
+	template <typename Instruction, typename ... Args>
+	InstructionIndex make_instruction(Args&& ...args)
+	{
+		return listen().current_shader->m_instruction_pool.emplace_back<Instruction>(std::forward<Args>(args)...);
 	}
 
 	template<typename ReturnTList, typename ...Fs>
@@ -374,11 +390,11 @@ namespace v2 {
 
 #define CSL_BREAK \
 	if(false){ break; } \
-	listen().add_statement<BreakStatement>();
+	listen().add_statement<SpecialStatement<Break>>();
 
 #define CSL_CONTINUE \
 	if(false){ continue; } \
-	listen().add_statement<ContinueStatement>();
+	listen().add_statement<SpecialStatement<Continue>>();
 
 #define CSL_SWITCH(condition) \
 	listen().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = {})while(_csl_begin_switch_)

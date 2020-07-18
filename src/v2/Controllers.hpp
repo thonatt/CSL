@@ -32,13 +32,13 @@ namespace v2 {
 
 	struct ControllerBase {
 
-		void queue_expr(const Expr& e) {
-			current_block->push_instruction(make_statement(e));
+		void queue_expr(const Expr e) {
+			current_block->push_instruction(make_instruction<Statement>(e));
 		}
 
 		Block::Ptr current_block;
 
-		virtual void push_instruction(const InstructionBase::Ptr& i) {}
+		virtual void push_instruction(const InstructionIndex i) {}
 
 		virtual ~ControllerBase() = default;
 
@@ -46,9 +46,14 @@ namespace v2 {
 
 	struct FunctionController : virtual ControllerBase {
 
+		FuncDeclarationBase& get_current_func()
+		{
+			return *dynamic_cast<FuncDeclarationBase*>(retrieve_instruction(current_func));
+		}
+
 		template<typename ReturnTList, typename ... Fs>
 		void begin_func_internal(const std::string& name, const std::size_t fun_id) {
-			current_func = std::make_shared<FuncDeclaration<ReturnTList, Fs...>>(name, fun_id);
+			current_func = make_instruction<FuncDeclaration<ReturnTList, Fs...>>(name, fun_id);
 			current_func_overloads_num_args = { GetArgTList<Fs>::Size ... };
 			current_func_parent = current_block;
 			current_overload = 0;
@@ -58,7 +63,7 @@ namespace v2 {
 
 		void check_num_args() {
 			if (current_func && current_overload_arg_counter == current_func_overloads_num_args[current_overload]) {
-				current_block = current_func->get_overload(current_overload).body;
+				current_block = get_current_func().get_overload(current_overload).body;
 				feeding_args = false;
 			}
 		}
@@ -83,8 +88,8 @@ namespace v2 {
 
 			current_overload_arg_counter = 0;
 			feeding_args = true;
-			if (current_overload < current_func->overload_count()) {
-				current_block = current_func->get_overload(current_overload).args;
+			if (current_overload < get_current_func().overload_count()) {
+				current_block = get_current_func().get_overload(current_overload).args;
 				check_num_args();
 			}
 		}
@@ -95,9 +100,9 @@ namespace v2 {
 			current_func = {};
 		}
 
-		FuncDeclarationBase::Ptr current_func;
-		Block::Ptr current_func_parent;
 		std::vector<std::size_t> current_func_overloads_num_args;
+		Block::Ptr current_func_parent;
+		InstructionIndex current_func;
 		std::size_t current_overload;
 		std::size_t current_overload_arg_counter;
 		bool feeding_args = true;
@@ -107,11 +112,11 @@ namespace v2 {
 	struct ForController : virtual ControllerBase {
 
 		ForInstruction& get() {
-			return current_for->m_instruction;
+			return *dynamic_cast<ForInstruction*>(retrieve_instruction(current_for));
 		}
 
 		virtual void begin_for() {
-			current_for = std::make_shared<InstructionWrapper<ForInstruction>>();
+			current_for = make_instruction<ForInstruction>();
 			push_instruction(current_for);
 		}
 
@@ -134,18 +139,18 @@ namespace v2 {
 			}
 		}
 
-		InstructionWrapper<ForInstruction>::Ptr current_for;
+		InstructionIndex current_for;
 	};
 
 
 	struct IfController : virtual ControllerBase {
 
 		IfInstruction& get() {
-			return current_if->m_instruction;
+			return *dynamic_cast<IfInstruction*>(retrieve_instruction(current_if));
 		}
 
 		void begin_if(const Expr& expr) {
-			current_if = std::make_shared<InstructionWrapper<IfInstruction>>(current_if);
+			current_if = make_instruction<IfInstruction>(current_if);
 			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block) };
 			get().m_cases.push_back(if_case);
 			push_instruction(current_if);
@@ -194,15 +199,15 @@ namespace v2 {
 			}
 		}
 
-		InstructionWrapper<IfInstruction>::Ptr current_if;
+		InstructionIndex current_if;
 	};
 
 	struct WhileController : virtual ControllerBase {
 
 		virtual void begin_while(const Expr& expr) {
-			auto current_while = std::make_shared<InstructionWrapper<WhileInstruction>>(expr, current_block);
+			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
 			push_instruction(current_while);
-			current_block = current_while->m_instruction.m_body;
+			current_block = dynamic_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body;
 		}
 
 		virtual void end_while() {
@@ -214,11 +219,11 @@ namespace v2 {
 
 		SwitchInstruction& get()
 		{
-			return current_switch->m_instruction;
+			return *dynamic_cast<SwitchInstruction*>(retrieve_instruction(current_switch));
 		}
 
 		virtual void begin_switch(const Expr& expr) {
-			current_switch = std::make_shared<InstructionWrapper<SwitchInstruction>>(expr, current_block, current_switch);
+			current_switch = make_instruction<SwitchInstruction>(expr, current_block, current_switch);
 			push_instruction(current_switch);
 			current_block = get().m_body;
 		}
@@ -239,7 +244,7 @@ namespace v2 {
 			}
 		}
 
-		SwitchInstruction::Ptr current_switch;
+		InstructionIndex current_switch;
 	};
 
 	struct MainController :
@@ -293,13 +298,13 @@ namespace v2 {
 			FunctionController::end_func();
 		}
 
-		void push_expression(const Expr& expr) {
+		void push_expression(const Expr expr) {
 			check_end_if();
 			check_func_args();
 			queue_expr(expr);
 		}
 
-		virtual void push_instruction(const InstructionBase::Ptr& i) override {
+		virtual void push_instruction(const InstructionIndex i) override {
 			check_end_if();
 			check_func_args();
 			current_block->push_instruction(i);
@@ -310,9 +315,9 @@ namespace v2 {
 		using Ptr = std::shared_ptr<ShaderController>;
 
 		MainBlock::Ptr m_declarations;
-		std::vector<InstructionBase::Ptr> m_structs;
-		std::vector<InstructionBase::Ptr> m_unnamed_interface_blocks;
-		std::vector<InstructionBase::Ptr> m_functions;
+		std::vector<InstructionIndex> m_structs;
+		std::vector<InstructionIndex> m_unnamed_interface_blocks;
+		std::vector<InstructionIndex> m_functions;
 
 		using BiggestType = Constructor<Matrix<float, 1, 1>, 4>;
 		using PolyVector = PolymorphicVector<OperatorBase, sizeof(BiggestType), alignof(BiggestType)>;
@@ -326,6 +331,10 @@ namespace v2 {
 		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
 		//std::shared_ptr<MemoryPool> m_memory_pool;
 		MemoryPool m_memory_pool;
+
+
+		using InstructionPool = PolymorphicMemoryPool<InstructionBase>;
+		InstructionPool m_instruction_pool;
 
 		//static Memory& get_static_memory() {
 		//	static Memory static_memory;
@@ -346,28 +355,35 @@ namespace v2 {
 
 			m_memory_pool.m_buffer.reserve(10000);
 			m_memory_pool.m_objects_ids.reserve(100);
+
+			m_instruction_pool.m_buffer.reserve(5000);
+			m_instruction_pool.m_objects_ids.reserve(100);
+
 			//for (std::size_t i = 0; i < m_memory->m_buffers.size(); ++i) {
 			//	m_memory->m_buffers[i].reserve(10 * (i + 1) * 8);
 			//}
 		}
 
-		//ShaderController(ShaderController&& other) :
-		//	m_declarations(std::move(other.m_declarations)),
-		//	m_structs(std::move(other.m_structs)),
-		//	m_unnamed_interface_blocks(std::move(other.m_unnamed_interface_blocks)),
-		//	m_functions(std::move(other.m_functions)),
-		//	m_memory_pool(std::move(other.m_memory_pool))
-		//{
-		//}
+		ShaderController(ShaderController&& other) :
+			m_declarations(std::move(other.m_declarations)),
+			m_structs(std::move(other.m_structs)),
+			m_unnamed_interface_blocks(std::move(other.m_unnamed_interface_blocks)),
+			m_functions(std::move(other.m_functions)),
+			m_memory_pool(std::move(other.m_memory_pool)),
+			m_instruction_pool(std::move(other.m_instruction_pool))
+		{
+			//std::cout << "ShaderController(ShaderController&&)" << std::endl;
+		}
 
-		//ShaderController& operator=(ShaderController&& other) {
-		//	std::swap(m_declarations, other.m_declarations);
-		//	std::swap(m_structs, other.m_structs);
-		//	std::swap(m_unnamed_interface_blocks, other.m_unnamed_interface_blocks);
-		//	std::swap(m_functions, other.m_functions);
-		//	std::swap(m_memory_pool, other.m_memory_pool);
-		//	return *this;
-		//}
+		ShaderController& operator=(ShaderController&& other) {
+			std::swap(m_declarations, other.m_declarations);
+			std::swap(m_structs, other.m_structs);
+			std::swap(m_unnamed_interface_blocks, other.m_unnamed_interface_blocks);
+			std::swap(m_functions, other.m_functions);
+			std::swap(m_memory_pool, other.m_memory_pool);
+			std::swap(m_instruction_pool, other.m_instruction_pool);
+			return *this;
+		}
 
 		template<typename F>
 		void main(F&& f) {
@@ -377,36 +393,45 @@ namespace v2 {
 
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
-		void print_debug(Data& data) const {
+		void print_debug(Data& data) {
+			auto previous_current_shader = listen().current_shader;
+			listen().current_shader = this;
 			ControllerDebug<Delayed, ShaderController>::call(*this, data);
+			listen().current_shader = previous_current_shader;
 		}
 
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
-		void print_imgui(Data& data) const {
+		void print_imgui(Data& data) {
+			auto previous_current_shader = listen().current_shader;
+			listen().current_shader = this;
 			ControllerImGui<Delayed, ShaderController>::call(*this, data);
+			listen().current_shader = previous_current_shader;
 		}
 
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
-		void print_glsl(Data& data) const {
+		void print_glsl(Data& data) {
+			auto previous_current_shader = listen().current_shader;
+			listen().current_shader = this;
 			ControllerGLSL<Delayed, ShaderController>::call(*this, data);
+			listen().current_shader = previous_current_shader;
 		}
 
 		template<typename Struct>
 		void add_struct() {
-			m_structs.push_back(make_instruction<StructDeclarationWrapper>(StructDeclarationWrapper::create<Struct>()));
+			m_structs.push_back(make_instruction<StructDeclaration<Struct>>());
 		}
 
 		template<typename Interface>
 		void add_unnamed_interface_block() {
-			m_unnamed_interface_blocks.push_back(std::static_pointer_cast<InstructionBase>(std::make_shared<UnnamedInterfaceDeclaration<Interface>>()));
+			m_unnamed_interface_blocks.push_back(make_instruction<UnnamedInterfaceDeclaration<Interface>>());
 		}
 
 		template<typename ReturnTList, typename ... Fs>
 		void begin_func(const std::string& name, const std::size_t fun_id, const Fs& ... fs) {
 			begin_func_internal<ReturnTList, Fs...>(name, fun_id);
-			m_functions.push_back(make_instruction<FuncDeclarationWrapper>(current_func));
+			m_functions.push_back(current_func);
 		}
 
 		ReturnBlockBase::Ptr get_return_block() {

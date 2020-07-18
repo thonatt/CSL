@@ -75,7 +75,7 @@ struct ShaderExample {
 
 using ShaderPtr = std::shared_ptr<ShaderExample>;
 
-auto test_frag_ops()
+v2::glsl::frag_420::Shader test_frag_ops()
 {
 	using namespace v2::glsl::frag_420;
 	Shader shader;
@@ -508,14 +508,15 @@ auto vertex_mvp()
 	//Qualify<vec3, Layout<Location<2>>, In> normal("normal");
 
 	Qualify<Float, Uniform> time("time");
+	Qualify<Float, Uniform> distance = Float(1.0f) << "distance";
+	Qualify<Float, Uniform> n = Float(0.1f) << "near";
 
 	Qualify<vec2, Layout<Location<0>>, Out> uv("uv");
 
 	shader.main([&] {
 		Float fov = Float(90.0) << "fov";
 		Float s = 1.0 / tan(fov / (2.0 * 180.0) * 3.141519265) << "scale";
-		Float f = Float(100.0) << "near";
-		Float n = Float(0.01) << "far";
+		Float f = Float(5.0) << "far";
 		mat4 proj = mat4(
 			vec4(s, vec3(0.0)),
 			vec4(0.0, s, vec2(0.0)),
@@ -526,7 +527,7 @@ auto vertex_mvp()
 		vec3 at = vec3(0, 0, 0) << "at";
 		vec3 up = vec3(0, 0, 1) << "up";
 		Float theta = mod(time / 5.0, 1.0) * 2.0 * 3.141519265 << "theta";
-		vec3 eye = 1.0 * vec3(cos(theta), sin(theta), 1.0) << "eye";
+		vec3 eye = distance * vec3(cos(theta), sin(theta), 1.0) << "eye";
 
 		vec3 z_axis = normalize(at - eye) << "z";
 		vec3 x_axis = normalize(cross(up, z_axis)) << "x";
@@ -562,6 +563,24 @@ auto textured_mesh_frag()
 	return shader;
 }
 
+auto multiple_outputs_frag()
+{
+	using namespace v2::glsl::frag_420;
+	using namespace v2::swizzles::all;
+	Shader shader;
+
+	Qualify<vec2, Layout<Location<0>>, In> uv("uv");
+
+	Qualify<vec2, Layout<Location<0>>, Out> out_uv("out_uv");
+	Qualify<Float, Layout<Location<1>>, Out> out_depth("out_depth");
+
+	shader.main([&] {
+		out_uv = uv;
+		out_depth = gl_FragCoord[z];
+	});
+
+	return shader;
+}
 
 enum class ShaderGroup {
 	Test,
@@ -584,26 +603,6 @@ struct ShaderSuite {
 	std::unordered_map<std::string, ShaderPtr> m_shaders;
 };
 
-ShaderSuite get_all_suite()
-{
-	ShaderSuite suite;
-
-	suite.add_shader(ShaderGroup::Examples, "test", test_frag_ops);
-	suite.add_shader(ShaderGroup::Test, "test_vertex", test_vert_quad);
-	suite.add_shader(ShaderGroup::Test, "basic_vertex", vert_basic);
-
-	suite.add_shader(ShaderGroup::Test, "basic_frag", frag_basic);
-	suite.add_shader(ShaderGroup::Examples, "test_frag", test_frag_quad);
-
-	suite.add_shader(ShaderGroup::Shadertoy, "frag_80", test_80);
-	suite.add_shader(ShaderGroup::Test, "tex_frag", test_tex);
-
-	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", vertex_mvp);
-	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
-
-	return suite;
-}
-
 struct LoopData;
 
 struct PipelineaBase {
@@ -619,6 +618,7 @@ struct PipelineaBase {
 		m_program.set_shader_glsl(type, shader.second->m_glsl_str);
 	}
 
+	virtual void additionnal_gui() {}
 	virtual void draw(LoopData& data) = 0;
 	virtual ~PipelineaBase() = default;
 
@@ -630,7 +630,7 @@ std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipeline
 
 struct LoopData {
 
-	void init_once_gl()
+	void init_gl_once()
 	{
 		static bool first = true;
 		if (!first) {
@@ -724,11 +724,12 @@ struct Pipeline80 final : PipelineaBase {
 		m_program.set_uniform("iTime", glUniform1f, data.m_time);
 		m_program.set_uniform("iResolution", glUniform2f, (float)data.m_framebuffer.m_w, (float)data.m_framebuffer.m_h);
 		data.m_tex_letters.bind_slot(GL_TEXTURE0);
+		glDisable(GL_DEPTH_TEST);
 		data.m_screen_quad.draw();
 	}
 };
 
-struct PipelineTriangle : PipelineaBase {
+struct PipelineTriangle final : PipelineaBase {
 	void draw(LoopData& data) override {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
 		data.m_previous_rendering.bind_slot(GL_TEXTURE0);
@@ -736,6 +737,77 @@ struct PipelineTriangle : PipelineaBase {
 		data.m_quad.draw();
 	}
 };
+
+struct PipelineGBuffer final : PipelineaBase {
+
+	enum class Mode : GLenum {
+		UV = 0,
+		Depth = 1,
+	};
+
+	PipelineGBuffer() {
+		output.add_attachments(GLformat(GL_RG32F, GL_RG, GL_FLOAT), GLformat(GL_R32F, GL_RED, GL_FLOAT));
+	}
+
+	void draw(LoopData& data) override {
+		output.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
+		output.clear(0.0f, 0.0f);
+		output.bind_draw();
+
+		m_program.set_uniform("time", glUniform1f, data.m_time);
+		m_program.set_uniform("distance", glUniform1f, 3.0f);
+		m_program.set_uniform("near", glUniform1f, 2.0f);
+		glEnable(GL_DEPTH_TEST);
+		data.m_isosphere.draw();
+
+		data.m_framebuffer.blit_from(output, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_mode));
+
+		if (m_mode == Mode::Depth) {
+			data.m_framebuffer.m_attachments[0].set_swizzle_mask(GL_RED, GL_RED, GL_RED, GL_ALPHA);
+		}
+	}
+
+	void additionnal_gui() override {
+		static const std::unordered_map<Mode, std::string> mode_strs = {
+			{ Mode::UV, "UV" },
+			{ Mode::Depth, "Depth" },
+		};
+
+		ImGui::Separator();
+		ImGui::Text("Ouput channel : ");
+		for (const auto& mode : mode_strs) {
+			ImGui::SameLine();
+			if (ImGui::RadioButton(mode.second.c_str(), mode.first == m_mode)) {
+				m_mode = mode.first;
+			}
+		}
+
+	}
+
+	GLFramebuffer output;
+	Mode m_mode = Mode::UV;
+};
+
+ShaderSuite get_all_suite()
+{
+	ShaderSuite suite;
+
+	suite.add_shader(ShaderGroup::Examples, "test", test_frag_ops);
+	suite.add_shader(ShaderGroup::Test, "test_vertex", test_vert_quad);
+	suite.add_shader(ShaderGroup::Test, "basic_vertex", vert_basic);
+
+	suite.add_shader(ShaderGroup::Test, "basic_frag", frag_basic);
+	suite.add_shader(ShaderGroup::Examples, "test_frag", test_frag_quad);
+
+	suite.add_shader(ShaderGroup::Shadertoy, "frag_80", test_80);
+	suite.add_shader(ShaderGroup::Test, "tex_frag", test_tex);
+
+	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", vertex_mvp);
+	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
+
+	suite.add_shader(ShaderGroup::Examples, "multiple_outputs_frag", multiple_outputs_frag);
+	return suite;
+}
 
 std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipelines(const LoopData& data)
 {
@@ -763,6 +835,13 @@ std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipeline
 		pipelines.emplace("triangle", pipeline);
 	}
 
+	{
+		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineGBuffer>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("multiple_outputs_frag"));
+		pipelines.emplace("gbuffer", pipeline);
+	}
+
 	return pipelines;
 }
 
@@ -788,10 +867,13 @@ void main_loop(LoopData& data)
 
 	static const std::unordered_map<GLenum, std::string> shader_type_strs = {
 		{ GL_VERTEX_SHADER, "Vertex"},
+		{ GL_TESS_CONTROL_SHADER, "TessControl"},
+		{ GL_TESS_EVALUATION_SHADER, "TessEval"},
+		{ GL_GEOMETRY_SHADER, "Geometry"},
 		{ GL_FRAGMENT_SHADER, "Fragment"},
 	};
 
-	data.init_once_gl();
+	data.init_gl_once();
 
 	static ShaderPtr current_shader = {};
 
@@ -803,7 +885,7 @@ void main_loop(LoopData& data)
 		}
 	};
 
-	auto display_shader = [&](const auto& mode, const ShaderExample& shader, const float vertical_size) {
+	auto display_shader = [&](const auto& mode, ShaderExample& shader, const float vertical_size) {
 		ImGui::BeginChild(("text" + shader.m_name).c_str(), ImVec2(0, vertical_size));
 		switch (mode.first)
 		{
@@ -815,7 +897,7 @@ void main_loop(LoopData& data)
 		case Mode::ImGui:
 		{
 			v2::ImGuiData data;
-			shader.m_controller.print_imgui<v2::Dummy>(data);
+			shader.m_controller.template print_imgui<v2::Dummy>(data);
 			break;
 		}
 		case Mode::GLSL:
@@ -825,28 +907,17 @@ void main_loop(LoopData& data)
 		}
 		case Mode::Metrics:
 		{
-
-			//sizeof(v2::Expr);
-			//sizeof(std::string);
-			//sizeof(v2::ConstructorBase);
-			//sizeof(v2::Constructor<v2::Matrix<float, 2, 2>, 0>);
-			//sizeof(v2::ArgSeq<0>);
-			//sizeof(v2::ConstructorBase) + sizeof(v2::ArgSeq<0>);
-
-			//std::size_t expr_allocations_count = 0;
-			//for (const auto& allocation : shader.m_controller.m_expr_allocations) {
-			//	expr_allocations_count += allocation.second;
-			//}
 			std::stringstream s;
 			s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
 			const auto& mem = shader.m_controller.m_memory_pool;
-			s << "\t Exprs, count : " << mem.m_objects_ids.size() << ", total size : " << mem.m_buffer.size() << "\n";
+			const auto& ins = shader.m_controller.m_instruction_pool;
+			s << "\t Expressions, count : " << mem.m_objects_ids.size() << ", total size : " << mem.m_buffer.size() << "\n";
+			s << "\t Instructions, count : " << ins.m_objects_ids.size() << ", total size : " << ins.m_buffer.size() << "\n";
 			s << "Debug generation : " << shader.m_debug_timing << " ms\n";
 			s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
 			ImGui::TextWrapped(s.str().c_str());
 			break;
 		}
-		break;
 		default:
 			break;
 		}
@@ -868,9 +939,9 @@ void main_loop(LoopData& data)
 			ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
 			if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
 			{
-				for (auto it = group.second.begin(); it != group.second.end(); ++it) {
-					if (ImGui::Selectable(it->first.c_str(), it->second == current_shader)) {
-						current_shader = it->second;
+				for (const auto& shader : group.second) {
+					if (ImGui::Selectable(shader.first.c_str(), shader.second == current_shader)) {
+						current_shader = shader.second;
 
 						bool pipeline_found = false;
 						for (const auto& pipeline : data.m_pipelines) {
@@ -892,7 +963,9 @@ void main_loop(LoopData& data)
 
 		ImGui::EndChild();
 		ImGui::SameLine();
-		ImGui::BeginChild("right pane", ImVec2(), true);
+		ImGui::BeginChild("right pane", ImVec2(), false);
+
+		ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 10.0f), true);
 
 		float active_shader_count = 0;
 		if (data.m_current_pipeline) {
@@ -910,7 +983,13 @@ void main_loop(LoopData& data)
 				++count;
 			}
 		}
-		ImGui::Separator();
+
+		if (data.m_current_pipeline) {
+			data.m_current_pipeline->additionnal_gui();
+		}
+
+		ImGui::EndChild();
+		ImGui::BeginChild("bottom right pane", ImVec2(), true);
 
 		if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
 			for (const auto& mode : mode_strs) {
@@ -924,12 +1003,14 @@ void main_loop(LoopData& data)
 							if (count) {
 								ImGui::Separator();
 							}
-							const float margin = 3.0f * ImGui::GetFrameHeightWithSpacing() + 1.0f * ImGui::GetTextLineHeight();
-							display_shader(mode, *shader.second.m_shader, (h - margin) / active_shader_count);
+							//const float margin = 3.0f * ImGui::GetFrameHeightWithSpacing() + 1.0f * ImGui::GetTextLineHeight();
+							const float h_shader = (9.0f * w / 10.0f - ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
+							display_shader(mode, *shader.second.m_shader, h_shader);
 							++count;
 						}
 					} else if (current_shader) {
-						display_shader(mode, *current_shader, h - 2.0f * ImGui::GetFrameHeightWithSpacing());
+						const float h_shader = (9.0f * w / 10.0f - ImGui::GetFrameHeightWithSpacing());
+						display_shader(mode, *current_shader, h_shader);
 					}
 					ImGui::EndTabItem();
 				}
@@ -937,15 +1018,14 @@ void main_loop(LoopData& data)
 			ImGui::EndTabBar();
 		}
 		ImGui::EndChild();
+		ImGui::EndChild();
 	}
 	ImGui::End();
 
 	data.m_time += ImGui::GetIO().DeltaTime;
 
 	{
-
-
-		glFlush();
+		//glFlush();
 	}
 
 	if (data.m_current_pipeline) {
@@ -955,10 +1035,12 @@ void main_loop(LoopData& data)
 			const float h = ImGui::GetContentRegionAvail().y;
 
 			data.m_framebuffer.resize(static_cast<int>(w), static_cast<int>(h));
+			glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
+
+			data.m_framebuffer.m_attachments[0].set_swizzle_mask();
+
 			data.m_framebuffer.clear();
 			data.m_framebuffer.bind_draw();
-
-			glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
 			data.m_current_pipeline->m_program.use();
 			data.m_current_pipeline->draw(data);
 

@@ -39,15 +39,15 @@ namespace v2 {
 	struct ControllerDebug<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, DebugData& data) {
 			for (const auto& i : controller.m_declarations->m_instructions) {
-				i->print_debug(data);
+				retrieve_instruction(i)->print_debug(data);
 			}
 
 			for (const auto& f : controller.m_functions) {
-				f->print_debug(data);
+				retrieve_instruction(f)->print_debug(data);
 			}
 
 			for (const auto& s : controller.m_structs) {
-				s->print_debug(data);
+				retrieve_instruction(s)->print_debug(data);
 			}
 		}
 	};
@@ -128,7 +128,7 @@ namespace v2 {
 
 				++data.trailing;
 				for (const auto& j : i.m_cases[k].body->m_instructions) {
-					j->print_debug(data);
+					retrieve_instruction(j)->print_debug(data);
 				}
 				--data.trailing;
 			}
@@ -144,7 +144,7 @@ namespace v2 {
 			retrieve_expr(i.m_condition)->print_debug(data);
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions) {
-				i->print_debug(data);
+				retrieve_instruction(i)->print_debug(data);
 			}
 			--data.trailing;
 		}
@@ -158,13 +158,13 @@ namespace v2 {
 			data.endl().trail() << "Args";
 			++data.trailing;
 			for (const auto& arg : i.args->m_instructions) {
-				arg->print_debug(data);
+				retrieve_instruction(arg)->print_debug(data);
 			}
 			--data.trailing;
 			data.endl().trail() << "Body";
 			++data.trailing;
 			for (const auto& j : i.body->m_instructions) {
-				j->print_debug(data);
+				retrieve_instruction(j)->print_debug(data);
 			}
 			--data.trailing;
 			--data.trailing;
@@ -193,7 +193,7 @@ namespace v2 {
 
 	template<>
 	struct InstructionDebug<ForArgStatement> {
-		static void call(const ForArgStatement i, DebugData& data) {
+		static void call(const ForArgStatement& i, DebugData& data) {
 			retrieve_expr(i.m_expr)->print_debug(data);
 		}
 	};
@@ -201,7 +201,7 @@ namespace v2 {
 
 	template<>
 	struct InstructionDebug<ForIterationStatement> {
-		static void call(const ForIterationStatement i, DebugData& data) {
+		static void call(const ForIterationStatement& i, DebugData& data) {
 			retrieve_expr(i.m_expr)->print_debug(data);
 		}
 	};
@@ -213,7 +213,7 @@ namespace v2 {
 			retrieve_expr(i.m_condition)->print_debug(data);
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
-				c->print_debug(data);
+				retrieve_instruction(c)->print_debug(data);
 			}
 			--data.trailing;
 		}
@@ -231,44 +231,22 @@ namespace v2 {
 			}
 			++data.trailing;
 			for (const auto& j : i.m_body->m_instructions) {
-				j->print_debug(data);
+				retrieve_instruction(j)->print_debug(data);
 			}
 			--data.trailing;
 		}
 	};
 
-	template<>
-	struct InstructionDebug<BreakStatement> {
-		static void call(const BreakStatement& i, DebugData& data) {
-			data.endl().trail() << "Break";
-		}
-	};
 
-	template<>
-	struct InstructionDebug<ContinueStatement> {
-		static void call(const ContinueStatement& i, DebugData& data) {
-			data.endl().trail() << "Continue";
-		}
-	};
-
-	template<>
-	struct InstructionDebug<DiscardStatement> {
-		static void call(const DiscardStatement& i, DebugData& data) {
-			data.endl().trail() << "Discard";
-		}
+	template<typename T>
+	struct InstructionDebug<SpecialStatement<T>> {
+		static void call(const SpecialStatement<T>& i, DebugData& data) { }
 	};
 
 	template<>
 	struct InstructionDebug<ReturnStatement> {
 		static void call(const ReturnStatement& i, DebugData& data) {
 			data.endl().trail() << "return";
-		}
-	};
-
-	template<>
-	struct InstructionDebug<FuncDeclarationWrapper> {
-		static void call(const FuncDeclarationWrapper& wrapper, DebugData& data) {
-			wrapper.m_func->print_debug(data);
 		}
 	};
 
@@ -294,7 +272,7 @@ namespace v2 {
 					data << "None";
 				}
 				for (const auto& i : overloads[Id].args->m_instructions) {
-					i->print_debug(data);
+					retrieve_instruction(i)->print_debug(data);
 				}
 				--data.trailing;
 
@@ -305,7 +283,7 @@ namespace v2 {
 					data << "Empty";
 				}
 				for (const auto& i : overloads[Id].body->m_instructions) {
-					i->print_debug(data);
+					retrieve_instruction(i)->print_debug(data);
 				}
 				--data.trailing;
 				--data.trailing;
@@ -327,13 +305,6 @@ namespace v2 {
 	template<>
 	struct InstructionDebug<StructDeclarationBase> {
 		static void call(const StructDeclarationBase& f, DebugData& data) { }
-	};
-
-	template<>
-	struct InstructionDebug<StructDeclarationWrapper> {
-		static void call(const StructDeclarationWrapper& wrapper, DebugData& data) {
-			wrapper.m_struct->print_debug(data);
-		}
 	};
 
 	template<typename S, typename T, std::size_t Id>
@@ -379,13 +350,6 @@ namespace v2 {
 			data << "$" << ref.m_id;
 		}
 	};
-
-	//template<>
-	//struct OperatorDebug<ConstructorWrapper> {
-	//	static void call(const ConstructorWrapper& wrapper, DebugData& data) {
-	//		wrapper.m_ctor->print_debug(data);
-	//	}
-	//};
 
 	template<>
 	struct OperatorDebug<ConstructorBase> {
@@ -443,13 +407,6 @@ namespace v2 {
 			--data.trailing;
 		}
 	};
-
-	//template<>
-	//struct OperatorDebug<SwizzlingWrapper> {
-	//	static void call(const SwizzlingWrapper& wrapper, DebugData& data) {
-	//		wrapper.m_swizzle->print_debug(data);
-	//	}
-	//};
 
 	template<>
 	struct OperatorDebug<SwizzlingBase> {

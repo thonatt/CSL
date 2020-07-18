@@ -63,6 +63,21 @@ namespace v2 {
 			return *this;
 		}
 
+		ImGuiData& node_vec_instruction(const std::string& s, const std::vector<InstructionIndex>& vs) {
+			if (vs.empty()) {
+			} else if (vs.size() == 1) {
+				retrieve_instruction(vs[0])->print_imgui(*this);
+			} else {
+				if (ImGui::TreeNode((s + "##" + std::to_string(counter++)).c_str())) {
+					for (const auto& v : vs) {
+						retrieve_instruction(v)->print_imgui(*this);
+					}
+					ImGui::TreePop();
+				}
+			}
+			return *this;
+		}
+
 		ImGuiData& operator<<(const std::string& str) {
 			ImGui::TextWrapped(str.c_str());
 			return *this;
@@ -76,19 +91,19 @@ namespace v2 {
 		static void call(const ShaderController& controller, ImGuiData& data) {
 			data.node("Declarations", [&] {
 				for (const auto& i : controller.m_declarations->m_instructions) {
-					i->print_imgui(data);
+					retrieve_instruction(i)->print_imgui(data);
 				}
 			});
 
 			data.node("Structs", [&] {
 				for (const auto& i : controller.m_structs) {
-					i->print_imgui(data);
+					retrieve_instruction(i)->print_imgui(data);
 				}
 			});
 
 			data.node("Fonctions", [&] {
 				for (const auto& i : controller.m_functions) {
-					i->print_imgui(data);
+					retrieve_instruction(i)->print_imgui(data);
 				}
 			});
 		}
@@ -149,7 +164,7 @@ namespace v2 {
 					}
 
 					for (const auto& j : i.m_cases[k].body->m_instructions) {
-						j->print_imgui(data);
+						retrieve_instruction(j)->print_imgui(data);
 					}
 				});
 			}
@@ -165,7 +180,7 @@ namespace v2 {
 					retrieve_expr(i.m_condition)->print_imgui(data);
 				});
 				for (const auto& i : i.m_body->m_instructions) {
-					i->print_imgui(data);
+					retrieve_instruction(i)->print_imgui(data);
 				}
 			});
 		}
@@ -175,11 +190,23 @@ namespace v2 {
 	struct InstructionImGui<ForInstruction> {
 		static void call(const ForInstruction& i, ImGuiData& data) {
 			data.node("For", [&] {
-				data.node_vec("Args", i.args->m_instructions);
+				data.node_vec_instruction("Args", i.args->m_instructions);
 				for (const auto& j : i.body->m_instructions) {
-					j->print_imgui(data);
+					retrieve_instruction(j)->print_imgui(data);
 				}
 			});
+		}
+	};
+
+	template<>
+	struct InstructionImGui<ForArgStatement> {
+		static void call(const ForArgStatement& i, ImGuiData& data) {
+		}
+	};
+
+	template<>
+	struct InstructionImGui<ForIterationStatement> {
+		static void call(const ForIterationStatement& i, ImGuiData& data) {
 		}
 	};
 
@@ -209,7 +236,7 @@ namespace v2 {
 					retrieve_expr(i.m_condition)->print_imgui(data);
 				});
 				for (const auto& c : i.m_body->m_instructions) {
-					c->print_imgui(data);
+					retrieve_instruction(c)->print_imgui(data);
 				}
 			});
 		}
@@ -229,38 +256,20 @@ namespace v2 {
 
 			data.node(case_str, [&] {
 				for (const auto& j : i.m_body->m_instructions) {
-					j->print_imgui(data);
+					retrieve_instruction(j)->print_imgui(data);
 				}
 			});
 		}
 	};
 
-	template<>
-	struct InstructionImGui<BreakStatement> {
-		static void call(const BreakStatement& i, ImGuiData& data) {
-			data << "Break";
-		}
-	};
-
-	template<>
-	struct InstructionImGui<ContinueStatement> {
-		static void call(const ContinueStatement& i, ImGuiData& data) {
-			data << "Continue";
-		}
+	template<typename T>
+	struct InstructionImGui<SpecialStatement<T>> {
+		static void call(const SpecialStatement<T>& i, ImGuiData& data) { }
 	};
 
 	template<>
 	struct InstructionImGui<ReturnStatement> {
-		static void call(const ReturnStatement& i, ImGuiData& data) {
-			data << "Return";
-		}
-	};
-
-	template<>
-	struct InstructionImGui<FuncDeclarationWrapper> {
-		static void call(const FuncDeclarationWrapper& wrapper, ImGuiData& data) {
-			wrapper.m_func->print_imgui(data);
-		}
+		static void call(const ReturnStatement& i, ImGuiData& data) { }
 	};
 
 	template<>
@@ -275,13 +284,13 @@ namespace v2 {
 		struct Get {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, ImGuiData& data) {
 				data.node(std::string("Overload ") + std::to_string(Id) + std::string(" returns ") + std::string(typeid(T).name()), [&] {
-					data.node_vec("Args", overloads[Id].args->m_instructions);
+					data.node_vec_instruction("Args", overloads[Id].args->m_instructions);
 					data.node("Body", [&] {
 						if (overloads[Id].body->m_instructions.empty()) {
 							data << "Empty";
 						}
 						for (const auto& i : overloads[Id].body->m_instructions) {
-							i->print_imgui(data);
+							retrieve_instruction(i)->print_imgui(data);
 						}
 					});
 				});
@@ -302,13 +311,6 @@ namespace v2 {
 	template<>
 	struct InstructionImGui<StructDeclarationBase> {
 		static void call(const StructDeclarationBase& f, ImGuiData& data) { }
-	};
-
-	template<>
-	struct InstructionImGui<StructDeclarationWrapper> {
-		static void call(const StructDeclarationWrapper& wrapper, ImGuiData& data) {
-			wrapper.m_struct->print_imgui(data);
-		}
 	};
 
 	template<typename S, typename T, std::size_t Id>

@@ -197,6 +197,10 @@ namespace v2 {
 
 		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) {
+		}
+
+		TypeInterface(const NamedObjectInit<T>& obj)
+			: NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef), Base(NamedObjectInit<TypeInterface>(obj.m_expr, obj.m_name)), T(obj.m_expr, ObjFlags::None) {
 
 		}
 
@@ -211,7 +215,7 @@ namespace v2 {
 	template<typename T, typename Ds, typename ... Qs>
 	struct ArrayInterface : virtual NamedObject<ArrayInterface<T, Ds, Qs...>> {
 
-		virtual ~ArrayInterface() = default;
+		//virtual ~ArrayInterface() = default;
 
 		using Base = NamedObject<ArrayInterface<T, Ds, Qs...>>;
 
