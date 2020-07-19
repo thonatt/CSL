@@ -30,6 +30,7 @@ namespace v2 {
 		UnarySub,
 		Assignment,
 		AddAssignment,
+		DivAssignment,
 		MulAssignment,
 		SubAssignment,
 		ScalarLessThanScalar,
@@ -217,13 +218,26 @@ namespace v2 {
 		Initialisation = 1 << 2,
 		Temporary = 1 << 3,
 		Unused = 1 << 4,
-		FunctionArgument = 1 << 5
+		FunctionArgument = 1 << 5,
+		Const = 1 << 6
 	};
 
 	constexpr bool operator&(CtorFlags a, CtorFlags b) {
 		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
 	}
-
+	constexpr CtorFlags operator&&(CtorFlags a, CtorFlags b) {
+		return static_cast<CtorFlags>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+	}
+	constexpr CtorFlags operator|(const CtorFlags a, const CtorFlags b) {
+		return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+	}
+	constexpr CtorFlags operator~(const CtorFlags a) {
+		return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
+	}
+	inline CtorFlags& operator|=(CtorFlags& a, const CtorFlags b) {
+		a = a | b;
+		return a;
+	}
 	std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
 		return t << static_cast<std::size_t>(op);
 	}
@@ -315,6 +329,10 @@ namespace v2 {
 			if (m_flags & CtorFlags::Initialisation) {
 				m_flags = CtorFlags::Unused;
 			}
+		}
+
+		void set_as_const() {
+			m_flags |= CtorFlags::Const;
 		}
 
 		virtual Expr first_arg() const {

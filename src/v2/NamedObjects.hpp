@@ -17,6 +17,7 @@ namespace v2 {
 		AlwaysExp = 1 << 4,
 		StructMember = 1 << 5,
 		BuiltIn = 1 << 6,
+		Const = 1 << 7,
 		BuiltInConstructor = BuiltIn | UsedAsRef | Constructor,
 		Default = Tracked | Constructor
 	};
@@ -66,21 +67,36 @@ namespace v2 {
 			}
 		}
 
-		Expr get_expr_as_ref() const
+		void set_as_const() const
+		{
+			if (!(m_flags & ObjFlags::Const)) {
+				m_flags |= ObjFlags::Const;
+				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
+					ctor->set_as_const();
+				}
+			}
+		}
+
+		Expr get_expr_as_ref_internal() const
 		{
 			if (!(m_flags & ObjFlags::UsedAsRef)) {
 				m_flags |= ObjFlags::UsedAsRef;
 			}
 			if (m_flags & ObjFlags::AlwaysExp) {
 				return m_expr;
-				//return std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(m_expr)->m_operator.m_ctor->first_arg();
 			}
 			return make_expr<Reference>(id);
 		}
 
+		Expr get_expr_as_ref() const
+		{
+			set_as_const();
+			return get_expr_as_ref_internal();
+		}
+
 		Expr get_expr_as_ref()
 		{
-			return static_cast<const NamedObjectBase*>(this)->get_expr_as_ref();
+			return static_cast<const NamedObjectBase&>(*this).get_expr_as_ref_internal();
 		}
 
 		Expr get_expr_as_temp() const

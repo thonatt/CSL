@@ -568,6 +568,56 @@ auto textured_mesh_frag()
 	return shader;
 }
 
+// https://www.shadertoy.com/view/XdXGW8
+auto fractal_noise_frag()
+{
+	using namespace v2::glsl::frag_420;
+	using namespace v2::swizzles::xyzw;
+
+	Shader shader;
+
+	Qualify<vec2, Layout<Location<0>>, In> uv("uv");
+	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+
+	auto hash = define_function<vec2>([](vec2 p)
+	{
+		const vec2 k = vec2(0.3183099, 0.3678794);
+		p = p * k + k[y, x];
+		CSL_RETURN(-1.0 + 2.0 * fract(16.0 * k * fract(p[x] * p[y] * (p[x] + p[y]))));
+	});
+
+	auto noise = define_function<Float>([&](vec2 p) {
+		vec2 i = floor(p);
+		vec2 f = fract(p);
+		vec2 u = f * f * (3.0 - 2.0 * f);
+		CSL_RETURN(
+			mix(mix(dot(hash(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),
+				dot(hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u[x]),
+				mix(dot(hash(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),
+					dot(hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u[x]), u[y])
+		);
+	});
+
+	shader.main([&] {
+		const Int freq_count = 5;
+		mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+
+		Float f = 0;
+		Float amplitude = 0.5;
+		vec2 current_uv = 32.0 * uv;
+
+		CSL_FOR(Int i = 0; i < freq_count; ++i) {
+			f += amplitude * noise(current_uv);
+			current_uv = m * current_uv;
+			amplitude /= 2.0;
+		}
+
+		color = vec4(0.5 + 0.5 * vec3(f), 1.0);
+	});
+
+	return shader;
+}
+
 auto multiple_outputs_frag()
 {
 	using namespace v2::glsl::frag_420;
@@ -578,15 +628,19 @@ auto multiple_outputs_frag()
 	Qualify<vec3, Layout<Location<1>>, In> normal("normal");
 	Qualify<vec2, Layout<Location<2>>, In> uv("uv");
 
+	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
+
 	Qualify<vec3, Layout<Location<0>>, Out> out_position("out_position");
 	Qualify<vec3, Layout<Location<1>>, Out> out_normal("out_normal");
 	Qualify<vec2, Layout<Location<2>>, Out> out_uv("out_uv");
 	Qualify<Float, Layout<Location<3>>, Out> out_depth("out_depth");
+	Qualify<vec3, Layout<Location<4>>, Out> out_tex("out_tex");
 
 	shader.main([&] {
 		out_position = 0.5 * (1.0 + position);
 		out_normal = 0.5 * (1.0 + normalize(normal));
 		out_uv = uv;
+		out_tex = texture(tex, uv)[x, y, z];
 		out_depth = gl_FragCoord[z];
 	});
 
@@ -651,6 +705,7 @@ struct LoopData {
 		first = false;
 
 		m_framebuffer.create_attachment(GLformat());
+		m_fractal_noise.create_attachment(GLformat());
 
 		m_pipelines = get_all_pipelines(*this);
 
@@ -719,7 +774,7 @@ struct LoopData {
 	std::shared_ptr<PipelineaBase> m_current_pipeline = {};
 	float m_time = 0.0f;
 	GLTexture m_tex_letters, m_previous_rendering;
-	GLFramebuffer m_framebuffer;
+	GLFramebuffer m_framebuffer, m_fractal_noise;
 	GLmesh m_isosphere, m_quad, m_screen_quad, m_triangle;
 	int m_w_screen, m_h_screen;
 };
@@ -750,6 +805,16 @@ struct PipelineTriangle final : PipelineaBase {
 	}
 };
 
+struct PipelineNoise final : PipelineaBase {
+	void draw(LoopData& data) override {
+		data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
+		data.m_fractal_noise.bind_draw();
+		glDisable(GL_DEPTH_TEST);
+		data.m_screen_quad.draw();
+		data.m_framebuffer.blit_from(data.m_fractal_noise);
+	}
+};
+
 struct PipelineGBuffer final : PipelineaBase {
 
 	enum class Mode : GLenum {
@@ -757,22 +822,36 @@ struct PipelineGBuffer final : PipelineaBase {
 		Normal = 1,
 		UV = 2,
 		Depth = 3,
+		Texture = 4
 	};
 
 	PipelineGBuffer() {
-
 		const int sample_count = 4;
-
 		m_gbuffer.m_sample_count = sample_count;
 		m_gbuffer.add_attachments(
 			GLTexture(GLformat(GL_RGB32F, GL_RGB, GL_FLOAT), sample_count),
 			GLTexture(GLformat(GL_RGB32F, GL_RGB, GL_FLOAT), sample_count),
 			GLTexture(GLformat(GL_RG32F, GL_RG, GL_FLOAT), sample_count),
-			GLTexture(GLformat(GL_R32F, GL_RED, GL_FLOAT), sample_count)
+			GLTexture(GLformat(GL_R32F, GL_RED, GL_FLOAT), sample_count),
+			GLTexture(GLformat(GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE), sample_count)
 		);
 	}
 
 	void draw(LoopData& data) override {
+		
+		// render noise texture
+		{
+			data.m_pipelines.find("noise")->second->m_program.use();
+			data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
+			data.m_fractal_noise.clear();
+			data.m_fractal_noise.bind_draw();
+			glDisable(GL_DEPTH_TEST);
+			data.m_screen_quad.draw();
+			data.m_fractal_noise.m_attachments[0].bind();
+			glGenerateMipmap(data.m_fractal_noise.m_attachments[0].m_target);
+		}
+
+		m_program.use();
 		m_gbuffer.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
 		m_gbuffer.clear();
 
@@ -780,10 +859,11 @@ struct PipelineGBuffer final : PipelineaBase {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
 		m_program.set_uniform("distance", glUniform1f, 2.0f);
 		m_program.set_uniform("near", glUniform1f, 0.8f);
+		data.m_fractal_noise.m_attachments[0].bind_slot(GL_TEXTURE0);
+		glEnable(GL_DEPTH_TEST);
 		data.m_isosphere.draw();
 
 		data.m_framebuffer.blit_from(m_gbuffer, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_mode));
-
 		if (m_mode == Mode::Depth) {
 			data.m_framebuffer.m_attachments[0].set_swizzle_mask(GL_RED, GL_RED, GL_RED);
 		}
@@ -795,17 +875,17 @@ struct PipelineGBuffer final : PipelineaBase {
 			{ Mode::Normal, "Normal" },
 			{ Mode::UV, "UV" },
 			{ Mode::Depth, "Depth" },
+			{ Mode::Texture, "Texture" },
 		};
 
 		ImGui::Separator();
-		ImGui::Text("Ouput channel : ");
+		ImGui::Text("Output : ");
 		for (const auto& mode : mode_strs) {
 			ImGui::SameLine();
 			if (ImGui::RadioButton(mode.second.c_str(), mode.first == m_mode)) {
 				m_mode = mode.first;
 			}
 		}
-
 	}
 
 	GLFramebuffer m_gbuffer;
@@ -829,6 +909,7 @@ ShaderSuite get_all_suite()
 	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", vertex_mvp);
 	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
 
+	suite.add_shader(ShaderGroup::Examples, "fractal_noise_frag", fractal_noise_frag);
 	suite.add_shader(ShaderGroup::Examples, "multiple_outputs_frag", multiple_outputs_frag);
 	return suite;
 }
@@ -864,6 +945,13 @@ std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipeline
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("multiple_outputs_frag"));
 		pipelines.emplace("gbuffer", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineNoise>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("fractal_noise_frag"));
+		pipelines.emplace("noise", pipeline);
 	}
 
 	return pipelines;

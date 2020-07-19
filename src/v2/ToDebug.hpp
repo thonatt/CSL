@@ -371,8 +371,10 @@ namespace v2 {
 				{ CtorFlags::FunctionArgument, "FunctionArgument" },
 			};
 
-			data << flag_strs.at(ctor.m_flags) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
-			if (ctor.m_flags != CtorFlags::Temporary) {
+			const CtorFlags without_const = ctor.m_flags && (~CtorFlags::Const);
+
+			data << flag_strs.at(without_const) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
+			if (without_const != CtorFlags::Temporary) {
 				using ArrayDimensions = typename T::ArrayDimensions;
 				if constexpr (ArrayDimensions::Size > 0) {
 					data.endl().trail() << "  array size : ";

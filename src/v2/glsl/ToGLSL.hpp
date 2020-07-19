@@ -125,6 +125,7 @@ namespace v2 {
 			{ Op::AddAssignment, { Precedence::Assignment, " += "} },
 			{ Op::SubAssignment, { Precedence::Assignment, " -= "} },
 			{ Op::MulAssignment, { Precedence::Assignment, " *= "} },
+			{ Op::DivAssignment, { Precedence::Assignment, " /= "} },
 			{ Op::ScalarLessThanScalar, { Precedence::Relational, " < "} },
 			{ Op::ScalarGreaterThanScalar, { Precedence::Relational, " > "} },
 			{ Op::LogicalOr, { Precedence::LogicalOr, " || "} },
@@ -279,9 +280,7 @@ namespace v2 {
 
 	template<typename T>
 	struct GLSLTypeStr {
-		static std::string get() {
-			return T::get_type_str();
-		}
+		static std::string get() { return T::get_type_str(); }
 	};
 
 	template<> inline std::string GLSLTypeStr<void>::get() { return "void"; }
@@ -294,7 +293,7 @@ namespace v2 {
 	template<typename T>
 	struct GLSLTypeStr<Scalar<T>> {
 		static std::string get() {
-			return  GLSLTypeStr<T>::get();
+			return GLSLTypeStr<T>::get();
 		}
 	};
 
@@ -688,7 +687,12 @@ namespace v2 {
 
 		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 
-			switch (ctor.m_flags)
+			if (ctor.m_flags & CtorFlags::Const) {
+				data << "const ";
+			}
+
+			const CtorFlags without_const = ctor.m_flags && (~CtorFlags::Const);
+			switch (without_const)
 			{
 			case CtorFlags::Declaration: {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
