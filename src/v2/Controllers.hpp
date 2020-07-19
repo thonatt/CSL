@@ -316,6 +316,7 @@ namespace v2 {
 
 		MainBlock::Ptr m_declarations;
 		std::vector<InstructionIndex> m_structs;
+		std::vector<InstructionIndex> m_named_interface_blocks;
 		std::vector<InstructionIndex> m_unnamed_interface_blocks;
 		std::vector<InstructionIndex> m_functions;
 
@@ -367,6 +368,7 @@ namespace v2 {
 		ShaderController(ShaderController&& other) :
 			m_declarations(std::move(other.m_declarations)),
 			m_structs(std::move(other.m_structs)),
+			m_named_interface_blocks(std::move(other.m_named_interface_blocks)),
 			m_unnamed_interface_blocks(std::move(other.m_unnamed_interface_blocks)),
 			m_functions(std::move(other.m_functions)),
 			m_memory_pool(std::move(other.m_memory_pool)),
@@ -378,6 +380,7 @@ namespace v2 {
 		ShaderController& operator=(ShaderController&& other) {
 			std::swap(m_declarations, other.m_declarations);
 			std::swap(m_structs, other.m_structs);
+			std::swap(m_named_interface_blocks, other.m_named_interface_blocks);
 			std::swap(m_unnamed_interface_blocks, other.m_unnamed_interface_blocks);
 			std::swap(m_functions, other.m_functions);
 			std::swap(m_memory_pool, other.m_memory_pool);
@@ -424,8 +427,13 @@ namespace v2 {
 		}
 
 		template<typename Interface>
-		void add_unnamed_interface_block() {
-			m_unnamed_interface_blocks.push_back(make_instruction<UnnamedInterfaceDeclaration<Interface>>());
+		void add_named_interface_block(const std::string& name) {
+			m_named_interface_blocks.push_back(make_instruction<NamedInterfaceDeclaration<Interface>>(name));
+		}
+
+		template<typename QualifierList, typename TypeList, typename ...Strings>
+		void add_unnamed_interface_block(Strings&& ... names) {
+			m_unnamed_interface_blocks.push_back(make_instruction<UnnamedInterfaceDeclaration<QualifierList, TypeList>>(std::forward<Strings>(names)...));
 		}
 
 		template<typename ReturnTList, typename ... Fs>

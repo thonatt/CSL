@@ -240,12 +240,17 @@ struct GLTexture
 
 			if (data) {
 				glTexSubImage2D(m_target, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
-				glGenerateMipmap(m_target);
+				compute_mipmaps();
 			}
 		}
 
 		glTexParameteri(m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+	void compute_mipmaps() {
+		bind();
+		glGenerateMipmap(m_target);
 	}
 
 	void set_swizzle_mask(const GLint r = GL_RED, const GLint g = GL_GREEN, const GLint b = GL_BLUE, const GLint a = GL_ALPHA) {

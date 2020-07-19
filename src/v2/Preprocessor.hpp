@@ -23,7 +23,7 @@
 
 // helpers for list args retrieval
 #define CSL_PP2_FORWARD(x) x
-#define CSL_PP2_REMOVE_PARENTHESIS(x) CSL_PP2_FORWARD( CSL_PP_REM x )
+#define CSL_PP2_REMOVE_PARENTHESIS(x) CSL_PP2_FORWARD( CSL_PP2_REM x )
 
 #define CSL_PP2_ADD_COMMA_INTERNAL(...) (__VA_ARGS__),
 #define CSL_PP2_ADD_COMMA(x) CSL_PP2_ADD_COMMA_INTERNAL x

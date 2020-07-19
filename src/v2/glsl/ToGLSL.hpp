@@ -65,15 +65,7 @@ namespace v2 {
 				assert(ctor);
 				register_var_name(ctor->m_name, ctor->m_variable_id);
 			}(vars), ...);
-			//(register_builtins(vars), ...);
 		}
-
-		//template<typename T>
-		//void register_builtins(const T& var) {
-		//	auto ctor = dynamic_cast<ConstructorBase*>(var.get_plain_expr());
-		//	assert(ctor);
-		//	register_var_name(ctor->m_name, ctor->m_variable_id);
-		//}
 	};
 
 	template<typename Delayed>
@@ -85,9 +77,20 @@ namespace v2 {
 				data.endl();
 			}
 
+			for (const auto& i : controller.m_named_interface_blocks) {
+				retrieve_instruction(i)->print_glsl(data);
+				data.endl();
+			}
+
+			for (const auto& i : controller.m_unnamed_interface_blocks) {
+				retrieve_instruction(i)->print_glsl(data);
+				data.endl();
+			}
+
 			for (const auto& i : controller.m_declarations->m_instructions) {
 				retrieve_instruction(i)->print_glsl(data);
 			}
+			data.endl();
 
 			for (const auto& f : controller.m_functions) {
 				retrieve_instruction(f)->print_glsl(data);
@@ -639,6 +642,64 @@ namespace v2 {
 		}
 	};
 
+	template<typename Interface>
+	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>> {
+
+		template<typename T, std::size_t Id>
+		using StructMemberDeclaration = StructDeclarationMemberGLSL<Interface, T, Id>;
+
+		using ArrayDimensions = typename Interface::ArrayDimensions;
+		using Qualifiers = typename Interface::Qualifiers;
+
+		static void call(const NamedInterfaceDeclaration<Interface>& s, GLSLData& data) {
+			data.endl().trail();
+			if constexpr (Qualifiers::Size > 0) {
+				data << GLSLQualifier<Qualifiers>::get() + " ";
+			}
+			data << GLSLTypeStr<Interface>::get() << " {";
+			++data.trailing;
+			iterate_over_typelist<typename Interface::MemberTList, StructMemberDeclaration>(data);
+			--data.trailing;
+			data.endl().trail() << "} " << s.m_name;
+			if constexpr (ArrayDimensions::Size > 0) {
+				data << ArraySizePrinterGLSL<ArrayDimensions>::get();
+			}
+			data << ";";
+		}
+	};
+
+	template<typename Interface, typename T, std::size_t Id>
+	struct UnnamedInterfaceDeclarationMemberGLSL {
+		static void call(const Interface& i, GLSLData& data) {
+			data.endl().trail() << GLSLTypeStr<T>::get() << " " << i.m_names[1 + Id] << ";";
+		}
+	};
+
+	template<typename ...Qs, typename ...Ts>
+	struct InstructionGLSL<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>> {
+
+		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
+		using Qualifiers = RemoveArrayFromQualifiers<Qs...>;
+		using Interface = UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>;
+
+		template<typename T, std::size_t Id>
+		using MemberDeclaration = UnnamedInterfaceDeclarationMemberGLSL<Interface, T, Id>;
+
+		static void call(const Interface& s, GLSLData& data) {
+			data.endl().trail();
+			if constexpr (Qualifiers::Size > 0) {
+				data << GLSLQualifier<Qualifiers>::get() + " ";
+			}
+			data << s.m_names[0] << " {";
+			++data.trailing;
+			iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);
+			--data.trailing;
+			data.endl().trail() << "};";
+		}
+	};
+
+
+	//////////////////////////////////////////////////////
 	// operators
 
 	template<std::size_t N>
@@ -667,13 +728,6 @@ namespace v2 {
 			data.stream << data.var_names.find(ref.m_id)->second;
 		}
 	};
-
-	//template<>
-	//struct OperatorGLSL<ConstructorWrapper> {
-	//	static void call(const ConstructorWrapper& wrapper, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
-	//		wrapper.m_ctor->print_glsl(data, Precedence::FunctionCall);
-	//	}
-	//};
 
 	template<>
 	struct OperatorGLSL<ConstructorBase> {
@@ -737,13 +791,6 @@ namespace v2 {
 			data << "]";
 		}
 	};
-
-	//template<>
-	//struct OperatorGLSL<SwizzlingWrapper> {
-	//	static void call(const SwizzlingWrapper& wrapper, GLSLData& data, const Precedence precedence) {
-	//		wrapper.m_swizzle->print_glsl(data, Precedence::Swizzle);
-	//	}
-	//};
 
 	template<>
 	struct OperatorGLSL<SwizzlingBase> {
@@ -843,13 +890,6 @@ namespace v2 {
 		}
 	};
 
-	//template<>
-	//struct OperatorGLSL<MemberAccessorWrapper> {
-	//	static void call(const MemberAccessorWrapper& wrapper, GLSLData& data, const Precedence precedence) {
-	//		wrapper.m_member_accessor->print_glsl(data, Precedence::MemberAccessor);
-	//	}
-	//};
-
 	template<typename S, std::size_t Id>
 	struct OperatorGLSL<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data, const Precedence precedence) {
@@ -866,6 +906,5 @@ namespace v2 {
 			data << "." << S::get_member_name(Id);
 		}
 	};
-
 
 }

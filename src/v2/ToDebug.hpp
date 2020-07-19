@@ -327,6 +327,21 @@ namespace v2 {
 			--data.trailing;
 		}
 	};
+
+	template<typename Interface>
+	struct InstructionDebug<NamedInterfaceDeclaration<Interface>> {
+		static void call(const NamedInterfaceDeclaration<Interface>& s, DebugData& data) {
+		}
+	};
+
+	template<typename ...Qs, typename ...Ts>
+	struct InstructionDebug<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>> {
+		static void call(const UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>& s, DebugData& data) {
+
+		}
+	};
+
+	///////////////////////////////////////////////////////
 	// operators
 
 	template<std::size_t N>

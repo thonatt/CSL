@@ -406,13 +406,43 @@ namespace v2 {
 		}
 	};
 
-
 	template<typename Interface>
-	struct UnnamedInterfaceDeclaration final : InstructionBase {
+	struct NamedInterfaceDeclaration final : InstructionBase {
+
+		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
+
+		virtual void print_debug(DebugData& data) const override {
+			InstructionDebug<NamedInterfaceDeclaration>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			InstructionImGui<NamedInterfaceDeclaration>::call(*this, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			InstructionGLSL<NamedInterfaceDeclaration>::call(*this, data);
+		}
+
+		std::string m_name;
 	};
 
-	template<typename Interface>
-	struct InterfaceDeclaration final : InstructionBase {
+	template<typename QualifierList, typename TypeList>
+	struct UnnamedInterfaceDeclaration final : InstructionBase
+	{
+		template<typename ...Strings>
+		UnnamedInterfaceDeclaration(Strings&& ...names) : m_names{ names ... } { }
+
+		virtual void print_debug(DebugData& data) const override {
+			InstructionDebug<UnnamedInterfaceDeclaration>::call(*this, data);
+		}
+		virtual void print_imgui(ImGuiData& data) const override {
+			InstructionImGui<UnnamedInterfaceDeclaration>::call(*this, data);
+		}
+		virtual void print_glsl(GLSLData& data) const override {
+			InstructionGLSL<UnnamedInterfaceDeclaration>::call(*this, data);
+		}
+
+		std::array<std::string, 1 + TypeList::Size> m_names;
 	};
+
+
 
 }

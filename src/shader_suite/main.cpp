@@ -103,6 +103,19 @@ v2::glsl::frag_420::Shader test_frag_ops()
 		}
 	});
 
+
+	CSL2_INTERFACE_BLOCK(
+		(Uniform, Layout<Location<0>>, Array<4,5>), PBlock, my_block, 
+		(vec3, a), 
+		(vec3, b)
+	);
+
+	CSL2_UNNANMED_INTERFACE_BLOCK(
+		(Uniform, Layout<Location<0>>, Array<4, 5>), PUBlock,
+		(vec3, pa),
+		(vec3, pb)
+	);
+
 	using T = vec3;
 
 	Qualify<T, Uniform, Array<3, 2>> b;
@@ -838,7 +851,7 @@ struct PipelineGBuffer final : PipelineaBase {
 	}
 
 	void draw(LoopData& data) override {
-		
+
 		// render noise texture
 		{
 			data.m_pipelines.find("noise")->second->m_program.use();
@@ -847,8 +860,7 @@ struct PipelineGBuffer final : PipelineaBase {
 			data.m_fractal_noise.bind_draw();
 			glDisable(GL_DEPTH_TEST);
 			data.m_screen_quad.draw();
-			data.m_fractal_noise.m_attachments[0].bind();
-			glGenerateMipmap(data.m_fractal_noise.m_attachments[0].m_target);
+			data.m_fractal_noise.m_attachments[0].compute_mipmaps();
 		}
 
 		m_program.use();
@@ -1085,7 +1097,6 @@ void main_loop(LoopData& data)
 
 		{
 			ImGui::BeginChild("right pane", ImVec2(), false);
-
 			float active_shader_count = 0;
 			{
 				ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 10.0f), true);
@@ -1103,6 +1114,8 @@ void main_loop(LoopData& data)
 						}
 						++count;
 					}
+				} else if (current_shader) {
+					active_shader_count = 1.0f;
 				}
 				if (data.m_current_pipeline) {
 					data.m_current_pipeline->additionnal_gui();
@@ -1111,7 +1124,7 @@ void main_loop(LoopData& data)
 			}
 
 			{
-				const float shader_code_height = (9.0f * w / 10.0f - ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
+				const float shader_code_height = (9.0f * h / 10.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
 				ImGui::BeginChild("bottom right pane", ImVec2(), true);
 				if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
 					for (const auto& mode : mode_strs) {
@@ -1249,6 +1262,8 @@ void test_polymorphic_vector()
 
 int main()
 {
+	//CSL2_UNNANMED_INTERFACE((In,Out,Layout<0,1>), Plopi, (Plop,p) , (Plop,q) )
+
 	//for profiling
 	//for (int i = 0; i < 100000; ++i) {
 	//	//get_all_suite();

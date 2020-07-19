@@ -332,6 +332,22 @@ namespace v2 {
 			});
 		}
 	};
+
+	template<typename Interface>
+	struct InstructionImGui<NamedInterfaceDeclaration<Interface>> {
+		static void call(const NamedInterfaceDeclaration<Interface>& s, ImGuiData& data) {
+
+		}
+	};
+
+	template<typename ...Qs, typename ...Ts>
+	struct InstructionImGui<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>> {
+		static void call(const UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>& s, ImGuiData& data) {
+
+		}
+	};
+
+	//////////////////////////////////////////////////////////
 	// operators
 
 	template<std::size_t N>

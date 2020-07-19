@@ -159,9 +159,16 @@ namespace v2 {
 		}
 
 		template<typename Interface>
-		void add_unnamed_interface_block() {
+		void add_named_interface_block(const std::string& name) {
 			if (current_shader) {
-				current_shader->add_unnamed_interface_block<Interface>();
+				current_shader->add_named_interface_block<Interface>(name);
+			}
+		}
+
+		template<typename QualifierList, typename TypeList, typename ...Strings>
+		void add_unnamed_interface_block(Strings&& ... names) {
+			if (current_shader) {
+				current_shader->add_unnamed_interface_block<QualifierList, TypeList>(std::forward<Strings>(names)...);
 			}
 		}
 
