@@ -9,7 +9,8 @@
 
 namespace v2 {
 
-	struct MainListener {
+	struct MainListener 
+	{
 
 		MainListener() {
 		}
@@ -214,6 +215,9 @@ namespace v2 {
 
 	OperatorBase* retrieve_expr(const Expr index)
 	{
+		if (!index) {
+			return nullptr;
+		}
 		if (index.m_status == Expr::Status::Static) {
 			return &ShaderController::get_static_memory().operator[](index);
 		}
@@ -338,10 +342,13 @@ namespace v2 {
 	template<typename T, typename ... Args>
 	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		Expr expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
+		Expr expr;
 		if (obj_flags & ObjFlags::Tracked) {
-			listen().push_expression(expr);
+			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
+		} else {
+			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags | CtorFlags::Untracked, variable_id, std::forward<Args>(args)...);
 		}
+		listen().push_expression(expr);
 		return expr;
 	}
 

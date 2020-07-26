@@ -264,7 +264,7 @@ namespace v2 {
 		static const std::string& get() {
 			static const std::string str = [] {
 				std::string s;
-				((s += "[" + std::to_string(Ns) + "]"), ...);
+				((s += (Ns == 0 ? "[]" : "[" + std::to_string(Ns) + "]")), ...);
 				return s;
 			}();
 			return str;
@@ -300,8 +300,8 @@ namespace v2 {
 		}
 	};
 
-	template<typename T, std::size_t R>
-	struct GLSLTypeStr<Vector<T, R>> {
+	template<typename T, std::size_t R, typename ...Qs>
+	struct GLSLTypeStr<Vector<T, R, Qs...>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() + "vec" + std::to_string(R);
@@ -310,8 +310,8 @@ namespace v2 {
 		}
 	};
 
-	template<typename T, std::size_t R, std::size_t C>
-	struct GLSLTypeStr<Matrix<T, R, C>> {
+	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
+	struct GLSLTypeStr<Matrix<T, R, C, Qs...>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() + "mat" + std::to_string(C) + (C == R ? "" : "x" + std::to_string(R));
@@ -320,27 +320,35 @@ namespace v2 {
 		}
 	};
 
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags>
-	struct GLSLTypeStr<Sampler<Access, T, N, Type, Flags>> {
-		static const std::string& get() {
-			static const std::unordered_map<SamplerAccessType, std::string> sampler_access_strs = {
+	inline const std::unordered_map<SamplerAccessType, std::string>& get_sampler_access_strs()
+	{
+		static const std::unordered_map<SamplerAccessType, std::string> sampler_access_strs = {
 				{ SamplerAccessType::Sampler, "sampler" },
 				{ SamplerAccessType::Image, "image"}
-			};
+		};
+		return sampler_access_strs;
+	}
 
-			static const std::unordered_map<SamplerType, std::string> sampler_type_strs = {
-				{ SamplerType::Basic, "" },
-				{ SamplerType::Cube, "Cube"},
-				{ SamplerType::Rectangle , "Rect"},
-				{ SamplerType::MultiSample, "MS"},
-				{ SamplerType::Buffer, "Buffer"},
-			};
+	inline const std::unordered_map<SamplerType, std::string>& get_sampler_type_strs()
+	{
+		static const std::unordered_map<SamplerType, std::string> sampler_type_strs = {
+			{ SamplerType::Basic, "" },
+			{ SamplerType::Cube, "Cube"},
+			{ SamplerType::Rectangle , "Rect"},
+			{ SamplerType::MultiSample, "MS"},
+			{ SamplerType::Buffer, "Buffer"},
+		};
+		return sampler_type_strs;
+	}
 
+	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags, typename ...Qs>
+	struct GLSLTypeStr<Sampler<Access, T, N, Type, Flags, Qs...>> {
+		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() +
-					sampler_access_strs.find(Access)->second +
+					get_sampler_access_strs().find(Access)->second +
 					(N != 0 ? std::to_string(N) + 'D' : "") +
-					sampler_type_strs.find(Type)->second +
+					get_sampler_type_strs().find(Type)->second +
 					(Flags & SamplerFlags::Array ? "Array" : "") +
 					(Flags & SamplerFlags::Shadow ? "Shadow" : "");
 			}();
@@ -387,7 +395,7 @@ namespace v2 {
 			str += GLSLTypeStr<U>::get() + " " + var_name;
 
 			if constexpr (ArrayDimensions::Size > 0) {
-				str += " " + ArraySizePrinterGLSL<ArrayDimensions>::get();
+				str += ArraySizePrinterGLSL<ArrayDimensions>::get();
 			}
 
 			return str;
@@ -468,10 +476,14 @@ namespace v2 {
 			}
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (ctor->m_flags & CtorFlags::Temporary) {
+				if (ctor->m_flags && CtorFlags::Temporary) {
 					return;
 				}
-				if (ctor->m_flags & CtorFlags::FunctionArgument) {
+				if (ctor->m_flags && CtorFlags::Untracked) {
+					data.register_var_name(ctor->m_name, ctor->m_variable_id);
+					return;
+				}
+				if (ctor->m_flags && CtorFlags::FunctionArgument) {
 					retrieve_expr(i.m_expr)->print_glsl(data, Precedence::Alias);
 					return;
 				}
@@ -622,7 +634,7 @@ namespace v2 {
 	template<typename S, typename T, std::size_t Id>
 	struct StructDeclarationMemberGLSL {
 		static void call(GLSLData& data) {
-			data.endl().trail() << GLSLTypeStr<T>::get() << " " << S::get_member_name(Id) << ";";
+			data.endl().trail() << GLSLDeclaration<T>::get(S::get_member_name(Id)) << ";";
 		}
 	};
 
@@ -671,7 +683,7 @@ namespace v2 {
 	template<typename Interface, typename T, std::size_t Id>
 	struct UnnamedInterfaceDeclarationMemberGLSL {
 		static void call(const Interface& i, GLSLData& data) {
-			data.endl().trail() << GLSLTypeStr<T>::get() << " " << i.m_names[1 + Id] << ";";
+			data.endl().trail() << GLSLDeclaration<T>::get(i.m_names[1 + Id]) << ";";
 		}
 	};
 
@@ -741,12 +753,12 @@ namespace v2 {
 
 		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 
-			if (ctor.m_flags & CtorFlags::Const) {
+			if (ctor.m_flags && CtorFlags::Const) {
 				data << "const ";
 			}
 
-			const CtorFlags without_const = ctor.m_flags && (~CtorFlags::Const);
-			switch (without_const)
+			const CtorFlags ctor_flag = ctor.m_flags & CtorFlags::SwitchMask;
+			switch (ctor_flag)
 			{
 			case CtorFlags::Declaration: {
 				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
@@ -764,8 +776,12 @@ namespace v2 {
 				break;
 			}
 			case CtorFlags::Temporary: {
-				data << GLSLTypeStr<T>::get();
-				OperatorGLSL<ArgSeq<N>>::call(ctor, data);
+				if (ctor.arg_count() == 1) {
+					retrieve_expr(ctor.first_arg())->print_glsl(data);
+				} else {
+					data << GLSLTypeStr<T>::get();
+					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
+				}
 				break;
 			}
 			case CtorFlags::Unused: {
@@ -785,7 +801,12 @@ namespace v2 {
 	template<>
 	struct OperatorGLSL<ArraySubscript> {
 		static void call(const ArraySubscript& subscript, GLSLData& data, const Precedence precedence) {
-			retrieve_expr(subscript.m_obj)->print_glsl(data, Precedence::ArraySubscript);
+			auto obj = retrieve_expr(subscript.m_obj);
+			if (obj) {
+				obj->print_glsl(data, Precedence::ArraySubscript);
+			} else {
+				data << "null parent";
+			}
 			data << "[";
 			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::ArraySubscript);
 			data << "]";
@@ -799,7 +820,6 @@ namespace v2 {
 
 	template<char c, char ... chars>
 	struct OperatorGLSL<Swizzling<Swizzle<c, chars...>>> {
-
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
 			retrieve_expr(swizzle.m_obj)->print_glsl(data, Precedence::Swizzle);
 			data << ".";
@@ -894,14 +914,20 @@ namespace v2 {
 	struct OperatorGLSL<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data, const Precedence precedence) {
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-				if (ctor->m_flags & CtorFlags::Temporary) {
+				if (ctor->m_flags && CtorFlags::Temporary) {
 					ctor->print_glsl(data, precedence);
 				} else {
-					data << data.var_names.find(ctor->m_variable_id)->second;
+					auto it = data.var_names.find(ctor->m_variable_id);
+					if (it == data.var_names.end()) {
+						data << data.register_var_name(ctor->m_name, ctor->m_variable_id);
+					} else {
+						data << it->second;
+					}
 				}
 			} else {
-				auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
-				accessor_wrapper->print_glsl(data, precedence);
+				if (auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj))) {
+					accessor_wrapper->print_glsl(data, precedence);
+				}
 			}
 			data << "." << S::get_member_name(Id);
 		}

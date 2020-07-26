@@ -180,7 +180,7 @@ namespace v2 {
 			}
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (ctor->m_flags & CtorFlags::Temporary) {
+				if (ctor->m_flags && CtorFlags::Temporary) {
 					return;
 				}
 			}
@@ -386,10 +386,10 @@ namespace v2 {
 				{ CtorFlags::FunctionArgument, "FunctionArgument" },
 			};
 
-			const CtorFlags without_const = ctor.m_flags && (~CtorFlags::Const);
+			const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;
 
-			data << flag_strs.at(without_const) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
-			if (without_const != CtorFlags::Temporary) {
+			data << flag_strs.at(switch_flag) << " " << typeid(T).name() << " $" << ctor.m_variable_id;
+			if (switch_flag != CtorFlags::Temporary) {
 				using ArrayDimensions = typename T::ArrayDimensions;
 				if constexpr (ArrayDimensions::Size > 0) {
 					data.endl().trail() << "  array size : ";
@@ -418,7 +418,9 @@ namespace v2 {
 			data << "Array subscript";
 			++data.trailing;
 			data.endl().trail() << "from ";
-			retrieve_expr(subscript.m_obj)->print_debug(data);
+			if (auto* obj = retrieve_expr(subscript.m_obj)) {
+				obj->print_debug(data);
+			}
 			data.endl().trail() << "at index ";
 			retrieve_expr(subscript.m_index)->print_debug(data);
 			--data.trailing;
@@ -532,14 +534,15 @@ namespace v2 {
 			++data.trailing;
 			data.endl().trail();
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-				if (ctor->m_flags & CtorFlags::Temporary) {
+				if (ctor->m_flags && CtorFlags::Temporary) {
 					ctor->print_debug(data);
 				} else {
 					data << "$" << ctor->m_variable_id;
 				}
 			} else {
-				auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
-				accessor_wrapper->print_debug(data);
+				if (auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj))) {
+					accessor_wrapper->print_debug(data);
+				}				
 			}
 			data.endl().trail() << S::get_member_name(Id);
 			--data.trailing;

@@ -90,6 +90,15 @@ v2::glsl::frag_420::Shader test_frag_ops()
 		(Float, g)
 	);
 
+	Qualify<BigPlop, Uniform> uni_plop("uniplop");
+
+	CSL2_INTERFACE_BLOCK(
+		(In, Array<5>), gl_PerVertex, gl_in,
+		((Qualify<vec4, Array<4>>), gl_Position)
+	);
+
+	1.0f + gl_in[2].gl_Position[3];
+
 	auto ffff = define_function<vec3>("f", [&](vec3 aa = "a", vec3 bb = "b") {
 		BigPlop b;
 		b.plop.v* BigPlop().plop.f;
@@ -103,18 +112,22 @@ v2::glsl::frag_420::Shader test_frag_ops()
 		}
 	});
 
+	//#define MACRO(r, data, i, elem) CSL_PP_DEPARENTHESIS(CSL_PP_FIRST(elem)) CSL_PP_SECOND(elem)
+	//#define MACRO_ITERATE(...) CSL_PP2_ITERATE(MACRO, __VA_ARGS__ )
+	//
+	//	MACRO_ITERATE((Int, i), ((Qualify<Float, Uniform, Array<2,3>>), f))
 
-	CSL2_INTERFACE_BLOCK(
-		(Uniform, Layout<Location<0>>, Array<4,5>), PBlock, my_block, 
-		(vec3, a), 
-		(vec3, b)
-	);
+	//CSL2_INTERFACE_BLOCK(
+	//	(Uniform, Layout<Location<0>>, Array<4, 5>), PBlock, my_block,
+	//	(vec3, a),
+	//	(vec3, b)
+	//);
 
-	CSL2_UNNANMED_INTERFACE_BLOCK(
-		(Uniform, Layout<Location<0>>, Array<4, 5>), PUBlock,
-		(vec3, pa),
-		(vec3, pb)
-	);
+	//CSL2_UNNANMED_INTERFACE_BLOCK(
+	//	(Uniform, Layout<Location<0>>, Array<4, 5>), PUBlock,
+	//	(vec3, pa),
+	//	(vec3, pb)
+	//);
 
 	using T = vec3;
 
@@ -524,9 +537,12 @@ auto vertex_mvp()
 	Qualify<Float, Uniform> distance = Float(1.0f) << "distance";
 	Qualify<Float, Uniform> n = Float(0.1f) << "near";
 
-	Qualify<vec3, Layout<Location<0>>, Out> position("position");
-	Qualify<vec3, Layout<Location<1>>, Out> normal("normal");
-	Qualify<vec2, Layout<Location<2>>, Out> uv("uv");
+	CSL2_INTERFACE_BLOCK(Out, VertexData, vertex_out,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
 
 	shader.main([&] {
 		Float fov = Float(90.0) << "fov";
@@ -555,9 +571,10 @@ auto vertex_mvp()
 			vec4(vec3(0.0), 1.0))
 		) << "view";
 
-		position = in_position;
-		normal = in_normal;
-		uv = in_uv;
+		vertex_out.position = in_position;
+		vertex_out.normal = in_normal;
+		vertex_out.color = vec3(1.0, 0.0, 1.0);
+		vertex_out.uv = in_uv;
 		gl_Position = proj * view * vec4(in_position, 1.0);
 
 	});
@@ -570,13 +587,19 @@ auto textured_mesh_frag()
 	using namespace v2::swizzles::all;
 	Shader shader;
 
-	Qualify<vec2, Layout<Location<2>>, In> uv("uv");
+	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
 	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
 
 	Qualify<vec4, Layout<Location<0>>, Out> color("color");
 
 	shader.main([&] {
-		color = texture(tex, uv);
+		color = texture(tex, frag_in.uv);
 	});
 	return shader;
 }
@@ -637,9 +660,12 @@ auto multiple_outputs_frag()
 	using namespace v2::swizzles::all;
 	Shader shader;
 
-	Qualify<vec3, Layout<Location<0>>, In> position("position");
-	Qualify<vec3, Layout<Location<1>>, In> normal("normal");
-	Qualify<vec2, Layout<Location<2>>, In> uv("uv");
+	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
 
 	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
 
@@ -650,11 +676,34 @@ auto multiple_outputs_frag()
 	Qualify<vec3, Layout<Location<4>>, Out> out_tex("out_tex");
 
 	shader.main([&] {
-		out_position = 0.5 * (1.0 + position);
-		out_normal = 0.5 * (1.0 + normalize(normal));
-		out_uv = uv;
-		out_tex = texture(tex, uv)[x, y, z];
+		out_position = 0.5 * (1.0 + frag_in.position);
+		out_normal = 0.5 * (1.0 + normalize(frag_in.normal));
+		out_uv = frag_in.uv;
+		out_tex = texture(tex, frag_in.uv)[x, y, z];
 		out_depth = gl_FragCoord[z];
+	});
+
+	return shader;
+}
+
+auto vertex_normal_geom() {
+	using namespace v2::glsl::geom_420;
+
+	Shader shader;
+
+
+	return shader;
+}
+
+
+auto unicolor_frag() {
+	using namespace v2::glsl::frag_420;
+
+	Shader shader;
+	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+
+	shader.main([&] {
+		color = vec4(1.0, 0.0, 1.0, 1.0);
 	});
 
 	return shader;
@@ -720,8 +769,6 @@ struct LoopData {
 		m_framebuffer.create_attachment(GLformat());
 		m_fractal_noise.create_attachment(GLformat());
 
-		m_pipelines = get_all_pipelines(*this);
-
 		std::filesystem::path path = "../resources/shadertoy-font-25.png";
 		m_tex_letters.load(std::filesystem::absolute(path).string());
 
@@ -778,7 +825,8 @@ struct LoopData {
 		}
 		m_isosphere.set_attributes(ps, uvs, ns);
 
-		m_current_pipeline = m_pipelines.begin()->second;
+		m_pipelines = get_all_pipelines(*this);
+		m_current_pipeline = m_pipelines.find("gbuffer")->second;
 	}
 
 	ShaderSuite m_shader_suite;

@@ -9,12 +9,14 @@
 namespace v2 {
 
 	namespace glsl {
+
 		enum class GLSLversion : std::size_t {
 			_420 = 420
 		};
 
 		enum class ShaderType : std::size_t {
 			Vertex,
+			Geometry,
 			Fragment
 		};
 
@@ -74,9 +76,11 @@ namespace v2 {
 		namespace vert_common {
 			using namespace shader_common;
 
-			static Qualify<vec4, Out> gl_Position("gl_Position", ObjFlags::BuiltInConstructor);
-			static Qualify<Float, Out> gl_PointSize("gl_PointSize", ObjFlags::BuiltInConstructor);
-			static Qualify<Float, Out, Array<0> > gl_ClipDistance("gl_ClipDistance", ObjFlags::BuiltInConstructor);
+			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexVert, ObjFlags::BuiltInConstructor,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<Float, Array<0>>), gl_ClipDistance)
+			);
 
 			static const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
 			static const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
@@ -97,8 +101,18 @@ namespace v2 {
 			}
 		};
 
-		namespace frag_common {
+		namespace geom_common {
+			using namespace shader_common;
 
+			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_in,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<vec4, Array<0>>), gl_ClipDistance)
+			);
+
+		}
+
+		namespace frag_common {
 			using namespace shader_common;
 
 			static const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
@@ -133,6 +147,16 @@ namespace v2 {
 			using namespace vert_common;
 
 			using Shader = ShaderGLSL<ShaderType::Vertex, GLSLversion::_420>;
+		}
+
+		namespace geom_420
+		{
+
+			using namespace v2;
+			using namespace glsl_420;
+			using namespace geom_common;
+
+			using Shader = ShaderGLSL<ShaderType::Geometry, GLSLversion::_420>;
 		}
 
 		namespace frag_420

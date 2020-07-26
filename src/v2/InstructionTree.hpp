@@ -242,10 +242,10 @@ namespace v2 {
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = dynamic_cast<Statement*>(retrieve_instruction(i))->m_expr;
 			auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
-			if (ctor->m_flags & CtorFlags::Declaration) {
+			if (ctor->m_flags && CtorFlags::Declaration) {
 				assert(m_instructions.empty());
 				m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-			} else if (ctor->m_flags & CtorFlags::Initialisation) {
+			} else if (ctor->m_flags && CtorFlags::Initialisation) {
 				if (m_instructions.size() <= 1) {
 					m_instructions.push_back(make_instruction<ForArgStatement>(expr));
 				} else {

@@ -5,17 +5,21 @@
 
 namespace v2 {
 
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags>
-	class Sampler : public NamedObject<Sampler<Access, T, N, Type, Flags>> {
+	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags, typename ...Qs>
+	class Sampler : public NamedObject<Sampler<Access, T, N, Type, Flags, Qs...>> {
 	public:
 
 		virtual ~Sampler() = default;
 		using Base = NamedObject<Sampler>;
 		using ArrayDimensions = SizeList<>;
-		using Qualifiers = TList<>;
+		using Qualifiers = TList<Qs...>;
 		using QualifierFree = Sampler;
 
-		Sampler(const std::string& s = "", const ObjFlags obj_flags = ObjFlags::Default)
+		Sampler() : Base("") {}
+
+		Sampler(Dummy) : Base() {}
+
+		Sampler(const std::string& s, const ObjFlags obj_flags = ObjFlags::Default)
 			: Base(s, obj_flags) {
 		}
 

@@ -70,7 +70,8 @@ namespace v2 {
 			} else {
 				if (ImGui::TreeNode((s + "##" + std::to_string(counter++)).c_str())) {
 					for (const auto& v : vs) {
-						retrieve_instruction(v)->print_imgui(*this);
+						const auto* i = retrieve_instruction(v);
+						i->print_imgui(*this);
 					}
 					ImGui::TreePop();
 				}
@@ -219,7 +220,7 @@ namespace v2 {
 			}
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (ctor->m_flags & CtorFlags::Temporary) {
+				if (ctor->m_flags && CtorFlags::Temporary) {
 					return;
 				}
 			}
@@ -394,9 +395,16 @@ namespace v2 {
 				{ CtorFlags::Initialisation, "Initialisation" },
 				{ CtorFlags::Temporary, "Temporary" },
 				{ CtorFlags::Unused, "Unused" },
+				{ CtorFlags::FunctionArgument, "FuncArg" },
 			};
 
-			const std::string ctor_str = flag_strs.at(ctor.m_flags) + " " + std::string(typeid(T).name()) + std::string(" $") + std::to_string(ctor.m_variable_id);
+			const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;
+
+			std::string ctor_str = flag_strs.at(switch_flag) + " " + std::string(typeid(T).name());
+			if (!ctor.m_name.empty()) {
+				ctor_str += " " + ctor.m_name + " ";
+			}
+			ctor_str += std::string(" $") + std::to_string(ctor.m_variable_id);
 
 			using ArrayDimensions = typename T::ArrayDimensions;
 			using Qualifiers = typename T::Qualifiers;
@@ -538,7 +546,7 @@ namespace v2 {
 		static void call(const MemberAccessor<S, Id>& accessor, ImGuiData& data) {
 			data.node("Member accessor", [&] {
 				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-					if (ctor->m_flags & CtorFlags::Temporary) {
+					if (ctor->m_flags && CtorFlags::Temporary) {
 						ctor->print_imgui(data);
 					} else {
 						data << ("$" + std::to_string(ctor->m_variable_id));

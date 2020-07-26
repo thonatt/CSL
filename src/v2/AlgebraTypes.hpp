@@ -13,35 +13,34 @@
 
 namespace v2 {
 
-	template< typename T, std::size_t R, std::size_t C, typename Qs>
-	struct MatrixIndirection;
+	//template< typename T, std::size_t R, std::size_t C, typename Qs>
+	//struct MatrixIndirection;
 
-	template< typename T, typename Ds, std::size_t R, std::size_t C, typename Qs>
-	struct MatrixArrayIndirection;
+	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename Qs>
+	//struct MatrixArrayIndirection;
 
-	template< typename T, std::size_t R, std::size_t C, typename ... Qs>
-	using MatrixInterface = std::conditional_t<
-		ArrayInfos<Qs...>::Value,
-		typename MatrixArrayIndirection<T, typename ArrayInfos<Qs...>::Dimensions, R, C, RemoveArrayFromQualifiers<Qs...> >::Type,
-		typename MatrixIndirection<T, R, C, RemoveArrayFromQualifiers<Qs...> >::Type
-	>;
+	//template< typename T, std::size_t R, std::size_t C, typename ... Qs>
+	//using MatrixInterface = std::conditional_t<
+	//	ArrayInfos<Qs...>::Value,
+	//	typename MatrixArrayIndirection<T, typename ArrayInfos<Qs...>::Dimensions, R, C, RemoveArrayFromQualifiers<Qs...> >::Type,
+	//	typename MatrixIndirection<T, R, C, RemoveArrayFromQualifiers<Qs...> >::Type
+	//>;
+
 
 	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	class Matrix : public NamedObject<Matrix<T, R, C, Qs...>> {
+	class Matrix : public NamedObject<Matrix<T,R,C,Qs...>> {
 	public:
 
-		virtual ~Matrix() = default;
-
-		using Qualifiers = TList<Qs...>;
+		//using Qualifiers = TList<Qs...>;
 
 		using This = Matrix;
 		using QualifierFree = Matrix<T, R, C>;
-		using Row = Matrix<T, 1, C, Qs...>;
-		using Col = Matrix<T, R, 1, Qs...>;
-		using Scalar = Matrix<T, 1, 1, Qs...>;
+		using Row = Matrix<T, 1, C>;
+		using Col = Matrix<T, R, 1>;
+		using Scalar = Matrix<T, 1, 1>;
 
 		template<std::size_t RowCount>
-		using SubCol = Vector<T, RowCount, Qs...>;
+		using SubCol = Vector<T, RowCount>;
 
 		static constexpr std::size_t RowCount = R;
 		static constexpr std::size_t ColCount = C;
@@ -51,6 +50,7 @@ namespace v2 {
 		static constexpr bool IsArray = false;
 		using ArrayDimensions = SizeList<>;
 
+		using Qualifiers = TList<Qs...>;
 		using Base = NamedObject<Matrix<T, R, C, Qs...>>;
 
 	public:
@@ -60,21 +60,24 @@ namespace v2 {
 			return false;
 		}
 
-		Matrix() : Base() {}
+		Matrix(v2::Dummy) : Base() {}
+
+		Matrix() : Base("") {}
 
 		template<std::size_t N>
-		Matrix(const char(&name)[N]) : Base(name) {}
+		Matrix(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default) : Base(name, obj_flags) {}
 
 		//Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 		//Matrix(Expr && expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
 		//Matrix(Expr expr) : Base(expr, ObjFlags::Default) { }
 		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
+			: /*NamedObjectBase(obj_flags),*/ Base(expr, obj_flags) { }
 
 		Matrix(Matrix&& other) : Base(other) {}
 
 
-		Matrix(const NamedObjectInit<Matrix>& init) : Base(init) {}
+		template<typename U, typename = std::enable_if_t<SameSize<Matrix, U> && SameScalarType<Matrix, U>>>
+		Matrix(const NamedObjectInit<U>& init) : Base(init) {}
 
 
 		//TODO add IsConvertibleTo<Infos<M>::ScalarType, This>
@@ -254,59 +257,59 @@ namespace v2 {
 		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
 	}
 
-	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
-	class MatrixArray : public NamedObject<MatrixArray<T, Ds, R, C, Qs...>> {
-	public:
+	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
+	//class MatrixArray : public NamedObject<MatrixArray<T, Ds, R, C, Qs...>> {
+	//public:
 
-		using Qualifiers = TList<Qs...>;
-		using Base = NamedObject<MatrixArray<T, Ds, R, C, Qs...>>;
+	//	using Qualifiers = TList<Qs...>;
+	//	using Base = NamedObject<MatrixArray<T, Ds, R, C, Qs...>>;
 
-		using ArrayComponent = MatrixInterface<T, R, C, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
-		static constexpr bool IsArray = true;
+	//	using ArrayComponent = MatrixInterface<T, R, C, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
+	//	static constexpr bool IsArray = true;
 
-		using ArrayDimensions = Ds;
-		static constexpr std::size_t ComponentCount = Ds::Front;
+	//	using ArrayDimensions = Ds;
+	//	static constexpr std::size_t ComponentCount = Ds::Front;
 
-		MatrixArray() : Base() {}
+	//	MatrixArray() : Base() {}
 
-		template<std::size_t N>
-		explicit MatrixArray(const char(&name)[N]) : Base(name) {}
+	//	template<std::size_t N>
+	//	explicit MatrixArray(const char(&name)[N]) : Base(name) {}
 
-		MatrixArray(const Expr& expr) : Base(expr) { }
+	//	MatrixArray(const Expr& expr) : Base(expr) { }
 
-		template<typename U, typename V, typename ... Us, typename = std::enable_if_t<
-			!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ...) && (ComponentCount == 0 || 2 + sizeof...(Us) == ComponentCount)
-			>>
-			explicit MatrixArray(U&& u, V&& v, Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(Us, us)...)
-		{
-		}
+	//	template<typename U, typename V, typename ... Us, typename = std::enable_if_t<
+	//		!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ...) && (ComponentCount == 0 || 2 + sizeof...(Us) == ComponentCount)
+	//		>>
+	//		explicit MatrixArray(U&& u, V&& v, Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(Us, us)...)
+	//	{
+	//	}
 
-		template<typename Index>
-		ArrayComponent operator [](Index&& index) const& {
-			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
-		}
+	//	template<typename Index>
+	//	ArrayComponent operator [](Index&& index) const& {
+	//		return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
+	//	}
 
-		template<typename Index>
-		ArrayComponent operator [](Index&& index) const&& {
-			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_temp(), EXPR(Index, index)) };
-		}
+	//	template<typename Index>
+	//	ArrayComponent operator [](Index&& index) const&& {
+	//		return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_temp(), EXPR(Index, index)) };
+	//	}
 
-	};
+	//};
 
-	template< typename T, std::size_t R, std::size_t C, typename ...Qs>
-	struct MatrixIndirection<T, R, C, TList<Qs...>> {
-		using Type = Matrix<T, R, C, Qs...>;
-	};
+	//template< typename T, std::size_t R, std::size_t C, typename ...Qs>
+	//struct MatrixIndirection<T, R, C, TList<Qs...>> {
+	//	using Type = Matrix<T, R, C, Qs...>;
+	//};
 
-	template< typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
-	struct MatrixArrayIndirection<T, Ds, R, C, TList<Qs...>> {
-		using Type = MatrixArray<T, Ds, R, C, Qs...>;
-	};
+	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
+	//struct MatrixArrayIndirection<T, Ds, R, C, TList<Qs...>> {
+	//	using Type = MatrixArray<T, Ds, R, C, Qs...>;
+	//};
 
-	template<typename T, std::size_t R, std::size_t C, typename ... Qs>
-	struct QualifiedIndirection<Matrix<T, R, C>, Qs... > {
-		using Type = MatrixInterface<T, R, C, Qs...>;
-	};
+	//template<typename T, std::size_t R, std::size_t C, typename ... Qs>
+	//struct QualifiedIndirection<Matrix<T, R, C>, Qs... > {
+	//	using Type = MatrixInterface<T, R, C, Qs...>;
+	//};
 
 	//template<typename T, std::size_t R, typename ... Qs>
 	//using VectorInterface = MatrixInterface<T, R, 1, Qs...>;

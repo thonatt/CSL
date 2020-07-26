@@ -122,7 +122,7 @@ namespace v2 {
 			return m_expr;
 		}
 
-	protected:
+	public:
 		std::size_t id;
 		mutable Expr m_expr;
 		mutable ObjFlags m_flags;
@@ -155,20 +155,21 @@ namespace v2 {
 	};
 
 	template<typename T>
-	class NamedObject : virtual public NamedObjectBase {
+	class NamedObject : public NamedObjectBase {
 	public:
-
-		virtual ~NamedObject() = default;
 
 		NamedObjectInit<T> operator<<(const std::string& name) const&& {
 			return { get_expr_as_temp(), name };
 		}
 
-		NamedObject(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+		NamedObject() = default;
+
+		NamedObject(const std::string& name, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags) {
 			if (obj_flags & ObjFlags::Constructor) {
 				m_expr = create_variable_expr<T>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
 			}
+			//assert(m_expr);
 		}
 
 		template<typename ... Args>
@@ -177,6 +178,7 @@ namespace v2 {
 			if (obj_flags & ObjFlags::Constructor) {
 				m_expr = create_variable_expr<T>(name, obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
 			}
+			assert(m_expr);
 		}
 
 		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
@@ -186,9 +188,11 @@ namespace v2 {
 			} else if (obj_flags & ObjFlags::Constructor) {
 				m_expr = create_variable_expr<T>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
 			}
+			assert(m_expr);
 		}
 
-		NamedObject(const NamedObjectInit<T>& init)
+		template<typename U>
+		NamedObject(const NamedObjectInit<U>& init)
 			: NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef)
 		{
 			m_expr = create_variable_expr<T>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
@@ -200,25 +204,39 @@ namespace v2 {
 
 
 	template<typename T, typename ...Qs>
-	struct TypeInterface : NamedObject<TypeInterface<T, Qs... >>, T {
+	struct TypeInterface : T {
 		using Qualifiers = TList<Qs...>;
 		using ArrayDimensions = SizeList<>;
 		using QualifierFree = T;
 
-		using Base = NamedObject<TypeInterface<T, Qs... >>;
+		//using Base = NamedObject<TypeInterface<T, Qs... >>;
 		using T::operator=;
 
-		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(name, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) { }
+		//using T::T;
 
-		TypeInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(expr, obj_flags), T(NamedObjectBase::m_expr, ObjFlags::None) {
+		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
+			: /*NamedObjectBase(obj_flags), */ T(Dummy{}) {
+			if (obj_flags & ObjFlags::Constructor) {
+				m_expr = create_variable_expr<TypeInterface>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+			}
+			set_members();
+			assert(m_expr);
+		}
+
+		TypeInterface(const Expr expr, const ObjFlags obj_flags = ObjFlags::Default)
+			: /* NamedObjectBase(obj_flags), */  T(Dummy{}) {
+			if (obj_flags & ObjFlags::StructMember) {
+				m_expr = expr;
+			} else if (obj_flags & ObjFlags::Constructor) {
+				m_expr = create_variable_expr<TypeInterface>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
+			}
+			set_members();
+			assert(m_expr);
 		}
 
 		TypeInterface(const NamedObjectInit<T>& obj)
-			: NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef), Base(NamedObjectInit<TypeInterface>(obj.m_expr, obj.m_name)), T(obj.m_expr, ObjFlags::None) {
-
-		}
+			: /* NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef), */ T(Dummy{}) {
+		} //NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef), Base(NamedObjectInit<TypeInterface>(obj.m_expr, obj.m_name)) {} //, T(obj.m_expr, ObjFlags::None) {
 
 		//TypeInterface(T&& t) : Base(get_expr(std::move(t))), T(Base::m_expr, ObjFlags::None) { }
 
@@ -229,7 +247,7 @@ namespace v2 {
 	};
 
 	template<typename T, typename Ds, typename ... Qs>
-	struct ArrayInterface : virtual NamedObject<ArrayInterface<T, Ds, Qs...>> {
+	struct ArrayInterface : NamedObject<ArrayInterface<T, Ds, Qs...>> /*  NamedObjectBase */{
 
 		//virtual ~ArrayInterface() = default;
 
@@ -244,19 +262,34 @@ namespace v2 {
 		using ArrayComponent = Qualify<T, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
 		static constexpr bool IsArray = true;
 
-		ArrayInterface() : Base() {}
+		ArrayInterface(v2::Dummy) : Base() {
+		}
+		ArrayInterface() : Base("") {
+			//m_expr = create_variable_expr<ArrayInterface>("", ObjFlags::Default, CtorFlags::Declaration, NamedObjectBase::id);
+			assert(m_expr);
+		}
 
 		template<std::size_t N>
 		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(name, obj_flags) {}
+			: /*NamedObjectBase(obj_flags), */ Base(name, obj_flags) {
+			//m_expr = create_variable_expr<ArrayInterface>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+			assert(m_expr);
+		}
 
-		ArrayInterface(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: NamedObjectBase(obj_flags), Base(expr, obj_flags) { }
+		ArrayInterface(const Expr expr, const ObjFlags obj_flags = ObjFlags::Default)
+			: /*NamedObjectBase(obj_flags), */ Base(expr, obj_flags) {
+			//if (obj_flags & ObjFlags::StructMember) {
+			//	m_expr = expr;
+			//} else if (obj_flags & ObjFlags::Constructor) {
+			//	m_expr = create_variable_expr<ArrayInterface>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
+			//}
+			assert(m_expr);
+		}
 
 		template<typename ... Us, typename = std::enable_if_t<
 			!(std::is_same_v<Expr, Us> || ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount)) && (SameType<Us, ArrayComponent>&& ...)
 			>>
-			explicit ArrayInterface(Us&& ... us) : NamedObjectBase("", ObjFlags::Default), Base("", ObjFlags::Default, CtorFlags::Initialisation, get_expr(std::forward<Us>(us))...)
+			explicit ArrayInterface(Us&& ... us) : /*NamedObjectBase("", ObjFlags::Default), */ Base("", ObjFlags::Default, CtorFlags::Initialisation, get_expr(std::forward<Us>(us))...)
 		{
 		}
 

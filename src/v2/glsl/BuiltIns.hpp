@@ -20,9 +20,9 @@ namespace v2 {
 //		return { make_funcall(CSL_PP2_CONCAT(Op::,name) CSL_PP2_ITERATE(ARG_EXPR_IT, __VA_ARGS__)) };  \
 //	}
 
-#define ARG_TYPE(elem) typename FIRST(elem)
-#define ARG(elem) FIRST(elem) && SECOND(elem)
-#define ARG_EXPR(elem) get_expr(std::forward<FIRST(elem) >(SECOND(elem)))
+#define ARG_TYPE(elem) typename CSL_PP_FIRST(elem)
+#define ARG(elem) CSL_PP_FIRST(elem) && CSL_PP_SECOND(elem)
+#define ARG_EXPR(elem) get_expr(std::forward<CSL_PP_FIRST(elem) >(CSL_PP_SECOND(elem)))
 
 #define CSL_MAKE_OP_1(condition, return_type, name, var) \
 	template<ARG_TYPE(var), typename = std::enable_if_t<condition>> \

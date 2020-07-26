@@ -22,4 +22,12 @@ namespace v2
 		struct Location {};
 
 	}
+
+	namespace geom_common {
+		struct Triangles {};
+		struct Line_strip {};
+
+		template<std::size_t N>
+		struct Max_vertices {};
+	}
 }

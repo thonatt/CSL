@@ -9,24 +9,18 @@
 #define CSL_PP2_CONCAT_INTERNAL(x, y) x ## y
 #define CSL_PP2_CONCAT(x, y) CSL_PP2_CONCAT_INTERNAL(x, y)
 
-// helpers for C++ reflexion from http://pfultz2.com/blog/2012/07/31/reflection-in-under-100-lines/
-#define CSL_PP2_REM(...) __VA_ARGS__
-#define CSL_PP2_EAT(...)
-#define CSL_PP2_STRIP(x) CSL_PP2_EAT x		
-#define CSL_PP2_PAIR(x) CSL_PP2_REM x
+// helper for typed lists parsing
+#define CSL_PP_VANISH
+#define CSL_PP_VANCSL_PP_ISH
+#define CSL_PP_ESCAPE_INTERNAL(...) CSL_PP_VAN ## __VA_ARGS__
+#define CSL_PP_ESCAPE(...) CSL_PP_ESCAPE_INTERNAL(__VA_ARGS__)
+#define CSL_PP_ISH(...) ISH __VA_ARGS__
+#define CSL_PP_DEPARENTHESIS(...) CSL_PP_ESCAPE(CSL_PP_ISH __VA_ARGS__)
 
-// 
-#define TEST_FIRST(x,y) x
-#define TEST_SECOND(x,y) y
-#define FIRST(x) TEST_FIRST x
-#define SECOND(x) TEST_SECOND x
-
-// helpers for list args retrieval
-#define CSL_PP2_FORWARD(x) x
-#define CSL_PP2_REMOVE_PARENTHESIS(x) CSL_PP2_FORWARD( CSL_PP2_REM x )
-
-#define CSL_PP2_ADD_COMMA_INTERNAL(...) (__VA_ARGS__),
-#define CSL_PP2_ADD_COMMA(x) CSL_PP2_ADD_COMMA_INTERNAL x
+#define CSL_PP_FIRST_I(x,y) x
+#define CSL_PP_SECOND_I(x,y) y
+#define CSL_PP_FIRST(x) CSL_PP_FIRST_I x
+#define CSL_PP_SECOND(x) CSL_PP_SECOND_I x
 
 // helpers wrapping up BOOST_PP
 #define CSL_PP2_STR(arg) BOOST_PP_STRINGIZE(arg)

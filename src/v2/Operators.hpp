@@ -3,6 +3,7 @@
 #include "SpirvOperators.hpp"
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <memory>
 
@@ -214,18 +215,20 @@ namespace v2 {
 	OperatorBase* retrieve_expr(const Expr index);
 
 	enum class CtorFlags : std::size_t {
-		Declaration = 1 << 1,
-		Initialisation = 1 << 2,
-		Temporary = 1 << 3,
-		Unused = 1 << 4,
-		FunctionArgument = 1 << 5,
-		Const = 1 << 6
+		Declaration = 1 << 0,
+		Initialisation = 1 << 1,
+		Temporary = 1 << 2,
+		Unused = 1 << 3,
+		FunctionArgument = 1 << 4,
+		Untracked = 1 << 5,
+		Const = 1 << 6,
+		SwitchMask = Declaration | Initialisation | Temporary | Unused | FunctionArgument
 	};
 
-	constexpr bool operator&(CtorFlags a, CtorFlags b) {
+	constexpr bool operator&&(CtorFlags a, CtorFlags b) {
 		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
 	}
-	constexpr CtorFlags operator&&(CtorFlags a, CtorFlags b) {
+	constexpr CtorFlags operator&(CtorFlags a, CtorFlags b) {
 		return static_cast<CtorFlags>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
 	}
 	constexpr CtorFlags operator|(const CtorFlags a, const CtorFlags b) {
@@ -326,7 +329,7 @@ namespace v2 {
 		}
 
 		void set_as_unused() {
-			if (m_flags & CtorFlags::Initialisation) {
+			if (m_flags && CtorFlags::Initialisation) {
 				m_flags = CtorFlags::Unused;
 			}
 		}
@@ -385,6 +388,10 @@ namespace v2 {
 	template<typename Delayed>
 	struct ArraySubscriptDelayed final : OperatorBase
 	{
+		ArraySubscriptDelayed(const Expr obj, const Expr index) : m_obj(obj), m_index(index) {
+			//assert(m_obj);
+		}
+
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<ArraySubscriptDelayed>::call(*this, data);
 		}
@@ -417,7 +424,7 @@ namespace v2 {
 	template<typename S>
 	struct Swizzling final : SwizzlingBase
 	{
-		Swizzling(const Expr& expr) : SwizzlingBase(expr) { }
+		Swizzling(const Expr expr) : SwizzlingBase(expr) { }
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<Swizzling<S>>::call(*this, data);
@@ -438,7 +445,7 @@ namespace v2 {
 		virtual void print_imgui(ImGuiData& data) const {}
 		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
-		MemberAccessorBase(const Expr& expr) : m_obj(expr) { }
+		MemberAccessorBase(const Expr expr) : m_obj(expr) { }
 
 		void set_as_temp();
 
@@ -448,7 +455,7 @@ namespace v2 {
 	template<typename S, std::size_t MemberId>
 	struct MemberAccessor final : MemberAccessorBase {
 
-		MemberAccessor(const Expr& expr) : MemberAccessorBase(expr) { }
+		MemberAccessor(const Expr expr) : MemberAccessorBase(expr) { }
 
 		void print_debug(DebugData& data) const override {
 			OperatorDebug<MemberAccessor<S, MemberId>>::call(*this, data);
@@ -734,6 +741,29 @@ namespace v2 {
 
 	public:
 		std::vector<char> m_buffer;
+		std::vector<std::size_t> m_objects_ids;
+	};
+
+	template<typename Base>
+	struct PolymorphicMemoryPoolDebug {
+
+		template<typename Derived, typename ... Args>
+		Expr emplace_back(Args&& ...args) {
+			const std::size_t current_size = m_buffer.size();
+			m_buffer.emplace_back(std::make_shared<Derived>(std::forward<Args>(args)...));
+			m_objects_ids.push_back(current_size);
+			return Expr(current_size);
+		}
+
+		Base& operator[](const Expr index) {
+			return *m_buffer[index.m_id];
+		}
+
+		const Base& operator[](const Expr index) const {
+			return *m_buffer[index.m_id];
+		}
+
+		std::vector<std::shared_ptr<Base>> m_buffer;
 		std::vector<std::size_t> m_objects_ids;
 	};
 }
