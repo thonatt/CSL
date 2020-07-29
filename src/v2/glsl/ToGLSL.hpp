@@ -135,6 +135,7 @@ namespace v2 {
 			{ Op::LogicalAnd, { Precedence::LogicalAnd, " && "} },
 			{ Op::PostfixUnary, { Precedence::Postfix, "++"} },
 			{ Op::PrefixUnary, { Precedence::Prefix, "++"} },
+			{ Op::Equality, { Precedence::Equality, " == "} },
 			CSL_PP2_ITERATE(MAKE_OP_IT,
 			dFdx,
 			dFdy,
@@ -174,6 +175,7 @@ namespace v2 {
 			texture,
 			pow,
 			cross,
+			reflect,
 			inverse,
 			transpose)
 		};
@@ -212,36 +214,50 @@ namespace v2 {
 		}
 	};
 
-	template<typename ...Qs>
-	struct GLSLQualifier<glsl::Layout<Qs...>> {
+	template<template<std::size_t N> class T>
+	struct GLSLQualifierN {
+		static std::string get();
+	};
+
+	template<typename Q, typename ...Qs>
+	struct GLSLQualifier<glsl::Layout<Q, Qs...>> {
 		static std::string get() {
 			std::string s = "layout(";
-			((s += GLSLQualifier<Qs>::get()), ...);
+			s += GLSLQualifier<Q>::get();
+			((s += ", " + GLSLQualifier<Qs>::get()), ...);
 			s += ")";
 			return s;
 		}
 	};
 
-	template<std::size_t N>
-	struct GLSLQualifier<glsl::Location<N>> {
+	template<template<std::size_t N> class T, std::size_t M>
+	struct GLSLQualifier<T<M>> {
 		static std::string get() {
-			return "location = " + std::to_string(N);
+			return GLSLQualifierN<T>::get() + " = " + std::to_string(M);
 		}
 	};
 
-	template<std::size_t N>
-	struct GLSLQualifier<glsl::Binding<N>> {
-		static std::string get() {
-			return "binding = " + std::to_string(N);
-		}
-	};
+	template<> inline std::string GLSLQualifierN<glsl::Binding>::get() { return "binding"; }
+	template<> inline std::string GLSLQualifierN<glsl::Location>::get() { return "location"; }
+	template<> inline std::string GLSLQualifierN<glsl::tcs_common::Vertices>::get() { return "vertices"; }
+	template<> inline std::string GLSLQualifierN<glsl::geom_common::Max_vertices>::get() { return "max_vertices"; }
 
 #define CSL_QUALIFIER_STR_IT(name, str) \
-	template<> inline std::string GLSLQualifier< glsl :: name>::get() { return CSL_PP2_STR(str); }
+	template<> inline std::string GLSLQualifier<name>::get() { return CSL_PP2_STR(str); }
 
-	CSL_QUALIFIER_STR_IT(Uniform, uniform);
-	CSL_QUALIFIER_STR_IT(In, in);
-	CSL_QUALIFIER_STR_IT(Out, out);
+	CSL_QUALIFIER_STR_IT(glsl::Uniform, uniform);
+	CSL_QUALIFIER_STR_IT(glsl::In, in);
+	CSL_QUALIFIER_STR_IT(glsl::Out, out);
+
+	CSL_QUALIFIER_STR_IT(glsl::Triangles, triangles);
+	CSL_QUALIFIER_STR_IT(glsl::Equal_spacing, equal_spacing);
+	CSL_QUALIFIER_STR_IT(glsl::Ccw, ccw);
+	CSL_QUALIFIER_STR_IT(glsl::Std140, std140);
+
+	CSL_QUALIFIER_STR_IT(glsl::tcs_common::Patch, patch);
+
+	CSL_QUALIFIER_STR_IT(glsl::geom_common::Line_strip, line_strip);
+
 
 	template<typename Q, typename ...Qs>
 	struct GLSLQualifier<TList<Q, Qs...>> {
@@ -567,11 +583,29 @@ namespace v2 {
 	inline std::string SpecialStatementStr<Break>() { return "break"; }
 	template<>
 	inline std::string SpecialStatementStr<Continue>() { return "continue"; }
+	template<>
+	inline std::string SpecialStatementStr<EmitVertexI>() { return "EmitVertex()"; }
+	template<>
+	inline std::string SpecialStatementStr<EndPrimitiveI>() { return "EndPrimitive()"; }
 
 	template<typename T>
 	struct InstructionGLSL<SpecialStatement<T>> {
 		static void call(const SpecialStatement<T>& i, GLSLData& data) {
 			data.endl().trail() << SpecialStatementStr<T>() << ";";
+		}
+	};
+
+	template<typename ...Qs>
+	struct InstructionGLSL<SpecialStatement<InInstruction<Qs...>>> {
+		static void call(const SpecialStatement<InInstruction<Qs...>>& i, GLSLData& data) {
+			data.endl().trail() << GLSLQualifier<TList<Qs...>>::get() << " in;";
+		}
+	};
+
+	template<typename ...Qs>
+	struct InstructionGLSL<SpecialStatement<OutInstruction<Qs...>>> {
+		static void call(const SpecialStatement<OutInstruction<Qs...>>& i, GLSLData& data) {
+			data.endl().trail() << GLSLQualifier<TList<Qs...>>::get() << " out;";
 		}
 	};
 
@@ -650,7 +684,7 @@ namespace v2 {
 			++data.trailing;
 			iterate_over_typelist<typename S::MemberTList, StructMemberDeclaration>(data);
 			--data.trailing;
-			data.endl().trail() << "}";
+			data.endl().trail() << "};";
 		}
 	};
 
@@ -771,6 +805,9 @@ namespace v2 {
 					retrieve_expr(ctor.first_arg())->print_glsl(data);
 				} else {
 					data << GLSLTypeStr<T>::get();
+					if constexpr (T::ArrayDimensions::Size > 0) {
+						data << ArraySizePrinterGLSL<typename T::ArrayDimensions>::get();
+					}
 					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
 				}
 				break;
@@ -780,6 +817,9 @@ namespace v2 {
 					retrieve_expr(ctor.first_arg())->print_glsl(data);
 				} else {
 					data << GLSLTypeStr<T>::get();
+					if constexpr (T::ArrayDimensions::Size > 0) {
+						data << ArraySizePrinterGLSL<typename T::ArrayDimensions>::get();
+					}
 					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
 				}
 				break;

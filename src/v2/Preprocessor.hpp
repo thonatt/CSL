@@ -26,6 +26,7 @@
 #define CSL_PP2_STR(arg) BOOST_PP_STRINGIZE(arg)
 #define CSL_PP2_IS_EMPTY(arg) BOOST_PP_IS_EMPTY(arg)
 #define CSL_PP2_HEAD(elem) BOOST_PP_SEQ_HEAD(elem)
+#define CSL_PP2_IF(arg, t, f) BOOST_PP_IIF(arg, t, f)
 #define CSL_PP2_IF_EMPTY(arg,t,f) BOOST_PP_IIF(BOOST_PP_IS_EMPTY(arg),t,f)
 #define CSL_PP2_NOT_EMPTY(arg) BOOST_PP_COMPL(BOOST_PP_IS_EMPTY(arg))
 #define CSL_PP2_COMMA BOOST_PP_COMMA()

@@ -40,6 +40,7 @@ namespace v2 {
 		LogicalAnd,
 		PostfixUnary,
 		PrefixUnary,
+		Equality,
 		// glsl 1.1
 		dFdx,
 		dFdy,
@@ -78,6 +79,7 @@ namespace v2 {
 		distance,
 		pow,
 		cross,
+		reflect,
 
 		//glsl 1.2
 		transpose,

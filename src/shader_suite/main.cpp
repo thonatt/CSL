@@ -10,6 +10,7 @@
 #include "v2/Structs.hpp"
 
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <chrono>
 #include <filesystem>
@@ -24,7 +25,29 @@
 #include "v2/glsl/BuiltIns.hpp"
 #include "ToImGui.hpp"
 
+using v3 = std::array<float, 3>;
+using m4 = std::array<float, 16>;
 
+v3 operator-(const v3& a, const v3& b) {
+	return { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
+}
+
+float dot(const v3& a, const v3& b) {
+	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+v3 cross(const v3& a, const v3& b) {
+	return { a[1] * b[2] - a[2] * b[1] ,  a[2] * b[0] - a[0] * b[2] ,  a[0] * b[1] - a[1] * b[0] };
+}
+
+v3 normalize(const v3& a) {
+	float n = 0.0f;
+	for (int i = 0; i < 3; ++i) {
+		n += a[i] * a[i];
+	}
+	n = 1.0f / std::sqrt(n);
+	return { a[0] * n, a[1] * n, a[2] * n };
+}
 
 using Clock = std::chrono::high_resolution_clock;
 
@@ -260,6 +283,56 @@ auto test_frag_quad()
 	shader.main([&]
 	{
 		out_color = vec4(mod(time / vec2(1.3, 1.7) + 4.5 * uv, 1.0), 0.0, 1.0);
+	});
+
+	return shader;
+}
+
+
+auto phong_frag() {
+	using namespace v2::glsl::frag_420;
+	Shader shader;
+
+	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	Qualify<vec3, Uniform> eye("eye");
+
+	Qualify<vec4, Out> out_color("out_color");
+
+	CSL2_STRUCT(Light,
+		(vec3, position),
+		(vec3, color)
+	);
+
+	Qualify<Light, Array<3>> lights = Qualify<Light, Array<3>>(
+		Light(vec3(4.0, 1.0, -2.0), vec3(1.0, 0.0, 0.0)),
+		Light(vec3(1.0, 4.0, -2.0), vec3(0.0, 1.0, 0.0)),
+		Light(vec3(4.0, 4.0, -2.0), vec3(0.0, 0.0, 1.0))
+	) << "lights";
+
+	shader.main([&] {
+		const Float kd = 0.4;
+		const Float ks = 0.3;
+		const vec3 base_color = vec3(0.5);
+
+		const vec3 N = normalize(frag_in.normal);
+		const vec3 V = normalize(eye - frag_in.position);
+
+		vec3 col = (1.0 - kd - ks) * base_color;
+		CSL_FOR(Int i = 0; i < 3; ++i) {
+			vec3 L = normalize(lights[i].position - frag_in.position);
+			vec3 R = reflect(L, N);
+			const Float diffuse = max(0.0, dot(L, N));
+			const Float specular = max(0.0, dot(R, V));
+			col += (kd * diffuse + ks * specular) * lights[i].color;
+		}
+
+		out_color = vec4(col, 1.0);
 	});
 
 	return shader;
@@ -533,10 +606,6 @@ auto vertex_mvp()
 	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
 	Qualify<vec3, Layout<Location<2>>, In> in_normal("in_normal");
 
-	Qualify<Float, Uniform> time("time");
-	Qualify<Float, Uniform> distance = Float(1.0f) << "distance";
-	Qualify<Float, Uniform> n = Float(0.1f) << "near";
-
 	CSL2_INTERFACE_BLOCK(Out, VertexData, vertex_out,
 		(vec3, position),
 		(vec3, normal),
@@ -544,38 +613,15 @@ auto vertex_mvp()
 		(vec2, uv)
 	);
 
+	Qualify<mat4, Uniform> view("view");
+	Qualify<mat4, Uniform> proj("proj");
+
 	shader.main([&] {
-		Float fov = Float(90.0) << "fov";
-		Float s = 1.0 / tan(fov / (2.0 * 180.0) * 3.141519265) << "scale";
-		Float f = Float(5.0) << "far";
-		mat4 proj = mat4(
-			vec4(s, vec3(0.0)),
-			vec4(0.0, s, vec2(0.0)),
-			vec4(vec2(0.0), -(f + n) / (f - n), -1.0),
-			vec4(vec2(0.0), -2.0 * f * n / (f - n), 0.0)
-		) << "proj";
-
-		vec3 at = vec3(0, 0, 0) << "at";
-		vec3 up = vec3(0, 0, 1) << "up";
-		Float theta = mod(time / 5.0, 1.0) * 2.0 * 3.141519265 << "theta";
-		vec3 eye = distance * vec3(cos(theta), sin(theta), 1.0) << "eye";
-
-		vec3 z_axis = normalize(at - eye) << "z";
-		vec3 x_axis = normalize(cross(up, z_axis)) << "x";
-		vec3 y_axis = cross(z_axis, x_axis) << "y";
-
-		mat4 view = transpose(mat4(
-			vec4(x_axis, dot(x_axis, eye)),
-			vec4(y_axis, dot(y_axis, eye)),
-			vec4(z_axis, dot(z_axis, eye)),
-			vec4(vec3(0.0), 1.0))
-		) << "view";
-
 		vertex_out.position = in_position;
 		vertex_out.normal = in_normal;
 		vertex_out.color = vec3(1.0, 0.0, 1.0);
 		vertex_out.uv = in_uv;
-		gl_Position = proj * view * vec4(in_position, 1.0);
+		gl_Position = proj * (view * vec4(in_position, 1.0));
 
 	});
 	return shader;
@@ -584,7 +630,6 @@ auto vertex_mvp()
 auto textured_mesh_frag()
 {
 	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::all;
 	Shader shader;
 
 	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
@@ -686,17 +731,43 @@ auto multiple_outputs_frag()
 	return shader;
 }
 
-auto vertex_normal_geom() {
+auto geometric_normals() {
 	using namespace v2::glsl::geom_420;
 
 	Shader shader;
 
+	in<Layout<Triangles>>();
+	out<Layout<Line_strip, Max_vertices<2>>>();
+
+	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, vertex_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	Qualify<mat4, Uniform> view("view");
+	Qualify<mat4, Uniform> proj("proj");
+
+	shader.main([&] {
+		vec3 a = vertex_in[0].position;
+		vec3 b = vertex_in[1].position;
+		vec3 c = vertex_in[2].position;
+
+		vec3 tri_normal = normalize(cross(b - a, c - b));
+		vec3 tri_center = (a + b + c) / 3.0;
+
+		gl_Position = proj * view * vec4(tri_center, 1.0);
+		EmitVertex();
+		gl_Position = proj * view * vec4(tri_center + 0.2 * tri_normal, 1.0);
+		EmitVertex();
+		EndPrimitive();
+	});
 
 	return shader;
 }
 
-
-auto unicolor_frag() {
+auto single_color_frag() {
 	using namespace v2::glsl::frag_420;
 
 	Shader shader;
@@ -704,6 +775,88 @@ auto unicolor_frag() {
 
 	shader.main([&] {
 		color = vec4(1.0, 0.0, 1.0, 1.0);
+	});
+
+	return shader;
+}
+
+auto tcs_example() {
+	using namespace v2::glsl::tcs_420;
+
+	Shader shader;
+	out<Layout<Vertices<3>>>();
+
+	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, tcs_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	CSL2_INTERFACE_BLOCK((Out, Array<0>), VertexData, tcs_out,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	Qualify<Float, Uniform> tessellation_amount("tessellation_amount");
+
+	shader.main([&] {
+
+		CSL_IF(gl_InvocationID == 0) {
+			gl_TessLevelInner[0] = tessellation_amount;
+			gl_TessLevelOuter[0] = tessellation_amount;
+			gl_TessLevelOuter[1] = tessellation_amount;
+			gl_TessLevelOuter[2] = tessellation_amount;
+		}
+
+		tcs_out[gl_InvocationID].position = tcs_in[gl_InvocationID].position;
+		tcs_out[gl_InvocationID].normal = tcs_in[gl_InvocationID].normal;
+		tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+		tcs_out[gl_InvocationID].uv = tcs_in[gl_InvocationID].uv;
+		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	});
+
+	return shader;
+}
+
+auto tev_example()
+{
+	using namespace v2::glsl::tev_420;
+	using namespace v2::swizzles::xyzw;
+
+	Shader shader;
+
+	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, tev_in,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	CSL2_INTERFACE_BLOCK(Out, VertexData, tev_out,
+		(vec3, position),
+		(vec3, normal),
+		(vec3, color),
+		(vec2, uv)
+	);
+
+	in<Layout<Triangles, Equal_spacing, Ccw>>();
+	Qualify<sampler2D, Layout<Binding<0>>, Uniform> displacement_tex("displacement_tex");
+	Qualify<mat4, Uniform> view("view");
+	Qualify<mat4, Uniform> proj("proj");
+
+	shader.main([&] {
+		tev_out.normal = normalize(gl_TessCoord[0] * tev_in[0].normal + gl_TessCoord[1] * tev_in[1].normal + gl_TessCoord[2] * tev_in[2].normal);
+		tev_out.color = gl_TessCoord[0] * tev_in[0].color + gl_TessCoord[1] * tev_in[1].color + gl_TessCoord[2] * tev_in[2].color;
+		tev_out.uv = gl_TessCoord[0] * tev_in[0].uv + gl_TessCoord[1] * tev_in[1].uv + gl_TessCoord[2] * tev_in[2].uv;
+
+		vec3 pos = gl_TessCoord[0] * tev_in[0].position + gl_TessCoord[1] * tev_in[1].position + gl_TessCoord[2] * tev_in[2].position;
+		Float displacement = texture(displacement_tex, tev_out.uv)[x] << "displacement";
+		vec4 delta_pos = 2.0 * vec4(displacement * tev_out.normal, 0.0);
+		tev_out.position = pos + displacement * delta_pos[x, y, z];
+		gl_Position = proj * view * vec4(tev_out.position, 1.0);
 	});
 
 	return shader;
@@ -733,7 +886,7 @@ struct ShaderSuite {
 
 struct LoopData;
 
-struct PipelineaBase {
+struct PipelineBase {
 
 	struct ShaderActive {
 		ShaderPtr m_shader;
@@ -748,18 +901,20 @@ struct PipelineaBase {
 
 	virtual void additionnal_gui() {}
 	virtual void draw(LoopData& data) = 0;
-	virtual ~PipelineaBase() = default;
+	virtual ~PipelineBase() = default;
 
 	GLProgram m_program;
 	std::unordered_map<GLenum, ShaderActive> m_shaders;
 };
 
-std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipelines(const LoopData& data);
+std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines(const LoopData& data);
 
 struct LoopData {
 
 	void init_gl_once()
 	{
+		using v2 = std::array<float, 2>;
+
 		static bool first = true;
 		if (!first) {
 			return;
@@ -771,9 +926,6 @@ struct LoopData {
 
 		std::filesystem::path path = "../resources/shadertoy-font-25.png";
 		m_tex_letters.load(std::filesystem::absolute(path).string());
-
-		using v2 = std::array<float, 2>;
-		using v3 = std::array<float, 3>;
 
 		m_screen_quad.init();
 		m_screen_quad.set_triangles({ 0,1,2, 0,3,2 });
@@ -812,14 +964,7 @@ struct LoopData {
 		std::vector<v3> ns(ps.size());
 		std::vector<v2> uvs(ps.size());
 		for (std::size_t i = 0; i < ps.size(); ++i) {
-			float norm = 0;
-			for (int j = 0; j < 3; ++j) {
-				norm += ps[i][j] * ps[i][j];
-			}
-			norm = 1.0f / std::sqrt(norm);
-			for (int j = 0; j < 3; ++j) {
-				ns[i][j] = ps[i][j] * norm;
-			}
+			ns[i] = normalize(ps[i]);
 			uvs[i][0] = std::acos(ns[i][2]) / pi;
 			uvs[i][1] = 0.5f * (1.0f + std::atan2(ns[i][1], ns[i][0]) / pi);
 		}
@@ -829,18 +974,49 @@ struct LoopData {
 		m_current_pipeline = m_pipelines.find("gbuffer")->second;
 	}
 
-	ShaderSuite m_shader_suite;
-	std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> m_pipelines;
+	void compute_mvp(const float distance, const float near, const float far)
+	{
+		constexpr float two_pi = 2.0f * 3.141519265f;
+		const v3 at = { 0, 0, 0 };
+		const v3 up = { 0, 0, 1 };
+		float theta = std::fmod(m_time / 8.0f, 1.0f) * two_pi;
+		m_eye = { distance * std::cos(theta), distance * std::sin(theta), distance };
 
-	std::shared_ptr<PipelineaBase> m_current_pipeline = {};
-	float m_time = 0.0f;
+		const v3 z_axis = normalize(at - m_eye);
+		const v3 x_axis = normalize(cross(up, z_axis));
+		const v3 y_axis = cross(z_axis, x_axis);
+
+		m_view_transposed = {
+			x_axis[0], x_axis[1], x_axis[2], dot(x_axis, m_eye),
+			y_axis[0], y_axis[1], y_axis[2], dot(y_axis, m_eye),
+			z_axis[0], z_axis[1], z_axis[2], dot(z_axis, m_eye),
+			0.0f, 0.0f, 0.0f, 1.0f
+		};
+
+		const float fov_deg = 90.0f;
+		const float scale = 1.0f / std::tan((two_pi * fov_deg) / (4.0f * 180.0f));
+
+		m_proj = {
+			scale, 0.0f, 0.0f, 0.0f,
+			0.0f, scale, 0.0f, 0.0f,
+			0.0f, 0.0f,  -(far + near) / (far - near), -1.0f,
+			0.0f, 0.0f,  -2.0f * far * near / (far - near), -0.0f
+		};
+	}
+
+	ShaderSuite m_shader_suite;
+	std::unordered_map<std::string, std::shared_ptr<PipelineBase>> m_pipelines;
+	std::shared_ptr<PipelineBase> m_current_pipeline = {};
 	GLTexture m_tex_letters, m_previous_rendering;
 	GLFramebuffer m_framebuffer, m_fractal_noise;
 	GLmesh m_isosphere, m_quad, m_screen_quad, m_triangle;
+	m4 m_view_transposed, m_proj;
+	v3 m_eye;
+	float m_time = 0.0f;
 	int m_w_screen, m_h_screen;
 };
 
-struct PipelineGrid final : PipelineaBase {
+struct PipelineGrid final : PipelineBase {
 	void draw(LoopData& data) override {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
 		glDisable(GL_DEPTH_TEST);
@@ -848,7 +1024,7 @@ struct PipelineGrid final : PipelineaBase {
 	}
 };
 
-struct Pipeline80 final : PipelineaBase {
+struct Pipeline80 final : PipelineBase {
 	void draw(LoopData& data) override {
 		m_program.set_uniform("iTime", glUniform1f, data.m_time);
 		m_program.set_uniform("iResolution", glUniform2f, (float)data.m_framebuffer.m_w, (float)data.m_framebuffer.m_h);
@@ -858,15 +1034,18 @@ struct Pipeline80 final : PipelineaBase {
 	}
 };
 
-struct PipelineTriangle final : PipelineaBase {
+struct PipelineTriangle final : PipelineBase {
 	void draw(LoopData& data) override {
-		m_program.set_uniform("time", glUniform1f, data.m_time);
+		data.m_framebuffer.clear(0.3f, 0.3f, 0.3f);
+		data.compute_mvp(1.0f, 0.1f, 5.0f);
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
 		data.m_previous_rendering.bind_slot(GL_TEXTURE0);
 		data.m_quad.draw();
 	}
 };
 
-struct PipelineNoise final : PipelineaBase {
+struct PipelineNoise final : PipelineBase {
 	void draw(LoopData& data) override {
 		data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
 		data.m_fractal_noise.bind_draw();
@@ -876,7 +1055,69 @@ struct PipelineNoise final : PipelineaBase {
 	}
 };
 
-struct PipelineGBuffer final : PipelineaBase {
+struct PipelinePhong final : PipelineBase {
+	void draw(LoopData& data) override {
+		data.compute_mvp(2.0f, 0.8f, 5.0f);
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
+		m_program.set_uniform("eye", glUniform3f, data.m_eye[0], data.m_eye[1], data.m_eye[2]);
+		data.m_isosphere.draw();
+	}
+};
+
+struct PipelineGeometry final : PipelineBase {
+	void draw(LoopData& data) override {
+		data.compute_mvp(2.0f, 0.8f, 5.0f);
+		m_program.use();
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
+		data.m_isosphere.draw();
+
+		// render phong
+		{
+			auto& phong_program = data.m_pipelines.find("phong")->second->m_program;
+			phong_program.use();
+			phong_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+			phong_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
+			phong_program.set_uniform("eye", glUniform3f, data.m_eye[0], data.m_eye[1], data.m_eye[2]);
+			data.m_isosphere.draw();
+		}
+	}
+};
+
+struct PipelineDisplacement final : PipelineBase {
+	void draw(LoopData& data) override
+	{
+		// render noise texture
+		{
+			data.m_pipelines.find("noise")->second->m_program.use();
+			data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
+			data.m_fractal_noise.clear();
+			data.m_fractal_noise.bind_draw();
+			glDisable(GL_DEPTH_TEST);
+			data.m_screen_quad.draw();
+			data.m_fractal_noise.m_attachments[0].compute_mipmaps();
+		}
+
+		data.m_framebuffer.bind_draw();
+		m_program.use();
+		data.compute_mvp(2.5f, 0.1f, 5.0f);
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
+		m_program.set_uniform("tessellation_amount", glUniform1f, m_tessellation_amount);
+		data.m_fractal_noise.m_attachments[0].bind_slot(GL_TEXTURE0);
+		glEnable(GL_DEPTH_TEST);
+		data.m_isosphere.draw(GL_PATCHES);
+	}
+
+	void additionnal_gui() override {
+		ImGui::SliderFloat("tessellation amount", &m_tessellation_amount, 1.0f, 50.0f);
+	}
+
+	float m_tessellation_amount = 25.0f;
+};
+
+struct PipelineGBuffer final : PipelineBase {
 
 	enum class Mode : GLenum {
 		Position = 0,
@@ -899,7 +1140,6 @@ struct PipelineGBuffer final : PipelineaBase {
 	}
 
 	void draw(LoopData& data) override {
-
 		// render noise texture
 		{
 			data.m_pipelines.find("noise")->second->m_program.use();
@@ -916,9 +1156,9 @@ struct PipelineGBuffer final : PipelineaBase {
 		m_gbuffer.clear();
 
 		m_gbuffer.bind_draw();
-		m_program.set_uniform("time", glUniform1f, data.m_time);
-		m_program.set_uniform("distance", glUniform1f, 2.0f);
-		m_program.set_uniform("near", glUniform1f, 0.8f);
+		data.compute_mvp(2.0f, 0.8f, 5.0f);
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
 		data.m_fractal_noise.m_attachments[0].bind_slot(GL_TEXTURE0);
 		glEnable(GL_DEPTH_TEST);
 		data.m_isosphere.draw();
@@ -929,7 +1169,8 @@ struct PipelineGBuffer final : PipelineaBase {
 		}
 	}
 
-	void additionnal_gui() override {
+	void additionnal_gui() override
+	{
 		static const std::unordered_map<Mode, std::string> mode_strs = {
 			{ Mode::Position, "Position" },
 			{ Mode::Normal, "Normal" },
@@ -971,47 +1212,80 @@ ShaderSuite get_all_suite()
 
 	suite.add_shader(ShaderGroup::Examples, "fractal_noise_frag", fractal_noise_frag);
 	suite.add_shader(ShaderGroup::Examples, "multiple_outputs_frag", multiple_outputs_frag);
+
+	suite.add_shader(ShaderGroup::Examples, "phong_frag", phong_frag);
+
+	suite.add_shader(ShaderGroup::Examples, "geometric_normals", geometric_normals);
+	suite.add_shader(ShaderGroup::Examples, "single_color_frag", single_color_frag);
+
+	suite.add_shader(ShaderGroup::Examples, "tcs_example", tcs_example);
+	suite.add_shader(ShaderGroup::Examples, "tev_example", tev_example);
+
 	return suite;
 }
 
-std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> get_all_pipelines(const LoopData& data)
+std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines(const LoopData& data)
 {
-	std::unordered_map<std::string, std::shared_ptr<PipelineaBase>> pipelines;
+	std::unordered_map<std::string, std::shared_ptr<PipelineBase>> pipelines;
 	const auto& shaders = data.m_shader_suite.m_shaders;
 
 	{
-		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<Pipeline80>());
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<Pipeline80>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("frag_80"));
 		pipelines.emplace("shader 80", pipeline);
 	}
 
 	{
-		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineGrid>());
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGrid>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("test_frag"));
 		pipelines.emplace("grid", pipeline);
 	}
 
 	{
-		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineTriangle>());
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineTriangle>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("textured_mesh_frag"));
 		pipelines.emplace("triangle", pipeline);
 	}
 
 	{
-		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineGBuffer>());
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGBuffer>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("multiple_outputs_frag"));
 		pipelines.emplace("gbuffer", pipeline);
 	}
 
 	{
-		auto pipeline = std::static_pointer_cast<PipelineaBase>(std::make_shared<PipelineNoise>());
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineNoise>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("basic_vertex"));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("fractal_noise_frag"));
 		pipelines.emplace("noise", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelinePhong>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("phong_frag"));
+		pipelines.emplace("phong", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
+		pipeline->add_shader(GL_GEOMETRY_SHADER, *shaders.find("geometric_normals"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("single_color_frag"));
+		pipelines.emplace("vertex_normal", pipeline);
+	}
+
+	{
+		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineDisplacement>());
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
+		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find("tcs_example"));
+		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find("tev_example"));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("phong_frag"));
+		pipelines.emplace("displacement", pipeline);
 	}
 
 	return pipelines;
@@ -1118,7 +1392,18 @@ void main_loop(LoopData& data)
 				if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
 				{
 					for (const auto& shader : group.second) {
-						if (ImGui::Selectable(shader.first.c_str(), shader.second == current_shader)) {
+						bool selected = false;
+						if (current_shader && shader.second == current_shader) {
+							selected = true;
+						} else if (data.m_current_pipeline) {
+							for (const auto& pipeline_shader : data.m_current_pipeline->m_shaders) {
+								if (shader.second == pipeline_shader.second.m_shader) {
+									selected = true;
+									break;
+								}
+							}
+						}
+						if (ImGui::Selectable(shader.first.c_str(), selected)) {
 							current_shader = shader.second;
 
 							bool pipeline_found = false;
@@ -1218,7 +1503,7 @@ void main_loop(LoopData& data)
 			glEnable(GL_DEPTH_TEST);
 			data.m_framebuffer.m_attachments[0].set_swizzle_mask();
 
-			data.m_framebuffer.clear(0.4f, 0.4f, 0.4f);
+			data.m_framebuffer.clear();
 			data.m_framebuffer.bind_draw();
 			data.m_current_pipeline->m_program.use();
 			data.m_current_pipeline->draw(data);

@@ -73,8 +73,9 @@ namespace v2 {
 		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: /*NamedObjectBase(obj_flags),*/ Base(expr, obj_flags) { }
 
-		Matrix(Matrix&& other) : Base(other) {}
-
+		Matrix(Matrix&& other) : Base(other.get_expr_as_temp())
+		{
+		}
 
 		template<typename U, typename = std::enable_if_t<SameSize<Matrix, U> && SameScalarType<Matrix, U>>>
 		Matrix(const NamedObjectInit<U>& init) : Base(init) {}
@@ -255,6 +256,12 @@ namespace v2 {
 	template<typename A, typename B, typename = std::enable_if_t< SameMat<A, bool> && SameMat<A, B>>>
 	Scalar<bool> operator&&(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	//operator ==
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar  && SameMat<A, B> >>
+	Scalar<bool> operator==(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::Equality, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>

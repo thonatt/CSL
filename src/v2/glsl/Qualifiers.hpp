@@ -21,13 +21,25 @@ namespace v2
 		template<std::size_t N>
 		struct Location {};
 
-	}
-
-	namespace geom_common {
 		struct Triangles {};
-		struct Line_strip {};
+		struct Equal_spacing {};
+		struct Ccw {};
 
-		template<std::size_t N>
-		struct Max_vertices {};
+		struct Std140 {};
+
+		namespace tcs_common {
+			struct Patch {};
+
+			template<std::size_t N>
+			struct Vertices {};
+		}
+
+		namespace geom_common {
+			struct Line_strip {};
+
+			template<std::size_t N>
+			struct Max_vertices {};
+		}
 	}
+
 }

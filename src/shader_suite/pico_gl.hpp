@@ -162,7 +162,7 @@ struct GLProgram {
 	GLint m_link_status = GL_FALSE;
 };
 
-struct GLformat 
+struct GLformat
 {
 	GLformat() = default;
 	GLformat(const GLenum internal, const GLenum format, const GLenum type)
@@ -171,7 +171,7 @@ struct GLformat
 	GLenum m_internal = GL_RGBA8, m_format = GL_RGBA, m_type = GL_UNSIGNED_BYTE;
 };
 
-struct GLTexture 
+struct GLTexture
 {
 	GLTexture() = default;
 	GLTexture(const GLformat format, const GLsizei sample_count)
@@ -450,16 +450,16 @@ struct GLmesh {
 		glBufferData(GL_ARRAY_BUFFER, vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW);
 	}
 
-	void draw()
+	void draw(const GLenum mode = GL_TRIANGLES)
 	{
 		assert(m_vao);
 
 		glBindVertexArray(m_vao);
 		if (m_indices_buffer) {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indices_buffer);
-			glDrawElements(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0);
+			glDrawElements(mode, m_indices_count, GL_UNSIGNED_INT, 0);
 		} else {
-			glDrawArrays(GL_TRIANGLES, 0, m_indices_count);
+			glDrawArrays(mode, 0, m_indices_count);
 		}
 		glBindVertexArray(0);
 	}

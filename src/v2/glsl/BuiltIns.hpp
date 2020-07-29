@@ -133,6 +133,13 @@ namespace v2 {
 		);
 
 		CSL_MAKE_OP_2(
+			IsVecF<I>&& SameMat<I CSL_PP2_COMMA N>,
+			Vector<float CSL_PP2_COMMA Infos<I>::RowCount>,
+			reflect,
+			(I, i), (N, n)
+		);
+
+		CSL_MAKE_OP_2(
 			IsVecF<A >&& Infos<A>::RowCount == 3 && SameMat<A CSL_PP2_COMMA B> ,
 			Vector<float CSL_PP2_COMMA 3>,
 			cross,

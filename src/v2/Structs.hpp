@@ -23,6 +23,9 @@
 
 #define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
 
+#define CSL_PP2_MEMBERWISE_CTOR_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem)
+#define CSL_PP2_MEMBERWISE_ARG_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>( CSL_PP2_MEMBER_NAME(elem) ) )
+
 #define CSL_PP2_INIT_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem)( \
 	 v2::make_expr<v2::MemberAccessor<CSL_PP_FIRST(data) ,i>>(Base::m_expr), CSL_PP_SECOND(data) )
 
@@ -30,7 +33,7 @@
 	CSL_PP2_MEMBER_NAME(elem).m_expr = v2::make_expr<v2::MemberAccessor<data,i>>(Base::m_expr); \
 	CSL_PP2_MEMBER_NAME(elem).m_flags = v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp;
 
-#define CSL_PP2_EMPTY_INIT_MEMBER_IT(r, data, i, elem) , CSL_PP2_MEMBER_NAME(elem) ( v2::Dummy{} )
+#define CSL_PP2_EMPTY_INIT_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem) ( v2::Dummy{} )
 
 #define CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) \
 	CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), data);
@@ -41,7 +44,7 @@
 #define CSL_PP2_ARRAY_INFOS_FROM_QUALIFIER2(Qualifiers) typename v2::ArrayInfos< CSL_PP_DEPARENTHESIS(Qualifiers) >::Dimensions
 #define CSL_PP2_QUALIFIERS_LIST(Qualifiers) v2::RemoveArrayFromQualifiers< CSL_PP_DEPARENTHESIS(Qualifiers) > 
 
-#define CSL_PP2_STRUCT( _Qualifiers, StructTypename, StructTypenameStr, DefaultObjFlags, ...) \
+#define CSL_PP2_STRUCT( _Qualifiers, StructTypename, StructTypenameStr, DefaultObjFlags, IsBuiltIn, ...) \
 	struct StructTypename : public v2::NamedObject<StructTypename> { \
 		using Base = v2::NamedObject<StructTypename>;\
 		\
@@ -52,10 +55,12 @@
 		using Qualifiers = CSL_PP2_QUALIFIERS_LIST( _Qualifiers ); \
 		using QualifierFree = StructTypename; \
 		\
+		StructTypename( CSL_PP2_ITERATE( CSL_PP2_MEMBERWISE_CTOR_IT, __VA_ARGS__ ) ) : Base("", v2::ObjFlags::Default, v2::CtorFlags::Initialisation, CSL_PP2_ITERATE(CSL_PP2_MEMBERWISE_ARG_IT, __VA_ARGS__) ), CSL_PP2_ITERATE(CSL_PP2_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { }\
+		\
 		StructTypename(StructTypename && other) : Base(other), \
 			CSL_PP2_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
-		StructTypename(v2::Dummy) : Base() CSL_PP2_ITERATE(CSL_PP2_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		StructTypename(v2::Dummy) : Base(), CSL_PP2_ITERATE(CSL_PP2_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const std::string & name = "", const v2::ObjFlags obj_flags = DefaultObjFlags) \
 			: Base(name, obj_flags), \
@@ -98,11 +103,11 @@
 #define CSL_PP2_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, DefaultObjFlags, ...) \
 	struct UniqueTypename; \
 	v2::listen().add_named_interface_block<UniqueTypename>(CSL_PP2_STR(Name)); \
-	CSL_PP2_STRUCT(Qualifiers, UniqueTypename, Typename, DefaultObjFlags, __VA_ARGS__); \
+	CSL_PP2_STRUCT(Qualifiers, UniqueTypename, Typename, DefaultObjFlags, 0, __VA_ARGS__); \
 	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP2_STR(Name), DefaultObjFlags | v2::ObjFlags::UsedAsRef );
 
-#define CSL_PP2_BUILTIN_INTERFACE_BLOCK(Qualifiers, Typename, Name, ...) \
-	CSL_PP2_STRUCT((),UniqueTypename, Typename,  v2::ObjFlags::BuiltInConstructor | v2::ObjFlags::UsedAsRef, __VA_ARGS__); \
+#define CSL_PP2_BUILTIN_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, ...) \
+	CSL_PP2_STRUCT((),UniqueTypename, Typename,  v2::ObjFlags::BuiltInConstructor | v2::ObjFlags::UsedAsRef, 1, __VA_ARGS__); \
 	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP2_STR(Name) );
 
 #define CSL_PP2_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
@@ -117,7 +122,7 @@
 #define CSL2_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
 	v2::listen().add_struct<StructTypename>(); \
-	CSL_PP2_STRUCT((),StructTypename, StructTypename, v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp, __VA_ARGS__ )
+	CSL_PP2_STRUCT((),StructTypename, StructTypename, v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp, 0, __VA_ARGS__ )
 
 #define CSL2_INTERFACE_BLOCK(Qualifiers, StructTypename, Name, ...) \
 	CSL_PP2_INTERFACE_BLOCK(Qualifiers, StructTypename, CSL_PP2_CONCAT(StructTypename, __COUNTER__), Name, v2::ObjFlags::Constructor,  __VA_ARGS__ )

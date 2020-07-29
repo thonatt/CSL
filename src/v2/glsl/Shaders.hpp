@@ -16,6 +16,8 @@ namespace v2 {
 
 		enum class ShaderType : std::size_t {
 			Vertex,
+			TessellationControl,
+			TessellationEvaluation,
 			Geometry,
 			Fragment
 		};
@@ -71,6 +73,16 @@ namespace v2 {
 
 		namespace shader_common
 		{
+			template<typename ...Qs>
+			void in() {
+				listen().add_statement<SpecialStatement<InInstruction<Qs...>>>();
+			}
+
+			template<typename ...Qs>
+			void out() {
+				listen().add_statement<SpecialStatement<OutInstruction<Qs...>>>();
+			}
+
 		}
 
 		namespace vert_common {
@@ -101,16 +113,124 @@ namespace v2 {
 			}
 		};
 
+
+		namespace tcs_common {
+			using namespace shader_common;
+
+			static const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			static const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
+			static const Qualify<Int, In> gl_InvocationID("gl_InvocationID");
+
+			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<Float, Array<0>>), gl_ClipDistance)
+			);
+
+			static Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			static Qualify<Float, Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+
+			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<Float, Array<0>>), gl_ClipDistance)
+			);
+		}
+
+		template<GLSLversion version>
+		struct BuiltInRegisters<ShaderType::TessellationControl, version> {
+			template<typename Data>
+			static void call(Data& data) {
+				data.register_builtins(
+					tcs_common::gl_PatchVerticesIn,
+					tcs_common::gl_PrimitiveID,
+					tcs_common::gl_InvocationID,
+					tcs_common::gl_in,
+					tcs_common::gl_TessLevelOuter,
+					tcs_common::gl_TessLevelInner,
+					tcs_common::gl_out
+				);
+			}
+		};
+
+		namespace tev_common {
+			using namespace shader_common;
+
+			static const Qualify<vec3, In> gl_TessCoord("gl_TessCoord");
+			static const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			static const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
+
+			static const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			static const Qualify<Float, In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+
+			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<Float, Array<0>>), gl_ClipDistance)
+			);
+
+			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexTEVout, ObjFlags::BuiltInConstructor,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<Float, Array<0>>), gl_ClipDistance)
+			);
+		}
+
+		template<GLSLversion version>
+		struct BuiltInRegisters<ShaderType::TessellationEvaluation, version> {
+			template<typename Data>
+			static void call(Data& data) {
+				data.register_builtins(
+					tev_common::gl_TessCoord,
+					tev_common::gl_PatchVerticesIn,
+					tev_common::gl_PrimitiveID,
+					tev_common::gl_TessLevelOuter,
+					tev_common::gl_TessLevelInner,
+					tev_common::gl_in,
+					tev_common::gl_Position,
+					tev_common::gl_PointSize,
+					tev_common::gl_ClipDistance
+				);
+			}
+		};
+
 		namespace geom_common {
 			using namespace shader_common;
 
-			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_in,
+			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<vec4, Array<0>>), gl_ClipDistance)
 			);
 
+			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexGeom, ObjFlags::BuiltInConstructor,
+				(vec4, gl_Position),
+				(Float, gl_PointSize),
+				((Qualify<vec4, Array<0>>), gl_ClipDistance)
+			);
+
+			inline void EmitVertex() {
+				listen().add_statement<SpecialStatement<v2::EmitVertexI>>();
+			}
+
+			inline void EndPrimitive() {
+				listen().add_statement<SpecialStatement<v2::EndPrimitiveI>>();
+			}
 		}
+
+		template<GLSLversion version>
+		struct BuiltInRegisters<ShaderType::Geometry, version> {
+
+			template<typename Data>
+			static void call(Data& data) {
+				data.register_builtins(
+					geom_common::gl_Position,
+					geom_common::gl_PointSize,
+					geom_common::gl_ClipDistance,
+					geom_common::gl_in
+				);
+			}
+		};
 
 		namespace frag_common {
 			using namespace shader_common;
@@ -147,6 +267,24 @@ namespace v2 {
 			using namespace vert_common;
 
 			using Shader = ShaderGLSL<ShaderType::Vertex, GLSLversion::_420>;
+		}
+
+		namespace tcs_420
+		{
+			using namespace v2;
+			using namespace glsl_420;
+			using namespace tcs_common;
+
+			using Shader = ShaderGLSL<ShaderType::TessellationControl, GLSLversion::_420>;
+		}
+
+		namespace tev_420
+		{
+			using namespace v2;
+			using namespace glsl_420;
+			using namespace tev_common;
+
+			using Shader = ShaderGLSL<ShaderType::TessellationEvaluation, GLSLversion::_420>;
 		}
 
 		namespace geom_420

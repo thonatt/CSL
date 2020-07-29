@@ -333,7 +333,7 @@ namespace v2 {
 		if (!(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && m_flags & ObjFlags::Constructor) {
 			//assert(listen().current_shader);
 			//assert(!listen().current_shader->m_memory_pool.m_objects_ids.empty(), "variable at shader scope unused");
-			if (listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
+			if (listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty() && m_expr) {
 				dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
 			}
 		}

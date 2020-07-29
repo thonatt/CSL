@@ -259,47 +259,52 @@ namespace v2 {
 
 		static constexpr std::size_t ComponentCount = Ds::Front;
 
-		using ArrayComponent = Qualify<T, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
+		using ArrayComponent = std::conditional_t<(Ds::Tail::Size > 0), 
+			Qualify<T, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>,
+			Qualify<T, Qs...>	
+		>;
+
 		static constexpr bool IsArray = true;
 
-		ArrayInterface(v2::Dummy) : Base() {
+		ArrayInterface(v2::Dummy) : Base()
+		{
 		}
-		ArrayInterface() : Base("") {
-			//m_expr = create_variable_expr<ArrayInterface>("", ObjFlags::Default, CtorFlags::Declaration, NamedObjectBase::id);
+
+		ArrayInterface() : Base("") 
+		{
 			assert(m_expr);
 		}
 
 		template<std::size_t N>
 		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
-			: /*NamedObjectBase(obj_flags), */ Base(name, obj_flags) {
-			//m_expr = create_variable_expr<ArrayInterface>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+			: Base(name, obj_flags) 
+		{
 			assert(m_expr);
 		}
 
 		ArrayInterface(const Expr expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: /*NamedObjectBase(obj_flags), */ Base(expr, obj_flags) {
-			//if (obj_flags & ObjFlags::StructMember) {
-			//	m_expr = expr;
-			//} else if (obj_flags & ObjFlags::Constructor) {
-			//	m_expr = create_variable_expr<ArrayInterface>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
-			//}
+			:  Base(expr, obj_flags)
+		{
 			assert(m_expr);
 		}
+
+		template<typename U, typename = std::enable_if_t<SameType<ArrayInterface, U>>>
+		ArrayInterface(const NamedObjectInit<U>& init) : Base(init) {}
 
 		template<typename ... Us, typename = std::enable_if_t<
 			!(std::is_same_v<Expr, Us> || ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount)) && (SameType<Us, ArrayComponent>&& ...)
 			>>
-			explicit ArrayInterface(Us&& ... us) : /*NamedObjectBase("", ObjFlags::Default), */ Base("", ObjFlags::Default, CtorFlags::Initialisation, get_expr(std::forward<Us>(us))...)
+			explicit ArrayInterface(Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, get_expr(std::forward<Us>(us))...)
 		{
 		}
 
 		template<typename Index>
-		ArrayComponent operator [](Index&& index) const& {
+		ArrayComponent operator [](Index&& index) & {
 			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), get_expr(std::forward<Index>(index))) };
 		}
 
 		template<typename Index>
-		ArrayComponent operator [](Index&& index) const&& {
+		ArrayComponent operator [](Index&& index) && {
 			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_temp(), get_expr(std::forward<Index>(index))) };
 		}
 

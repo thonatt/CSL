@@ -177,9 +177,15 @@ namespace v2 {
 
 	struct Break {};
 
-	struct EmitVertex {};
+	struct EmitVertexI {};
 
-	struct EndPrimitive {};
+	struct EndPrimitiveI {};
+
+	template<typename ...Qs>
+	struct InInstruction {};
+
+	template<typename ...Qs>
+	struct OutInstruction {};
 
 	struct OverloadData {
 		OverloadData() {
