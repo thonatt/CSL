@@ -9,7 +9,6 @@ namespace v2 {
 	class Sampler : public NamedObject<Sampler<Access, T, N, Type, Flags, Qs...>> {
 	public:
 
-		virtual ~Sampler() = default;
 		using Base = NamedObject<Sampler>;
 		using ArrayDimensions = SizeList<>;
 		using Qualifiers = TList<Qs...>;

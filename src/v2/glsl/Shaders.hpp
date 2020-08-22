@@ -11,7 +11,8 @@ namespace v2 {
 	namespace glsl {
 
 		enum class GLSLversion : std::size_t {
-			_420 = 420
+			_420 = 420,
+			_430 = 430
 		};
 
 		enum class ShaderType : std::size_t {
@@ -19,14 +20,15 @@ namespace v2 {
 			TessellationControl,
 			TessellationEvaluation,
 			Geometry,
-			Fragment
+			Fragment,
+			Compute
 		};
 
 		template<ShaderType type, GLSLversion version>
 		struct BuiltInRegisters;
 
 		template<ShaderType type, GLSLversion version>
-		class ShaderGLSL : protected ShaderController {
+		class ShaderGLSL final : protected ShaderController {
 
 		public:
 			ShaderGLSL();
@@ -36,7 +38,7 @@ namespace v2 {
 
 			~ShaderGLSL();
 
-			template<typename Delayed, typename Data>
+			template<typename Data>
 			void print_debug(Data& data) {
 				ShaderController::print_debug<v2::Dummy>(data);
 			}
@@ -94,8 +96,8 @@ namespace v2 {
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			static const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
-			static const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
 		}
 
 		template<GLSLversion version>
@@ -117,9 +119,9 @@ namespace v2 {
 		namespace tcs_common {
 			using namespace shader_common;
 
-			static const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			static const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
-			static const Qualify<Int, In> gl_InvocationID("gl_InvocationID");
+			inline const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<Int, In> gl_InvocationID("gl_InvocationID");
 
 			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
 				(vec4, gl_Position),
@@ -127,8 +129,8 @@ namespace v2 {
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			static Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			static Qualify<Float, Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline Qualify<Float, Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
 				(vec4, gl_Position),
@@ -156,12 +158,12 @@ namespace v2 {
 		namespace tev_common {
 			using namespace shader_common;
 
-			static const Qualify<vec3, In> gl_TessCoord("gl_TessCoord");
-			static const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			static const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<vec3, In> gl_TessCoord("gl_TessCoord");
+			inline const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
 
-			static const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			static const Qualify<Float, In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline const Qualify<Float, In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
 				(vec4, gl_Position),
@@ -235,9 +237,9 @@ namespace v2 {
 		namespace frag_common {
 			using namespace shader_common;
 
-			static const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
-			static const Qualify<Bool, In> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
-			static const Qualify<vec2, In> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<Bool, In> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
+			inline const Qualify<vec2, In> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
 
 			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
@@ -256,6 +258,31 @@ namespace v2 {
 					frag_common::gl_FrontFacing,
 					frag_common::gl_PointCoord,
 					frag_common::gl_FragDepth
+				);
+			}
+		};
+
+		namespace compute_common {
+			using namespace shader_common;
+
+			inline const Qualify<uvec3, In> gl_NumWorkGroups("gl_NumWorkGroups", ObjFlags::BuiltInConstructor);
+			inline const Qualify<uvec3, In> gl_WorkGroupID("gl_WorkGroupID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<uvec3, In> gl_LocalInvocationID("gl_LocalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<uvec3, In> gl_GlobalInvocationID("gl_GlobalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<Uint, In> gl_LocalInvocationIndex("gl_LocalInvocationIndex", ObjFlags::BuiltInConstructor);
+
+		}
+
+		template<GLSLversion version>
+		struct BuiltInRegisters<ShaderType::Compute, version> {
+			template<typename Data>
+			static void call(Data& data) {
+				data.register_builtins(
+					compute_common::gl_NumWorkGroups,
+					compute_common::gl_WorkGroupID,
+					compute_common::gl_LocalInvocationID,
+					compute_common::gl_GlobalInvocationID,
+					compute_common::gl_LocalInvocationIndex
 				);
 			}
 		};
@@ -304,6 +331,15 @@ namespace v2 {
 			using namespace frag_common;
 
 			using Shader = ShaderGLSL<ShaderType::Fragment, GLSLversion::_420>;
+		}
+
+		namespace compute_430
+		{
+			using namespace v2;
+			using namespace glsl_430;
+			using namespace compute_common;
+
+			using Shader = ShaderGLSL<ShaderType::Compute, GLSLversion::_430>;
 		}
 
 

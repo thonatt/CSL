@@ -177,7 +177,9 @@ namespace v2 {
 			cross,
 			reflect,
 			inverse,
-			transpose)
+			transpose,
+			imageSize,
+			imageStore)
 		};
 
 		return op_infos;
@@ -186,7 +188,7 @@ namespace v2 {
 #undef MAKE_OP_IT
 
 	inline const std::string& glsl_op_str(const Op op) {
-		auto it = glsl_op_infos().find(op);
+		const auto it = glsl_op_infos().find(op);
 		if (it == glsl_op_infos().end()) {
 			static const std::string undefined = " undefined Op ";
 			return undefined;
@@ -196,7 +198,7 @@ namespace v2 {
 	}
 
 	inline Precedence glsl_op_precedence(const Op op) {
-		auto it = glsl_op_infos().find(op);
+		const auto it = glsl_op_infos().find(op);
 		if (it == glsl_op_infos().end()) {
 			return Precedence::Alias;
 		} else {
@@ -241,6 +243,8 @@ namespace v2 {
 	template<> inline std::string GLSLQualifierN<glsl::Location>::get() { return "location"; }
 	template<> inline std::string GLSLQualifierN<glsl::tcs_common::Vertices>::get() { return "vertices"; }
 	template<> inline std::string GLSLQualifierN<glsl::geom_common::Max_vertices>::get() { return "max_vertices"; }
+	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_x>::get() { return "local_size_x"; }
+	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_y>::get() { return "local_size_y"; }
 
 #define CSL_QUALIFIER_STR_IT(name, str) \
 	template<> inline std::string GLSLQualifier<name>::get() { return CSL_PP2_STR(str); }
@@ -248,16 +252,14 @@ namespace v2 {
 	CSL_QUALIFIER_STR_IT(glsl::Uniform, uniform);
 	CSL_QUALIFIER_STR_IT(glsl::In, in);
 	CSL_QUALIFIER_STR_IT(glsl::Out, out);
-
+	CSL_QUALIFIER_STR_IT(glsl::Inout, inout);
 	CSL_QUALIFIER_STR_IT(glsl::Triangles, triangles);
 	CSL_QUALIFIER_STR_IT(glsl::Equal_spacing, equal_spacing);
 	CSL_QUALIFIER_STR_IT(glsl::Ccw, ccw);
 	CSL_QUALIFIER_STR_IT(glsl::Std140, std140);
-
+	CSL_QUALIFIER_STR_IT(glsl::Rgba32f, rgba32f);
 	CSL_QUALIFIER_STR_IT(glsl::tcs_common::Patch, patch);
-
 	CSL_QUALIFIER_STR_IT(glsl::geom_common::Line_strip, line_strip);
-
 
 	template<typename Q, typename ...Qs>
 	struct GLSLQualifier<TList<Q, Qs...>> {
@@ -293,7 +295,7 @@ namespace v2 {
 
 	template<> inline std::string TypePrefixStr<bool>::get() { return "b"; }
 	template<> inline std::string TypePrefixStr<int>::get() { return "i"; }
-	template<> inline std::string TypePrefixStr<unsigned int>::get() { return "u"; }
+	template<> inline std::string TypePrefixStr<unsigned char>::get() { return "u"; }
 	template<> inline std::string TypePrefixStr<float>::get() { return ""; }
 	template<> inline std::string TypePrefixStr<double>::get() { return "d"; }
 
@@ -305,7 +307,7 @@ namespace v2 {
 	template<> inline std::string GLSLTypeStr<void>::get() { return "void"; }
 	template<> inline std::string GLSLTypeStr<bool>::get() { return "bool"; }
 	template<> inline std::string GLSLTypeStr<int>::get() { return "int"; }
-	template<> inline std::string GLSLTypeStr<unsigned int>::get() { return "uint"; }
+	template<> inline std::string GLSLTypeStr<unsigned char>::get() { return "uint"; }
 	template<> inline std::string GLSLTypeStr<float>::get() { return "float"; }
 	template<> inline std::string GLSLTypeStr<double>::get() { return "double"; }
 
@@ -416,7 +418,6 @@ namespace v2 {
 
 			return str;
 		}
-
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -425,7 +426,6 @@ namespace v2 {
 	template<>
 	struct InstructionGLSL<IfInstruction> {
 		static void call(const IfInstruction& i, GLSLData& data) {
-
 			for (std::size_t k = 0; k < i.m_cases.size(); ++k) {
 				data.endl().trail();
 				if (k == 0) {
@@ -447,7 +447,6 @@ namespace v2 {
 				--data.trailing;
 				data.endl().trail() << "}";
 			}
-
 		}
 	};
 
@@ -577,16 +576,11 @@ namespace v2 {
 	template<typename T>
 	std::string SpecialStatementStr();
 
-	template<>
-	inline std::string SpecialStatementStr<Discard>() { return "discard"; }
-	template<>
-	inline std::string SpecialStatementStr<Break>() { return "break"; }
-	template<>
-	inline std::string SpecialStatementStr<Continue>() { return "continue"; }
-	template<>
-	inline std::string SpecialStatementStr<EmitVertexI>() { return "EmitVertex()"; }
-	template<>
-	inline std::string SpecialStatementStr<EndPrimitiveI>() { return "EndPrimitive()"; }
+	template<> inline std::string SpecialStatementStr<Discard>() { return "discard"; }
+	template<> inline std::string SpecialStatementStr<Break>() { return "break"; }
+	template<> inline std::string SpecialStatementStr<Continue>() { return "continue"; }
+	template<> inline std::string SpecialStatementStr<EmitVertexI>() { return "EmitVertex()"; }
+	template<> inline std::string SpecialStatementStr<EndPrimitiveI>() { return "EndPrimitive()"; }
 
 	template<typename T>
 	struct InstructionGLSL<SpecialStatement<T>> {
@@ -788,7 +782,7 @@ namespace v2 {
 		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 
 			if (ctor.m_flags && CtorFlags::Const) {
-				data << "const ";
+				//data << "const "; TODO implement operators with all &, &&, const&, const&& versions
 			}
 
 			const CtorFlags ctor_flag = ctor.m_flags & CtorFlags::SwitchMask;
@@ -876,14 +870,20 @@ namespace v2 {
 			} else if constexpr (std::is_integral_v<T>) {
 				data << litteral.value;
 			} else {
-				std::stringstream ss;
-				ss << std::fixed << litteral.value;
-				std::string s = ss.str();
-				s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-				if (s.back() == '.') {
-					s += '0';
+				if (static_cast<float>(static_cast<int>(litteral.value)) == litteral.value) {
+					data << static_cast<int>(litteral.value) << ".0";
+				} else {
+					data << std::scientific << litteral.value;
 				}
-				data << s;
+				
+				//std::stringstream ss;
+				//ss << std::fixed << litteral.value;
+				//std::string s = ss.str();
+				//s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+				//if (s.back() == '.') {
+				//	s += '0';
+				//}
+				//data << s;
 			}
 		}
 	};
@@ -913,6 +913,24 @@ namespace v2 {
 		}
 	};
 
+	template<>
+	struct OperatorGLSL<TernaryOperator> {
+		static void call(const TernaryOperator& top, GLSLData& data, const Precedence precedence) {
+			const bool inversion = (precedence < Precedence::Ternary);
+			if (inversion) {
+				data << "(";
+			}
+			retrieve_expr(top.m_condition)->print_glsl(data, Precedence::Ternary);
+			data << " ? ";
+			retrieve_expr(top.m_first)->print_glsl(data, Precedence::Ternary);
+			data << " : ";
+			retrieve_expr(top.m_second)->print_glsl(data, Precedence::Ternary);
+			if (inversion) {
+				data << ")";
+			}
+		}
+	};
+
 	template<typename From, typename To>
 	struct OperatorGLSL<ConvertorOperator< From, To>> {
 		static void call(const ConvertorOperator< From, To>& op, GLSLData& data, const Precedence precedence) {
@@ -935,7 +953,7 @@ namespace v2 {
 	};
 
 	template<typename F, typename ReturnType, std::size_t N >
-	struct OperatorGLSL<CustomFunCall< F, ReturnType, N>> {
+	struct OperatorGLSL<CustomFunCall<F, ReturnType, N>> {
 		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, GLSLData& data, const Precedence precedence) {
 			OperatorGLSL<Reference>::call(fun_call, data);
 			data << "(";
@@ -957,7 +975,7 @@ namespace v2 {
 				if (ctor->m_flags && CtorFlags::Temporary) {
 					ctor->print_glsl(data, precedence);
 				} else {
-					auto it = data.var_names.find(ctor->m_variable_id);
+					const auto it = data.var_names.find(ctor->m_variable_id);
 					if (it == data.var_names.end()) {
 						data << data.register_var_name(ctor->m_name, ctor->m_variable_id);
 					} else {

@@ -7,9 +7,11 @@
 
 #include "Preprocessor.hpp"
 
+#include <iostream>
+
 namespace v2 {
 
-	struct MainListener 
+	struct MainListener
 	{
 
 		MainListener() {
@@ -213,7 +215,7 @@ namespace v2 {
 	//	return &memory->operator[](index);
 	//}
 
-	OperatorBase* retrieve_expr(const Expr index)
+	inline OperatorBase* retrieve_expr(const Expr index)
 	{
 		if (!index) {
 			return nullptr;
@@ -224,7 +226,7 @@ namespace v2 {
 		return &listen().current_shader->m_memory_pool.operator[](index);
 	}
 
-	InstructionBase* retrieve_instruction(const InstructionIndex index)
+	inline InstructionBase* retrieve_instruction(const InstructionIndex index)
 	{
 		return &listen().current_shader->m_instruction_pool.operator[](index);
 	}
@@ -296,6 +298,13 @@ namespace v2 {
 		mutable bool first = true;
 	};
 
+	template<typename A, typename B, typename C>
+	typename B::QualifierFree _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
+		static_assert(SameMat<B, C>, "ternary error");
+		//static_assert(SameMat<A, Bool>, "ternary error"); TODO
+		return { make_expr<TernaryOperator>(get_expr(std::forward<A>(condition)), get_expr(std::forward<B>(lhs)), get_expr(std::forward<C>(rhs))) };
+	}
+
 	///////////////////////////
 	// definitions requiring listen() definition
 
@@ -330,10 +339,10 @@ namespace v2 {
 	}
 
 	inline NamedObjectBase::~NamedObjectBase() {
-		if (!(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && m_flags & ObjFlags::Constructor) {
+		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
 			//assert(listen().current_shader);
 			//assert(!listen().current_shader->m_memory_pool.m_objects_ids.empty(), "variable at shader scope unused");
-			if (listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty() && m_expr) {
+			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
 				dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
 			}
 		}
@@ -348,6 +357,9 @@ namespace v2 {
 		} else {
 			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags | CtorFlags::Untracked, variable_id, std::forward<Args>(args)...);
 		}
+		//if (obj_flags & ObjFlags::BuiltIn) {
+		//	std::cout << name << " " << variable_id << std::endl;
+		//}
 		listen().push_expression(expr);
 		return expr;
 	}
@@ -422,11 +434,13 @@ namespace v2 {
 #define CSL_DISCARD \
 	_csl_only_available_in_discard_context_();
 
-#define CSL_RETURN_0() listen().add_statement<ReturnStatement>();
-#define CSL_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
+#define CSL_TERNARY(...) _csl_ternary( __VA_ARGS__ )
 
-#define CSL_RETURN_X(x,arg,f, ...) f
+#define CSL_PP_RETURN_0() listen().add_statement<ReturnStatement>();
+#define CSL_PP_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
 
-#define CSL_RETURN(...) CSL_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_RETURN_1(__VA_ARGS__), CSL_RETURN_0(__VA_ARGS__))
+#define CSL_PP_RETURN_X(x,arg,f, ...) f
+
+#define CSL_RETURN(...) CSL_PP_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_PP_RETURN_1(__VA_ARGS__), CSL_PP_RETURN_0(__VA_ARGS__))
 
 }

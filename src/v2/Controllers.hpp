@@ -48,7 +48,7 @@ namespace v2 {
 
 		FuncDeclarationBase& get_current_func()
 		{
-			return *dynamic_cast<FuncDeclarationBase*>(retrieve_instruction(current_func));
+			return *reinterpret_cast<FuncDeclarationBase*>(retrieve_instruction(current_func));
 		}
 
 		template<typename ReturnTList, typename ... Fs>
@@ -112,7 +112,7 @@ namespace v2 {
 	struct ForController : virtual ControllerBase {
 
 		ForInstruction& get() {
-			return *dynamic_cast<ForInstruction*>(retrieve_instruction(current_for));
+			return *reinterpret_cast<ForInstruction*>(retrieve_instruction(current_for));
 		}
 
 		virtual void begin_for() {
@@ -146,7 +146,7 @@ namespace v2 {
 	struct IfController : virtual ControllerBase {
 
 		IfInstruction& get() {
-			return *dynamic_cast<IfInstruction*>(retrieve_instruction(current_if));
+			return *reinterpret_cast<IfInstruction*>(retrieve_instruction(current_if));
 		}
 
 		void begin_if(const Expr& expr) {
@@ -207,7 +207,7 @@ namespace v2 {
 		virtual void begin_while(const Expr& expr) {
 			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
 			push_instruction(current_while);
-			current_block = dynamic_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body;
+			current_block = reinterpret_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body;
 		}
 
 		virtual void end_while() {
@@ -219,7 +219,7 @@ namespace v2 {
 
 		SwitchInstruction& get()
 		{
-			return *dynamic_cast<SwitchInstruction*>(retrieve_instruction(current_switch));
+			return *reinterpret_cast<SwitchInstruction*>(retrieve_instruction(current_switch));
 		}
 
 		virtual void begin_switch(const Expr& expr) {
@@ -329,15 +329,20 @@ namespace v2 {
 		//std::shared_ptr<Memory> m_memory;
 		//std::map<std::size_t, std::size_t> m_expr_allocations;
 
-		//using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
+#ifdef NDEBUG
+		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
+#else
 		using MemoryPool = PolymorphicMemoryPoolDebug<OperatorBase>;
+#endif
 
-		//std::shared_ptr<MemoryPool> m_memory_pool;
 		MemoryPool m_memory_pool;
 
-
-		//using InstructionPool = PolymorphicMemoryPool<InstructionBase>;
+#ifdef NDEBUG
+		using InstructionPool = PolymorphicMemoryPool<InstructionBase>;	
+#else
 		using InstructionPool = PolymorphicMemoryPoolDebug<InstructionBase>;
+#endif
+
 		InstructionPool m_instruction_pool;
 
 		//static Memory& get_static_memory() {
@@ -393,7 +398,7 @@ namespace v2 {
 
 		template<typename F>
 		void main(F&& f) {
-			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>);
+			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>, "main function must returns void");
 			(void)define_function<void>("main", f);
 		}
 

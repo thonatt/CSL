@@ -14,6 +14,8 @@
 namespace v2 {
 
 	enum class Op : std::size_t {
+
+		// algebra operators
 		CWiseMul,
 		MatrixTimesScalar,
 		ScalarTimesMatrix,
@@ -41,6 +43,7 @@ namespace v2 {
 		PostfixUnary,
 		PrefixUnary,
 		Equality,
+
 		// glsl 1.1
 		dFdx,
 		dFdy,
@@ -81,16 +84,23 @@ namespace v2 {
 		cross,
 		reflect,
 
-		//glsl 1.2
+		// glsl 1.2
 		transpose,
 
 		// glsl 1.3
 		texture,
-		//glsl 1.4
+
+		// glsl 1.4
 		inverse,
+
+		// glsl 4.2
+		imageStore,
+
+		// glsl 4.3
+		imageSize,
 	};
 
-	std::ostream& operator<<(std::ostream& t, const Op op) {
+	inline std::ostream& operator<<(std::ostream& t, const Op op) {
 		return t << static_cast<std::size_t>(op);
 	}
 
@@ -152,20 +162,20 @@ namespace v2 {
 	struct DebugData;
 
 	template<typename T>
-	struct OperatorDebug;
-	//{
-	//	static void call(const T& t, DebugData& data) {}
-	//};
+	struct OperatorDebug
+	{
+		static void call(const T& t, DebugData& data) {}
+	};
 
 	/////////////////////////////////////////////////////////
 
 	struct ImGuiData;
 
 	template<typename T>
-	struct OperatorImGui;
-	//{
-	//	static void call(const T& t, ImGuiData& data) {}
-	//};
+	struct OperatorImGui
+	{
+		static void call(const T& t, ImGuiData& data) {}
+	};
 
 	//////////////////////////////////////////////////////////
 
@@ -243,7 +253,7 @@ namespace v2 {
 		a = a | b;
 		return a;
 	}
-	std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
+	inline std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
 		return t << static_cast<std::size_t>(op);
 	}
 
@@ -281,7 +291,7 @@ namespace v2 {
 			OperatorGLSL<ReferenceDelayed>::call(*this, data, precedence);
 		}
 
-		std::size_t m_id;
+		const std::size_t m_id;
 	};
 	using Reference = ReferenceDelayed<Dummy>;
 
@@ -313,7 +323,7 @@ namespace v2 {
 			OperatorGLSL<FunCall>::call(*this, data, precedence);
 		}
 
-		Op m_op;
+		const Op m_op;
 	};
 
 	template <typename ... Args>
@@ -471,10 +481,11 @@ namespace v2 {
 	};
 
 	inline void MemberAccessorBase::set_as_temp() {
-		if (auto parent_ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_obj))) {
+		OperatorBase* op_base = retrieve_expr(m_obj);
+		if (auto parent_ctor = dynamic_cast<ConstructorBase*>(op_base)) {
 			parent_ctor->set_as_temp();
 		} else {
-			if (auto obj = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_obj))) {
+			if (auto obj = dynamic_cast<MemberAccessorBase*>(op_base)) {
 				obj->set_as_temp();
 			}
 		}
@@ -524,6 +535,28 @@ namespace v2 {
 		Op m_op;
 	};
 	using BinaryOperator = BinaryOperatorDelayed<Dummy>;
+
+	template<typename Delayed>
+	struct TernaryOperatorDelayed final : OperatorBase {
+		TernaryOperatorDelayed(const Expr condition, const Expr first, const Expr second)
+			: m_condition(condition), m_first(first), m_second(second) {
+		}
+
+		void print_debug(DebugData& data) const override {
+			OperatorDebug<TernaryOperatorDelayed>::call(*this, data);
+		}
+
+		void print_imgui(ImGuiData& data) const override {
+			OperatorImGui<TernaryOperatorDelayed>::call(*this, data);
+		}
+
+		void print_glsl(GLSLData& data, const Precedence precedence) const override {
+			OperatorGLSL<TernaryOperatorDelayed>::call(*this, data, precedence);
+		}
+
+		Expr m_condition, m_first, m_second;
+	};
+	using TernaryOperator = TernaryOperatorDelayed<Dummy>;
 
 	template<typename From, typename To>
 	struct ConvertorOperator final : OperatorBase, ArgSeq<1>

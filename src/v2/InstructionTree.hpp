@@ -19,19 +19,22 @@ namespace v2 {
 	};
 
 	template<typename Instruction>
-	struct InstructionDebug;
+	struct InstructionDebug
+	{
+		static void call(const Instruction&, DebugData& data) { }
+	};
 
 	template<typename Instruction>
-	struct InstructionImGui;
-	//{
-	//	static void call(const Instruction&, ImGuiData& data) { }
-	//};
+	struct InstructionImGui
+	{
+		static void call(const Instruction&, ImGuiData& data) { }
+	};
 
 	template<typename Instruction>
-	struct InstructionGLSL;
-	//{
-	//	static void call(const Instruction&, GLSLData& data) { }
-	//};
+	struct InstructionGLSL
+	{
+		static void call(const Instruction&, GLSLData& data) { }
+	};
 
 	using InstructionIndex = Expr;
 

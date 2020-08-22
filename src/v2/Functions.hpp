@@ -34,7 +34,7 @@ namespace v2 {
 
 	template<typename A, typename B>
 	struct TypeMatchingPred {
-		static constexpr bool Value = SameSize<A, B> && SameScalarType<A, B>;
+		static constexpr bool Value = std::is_same_v<A, B> || (SameSize<A, B> && SameScalarType<A, B>);
 	};
 
 	template<typename ReturnTypeList, typename FList, typename ArgList>
@@ -47,14 +47,14 @@ namespace v2 {
 
 		using Candidates = typename Matching<FunMatchingPred, FList>::Ids;
 
-		static_assert(Candidates::Size >= 1, "No overload candidate found");
-		static_assert(Candidates::Size <= 1, "Multiple overload candidates found");
+		static_assert(Candidates::Size >= 1, "Invalid call, no overload candidate found");
+		static_assert(Candidates::Size <= 1, "Ambiguous call, multiple overload candidates found");
 
 		using ReturnType = typename ReturnTypeList::template GetType<Candidates::Front>;
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	//get minimal number of argument helpers from https://stackoverflow.com/a/57254989/4953963
+	// functor minimal number of argument, helpers from https://stackoverflow.com/a/57254989/4953963
 
 	template <typename F, typename T, std::size_t ... Is>
 	constexpr auto lambda_min_number_of_args_helper(std::index_sequence<Is...> is, int)
@@ -141,9 +141,9 @@ namespace v2 {
 
 		using FuncTList = TList<Fs...>;
 
-		static_assert(ReturnTList::Size == FuncTList::Size, "Numbers of overloads and return types dont match");
+		static_assert(ReturnTList::Size == FuncTList::Size, "Number of overloads and return types dont match");
 		static_assert(FuncTList::Size > 0, "Functions must have at least one overload");
-		static_assert((std::is_same_v<GetReturnType<std::remove_reference_t<Fs>>, void>&& ...), "C++ return in CSL function, use CSL_RETURN instead");
+		static_assert((std::is_same_v<GetReturnType<std::remove_reference_t<Fs>>, void>&& ...), "C++ return detected in CSL function, use CSL_RETURN instead");
 
 		Function(const std::string& name, Fs&& ... fs);
 

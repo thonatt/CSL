@@ -102,40 +102,43 @@ struct GLProgram {
 			);
 		}
 
-		GLptr shader = GLptr([type](GLuint* ptr) { *ptr = glCreateShader(type); },
-			[](const GLuint* ptr) { glDeleteShader(*ptr); });
+		GLptr shader = GLptr(
+			[type](GLuint* ptr) { *ptr = glCreateShader(type); },
+			[](const GLuint* ptr) { glDeleteShader(*ptr); }
+		);
 
 		const char* code = code_str.c_str();
 		glShaderSource(shader, 1, &code, NULL);
 		glCompileShader(shader);
 		{
-			int infoLogLength;
-			GLint compileStatus = GL_FALSE;
-			glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
-			if (infoLogLength > 1) {
-				std::vector<char> errorMessage(static_cast<size_t>(infoLogLength) + 1);
-				glGetShaderInfoLog(shader, infoLogLength, NULL, errorMessage.data());
-				std::cout << "shader " << (compileStatus ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
+			GLint compile_status = GL_FALSE, log_length;
+			glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
+			if (log_length > 1) {
+				std::vector<char> error_message(static_cast<size_t>(log_length) + 1);
+				glGetShaderInfoLog(shader, log_length, NULL, error_message.data());
+				std::cout << "shader " << (compile_status ? "warning" : "error") << " : " << error_message.data() << std::endl;
 				std::cout << std::endl << std::endl << code_str << std::endl;
 			}
 		}
 		glAttachShader(m_id, shader);
 
 		m_shaders[type] = shader;
+		m_link_status = GL_FALSE;
 	}
 
-	void use() {
+	void use()
+	{
 		if (!m_link_status && !m_shaders.empty()) {
 			glLinkProgram(m_id);
 			{
-				int infoLogLength;
+				int log_length;
 				glGetProgramiv(m_id, GL_LINK_STATUS, &m_link_status);
-				glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &infoLogLength);
-				if (infoLogLength > 1) {
-					std::vector<char> errorMessage(static_cast<size_t>(infoLogLength) + 1);
-					glGetProgramInfoLog(m_id, infoLogLength, NULL, errorMessage.data());
-					std::cout << "shader program " << (m_link_status ? "warning" : "error") << " : " << std::string(errorMessage.data()) << std::endl;
+				glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &log_length);
+				if (log_length > 1) {
+					std::vector<char> error_message(static_cast<size_t>(log_length) + 1);
+					glGetProgramInfoLog(m_id, log_length, NULL, error_message.data());
+					std::cout << "shader program " << (m_link_status ? "warning" : "error") << " : " << error_message.data() << std::endl;
 				}
 			}
 
@@ -174,13 +177,13 @@ struct GLformat
 struct GLTexture
 {
 	GLTexture() = default;
-	GLTexture(const GLformat format, const GLsizei sample_count)
+	GLTexture(const GLformat format, const GLsizei sample_count = 1)
 		: m_format(format)
 	{
 		set_sample_count(sample_count);
 	}
 
-	bool multi_samples() const {
+	bool has_multi_samples() const {
 		return m_sample_count > 1;
 	}
 
@@ -189,7 +192,7 @@ struct GLTexture
 			m_sample_count = count;
 		}
 
-		if (multi_samples()) {
+		if (has_multi_samples()) {
 			m_target = GL_TEXTURE_2D_MULTISAMPLE;
 		} else {
 			m_target = GL_TEXTURE_2D;
@@ -231,7 +234,7 @@ struct GLTexture
 
 		gl_check();
 
-		if (multi_samples()) {
+		if (has_multi_samples()) {
 			glTexStorage2DMultisample(m_target, m_sample_count, m_format.m_internal, m_w, m_h, GL_TRUE);
 			gl_check();
 		} else {
@@ -246,6 +249,9 @@ struct GLTexture
 
 		glTexParameteri(m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexParameteri(m_target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(m_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	void compute_mipmaps() {
@@ -262,6 +268,12 @@ struct GLTexture
 	void bind_slot(const GLuint slot) {
 		glActiveTexture(slot);
 		bind();
+	}
+
+	void bind_as_image_texture()
+	{
+		bind();
+		glBindImageTexture(0, m_gl, 0, GL_FALSE, 0, GL_WRITE_ONLY, m_format.m_internal);
 	}
 
 	GLptr m_gl;
@@ -283,6 +295,25 @@ struct GLFramebuffer
 		);
 	}
 
+	void init_depth()
+	{
+		assert(m_id);
+
+		m_depth_id = GLptr(
+			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteRenderbuffers(1, ptr); }
+		);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_depth_id);
+		if (m_sample_count > 1) {
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_sample_count, GL_DEPTH_COMPONENT32, m_w, m_h);
+		} else {
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, m_w, m_h);
+		}
+		bind();
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_id);
+
+	}
+
 	void clear(const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f)
 	{
 		bind();
@@ -302,9 +333,9 @@ struct GLFramebuffer
 
 	void bind_draw() {
 		bind(GL_DRAW_FRAMEBUFFER);
-		std::vector<GLenum> attachments;
+		std::vector<GLenum> attachments(m_attachments.size());
 		for (std::size_t i = 0; i < m_attachments.size(); ++i) {
-			attachments.push_back(GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i));
+			attachments[i] = GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i);
 		}
 		glDrawBuffers(static_cast<GLsizei>(m_attachments.size()), attachments.data());
 	}
@@ -329,23 +360,11 @@ struct GLFramebuffer
 		m_h = h;
 
 		init_gl();
-
-		m_depth_id = GLptr(
-			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
-			[](const GLuint* ptr) { glDeleteRenderbuffers(1, ptr); }
-		);
-		glBindRenderbuffer(GL_RENDERBUFFER, m_depth_id);
-		if (m_sample_count > 1) {
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_sample_count, GL_DEPTH_COMPONENT32, w, h);
-		} else {
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, w, h);
-		}
-		bind();
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_id);
+		init_depth();
 
 		std::vector<GLTexture> tmp_attachments = m_attachments;
 		m_attachments.clear();
-		for (const auto& attachment : tmp_attachments) {
+		for (const GLTexture& attachment : tmp_attachments) {
 			create_attachment(attachment.m_format);
 		}
 
@@ -434,7 +453,7 @@ struct GLmesh {
 			glVertexAttribPointer(index, sizeof(attribute[0]) / sizeof(float), GL_FLOAT, GL_FALSE, 0, ((char*)0) + offset);
 			glEnableVertexAttribArray(index);
 			offset += get_size(attribute);
-			m_vertice_count = static_cast<GLsizei>(attribute.size());
+			m_vertices_count = static_cast<GLsizei>(attribute.size());
 		};
 
 		m_vertex_buffer = GLptr(
@@ -465,7 +484,7 @@ struct GLmesh {
 	}
 
 	GLptr m_vao, m_indices_buffer, m_vertex_buffer;
-	GLsizei m_indices_count = 0, m_vertice_count = 0;
+	GLsizei m_indices_count = 0, m_vertices_count = 0;
 };
 
 template<typename BeforeClearFun, typename LoopFun>

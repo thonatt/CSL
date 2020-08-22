@@ -164,6 +164,10 @@ namespace v2 {
 		static constexpr SamplerAccessType AccessType = Access;
 		static constexpr SamplerType Type = sType;
 		static constexpr SamplerFlags Flags = sFlags;
+
+		// mandatory for overload resolution
+		static constexpr std::size_t RowCount = 0;
+		static constexpr std::size_t ColCount = 0;
 	};
 
 	//template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
@@ -257,6 +261,12 @@ namespace v2 {
 		static constexpr bool IsValid = true;
 	};
 
+
+	template<>
+	struct Infos<std::size_t> : Infos<Matrix<int, 1, 1, TList<>>> {
+		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
+	};
 
 	template<>
 	struct Infos<unsigned int> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {

@@ -10,19 +10,20 @@ namespace v2 {
 
 #define EX(type, var) get_expr(std::forward<type>(var))
 
-//#define ARG_TYPE_IT(r, data, i, elem)  CSL_PP2_COMMA_IF(i) typename FIRST(elem)
-//#define ARG_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) FIRST(elem) && SECOND(elem)
-//#define ARG_EXPR_IT(r, data, i, elem) , get_expr(std::forward<FIRST(elem) >(SECOND(elem) ))
+	//#define ARG_TYPE_IT(r, data, i, elem)  CSL_PP2_COMMA_IF(i) typename FIRST(elem)
+	//#define ARG_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) FIRST(elem) && SECOND(elem)
+	//#define ARG_EXPR_IT(r, data, i, elem) , get_expr(std::forward<FIRST(elem) >(SECOND(elem) ))
 
-//#define CSL_MAKE_OP(condition, return_type, name, ...) \
-//	template<CSL_PP2_ITERATE(ARG_TYPE_IT, __VA_ARGS__), typename = std::enable_if_t<condition>> \
-//	return_type name (CSL_PP2_ITERATE(ARG_IT, __VA_ARGS__)) { \
-//		return { make_funcall(CSL_PP2_CONCAT(Op::,name) CSL_PP2_ITERATE(ARG_EXPR_IT, __VA_ARGS__)) };  \
-//	}
+	//#define CSL_MAKE_OP(condition, return_type, name, ...) \
+	//	template<CSL_PP2_ITERATE(ARG_TYPE_IT, __VA_ARGS__), typename = std::enable_if_t<condition>> \
+	//	return_type name (CSL_PP2_ITERATE(ARG_IT, __VA_ARGS__)) { \
+	//		return { make_funcall(CSL_PP2_CONCAT(Op::,name) CSL_PP2_ITERATE(ARG_EXPR_IT, __VA_ARGS__)) };  \
+	//	}
 
+#define EXPR(type, var) get_expr(std::forward<type>(var))
 #define ARG_TYPE(elem) typename CSL_PP_FIRST(elem)
 #define ARG(elem) CSL_PP_FIRST(elem) && CSL_PP_SECOND(elem)
-#define ARG_EXPR(elem) get_expr(std::forward<CSL_PP_FIRST(elem) >(CSL_PP_SECOND(elem)))
+#define ARG_EXPR(elem) EXPR(CSL_PP_FIRST(elem), CSL_PP_SECOND(elem))
 
 #define CSL_MAKE_OP_1(condition, return_type, name, var) \
 	template<ARG_TYPE(var), typename = std::enable_if_t<condition>> \
@@ -140,7 +141,7 @@ namespace v2 {
 		);
 
 		CSL_MAKE_OP_2(
-			IsVecF<A >&& Infos<A>::RowCount == 3 && SameMat<A CSL_PP2_COMMA B> ,
+			IsVecF<A >&& Infos<A>::RowCount == 3 && SameMat<A CSL_PP2_COMMA B>,
 			Vector<float CSL_PP2_COMMA 3>,
 			cross,
 			(A, a), (B, b)
@@ -173,7 +174,7 @@ namespace v2 {
 		CSL_MAKE_OP_2(
 			(Infos<S>::AccessType == SamplerAccessType::Sampler) &&
 			(Infos<S>::Type == SamplerType::Basic) &&
-			!(Infos<S>::Flags & SamplerFlags::Shadow) &&
+			!(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P>&&
 			Infos<P>::RowCount == (Infos<S>::DimensionCount + ((Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
 			Vector<typename Infos<S>::ScalarType CSL_PP2_COMMA 4>,
@@ -185,7 +186,7 @@ namespace v2 {
 			(Infos<S>::AccessType == SamplerAccessType::Sampler) &&
 			(Infos<S>::Type == SamplerType::Basic) &&
 			!(Infos<S>::Flags& SamplerFlags::Shadow) &&
-			IsVecF<P> && IsFloat<B> &&
+			IsVecF<P>&& IsFloat<B>&&
 			Infos<P>::RowCount == (Infos<S>::DimensionCount + ((Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
 			Vector<typename Infos<S>::ScalarType CSL_PP2_COMMA 4>,
 			texture,
@@ -225,6 +226,23 @@ namespace v2 {
 	namespace glsl_420 {
 		using namespace glsl_410;
 
+		template<typename I, typename P, typename D, typename = std::enable_if_t<true>
+		>
+			void imageStore(I&& image, P&& p, D&& data)
+		{
+			listen().push_expression(make_funcall(Op::imageStore, EXPR(I, image), EXPR(P, p), EXPR(D, data)));
+		}
+	}
+
+	namespace glsl_430 {
+		using namespace glsl_420;
+
+		CSL_MAKE_OP_1(
+			(Infos<I>::AccessType == SamplerAccessType::Image),
+			Vector<int CSL_PP2_COMMA Infos<I>::DimensionCount>,
+			imageSize,
+			(I, image)
+		);
 	}
 
 #undef EX

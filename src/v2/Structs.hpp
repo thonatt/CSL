@@ -39,7 +39,7 @@
 	CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), data);
 
 #define CSL_PP2_DECLARE_BUILTIN_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) \
-	static CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), data };
+	inline CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), data };
 
 #define CSL_PP2_ARRAY_INFOS_FROM_QUALIFIER2(Qualifiers) typename v2::ArrayInfos< CSL_PP_DEPARENTHESIS(Qualifiers) >::Dimensions
 #define CSL_PP2_QUALIFIERS_LIST(Qualifiers) v2::RemoveArrayFromQualifiers< CSL_PP_DEPARENTHESIS(Qualifiers) > 
@@ -108,7 +108,7 @@
 
 #define CSL_PP2_BUILTIN_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, ...) \
 	CSL_PP2_STRUCT((),UniqueTypename, Typename,  v2::ObjFlags::BuiltInConstructor | v2::ObjFlags::UsedAsRef, 1, __VA_ARGS__); \
-	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP2_STR(Name) );
+	inline Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP2_STR(Name) );
 
 #define CSL_PP2_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
 	v2::listen().add_unnamed_interface_block< \

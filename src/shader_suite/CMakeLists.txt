@@ -5,6 +5,10 @@ project(CSL_ShaderSuite)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
+if (MSVC)
+	add_definitions(/bigobj)
+endif (MSVC)
+
 # CSL
 file(GLOB ShaderSuiteApp "*.hpp" "*.cpp" "main.cpp" )
 source_group("Src" FILES ${ShaderSuiteApp})

@@ -111,6 +111,7 @@ namespace v2 {
 		}
 	};
 
+	// Iterate over type list using functor taking type and index as template argument
 	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
 	void iterate_over_typelist(Args&& ...args) {
 		IterateOverListImpl<TList, F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
@@ -119,6 +120,7 @@ namespace v2 {
 	template<typename List, std::size_t first, typename Range>
 	struct SubsetImpl;
 
+	// Extract type list subset given first (inclusive) and last (exclusive) indexesù
 	template<typename List, size_t first, size_t last>
 	using Subset = typename SubsetImpl<List, first, ::std::make_index_sequence<last - first>>::Type;
 
@@ -127,6 +129,7 @@ namespace v2 {
 		using Type = TList<::std::tuple_element_t<first + Is, ::std::tuple<Ts...>> ...>;
 	};
 
+	// Convert tuple to type list
 	template<typename T>
 	struct GetTList;
 
@@ -142,6 +145,7 @@ namespace v2 {
 		using Ids = SizeList<>;
 	};
 
+	// Match a type over a type list using a predicates, defines list of matched types (::Values) and their indexes (::Ids) from the input type list
 	template<template <typename> typename Pred, typename List>
 	using Matching = MatchingImpl<Pred, List, 0>;
 
@@ -161,6 +165,7 @@ namespace v2 {
 		using Type = List;
 	};
 
+	// Remove type from type list given index
 	template<typename IdList, typename List>
 	using RemoveAt = typename RemoveAtImpl<IdList, List, 0>::Type;
 

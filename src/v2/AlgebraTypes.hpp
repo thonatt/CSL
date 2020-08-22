@@ -57,6 +57,7 @@ namespace v2 {
 
 		//TODO move me
 		operator bool() {
+			static_assert(IsBool, "possible wrong conversion");
 			return false;
 		}
 
@@ -132,12 +133,12 @@ namespace v2 {
 
 		// unaries
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
-		QualifierFree operator-() const& {
+		QualifierFree operator-() const & {
 			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
-		QualifierFree operator-() const&& {
+		QualifierFree operator-() const && {
 			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_temp()) };
 		}
 
@@ -201,6 +202,14 @@ namespace v2 {
 			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_temp()) };
 		}
 
+		template<bool b = IsBool, typename = std::enable_if_t<b> >
+		Matrix operator!()& {
+			return { make_expr<UnaryOperator>(Op::UnaryNegation, NamedObjectBase::get_expr_as_ref()) };
+		}
+		template<bool b = IsBool, typename = std::enable_if_t<b> >
+		Matrix operator!()&& {
+			return { make_expr<UnaryOperator>(Op::UnaryNegation, NamedObjectBase::get_expr_as_temp()) };
+		}
 	};
 
 	// operator*
@@ -255,7 +264,7 @@ namespace v2 {
 	//operator &&
 	template<typename A, typename B, typename = std::enable_if_t< SameMat<A, bool> && SameMat<A, B>>>
 	Scalar<bool> operator&&(A&& a, B&& b) {
-		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+		return { make_expr<BinaryOperator>(Op::LogicalAnd, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//operator ==
