@@ -5,8 +5,11 @@ project(CSL_ShaderSuite)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
-if (MSVC)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|Intel")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+elseif (MSVC)
 	add_definitions(/bigobj)
+	add_compile_options("/std:c++17")
 endif (MSVC)
 
 # CSL
