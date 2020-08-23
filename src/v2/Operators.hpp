@@ -103,9 +103,9 @@ namespace v2 {
 		imageSize,
 	};
 
-	inline std::ostream& operator<<(std::ostream& t, const Op op) {
-		return t << static_cast<std::size_t>(op);
-	}
+	//inline std::ostream& operator<<(std::ostream& t, const Op op) {
+	//	return t << static_cast<std::size_t>(op);
+	//}
 
 	enum class Precedence : std::size_t
 	{
@@ -256,9 +256,9 @@ namespace v2 {
 		a = a | b;
 		return a;
 	}
-	inline std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
-		return t << static_cast<std::size_t>(op);
-	}
+	//inline std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
+	//	return t << static_cast<std::size_t>(op);
+	//}
 
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;

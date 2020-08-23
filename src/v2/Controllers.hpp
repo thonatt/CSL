@@ -396,6 +396,9 @@ namespace v2 {
 			return *this;
 		}
 
+		static void set_current_shader(ShaderController* shader);
+		static ShaderController* get_current_shader();
+
 		template<typename F>
 		void main(F&& f) {
 			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>, "main function must returns void");
@@ -405,28 +408,28 @@ namespace v2 {
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
 		void print_debug(Data& data) {
-			auto previous_current_shader = listen().current_shader;
-			listen().current_shader = this;
+			auto previous_current_shader = get_current_shader();
+			set_current_shader(this);
 			ControllerDebug<Delayed, ShaderController>::call(*this, data);
-			listen().current_shader = previous_current_shader;
+			set_current_shader(previous_current_shader);
 		}
 
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
 		void print_imgui(Data& data) {
-			auto previous_current_shader = listen().current_shader;
-			listen().current_shader = this;
+			auto previous_current_shader = get_current_shader();
+			set_current_shader(this);
 			ControllerImGui<Delayed, ShaderController>::call(*this, data);
-			listen().current_shader = previous_current_shader;
+			set_current_shader(previous_current_shader);
 		}
 
 		// template to delay instantiation
 		template<typename Delayed, typename Data>
 		void print_glsl(Data& data) {
-			auto previous_current_shader = listen().current_shader;
-			listen().current_shader = this;
+			auto previous_current_shader = get_current_shader();
+			set_current_shader(this);
 			ControllerGLSL<Delayed, ShaderController>::call(*this, data);
-			listen().current_shader = previous_current_shader;
+			set_current_shader(previous_current_shader);
 		}
 
 		template<typename Struct>

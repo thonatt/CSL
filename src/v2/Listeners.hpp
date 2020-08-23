@@ -375,6 +375,16 @@ namespace v2 {
 		return listen().current_shader->m_instruction_pool.emplace_back<Instruction>(std::forward<Args>(args)...);
 	}
 
+	inline void ShaderController::set_current_shader(ShaderController* shader)
+	{
+		listen().current_shader = shader;
+	}
+
+	inline ShaderController* ShaderController::get_current_shader()
+	{
+		return listen().current_shader;
+	}
+
 	template<typename ReturnTList, typename ...Fs>
 	Function<ReturnTList, Fs...>::Function(const std::string& name, Fs&& ...fs) : FuncBase()
 	{
