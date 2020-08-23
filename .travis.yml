@@ -17,6 +17,10 @@ matrix:
       compiler: clang
       env:
         - CMAKE_OPTS = ""
+      addons:
+        apt:
+          packages: 
+            - libstdc++-7-dev
     - os: windows
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
