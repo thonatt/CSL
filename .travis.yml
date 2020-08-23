@@ -20,12 +20,13 @@ matrix:
     - os: windows
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
-        - CMAKE_OPTS = "-DCMAKE_BUILD_TYPE=Release"
+        - CMAKE_OPTS="-DCMAKE_BUILD_TYPE=Release"
       before_script:
         - export PATH=$MSBUILD_PATH:$PATH
 
 
 before_install:
+    - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get -y install xorg-dev; fi
     - cmake --version
     - cd src/shader_suite
     - mkdir build 
