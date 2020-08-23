@@ -217,6 +217,7 @@ namespace v2 {
 
 		//using T::T;
 		using T::m_expr;
+		using T::set_members;
 
 		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
 			: /*NamedObjectBase(obj_flags), */ T(Dummy{}) {
@@ -260,6 +261,7 @@ namespace v2 {
 		using ArrayDimensions = Ds;
 		using Qualifiers = TList<Qs...>;
 		using QualifierFree = T;
+		using Base::m_expr;
 
 		static constexpr std::size_t ComponentCount = Ds::Front;
 
