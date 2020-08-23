@@ -35,8 +35,8 @@
 
 #define CSL_PP2_EMPTY_INIT_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem) ( v2::Dummy{} )
 
-#define CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) \
-	CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem)(CSL_PP2_MEMBER_STR(elem), data);
+#define CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) \
+	CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), v2::ObjFlags::Constructor };
 
 #define CSL_PP2_DECLARE_BUILTIN_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) \
 	inline CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), data };
@@ -55,18 +55,19 @@
 		using Qualifiers = CSL_PP2_QUALIFIERS_LIST( _Qualifiers ); \
 		using QualifierFree = StructTypename; \
 		\
-		StructTypename( CSL_PP2_ITERATE( CSL_PP2_MEMBERWISE_CTOR_IT, __VA_ARGS__ ) ) : Base("", v2::ObjFlags::Default, v2::CtorFlags::Initialisation, CSL_PP2_ITERATE(CSL_PP2_MEMBERWISE_ARG_IT, __VA_ARGS__) ), CSL_PP2_ITERATE(CSL_PP2_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { }\
+		StructTypename( CSL_PP2_ITERATE( CSL_PP2_MEMBERWISE_CTOR_IT, __VA_ARGS__ ) ) \
+			 : Base("", v2::ObjFlags::Default, v2::CtorFlags::Initialisation, CSL_PP2_ITERATE(CSL_PP2_MEMBERWISE_ARG_IT, __VA_ARGS__) ), CSL_PP2_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(StructTypename && other) : Base(other), \
 			CSL_PP2_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(v2::Dummy) : Base(), CSL_PP2_ITERATE(CSL_PP2_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
-		StructTypename(const std::string & name = "", const v2::ObjFlags obj_flags = DefaultObjFlags) \
+		StructTypename(const std::string& name = "", const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
 			: Base(name, obj_flags), \
-			CSL_PP2_ITERATE_DATA((StructTypename, obj_flags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
+			CSL_PP2_ITERATE_DATA((StructTypename, obj_flags | DefaultObjFlags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
-		StructTypename(const v2::Expr& expr, const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
+		StructTypename(const v2::Expr expr, const v2::ObjFlags obj_flags = v2::ObjFlags::Default) \
 			: Base(expr, obj_flags), \
 			CSL_PP2_ITERATE_DATA((StructTypename, obj_flags), CSL_PP2_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
@@ -114,7 +115,7 @@
 	v2::listen().add_unnamed_interface_block< \
 		v2::TList< CSL_PP_DEPARENTHESIS(Qualifiers) >, v2::TList< CSL_PP2_ITERATE(CSL_PP2_MEMBER_TYPE_IT, __VA_ARGS__) > > ( \
 			CSL_PP2_STR(Typename), CSL_PP2_ITERATE(CSL_PP2_MEMBER_STR_IT, __VA_ARGS__) ); \
-	CSL_PP2_ITERATE(CSL_PP2_DECLARE_MEMBER_IT, __VA_ARGS__ );
+	CSL_PP2_ITERATE(CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT, __VA_ARGS__ );
 
 #define CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
 	CSL_PP2_ITERATE_DATA(v2::ObjFlags::BuiltInConstructor, CSL_PP2_DECLARE_BUILTIN_UNNAMED_INTERFACE_MEMBER_IT, __VA_ARGS__ );

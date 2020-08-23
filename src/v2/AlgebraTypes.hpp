@@ -186,20 +186,39 @@ namespace v2 {
 		// ++
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()& {
-			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_ref())  };
+			return { make_expr<UnaryOperator>(Op::PrefixIncrement, NamedObjectBase::get_expr_as_ref())  };
 		}
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()&& {
-			return { make_expr<UnaryOperator>(Op::PrefixUnary, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::PrefixIncrement, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++(int)& {
-			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_ref()) };
+			return { make_expr<UnaryOperator>(Op::PostfixIncrement, NamedObjectBase::get_expr_as_ref()) };
 		}
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++(int)&& {
-			return { make_expr<UnaryOperator>(Op::PostfixUnary, NamedObjectBase::get_expr_as_temp()) };
+			return { make_expr<UnaryOperator>(Op::PostfixIncrement, NamedObjectBase::get_expr_as_temp()) };
+		}
+
+		// --
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator--()& {
+			return { make_expr<UnaryOperator>(Op::PrefixDecrement, NamedObjectBase::get_expr_as_ref()) };
+		}
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator--()&& {
+			return { make_expr<UnaryOperator>(Op::PrefixDecrement, NamedObjectBase::get_expr_as_temp()) };
+		}
+
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator--(int)& {
+			return { make_expr<UnaryOperator>(Op::PostfixDecrement, NamedObjectBase::get_expr_as_ref()) };
+		}
+		template<bool b = !IsBool, typename = std::enable_if_t<b> >
+		Matrix operator--(int)&& {
+			return { make_expr<UnaryOperator>(Op::PostfixDecrement, NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		template<bool b = IsBool, typename = std::enable_if_t<b> >
@@ -271,6 +290,12 @@ namespace v2 {
 	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar  && SameMat<A, B> >>
 	Scalar<bool> operator==(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::Equality, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	//operator !=
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
+	Scalar<bool> operator!=(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::NotEquality, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>

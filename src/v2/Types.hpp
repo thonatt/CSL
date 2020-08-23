@@ -165,6 +165,8 @@ namespace v2 {
 		static constexpr SamplerType Type = sType;
 		static constexpr SamplerFlags Flags = sFlags;
 
+		using ArrayDimensions = SizeList<>;
+
 		// mandatory for overload resolution
 		static constexpr std::size_t RowCount = 0;
 		static constexpr std::size_t ColCount = 0;

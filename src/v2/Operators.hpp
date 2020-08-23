@@ -40,9 +40,12 @@ namespace v2 {
 		ScalarGreaterThanScalar,
 		LogicalOr,
 		LogicalAnd,
-		PostfixUnary,
-		PrefixUnary,
+		PostfixIncrement,
+		PrefixIncrement,
+		PostfixDecrement,
+		PrefixDecrement,
 		Equality,
+		NotEquality,
 
 		// glsl 1.1
 		dFdx,

@@ -72,27 +72,29 @@ namespace v2 {
 	struct ControllerGLSL<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, GLSLData& data) {
 
-			for (const auto& s : controller.m_structs) {
+			if (!controller.m_structs.empty() || !controller.m_named_interface_blocks.empty() || controller.m_unnamed_interface_blocks.empty()) {
+				data.endl();
+			}
+			for (const auto s : controller.m_structs) {
 				retrieve_instruction(s)->print_glsl(data);
 				data.endl();
 			}
 
-			for (const auto& i : controller.m_named_interface_blocks) {
+			for (const auto i : controller.m_named_interface_blocks) {
 				retrieve_instruction(i)->print_glsl(data);
 				data.endl();
 			}
 
-			for (const auto& i : controller.m_unnamed_interface_blocks) {
+			for (const auto i : controller.m_unnamed_interface_blocks) {
 				retrieve_instruction(i)->print_glsl(data);
 				data.endl();
 			}
 
-			for (const auto& i : controller.m_declarations->m_instructions) {
+			for (const auto i : controller.m_declarations->m_instructions) {
 				retrieve_instruction(i)->print_glsl(data);
 			}
-			data.endl();
 
-			for (const auto& f : controller.m_functions) {
+			for (const auto f : controller.m_functions) {
 				retrieve_instruction(f)->print_glsl(data);
 			}
 		}
@@ -133,9 +135,12 @@ namespace v2 {
 			{ Op::ScalarGreaterThanScalar, { Precedence::Relational, " > "} },
 			{ Op::LogicalOr, { Precedence::LogicalOr, " || "} },
 			{ Op::LogicalAnd, { Precedence::LogicalAnd, " && "} },
-			{ Op::PostfixUnary, { Precedence::Postfix, "++"} },
-			{ Op::PrefixUnary, { Precedence::Prefix, "++"} },
+			{ Op::PostfixIncrement, { Precedence::Postfix, "++"} },
+			{ Op::PrefixIncrement, { Precedence::Prefix, "++"} },
+			{ Op::PostfixDecrement, { Precedence::Postfix, "--"} },
+			{ Op::PrefixDecrement, { Precedence::Prefix, "--"} },
 			{ Op::Equality, { Precedence::Equality, " == "} },
+			{ Op::NotEquality, { Precedence::Equality, " != "} },
 			CSL_PP2_ITERATE(MAKE_OP_IT,
 			dFdx,
 			dFdy,
@@ -467,14 +472,41 @@ namespace v2 {
 
 	template<>
 	struct InstructionGLSL<ForInstruction> {
+
+		enum class Status { InitExpr, Condition, LoopExpr };
+
 		static void call(const ForInstruction& i, GLSLData& data) {
 			data.endl().trail() << "for(";
-			for (const auto& j : i.args->m_instructions) {
-				retrieve_instruction(j)->print_glsl(data);
+
+			Status status = Status::InitExpr;
+			for (const auto j : i.args->m_instructions) {
+				const InstructionBase* arg_instruction = retrieve_instruction(j);
+				const Expr arg_expr = reinterpret_cast<const Statement*>(arg_instruction)->m_expr;
+				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(arg_expr));
+				if (status == Status::InitExpr && (ctor->m_flags && CtorFlags::Initialisation)) {
+					arg_instruction->print_glsl(data);
+					status = Status::Condition;
+					continue;
+				}
+				if (status == Status::Condition) {
+					arg_instruction->print_glsl(data);
+					status = Status::LoopExpr;
+					continue;
+				}
+				if (status == Status::LoopExpr) {
+					ForIterationStatement(arg_expr).print_glsl(data);
+				}
 			}
+
+			if (status == Status::InitExpr) {
+				data << ";;";
+			} else if (status == Status::Condition) {
+				data << ";";
+			}
+
 			data << ") {";
 			++data.trailing;
-			for (const auto& j : i.body->m_instructions) {
+			for (const auto j : i.body->m_instructions) {
 				retrieve_instruction(j)->print_glsl(data);
 			}
 			--data.trailing;
@@ -533,13 +565,15 @@ namespace v2 {
 	template<>
 	struct InstructionGLSL<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, GLSLData& data) {
-			data.endl().trail() << "Switch ";
+			data.endl().trail() << "switch(";
 			retrieve_expr(i.m_condition)->print_glsl(data, Precedence::Alias);
+			data << ") {";
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
 				retrieve_instruction(c)->print_glsl(data);
 			}
 			--data.trailing;
+			data.endl().trail() << "}";
 		}
 	};
 
@@ -548,16 +582,18 @@ namespace v2 {
 		static void call(const SwitchCase& i, GLSLData& data) {
 			data.endl().trail();
 			if (i.m_label) {
-				data << "Case ";
+				data << "case ";
 				retrieve_expr(i.m_label)->print_glsl(data, Precedence::Alias);
 			} else {
-				data << "Default";
+				data << "default";
 			}
+			data << " : {";
 			++data.trailing;
 			for (const auto& j : i.m_body->m_instructions) {
 				retrieve_instruction(j)->print_glsl(data);
 			}
 			--data.trailing;
+			data.endl().trail() << "}";
 		}
 	};
 
@@ -872,10 +908,15 @@ namespace v2 {
 			} else {
 				if (static_cast<float>(static_cast<int>(litteral.value)) == litteral.value) {
 					data << static_cast<int>(litteral.value) << ".0";
+				} else if (static_cast<float>(static_cast<int>(10.0*litteral.value)) == 10.0 * litteral.value) {
+					if (litteral.value < 0) {
+						data << "-";
+					}
+					data << static_cast<int>(std::abs(litteral.value)) << "." << std::abs(static_cast<int>(10.0 * litteral.value) - 10 * static_cast<int>(litteral.value))	;
 				} else {
 					data << std::scientific << litteral.value;
 				}
-				
+
 				//std::stringstream ss;
 				//ss << std::fixed << litteral.value;
 				//std::string s = ss.str();

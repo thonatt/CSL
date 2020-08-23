@@ -2,7 +2,7 @@
 #include <shaders/dolphin.h>
 #include <shaders/rendu_compilation.h>
 #include <shaders/ogl4_sl_cookbook.h>
-#include <shaders/examples.h>
+//#include <shaders/examples.h>
 
 #include "tests.hpp"
 
@@ -25,6 +25,7 @@
 #include "v2/glsl/BuiltIns.hpp"
 #include "ToImGui.hpp"
 
+#include <shaders/readme_examples.h>
 #include <shaders/rendering.h>
 #include <shaders/rendu.h>
 #include <shaders/shadertoy.h>
@@ -106,145 +107,10 @@ struct ShaderExample {
 
 using ShaderPtr = std::shared_ptr<ShaderExample>;
 
-v2::glsl::frag_420::Shader test_frag_ops()
-{
-	using namespace v2::glsl::frag_420;
-	Shader shader;
-
-	CSL2_STRUCT(Plop,
-		(vec3, v),
-		(Float, f)
-	);
-
-	CSL2_STRUCT(BigPlop,
-		(Plop, plop),
-		(Float, g)
-	);
-
-	Qualify<BigPlop, Uniform> uni_plop("uniplop");
-
-	CSL2_INTERFACE_BLOCK(
-		(In, Array<5>), gl_PerVertex, gl_in,
-		((Qualify<vec4, Array<4>>), gl_Position)
-	);
-
-	1.0f + gl_in[2].gl_Position[3];
-
-	auto ffff = define_function<vec3>("f", [&](vec3 aa = "a", vec3 bb = "b") {
-		BigPlop b;
-		b.plop.v* BigPlop().plop.f;
-
-		CSL_IF(true) {
-			b.plop.v = 2.0 * b.plop.v;
-		} CSL_ELSE_IF(false) {
-			b.plop.v = 3.0 * b.plop.v;
-		} CSL_ELSE{
-			b.plop.v = 4.0 * b.plop.v;
-		}
-	});
-
-	//#define MACRO(r, data, i, elem) CSL_PP_DEPARENTHESIS(CSL_PP_FIRST(elem)) CSL_PP_SECOND(elem)
-	//#define MACRO_ITERATE(...) CSL_PP2_ITERATE(MACRO, __VA_ARGS__ )
-	//
-	//	MACRO_ITERATE((Int, i), ((Qualify<Float, Uniform, Array<2,3>>), f))
-
-	//CSL2_INTERFACE_BLOCK(
-	//	(Uniform, Layout<Location<0>>, Array<4, 5>), PBlock, my_block,
-	//	(vec3, a),
-	//	(vec3, b)
-	//);
-
-	//CSL2_UNNANMED_INTERFACE_BLOCK(
-	//	(Uniform, Layout<Location<0>>, Array<4, 5>), PUBlock,
-	//	(vec3, pa),
-	//	(vec3, pb)
-	//);
-
-	using T = vec3;
-
-	Qualify<T, Uniform, Array<3, 2>> b;
-
-	Qualify<sampler2D, Uniform> s;
-
-	shader.main([&]
-	{
-		using namespace v2::swizzles::xyzw;
-		//b[2][1][x, y, z][z, z, y];
-		//ffff(b[2][1], b[2][1]) + ffff(b[2][1], b[2][1]);
-
-		mat3 m("m");
-		vec3 v("v");
-		Float f("f");
-
-		m* v;
-		f* m;
-		m* f;
-		f* v;
-		v* f;
-		m* m;
-		v* v;
-		f* f;
-
-		m + m;
-		v + v;
-		f + f;
-		m + f;
-		f + m;
-		v + f;
-		f + v;
-
-		m - m;
-		v - v;
-		f - f;
-		m - f;
-		f - m;
-		v - f;
-		f - v;
-
-		m / m;
-		v / v;
-		f / f;
-		m / f;
-		f / m;
-		v / f;
-		f / v;
-
-		(f * (v + v))[x, y, z];
-		(f + f * f)* (f * f + f);
-
-		gl_FragCoord[x, y, z] * gl_FragDepth;
-
-		greaterThan(cos(dFdx(f)), sin(dFdy(f)));
-
-		texture(s, v[x, y]);
-	});
-
-	return shader;
-}
-
-auto test_vert_quad()
-{
-	using namespace v2::glsl::vert_420;
-	using namespace v2::swizzles::rgba;
-	Shader shader;
-
-	Qualify<vec2, Layout<Location<0>>, Out> uv("uv");
-
-	shader.main([&]
-	{
-		Float x = mod(Float((gl_VertexID + 2) / 3), 2.0);
-		Float y = mod(Float((gl_VertexID + 1) / 3), 2.0);
-
-		gl_Position = vec4(-1.0 + x * 2.0, -1.0 + y * 2.0, 0.0, 1.0);
-		uv = vec2(x, y);
-	});
-
-	return shader;
-}
-
 enum class ShaderGroup {
 	Test,
 	Examples,
+	Readme,
 	Rendu,
 	Shadertoy,
 };
@@ -256,11 +122,11 @@ struct ShaderSuite {
 		auto shader = std::make_shared<ShaderExample>(std::forward<F>(f));
 		shader->m_name = name;
 		m_shaders.emplace(name, shader);
-		m_groups[group].emplace(name, shader);
+		m_groups[group].emplace_back(shader);
 	}
 
 	std::unordered_map<std::string, ShaderPtr> m_shaders;
-	std::unordered_map<ShaderGroup, std::unordered_map<std::string, ShaderPtr>> m_groups;
+	std::unordered_map<ShaderGroup, std::vector<ShaderPtr>> m_groups;
 
 };
 
@@ -360,7 +226,7 @@ struct LoopData {
 		constexpr float two_pi = 2.0f * 3.141519265f;
 		const v3 at = { 0, 0, 0 };
 		const v3 up = { 0, 0, 1 };
-		const float theta = std::fmod(m_time / 8.0f, 1.0f)* two_pi;
+		const float theta = std::fmod(m_time / 12.0f, 1.0f)* two_pi;
 		m_eye = v3{ radius*std::cos(theta), radius*std::sin(theta), distance };
 
 		const v3 z_axis = normalize(at - m_eye);
@@ -626,16 +492,20 @@ ShaderSuite get_all_suite()
 {
 	ShaderSuite suite;
 
-	suite.add_shader(ShaderGroup::Examples, "test", test_frag_ops);
-	suite.add_shader(ShaderGroup::Test, "test_vertex", test_vert_quad);
-	
+	// readme examples
+	suite.add_shader(ShaderGroup::Readme, "types & operators", types_operators_example);
+	suite.add_shader(ShaderGroup::Readme, "with auto naming", auto_naming_example_with);
+	suite.add_shader(ShaderGroup::Readme, "without auto naming", auto_naming_example_without);
+	suite.add_shader(ShaderGroup::Readme, "swizzling", swizzling_example);
+	suite.add_shader(ShaderGroup::Readme, "qualifiers", qualifier_example);
+	suite.add_shader(ShaderGroup::Readme, "arrays", arrays_example);
+	suite.add_shader(ShaderGroup::Readme, "functions", functions_example);
+	suite.add_shader(ShaderGroup::Readme, "control blocks", structure_stratements_example);
+	suite.add_shader(ShaderGroup::Readme, "structs", structs_examples);
+	suite.add_shader(ShaderGroup::Readme, "interface blocks", interface_examples);
+	suite.add_shader(ShaderGroup::Readme, "structs & interfaces with commas", struct_interface_comma_examples);
+
 	suite.add_shader(ShaderGroup::Test, "screen_quad_vertex_shader", screen_quad_vertex_shader);
-
-	//suite.add_shader(ShaderGroup::Test, "basic_frag", frag_basic);
-	//suite.add_shader(ShaderGroup::Examples, "test_frag", test_frag_quad);
-
-	suite.add_shader(ShaderGroup::Shadertoy, "vaporwave CSL", shader_80);
-	//suite.add_shader(ShaderGroup::Test, "tex_frag", test_tex);
 
 	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", interface_vertex_shader);
 	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
@@ -653,6 +523,8 @@ ShaderSuite get_all_suite()
 
 	suite.add_shader(ShaderGroup::Rendu, "atmosphere scattering", scattering_lookup_table);
 	suite.add_shader(ShaderGroup::Rendu, "atmosphere rendering", atmosphere_rendering);
+
+	suite.add_shader(ShaderGroup::Shadertoy, "vaporwave CSL", shader_80);
 
 	return suite;
 }
@@ -795,6 +667,7 @@ void main_loop(LoopData& data)
 
 	static const std::unordered_map<ShaderGroup, std::string> shader_group_strs = {
 		{ ShaderGroup::Test, "Test"},
+		{ ShaderGroup::Readme, "Readme examples"},
 		{ ShaderGroup::Examples, "Demos"},
 		{ ShaderGroup::Shadertoy, "Shadertoy"},
 		{ ShaderGroup::Rendu, "Rendu"},
@@ -833,18 +706,18 @@ void main_loop(LoopData& data)
 				{
 					for (const auto& shader : group.second) {
 						bool selected = false;
-						if (current_shader && shader.second == current_shader) {
+						if (current_shader && shader == current_shader) {
 							selected = true;
 						} else if (data.m_current_pipeline) {
 							for (const auto& pipeline_shader : data.m_current_pipeline->m_shaders) {
-								if (shader.second == pipeline_shader.second.m_shader) {
+								if (shader == pipeline_shader.second.m_shader) {
 									selected = true;
 									break;
 								}
 							}
 						}
-						if (ImGui::Selectable(shader.first.c_str(), selected)) {
-							current_shader = shader.second;
+						if (ImGui::Selectable(shader->m_name.c_str(), selected)) {
+							current_shader = shader;
 
 							bool pipeline_found = false;
 							for (const auto& pipeline : data.m_pipelines) {
@@ -1086,18 +959,18 @@ int main()
 	auto start = std::chrono::steady_clock::now();
 
 	// readme examples
-	std::string operators_str = operators_example();
-	std::string arrays_str = arrays_example();
-	std::string swizzling_str = swizzling_example();
-	std::string auto_naming_str = auto_naming_example();
-	std::string qualifier_str = qualifier_example();
-	std::string functions_str = functions_example();
-	std::string structure_str = structure_stratements_example();
-	std::string structs_str = structs_examples();
-	std::string interface_str = interface_examples();
-	std::string struct_interface_comma_str = struct_interface_comma_examples();
-	std::string shader_stage_str = shader_stage_options();
-	std::string variations_str = meta_variations();
+	//std::string operators_str = operators_example();
+	//std::string arrays_str = arrays_example();
+	//std::string swizzling_str = swizzling_example();
+	//std::string auto_naming_str = auto_naming_example();
+	//std::string qualifier_str = qualifier_example();
+	//std::string functions_str = functions_example();
+	//std::string structure_str = structure_stratements_example();
+	//std::string structs_str = structs_examples();
+	//std::string interface_str = interface_examples();
+	//std::string struct_interface_comma_str = struct_interface_comma_examples();
+	//std::string shader_stage_str = shader_stage_options();
+	//std::string variations_str = meta_variations();
 
 	// Rendu
 	std::string blur_str = blurShader();
@@ -1119,14 +992,14 @@ int main()
 	auto dolphin_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dolphin_frag_start);
 
 	//basic shaders
-	auto phong_frag_start = std::chrono::steady_clock::now();
-	std::string phongShading_str = phongShading();
-	auto phong_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - phong_frag_start);
+	//auto phong_frag_start = std::chrono::steady_clock::now();
+	//std::string phongShading_str = phongShading();
+	//auto phong_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - phong_frag_start);
 
-	std::string per_tri_normal_str = per_triangle_normal_geom();
-	std::string tesselation_control_str = tesselation_control_example();
-	std::string tesselation_evaluation_str = tesselation_evaluation_example();
-	std::string tesselation_interfaces_str = tesselation_interfaces();
+	//std::string per_tri_normal_str = per_triangle_normal_geom();
+	//std::string tesselation_control_str = tesselation_control_example();
+	//std::string tesselation_evaluation_str = tesselation_evaluation_example();
+	//std::string tesselation_interfaces_str = tesselation_interfaces();
 
 	//only measuring generation, not display
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
@@ -1137,30 +1010,30 @@ int main()
 		std::cout << std::string(75, '/') << "\n\n";
 	};
 
-	for (std::string str :
-	{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str,
-		functions_str, structure_str, structs_str, interface_str,
-		struct_interface_comma_str, shader_stage_str, variations_str
-	})
-	{
-		std::cout << str;
-		seperator();
-	}
+	//for (std::string str :
+	//{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str,
+	//	functions_str, structure_str, structs_str, interface_str,
+	//	struct_interface_comma_str, shader_stage_str, variations_str
+	//})
+	//{
+	//	std::cout << str;
+	//	seperator();
+	//}
 
-	for (std::string str :
-	{ blur_str, ambiant_str, ssao_str, discard_str,
-		transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
-		tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,
-		dolphin_vertex_str, dolphin_frag_str
-	})
-	{
-		std::cout << str;
-		seperator();
-	}
+	//for (std::string str :
+	//{ blur_str, ambiant_str, ssao_str, discard_str,
+	//	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
+	//	tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,
+	//	dolphin_vertex_str, dolphin_frag_str
+	//})
+	//{
+	//	std::cout << str;
+	//	seperator();
+	//}
 
-	std::cout << "all shaders total generation elapsed time : " << duration.count() / 1000.0 << " ms" << std::endl;
-	std::cout << "phong fragment shader generation elapsed time : " << phong_frag_duration.count() / 1000.0 << " ms" << std::endl;
-	std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
+	//std::cout << "all shaders total generation elapsed time : " << duration.count() / 1000.0 << " ms" << std::endl;
+	//std::cout << "phong fragment shader generation elapsed time : " << phong_frag_duration.count() / 1000.0 << " ms" << std::endl;
+	//std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
 
 
 	// for profiling

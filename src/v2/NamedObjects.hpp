@@ -9,6 +9,9 @@
 
 namespace v2 {
 
+	struct MainListener;
+	MainListener& listen();
+
 	enum class ObjFlags : std::size_t {
 		None = 0,
 		Tracked = 1 << 1,
@@ -198,7 +201,7 @@ namespace v2 {
 			m_expr = create_variable_expr<T>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
 		}
 
-
+		void set_members(){ }
 	private:
 	};
 
@@ -213,6 +216,7 @@ namespace v2 {
 		using T::operator=;
 
 		//using T::T;
+		using T::m_expr;
 
 		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
 			: /*NamedObjectBase(obj_flags), */ T(Dummy{}) {

@@ -250,19 +250,29 @@ namespace v2 {
 
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = dynamic_cast<Statement*>(retrieve_instruction(i))->m_expr;
-			auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
-			if (ctor->m_flags && CtorFlags::Declaration) {
-				assert(m_instructions.empty());
-				m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-			} else if (ctor->m_flags && CtorFlags::Initialisation) {
-				if (m_instructions.size() <= 1) {
-					m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-				} else {
-					m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
-				}
-			} else {
-				assert(false);
-			}
+			//auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
+			//if (ctor->m_flags && CtorFlags::Declaration) {
+			//	assert(m_instructions.empty());
+			//	m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+			//} else {
+			//	if (m_instructions.size() <= 1) {
+			//		m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+			//	} else {
+			//		m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
+			//	}
+			//}
+
+			m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+
+			//if (ctor->m_flags && CtorFlags::Initialisation) {
+			//	if (m_instructions.size() <= 1) {
+			//		m_instructions.push_back(make_instruction<ForArgStatement>(expr));
+			//	} else {
+			//		m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
+			//	}
+			//} else {
+			//	assert(false);
+			//}
 		}
 
 		Expr m_stacked_condition;
@@ -374,7 +384,7 @@ namespace v2 {
 		void add_case(const Expr expr, Block::Ptr& current_block) {
 			m_current_case = make_instruction<SwitchCase>(expr, m_body);
 			m_body->push_instruction(m_current_case);
-			current_block = dynamic_cast<SwitchInstruction*>(retrieve_instruction(m_current_case))->m_body;
+			current_block = dynamic_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body;
 		}
 
 		virtual void print_debug(DebugData& data) const override {

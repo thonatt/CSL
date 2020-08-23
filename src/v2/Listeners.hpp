@@ -9,6 +9,11 @@
 
 #include <iostream>
 
+//to define "not" keyword
+#ifdef _WIN32	
+#include <iso646.h>
+#endif
+
 namespace v2 {
 
 	struct MainListener
@@ -299,8 +304,8 @@ namespace v2 {
 	};
 
 	template<typename A, typename B, typename C>
-	typename B::QualifierFree _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
-		static_assert(SameMat<B, C>, "ternary error");
+	std::remove_reference_t<B> _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
+		//static_assert(SameMat<B, C>, "ternary error");
 		//static_assert(SameMat<A, Bool>, "ternary error"); TODO
 		return { make_expr<TernaryOperator>(get_expr(std::forward<A>(condition)), get_expr(std::forward<B>(lhs)), get_expr(std::forward<C>(rhs))) };
 	}

@@ -35,25 +35,28 @@ namespace v2 {
 			ShaderGLSL(ShaderGLSL&& other) : ShaderController(std::move(other)) {
 				//std::cout << "ShaderGLSL(ShaderGLSL&&)" << std::endl;
 			}
+			ShaderGLSL& operator=(ShaderGLSL&& other) {
+				static_cast<ShaderController&>(*this) = std::move(other);
+				return *this;
+			}
 
 			~ShaderGLSL();
 
 			template<typename Data>
 			void print_debug(Data& data) {
-				ShaderController::print_debug<v2::Dummy>(data);
+				ShaderController::template print_debug<v2::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_imgui(Data& data) {
-				ShaderController::print_imgui<v2::Dummy>(data);
+				ShaderController::template print_imgui<v2::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_glsl(Data& data) {
 				BuiltInRegisters<type, version>::call(data);
 				data << get_header();
-				data.endl();
-				ShaderController::print_glsl<v2::Dummy>(data);
+				ShaderController::template print_glsl<v2::Dummy>(data);
 			}
 
 			template<typename F>

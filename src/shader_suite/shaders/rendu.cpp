@@ -255,7 +255,7 @@ v2::glsl::frag_420::Shader atmosphere_rendering()
 		// We then move to the planet model space, where its center is in (0,0,0).
 		vec3 planetSpaceViewPos = viewPos + vec3(0.0, atmosphereGroundRadius, 0.0) + vec3(0.0, altitude, 0.0);
 		vec3 atmosphereColor = computeAtmosphereRadiance(planetSpaceViewPos, viewRay, lightDirection, defaultSunColor, precomputedScattering);
-		atmosphereColor = 1.0 - exp(-2.0 * atmosphereColor);
+		atmosphereColor = 1.0 - exp(-1.0 * atmosphereColor);
 		fragColor = vec4(pow(atmosphereColor, vec3(1.0 / 2.2)), 1.0);
 	});
 
