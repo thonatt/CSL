@@ -44,8 +44,11 @@ namespace v2 {
 		/////////////////////////////////////////////////
 
 		void begin_for() {
-			if (active && current_shader) {
+			if (current_shader) {
 				current_shader->begin_for();
+			}
+			if (!active) {
+				std::cout << "nope";
 			}
 		}
 
@@ -59,7 +62,6 @@ namespace v2 {
 			if (active && current_shader) {
 				current_shader->begin_for_body();
 			}
-
 		}
 		void end_for() {
 			if (active && current_shader) {
@@ -90,27 +92,27 @@ namespace v2 {
 
 		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar && Infos<B>::IsBool > >
 		void begin_else_if(B&& condition) {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->begin_else_if(get_expr(std::forward<B>(condition)));
 			}
 		}
 		void end_if_sub_block() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->end_if_sub_block();
 			}
 		}
 		void end_if() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->end_if();
 			}
 		}
 		void check_begin_if() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->check_begin_if();
 			}
 		}
 		void delay_end_if() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->delay_end_if();
 			}
 		}
@@ -119,13 +121,13 @@ namespace v2 {
 
 		template<typename B, typename = std::enable_if_t< SameScalarType<B, bool> > >
 		void begin_while(B&& condition) {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->begin_while(get_expr(std::forward<B>(condition)));
 			}
 		}
 
 		void end_while() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->end_while();
 			}
 		}
@@ -134,25 +136,25 @@ namespace v2 {
 
 		template<typename C, typename = std::enable_if_t< IsInteger<C> > >
 		void begin_switch(C&& c) {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->begin_switch(get_expr(std::forward<C>(c)));
 			}
 		}
 
 		template<typename C>
 		void begin_switch_case(C&& switch_case) {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->add_case(get_expr(std::forward<C>(switch_case)));
 			}
 		}
 		void begin_switch_case() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->add_case(Expr());
 			}
 		}
 
 		void end_switch() {
-			if (current_shader) {
+			if (active && current_shader) {
 				current_shader->end_switch();
 			}
 		}
@@ -269,21 +271,29 @@ namespace v2 {
 	};
 
 	struct SwitchListener {
+
+		SwitchListener(const bool active_listener) : m_active_listener(active_listener) { }
+
 		~SwitchListener() {
 			listen().end_switch();
 		}
 
-		operator std::size_t() const {
-			++count;
-			if (count == 1) {
+		operator std::size_t() {
+			if (!m_active_listener) {
+				return static_cast<std::size_t>(0);
+			}
+
+			++pass_count;
+			if (pass_count == 1) {
 				listen().active = false;
-			} else if (count == 2) {
+			} else if (pass_count == 2) {
 				listen().active = true;
 			}
-			return (count > 2) ? static_cast<std::size_t>(0) : unlikely_case;
+			return (pass_count > 2) ? static_cast<std::size_t>(0) : unlikely_case;
 		}
 
-		mutable std::size_t count = 0;
+		const bool m_active_listener;
+		std::size_t pass_count = 0;
 		static constexpr std::size_t unlikely_case = 13;
 	};
 
@@ -292,7 +302,7 @@ namespace v2 {
 			listen().end_for();
 		}
 
-		explicit operator bool() const {
+		explicit operator bool() {
 			if (first) {
 				first = false;
 				return true;
@@ -300,7 +310,17 @@ namespace v2 {
 			return false;
 		}
 
-		mutable bool first = true;
+		bool first = true;
+	};
+
+	struct ReturnKeyword {
+		ReturnKeyword() {
+			listen().add_statement<ReturnStatement>();
+		}
+		template<typename T>
+		ReturnKeyword(T&& t) {
+			listen().add_statement<ReturnStatement>(std::forward<T>(t));
+		}
 	};
 
 	template<typename A, typename B, typename C>
@@ -348,7 +368,9 @@ namespace v2 {
 			//assert(listen().current_shader);
 			//assert(!listen().current_shader->m_memory_pool.m_objects_ids.empty(), "variable at shader scope unused");
 			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
-				dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
+				if (auto obj = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
+					obj->set_as_unused();
+				}
 			}
 		}
 	}
@@ -438,7 +460,7 @@ namespace v2 {
 	listen().add_statement<SpecialStatement<Continue>>();
 
 #define CSL_SWITCH(condition) \
-	listen().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = {})while(_csl_begin_switch_)
+	listen().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = { listen().active })while(_csl_begin_switch_)
 
 #define CSL_CASE(value) \
 	listen().begin_switch_case(value); case value 
@@ -451,11 +473,13 @@ namespace v2 {
 
 #define CSL_TERNARY(...) _csl_ternary( __VA_ARGS__ )
 
-#define CSL_PP_RETURN_0() listen().add_statement<ReturnStatement>();
-#define CSL_PP_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
+#define CSL_RETURN ReturnKeyword _csl_return_statement_
 
-#define CSL_PP_RETURN_X(x,arg,f, ...) f
-
-#define CSL_RETURN(...) CSL_PP_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_PP_RETURN_1(__VA_ARGS__), CSL_PP_RETURN_0(__VA_ARGS__))
+	//#define CSL_PP_RETURN_0() listen().add_statement<ReturnStatement>();
+	//#define CSL_PP_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
+	//
+	//#define CSL_PP_RETURN_X(x,arg,f, ...) f
+	//
+	//#define CSL_RETURN(...) CSL_PP_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_PP_RETURN_1(__VA_ARGS__), CSL_PP_RETURN_0(__VA_ARGS__))
 
 }

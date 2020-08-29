@@ -120,7 +120,7 @@ namespace v2 {
 		);
 
 		CSL_MAKE_OP_3(
-			IsVecF<A>&& SameMat<B CSL_PP2_COMMA C> && (SameMat<A CSL_PP2_COMMA B> || IsFloat<B>),
+			IsVecF<A>&& IsVecF<B> && SameMat<B CSL_PP2_COMMA C> && (SameSize<A CSL_PP2_COMMA B> || IsFloat<B>),
 			Vector<float CSL_PP2_COMMA Infos<A>::RowCount>,
 			clamp,
 			(A, x), (B, minVal), (C, maxVal)
@@ -193,12 +193,16 @@ namespace v2 {
 			(S, sampler), (P, point), (B, biais)
 		);
 
+		GENXTYPE_OP_GENXTYPE(float, v, float, round);
+		GENXTYPE_OP_GENXTYPE(float, v, float, sign);
+		GENXTYPE_OP_GENXTYPE(int, v, int, abs);
 	}
 
 	namespace glsl_140 {
 		using namespace glsl_130;
 
-		CSL_MAKE_OP_1(Infos<A>::IsSquare&& Infos<A>::IsFloat, Matrix<float CSL_PP2_COMMA Infos<A>::RowCount CSL_PP2_COMMA  Infos<A>::RowCount>,
+		CSL_MAKE_OP_1(Infos<A>::IsSquare&& Infos<A>::IsFloat,
+			Matrix<float CSL_PP2_COMMA Infos<A>::RowCount CSL_PP2_COMMA  Infos<A>::RowCount>,
 			inverse,
 			(A, a));
 	}
@@ -216,6 +220,20 @@ namespace v2 {
 	namespace glsl_400 {
 		using namespace glsl_330;
 
+		CSL_MAKE_OP_3(Infos<A>::IsVec&& SameMat<B CSL_PP2_COMMA Int>&& SameMat<C CSL_PP2_COMMA Int>,
+			Vector<typename Infos<A>::ScalarType CSL_PP2_COMMA Infos<A>::RowCount>,
+			bitfieldExtract,
+			(A, value),
+			(B, offset),
+			(C, bits)
+		);
+
+		CSL_MAKE_OP_3(
+			Infos<A>::IsVec && Infos<B>::IsInteger && SameMat<B CSL_PP2_COMMA C> && (SameSize<A CSL_PP2_COMMA B> || Infos<B>::IsScalar),
+			Vector<typename Infos<A>::ScalarType CSL_PP2_COMMA Infos<A>::RowCount>,
+			clamp,
+			(A, x), (B, minVal), (C, maxVal)
+		);
 	}
 
 	namespace glsl_410 {

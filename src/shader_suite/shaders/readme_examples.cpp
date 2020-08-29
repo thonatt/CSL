@@ -4,6 +4,8 @@
 #include <v2/glsl/BuiltIns.hpp>
 #include "v2/glsl/ToGLSL.hpp"
 
+#include <type_traits>
+
 v2::glsl::frag_420::Shader types_operators_example()
 {
 	using namespace v2::glsl::frag_420;
@@ -17,7 +19,7 @@ v2::glsl::frag_420::Shader types_operators_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader auto_naming_example_with()
+v2::glsl::frag_420::Shader manual_naming_example()
 {
 	using namespace v2::glsl::frag_420;
 	Shader shader;
@@ -41,7 +43,7 @@ v2::glsl::frag_420::Shader auto_naming_example_with()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader auto_naming_example_without()
+v2::glsl::frag_420::Shader auto_naming_example()
 {
 	using namespace v2::glsl::frag_420;
 	Shader shader;
@@ -151,13 +153,13 @@ v2::glsl::frag_420::Shader functions_example()
 		[](ivec3 b = "b") {
 		CSL_RETURN(b * b);
 	},
-		[] { CSL_RETURN(); }
+		[] { CSL_RETURN; }
 	);
 
 	return shader;
 }
 
-v2::glsl::frag_420::Shader structure_stratements_example()
+v2::glsl::frag_420::Shader control_blocks_example()
 {
 	using namespace v2::glsl::frag_420;
 	Shader shader;
@@ -260,73 +262,66 @@ v2::glsl::frag_420::Shader struct_interface_comma_examples()
 	return shader;
 }
 
+v2::glsl::frag_420::Shader shader_stage_options()
+{
+	using namespace v2::glsl::frag_420;
+	Shader shader;
 
-//std::string shader_stage_options()
-//{
-//	std::string output;
-//
-//	{
-//		using namespace csl::frag_330;
-//
-//		Shader shader;
-//		//in a fragment shader
-//		in<Layout<Early_fragment_tests>>();
-//
-//		output += shader.str();
-//	}
-//
-//	{
-//		using namespace csl::geom_330;
-//		Shader shader;
-//
-//		//in a geometry shader
-//		in<Layout<Triangles>>();
-//		out<Layout<Line_strip, Max_vertices<2>>>();
-//
-//		output += shader.str();
-//	}
-//
-//	return output;
-//}
-//
-//std::string meta_variations()
-//{
-//	auto shader_variation =
-//		[](auto template_parameter, double sampling_angle, bool gamma_correction)
-//	{
-//		using namespace csl::frag_430;
-//		using namespace csl::swizzles::rgba;
-//
-//		Shader shader;
-//		Uniform<sampler2D> samplerA("samplerA"), samplerB("samplerB");
-//		In<vec2> uvs("uvs");
-//		Out<vec4> color("color");
-//
-//		shader.main([&] {
-//			vec2 sampling_dir = vec2(cos(sampling_angle), sin(sampling_angle)) << "sampling_dir";
-//
-//			constexpr int N = decltype(template_parameter)::value;
-//			Array<vec4, 2 * N + 1> cols("cols");
-//			CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
-//				cols[N + i] = vec4(0);
-//				for (auto& sampler : { samplerA, samplerB }) {
-//					cols[N + i] += texture(sampler, uvs + i * sampling_dir);
-//				}
-//				color += cols[N + i] / Float(2 * N + 1);
-//			}
-//
-//			if (gamma_correction) {
-//				color[r, g, b] = pow(color[r, g, b], vec3(2.2));
-//			}
-//		});
-//
-//		return shader.str();
-//	};
-//
-//	std::string out;
-//	out += shader_variation(csl::ConstExpr<int, 9>{}, 0, true);
-//	out += shader_variation(csl::ConstExpr<int, 5>{}, 1.57079632679, false);
-//
-//	return out;
-//}
-//
+	{
+		//in a fragment shader
+		in<Layout<Early_fragment_tests>>();
+	}
+
+	{
+		using namespace v2::glsl::geom_420;
+		//in a geometry shader
+		in<Layout<Triangles>>();
+		out<Layout<Line_strip, Max_vertices<2>>>();
+	}
+
+	return shader;
+}
+
+template<typename T>
+auto shader_variation(T && parameter, std::array<double,2> direction , bool gamma_correction)
+{
+	using namespace v2::glsl::frag_420;
+	using namespace v2::swizzles::rgba;
+	Shader shader;
+	
+	Qualify<sampler2D, Uniform> samplerA("samplerA"), samplerB("samplerB");
+	Qualify<vec2, In> uvs("uvs");
+	Qualify<vec4,Out> color("color");
+
+	shader.main([&] {
+		vec2 sampling_dir = vec2(direction[0], direction[1]) << "sampling_dir";
+
+		constexpr int N = T::value;
+		Qualify<vec4, Array<2 * N + 1>> cols("cols");
+
+		CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
+			cols[N + i] = vec4(0);
+			for (auto& sampler : { samplerA, samplerB }) {
+				cols[N + i] += texture(sampler, uvs + Float(i) * sampling_dir);
+			}
+			color += cols[N + i] / Float(2 * N + 1);
+		}
+
+		if (gamma_correction) {
+			color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+		}
+	});
+
+	return shader;
+};
+
+v2::glsl::frag_420::Shader meta_variation_1()
+{
+	return shader_variation(std::integral_constant<int, 9>{}, { 0, 1 }, true);
+}
+
+v2::glsl::frag_420::Shader meta_variation_2()
+{
+	return shader_variation(std::integral_constant<int, 5>{}, { 1, 0 }, false);
+}
+

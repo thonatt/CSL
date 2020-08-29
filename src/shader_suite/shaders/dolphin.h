@@ -1,6 +1,12 @@
 #pragma once
 
-#include <string>
+#include "v2/Listeners.hpp"
+#include "v2/Structs.hpp"
+
+#include <v2/glsl/Shaders.hpp>
+
+#include "ToImGui.hpp"
+
 
 /**
  Shaders from the Dolphin emulator.
@@ -9,7 +15,7 @@
  https://gist.github.com/phire/25181a9bfd957ac68ea8c74afdd9e9e1
  */
 
-std::string dolphinVertex();
+v2::glsl::vert_420::Shader dolphin_ubershader_vertex();
 
-std::string dolphinFragment();
+v2::glsl::frag_420::Shader dolphin_ubershader_fragment();
 

@@ -103,6 +103,7 @@ namespace v2 {
 	struct Infos {
 		static constexpr bool IsValid = false;
 		static constexpr bool IsArray = false;
+		static constexpr bool IsInteger = false;
 		static constexpr std::size_t RowCount = 0;
 		static constexpr std::size_t ColCount = 0;
 		static constexpr std::size_t NumElements = 0;
@@ -136,7 +137,7 @@ namespace v2 {
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
 		static constexpr bool IsFloat = std::is_same_v<T, float>;
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
-		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, uint>;
+		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, unsigned int> || std::is_same_v<T, uint>;
 
 		static constexpr bool IsValid = true;
 
@@ -357,8 +358,10 @@ namespace v2 {
 		typename TypeInterfaceIndirection<T, RemoveArrayFromQualifiers<Qs...> >::Type
 	>;
 
-
-	//template<typename T, typename ... Qs>
-	//using Qualify = typename QualifiedIndirection<typename Infos<T>::Type, Qs...>::Type;
+	//template<typename T>
+	//struct Arr {
+	//	template<std::size_t S>
+	//	using Size = Qualify<T, Array<S>>;
+	//};
 
 }

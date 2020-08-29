@@ -231,13 +231,13 @@ namespace v2 {
 			return N;
 		}
 
-		virtual void print_debug(DebugData& data) const override {
+		void print_debug(DebugData& data) const override {
 			InstructionDebug<FuncDeclaration>::call(*this, data);
 		}
-		virtual void print_imgui(ImGuiData& data) const override {
+		void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<FuncDeclaration>::call(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			InstructionGLSL<FuncDeclaration>::call(*this, data);
 		}
 

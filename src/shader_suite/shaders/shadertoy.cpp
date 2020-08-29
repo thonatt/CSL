@@ -6,6 +6,10 @@
 #include <v2/glsl/BuiltIns.hpp>
 #include "v2/glsl/ToGLSL.hpp"
 
+/**
+ Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.
+ http://shadertoy.com/view/ttBGRD
+ */
 v2::glsl::frag_420::Shader shader_80()
 {
 	using namespace v2::glsl::frag_420;
@@ -247,6 +251,10 @@ v2::glsl::frag_420::Shader shader_80()
 	return shader;
 }
 
+/**
+Fractal noise fragment shader by Inigo Quilez adatped from
+https://www.shadertoy.com/view/XdXGW8
+*/
 v2::glsl::frag_420::Shader fractal_noise()
 {
 	using namespace v2::glsl::frag_420;
@@ -256,6 +264,8 @@ v2::glsl::frag_420::Shader fractal_noise()
 
 	Qualify<vec2, Layout<Location<0>>, In> uv("uv");
 	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+	Qualify<Int, Uniform> freq_count = Int(5) << "freq_count";
+	Qualify<Float, Uniform> uv_scaling = Float(32.0) << "uv_scaling";
 
 	auto hash = define_function<vec2>([](vec2 p)
 	{
@@ -277,12 +287,11 @@ v2::glsl::frag_420::Shader fractal_noise()
 	});
 
 	shader.main([&] {
-		const Int freq_count = 5;
 		mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
 
 		Float f = 0;
 		Float amplitude = 0.5;
-		vec2 current_uv = 32.0 * uv;
+		vec2 current_uv = uv_scaling * uv;
 
 		CSL_FOR(Int i = 0; i < freq_count; ++i) {
 			f += amplitude * noise(current_uv);

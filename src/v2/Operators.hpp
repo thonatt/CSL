@@ -36,10 +36,17 @@ namespace v2 {
 		DivAssignment,
 		MulAssignment,
 		SubAssignment,
+		BitwiseAndAssignment,
 		ScalarLessThanScalar,
+		ScalarLessThanEqualScalar,
 		ScalarGreaterThanScalar,
+		ScalarGreaterThanEqualScalar,
 		LogicalOr,
 		LogicalAnd,
+		BitwiseAnd,
+		BitwiseOr,
+		BitwiseLeftShift,
+		BitwiseRightShift,
 		PostfixIncrement,
 		PrefixIncrement,
 		PostfixDecrement,
@@ -91,10 +98,15 @@ namespace v2 {
 		transpose,
 
 		// glsl 1.3
+		round,
+		sign,
 		texture,
 
 		// glsl 1.4
 		inverse,
+
+		// glsl 4.0
+		bitfieldExtract,
 
 		// glsl 4.2
 		imageStore,
@@ -153,7 +165,7 @@ namespace v2 {
 
 		Sequence = 170,
 
-		NoExtraParenthesis = 900
+		NoExtraParenthesis = 999,
 	};
 
 	inline bool operator<(const Precedence a, const Precedence b) {
@@ -777,6 +789,10 @@ namespace v2 {
 			}
 		}
 
+		std::size_t get_data_size() const {
+			return m_buffer.size() + sizeof(std::size_t) * m_objects_ids.size();
+		}
+
 	public:
 		std::vector<char> m_buffer;
 		std::vector<std::size_t> m_objects_ids;
@@ -790,6 +806,7 @@ namespace v2 {
 			const std::size_t current_size = m_buffer.size();
 			m_buffer.emplace_back(std::make_shared<Derived>(std::forward<Args>(args)...));
 			m_objects_ids.push_back(current_size);
+			m_data_size += sizeof(std::shared_ptr<Base>) + sizeof(Derived);
 			return Expr(current_size);
 		}
 
@@ -801,7 +818,13 @@ namespace v2 {
 			return *m_buffer[index.m_id];
 		}
 
+		std::size_t get_data_size() const {
+			return m_data_size;
+		}
+
 		std::vector<std::shared_ptr<Base>> m_buffer;
 		std::vector<std::size_t> m_objects_ids;
+
+		std::size_t m_data_size = 0;
 	};
 }

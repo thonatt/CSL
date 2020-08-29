@@ -8,7 +8,7 @@ namespace v2
 
 		using Double = Scalar<double>;
 		using Float = Scalar<float>;
-		using Uint = Scalar<unsigned char>;
+		using Uint = Scalar<unsigned int>;
 		using Int = Scalar<int>;
 		using Bool = Scalar<bool>;
 
@@ -24,9 +24,9 @@ namespace v2
 		using ivec3 = Vector<int, 3>;
 		using ivec4 = Vector<int, 4>;
 
-		using uvec2 = Vector<unsigned char, 2>;
-		using uvec3 = Vector<unsigned char, 3>;
-		using uvec4 = Vector<unsigned char, 4>;
+		using uvec2 = Vector<unsigned int, 2>;
+		using uvec3 = Vector<unsigned int, 3>;
+		using uvec4 = Vector<unsigned int, 4>;
 
 		using bvec2 = Vector<bool, 2>;
 		using bvec3 = Vector<bool, 3>;

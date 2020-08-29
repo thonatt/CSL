@@ -18,12 +18,10 @@
 
 #include "pico_gl.hpp"
 
-#include "v2/ToDebug.hpp"
 #include "v2/glsl/Shaders.hpp"
 #include "v2/Samplers.hpp"
 #include "v2/glsl/ToGLSL.hpp"
 #include "v2/glsl/BuiltIns.hpp"
-#include "ToImGui.hpp"
 
 #include <shaders/readme_examples.h>
 #include <shaders/rendering.h>
@@ -81,13 +79,6 @@ struct ShaderExample {
 		auto shader = f();
 		m_generation_timing = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 
-		m_debug_timing = get_timing([&]
-		{
-			DebugData debug_data;
-			shader.print_debug(debug_data);
-			m_debug_str = debug_data.stream.str();
-		});
-
 		m_glsl_timing = get_timing([&]
 		{
 			GLSLData glsl_data;
@@ -99,10 +90,10 @@ struct ShaderExample {
 	}
 
 	GLProgram m_program;
-	std::string m_debug_str, m_glsl_str;
+	std::string m_glsl_str;
 	v2::ShaderController m_controller;
 	std::string m_name;
-	double m_generation_timing, m_glsl_timing, m_debug_timing;
+	double m_generation_timing, m_glsl_timing;
 };
 
 using ShaderPtr = std::shared_ptr<ShaderExample>;
@@ -113,21 +104,89 @@ enum class ShaderGroup {
 	Readme,
 	Rendu,
 	Shadertoy,
+	Extra
 };
 
+enum class ShaderEnum {
+	TypeAndOperatorsExample,
+	ManualNamingExample,
+	AutoNamingExample,
+	SwizzlingExample,
+	QualifiersExample,
+	ArraysExample,
+	FunctionsExample,
+	ControlBlocksExample,
+	StructsExample,
+	InterfaceBlocksExamples,
+	CommaAndTypenamesExample,
+	ShaderStageOptionsExample,
+	MetaVariation1Example,
+	MetaVariation2Example,
+	ScreenQuadVertex,
+	InterfaceVertex,
+	TexturedMeshFrag,
+	FractalNoiseFrag,
+	MultipleOutputsFrag,
+	PhongFrag,
+	GeometricNormalsGeom,
+	SingleColorFrag,
+	TessControl,
+	TessEval,
+	AtmosphereScatteringLUT,
+	AtmosphereRendering,
+	CSLVaporwave,
+	DolphinUbershaderVert,
+	DolphinUbershaderFrag
+};
+
+const std::string& shader_name(const ShaderEnum shader)
+{
+	static std::unordered_map<ShaderEnum, std::string> shaders_strs = {
+		{ ShaderEnum::TypeAndOperatorsExample, "Types & Operators" },
+		{ ShaderEnum::ManualNamingExample, "Manual naming" },
+		{ ShaderEnum::AutoNamingExample, "Automatic naming" },
+		{ ShaderEnum::SwizzlingExample, "Swizzling" },
+		{ ShaderEnum::QualifiersExample, "Qualifiers" },
+		{ ShaderEnum::ArraysExample, "Arrays" },
+		{ ShaderEnum::FunctionsExample, "Functions" },
+		{ ShaderEnum::ControlBlocksExample, "Control blocks" },
+		{ ShaderEnum::StructsExample, "Strucs" },
+		{ ShaderEnum::InterfaceBlocksExamples, "Interface blocks" },
+		{ ShaderEnum::CommaAndTypenamesExample, "Comma & typenames" },
+		{ ShaderEnum::ShaderStageOptionsExample, "Shader stage options" },
+		{ ShaderEnum::MetaVariation1Example, "Variation 1" },
+		{ ShaderEnum::MetaVariation2Example, "Variation 2" },
+		{ ShaderEnum::ScreenQuadVertex, "Screen quad" },
+		{ ShaderEnum::InterfaceVertex, "Interface vert" },
+		{ ShaderEnum::TexturedMeshFrag, "Textured mesh frag" },
+		{ ShaderEnum::FractalNoiseFrag, "Fractal noise frag" },
+		{ ShaderEnum::MultipleOutputsFrag, "Multiple outputs frag" },
+		{ ShaderEnum::PhongFrag, "Phong shading frag" },
+		{ ShaderEnum::GeometricNormalsGeom, "Geometric normals geom" },
+		{ ShaderEnum::SingleColorFrag, "Single color frag" },
+		{ ShaderEnum::TessControl, "Tessellation control" },
+		{ ShaderEnum::TessEval, "Tessellation evaluation" },
+		{ ShaderEnum::AtmosphereScatteringLUT, "Atmosphere LUT compute" },
+		{ ShaderEnum::AtmosphereRendering, "Atmosphere scattering frag" },
+		{ ShaderEnum::CSLVaporwave, "Vaporwave CSL" },
+		{ ShaderEnum::DolphinUbershaderVert, "Dolphin Ubershader vert" },
+		{ ShaderEnum::DolphinUbershaderFrag, "Dolphin Ubershader frag" },
+	};
+
+	return shaders_strs.find(shader)->second;
+}
 struct ShaderSuite {
 
 	template<typename F>
-	void add_shader(const ShaderGroup group, const std::string& name, F&& f) {
-		auto shader = std::make_shared<ShaderExample>(std::forward<F>(f));
-		shader->m_name = name;
-		m_shaders.emplace(name, shader);
-		m_groups[group].emplace_back(shader);
+	void add_shader(const ShaderGroup group, const ShaderEnum shader, F&& f) {
+		auto shader_example = std::make_shared<ShaderExample>(std::forward<F>(f));
+		shader_example->m_name = shader_name(shader);
+		m_shaders.emplace(shader, shader_example);
+		m_groups[group].emplace_back(shader_example);
 	}
 
-	std::unordered_map<std::string, ShaderPtr> m_shaders;
+	std::unordered_map<ShaderEnum, ShaderPtr> m_shaders;
 	std::unordered_map<ShaderGroup, std::vector<ShaderPtr>> m_groups;
-
 };
 
 struct LoopData;
@@ -139,7 +198,7 @@ struct PipelineBase {
 		bool m_active = true;
 	};
 
-	void add_shader(const GLenum type, const std::pair<std::string, ShaderPtr>& shader)
+	void add_shader(const GLenum type, const std::pair<ShaderEnum, ShaderPtr>& shader)
 	{
 		m_shaders[type] = { shader.second };
 		m_program.set_shader_glsl(type, shader.second->m_glsl_str);
@@ -154,6 +213,14 @@ struct PipelineBase {
 };
 
 std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines(const LoopData& data);
+
+struct GlobalMetrics {
+	double m_time_total = 0.0f;
+	std::size_t m_characters_count = 0;
+	std::size_t m_expressions_count = 0;
+	std::size_t m_instructions_count = 0;
+	std::size_t m_memory = 0;
+};
 
 struct LoopData {
 
@@ -218,7 +285,7 @@ struct LoopData {
 		m_isosphere.set_attributes(ps, uvs, ns);
 
 		m_pipelines = get_all_pipelines(*this);
-		m_current_pipeline = m_pipelines.find("gbuffer")->second;
+		m_current_pipeline = m_pipelines.find("csl_vaporwave")->second;
 	}
 
 	void set_mvp(const float distance, const float radius, const float near, const float far)
@@ -226,8 +293,8 @@ struct LoopData {
 		constexpr float two_pi = 2.0f * 3.141519265f;
 		const v3 at = { 0, 0, 0 };
 		const v3 up = { 0, 0, 1 };
-		const float theta = std::fmod(m_time / 12.0f, 1.0f)* two_pi;
-		m_eye = v3{ radius*std::cos(theta), radius*std::sin(theta), distance };
+		const float theta = std::fmod(m_time / 12.0f, 1.0f) * two_pi;
+		m_eye = v3{ radius * std::cos(theta), radius * std::sin(theta), distance };
 
 		const v3 z_axis = normalize(at - m_eye);
 		const v3 x_axis = normalize(cross(up, z_axis));
@@ -257,10 +324,11 @@ struct LoopData {
 	GLTexture m_tex_letters, m_previous_rendering;
 	GLFramebuffer m_framebuffer, m_fractal_noise, m_scattering_LUT;
 	GLmesh m_isosphere, m_quad, m_screen_quad, m_triangle;
+	GlobalMetrics m_global_metrics;
 	m4 m_view_transposed, m_proj;
 	v3 m_eye;
 	float m_time = 0.0f;
-	int m_w_screen, m_h_screen;
+	int m_w_screen = 0, m_h_screen = 0;
 };
 
 struct PipelineGrid final : PipelineBase {
@@ -296,10 +364,19 @@ struct PipelineNoise final : PipelineBase {
 	void draw(LoopData& data) override {
 		data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
 		data.m_fractal_noise.bind_draw();
+		m_program.set_uniform("freq_count", glUniform1i, m_frequencies_count);
+		m_program.set_uniform("uv_scaling", glUniform1f, m_uv_scaling);
 		glDisable(GL_DEPTH_TEST);
 		data.m_screen_quad.draw();
 		data.m_framebuffer.blit_from(data.m_fractal_noise);
 	}
+	void additionnal_gui() override
+	{
+		ImGui::SliderInt("frequencies count", &m_frequencies_count, 1, 8);
+		ImGui::SliderFloat("uv scaling", &m_uv_scaling, 4.0, 64.0);
+	}
+	int m_frequencies_count = 4;
+	float m_uv_scaling = 32.0f;
 };
 
 struct PipelinePhong final : PipelineBase {
@@ -343,7 +420,7 @@ struct PipelineDisplacement final : PipelineBase {
 			data.m_fractal_noise.bind_draw();
 			glDisable(GL_DEPTH_TEST);
 			data.m_screen_quad.draw();
-			data.m_fractal_noise.m_attachments[0].compute_mipmaps();
+			data.m_fractal_noise.m_attachments[0].generate_mipmap();
 		}
 
 		data.m_framebuffer.bind_draw();
@@ -395,7 +472,7 @@ struct PipelineGBuffer final : PipelineBase {
 			data.m_fractal_noise.bind_draw();
 			glDisable(GL_DEPTH_TEST);
 			data.m_screen_quad.draw();
-			data.m_fractal_noise.m_attachments[0].compute_mipmaps();
+			data.m_fractal_noise.m_attachments[0].generate_mipmap();
 		}
 
 		m_program.use();
@@ -410,7 +487,7 @@ struct PipelineGBuffer final : PipelineBase {
 		glEnable(GL_DEPTH_TEST);
 		data.m_isosphere.draw();
 
-		data.m_framebuffer.blit_from(m_gbuffer, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_mode));
+		data.m_framebuffer.blit_from(m_gbuffer, GL_LINEAR, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_mode));
 		if (m_mode == Mode::Depth) {
 			data.m_framebuffer.m_attachments[0].set_swizzle_mask(GL_RED, GL_RED, GL_RED);
 		}
@@ -441,7 +518,6 @@ struct PipelineGBuffer final : PipelineBase {
 };
 
 struct PipelineCompute final : PipelineBase {
-
 	void draw(LoopData& data) override {
 		data.m_scattering_LUT.resize(512, 512);
 		if (!m_computed) {
@@ -458,7 +534,6 @@ struct PipelineCompute final : PipelineBase {
 };
 
 struct PipelineAtmosphere final : PipelineBase {
-
 	void draw(LoopData& data) override {
 		data.m_pipelines.find("atmosphere scattering")->second->draw(data);
 
@@ -493,38 +568,48 @@ ShaderSuite get_all_suite()
 	ShaderSuite suite;
 
 	// readme examples
-	suite.add_shader(ShaderGroup::Readme, "types & operators", types_operators_example);
-	suite.add_shader(ShaderGroup::Readme, "with auto naming", auto_naming_example_with);
-	suite.add_shader(ShaderGroup::Readme, "without auto naming", auto_naming_example_without);
-	suite.add_shader(ShaderGroup::Readme, "swizzling", swizzling_example);
-	suite.add_shader(ShaderGroup::Readme, "qualifiers", qualifier_example);
-	suite.add_shader(ShaderGroup::Readme, "arrays", arrays_example);
-	suite.add_shader(ShaderGroup::Readme, "functions", functions_example);
-	suite.add_shader(ShaderGroup::Readme, "control blocks", structure_stratements_example);
-	suite.add_shader(ShaderGroup::Readme, "structs", structs_examples);
-	suite.add_shader(ShaderGroup::Readme, "interface blocks", interface_examples);
-	suite.add_shader(ShaderGroup::Readme, "structs & interfaces with commas", struct_interface_comma_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::TypeAndOperatorsExample, types_operators_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ManualNamingExample, manual_naming_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::AutoNamingExample, auto_naming_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::SwizzlingExample, swizzling_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::QualifiersExample, qualifier_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ArraysExample, arrays_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::FunctionsExample, functions_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ControlBlocksExample, control_blocks_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::StructsExample, structs_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::InterfaceBlocksExamples, interface_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::CommaAndTypenamesExample, struct_interface_comma_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ShaderStageOptionsExample, shader_stage_options);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::MetaVariation1Example, meta_variation_1);
+	suite.add_shader(ShaderGroup::Readme, ShaderEnum::MetaVariation2Example, meta_variation_2);
 
-	suite.add_shader(ShaderGroup::Test, "screen_quad_vertex_shader", screen_quad_vertex_shader);
+	suite.add_shader(ShaderGroup::Test, ShaderEnum::ScreenQuadVertex, screen_quad_vertex_shader);
 
-	suite.add_shader(ShaderGroup::Examples, "vertex_mvp", interface_vertex_shader);
-	suite.add_shader(ShaderGroup::Examples, "textured_mesh_frag", textured_mesh_frag);
+	// rendering examples 
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::InterfaceVertex, interface_vertex_shader);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TexturedMeshFrag, textured_mesh_frag);
 
-	suite.add_shader(ShaderGroup::Examples, "fractal_noise_frag", fractal_noise);
-	suite.add_shader(ShaderGroup::Examples, "multiple_outputs_frag", multiple_outputs_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::FractalNoiseFrag, fractal_noise);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::MultipleOutputsFrag, multiple_outputs_frag);
 
-	suite.add_shader(ShaderGroup::Examples, "phong_frag", phong_shading_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::PhongFrag, phong_shading_frag);
 
-	suite.add_shader(ShaderGroup::Examples, "geometric_normals", geometric_normals);
-	suite.add_shader(ShaderGroup::Examples, "single_color_frag", single_color_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::GeometricNormalsGeom, geometric_normals);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::SingleColorFrag, single_color_frag);
 
-	suite.add_shader(ShaderGroup::Examples, "tcs_example", tessellation_control_shader_example);
-	suite.add_shader(ShaderGroup::Examples, "tev_example", tessellation_evaluation_shader_example);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TessControl, tessellation_control_shader_example);
+	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TessEval, tessellation_evaluation_shader_example);
 
-	suite.add_shader(ShaderGroup::Rendu, "atmosphere scattering", scattering_lookup_table);
-	suite.add_shader(ShaderGroup::Rendu, "atmosphere rendering", atmosphere_rendering);
+	// Rendu examples
+	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereScatteringLUT, scattering_lookup_table);
+	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereRendering, atmosphere_rendering);
 
-	suite.add_shader(ShaderGroup::Shadertoy, "vaporwave CSL", shader_80);
+	// shadertoy examples
+	suite.add_shader(ShaderGroup::Shadertoy, ShaderEnum::CSLVaporwave, shader_80);
+
+	// Extra
+	suite.add_shader(ShaderGroup::Extra, ShaderEnum::DolphinUbershaderVert, dolphin_ubershader_vertex);
+	suite.add_shader(ShaderGroup::Extra, ShaderEnum::DolphinUbershaderFrag, dolphin_ubershader_fragment);
 
 	return suite;
 }
@@ -536,66 +621,66 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<Pipeline80>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("screen_quad_vertex_shader"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("vaporwave CSL"));
-		pipelines.emplace("shader 80", pipeline);
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::CSLVaporwave));
+		pipelines.emplace("csl_vaporwave", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineTexturedMesh>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("textured_mesh_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::TexturedMeshFrag));
 		pipelines.emplace("textured_mesh", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGBuffer>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("multiple_outputs_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::MultipleOutputsFrag));
 		pipelines.emplace("gbuffer", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineNoise>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("screen_quad_vertex_shader"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("fractal_noise_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::FractalNoiseFrag));
 		pipelines.emplace("noise", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelinePhong>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("phong_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
 		pipelines.emplace("phong", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_GEOMETRY_SHADER, *shaders.find("geometric_normals"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("single_color_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderEnum::GeometricNormalsGeom));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::SingleColorFrag));
 		pipelines.emplace("vertex_normal", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineDisplacement>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("vertex_mvp"));
-		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find("tcs_example"));
-		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find("tev_example"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("phong_frag"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
+		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
 		pipelines.emplace("displacement", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineCompute>());
-		pipeline->add_shader(GL_COMPUTE_SHADER, *shaders.find("atmosphere scattering"));
+		pipeline->add_shader(GL_COMPUTE_SHADER, *shaders.find(ShaderEnum::AtmosphereScatteringLUT));
 		pipelines.emplace("atmosphere scattering", pipeline);
 	}
 
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineAtmosphere>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find("screen_quad_vertex_shader"));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find("atmosphere rendering"));
+		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::AtmosphereRendering));
 		pipelines.emplace("atmosphere", pipeline);
 	}
 
@@ -612,20 +697,18 @@ void shader_code_gui(const std::string& code)
 }
 
 enum class Mode : std::size_t {
-	Debug = 2, ImGui = 1, GLSL = 0, Metrics = 3
+	ImGui = 1,
+	GLSL = 0,
+	Metrics = 3,
+	GlobalMetrics = 4
 };
 
 template<typename ModeIterator>
-void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float vertical_size)
+void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float vertical_size, const LoopData& data)
 {
 	ImGui::BeginChild(("text" + shader.m_name).c_str(), ImVec2(0, vertical_size));
 	switch (mode.first)
 	{
-	case Mode::Debug:
-	{
-		shader_code_gui(shader.m_debug_str);
-		break;
-	}
 	case Mode::ImGui:
 	{
 		v2::ImGuiData data;
@@ -643,10 +726,23 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 		s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
 		const auto& mem = shader.m_controller.m_memory_pool;
 		const auto& ins = shader.m_controller.m_instruction_pool;
-		s << "\t Expressions, count : " << mem.m_objects_ids.size() << ", total size : " << mem.m_buffer.size() << "\n";
-		s << "\t Instructions, count : " << ins.m_objects_ids.size() << ", total size : " << ins.m_buffer.size() << "\n";
-		s << "Debug generation : " << shader.m_debug_timing << " ms\n";
+		s << "\t Shader size : " << shader.m_glsl_str.size() << " characters\n";
+		s << "\t Expressions, count : " << mem.m_objects_ids.size() << ", total size : " << mem.get_data_size() << "\n";
+		s << "\t Instructions, count : " << ins.m_objects_ids.size() << ", total size : " << ins.get_data_size() << "\n";
 		s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
+		ImGui::TextWrapped(s.str().c_str());
+		break;
+	}
+	case Mode::GlobalMetrics:
+	{
+		const auto& metrics = data.m_global_metrics;
+		std::stringstream s;
+		s << "Shader suite statistics \n";
+		s << "\t Total generation time " << metrics.m_time_total << " ms\n";
+		s << "\t Total characters count : " << metrics.m_characters_count << " chars\n";
+		s << "\t Memory consumption " << metrics.m_memory << " bytes\n";
+		s << "\t Total expressions count " << metrics.m_expressions_count << "\n";
+		s << "\t Total instructions count " << metrics.m_instructions_count << "\n";
 		ImGui::TextWrapped(s.str().c_str());
 		break;
 	}
@@ -661,8 +757,8 @@ void main_loop(LoopData& data)
 	static const std::unordered_map<Mode, std::string> mode_strs = {
 		{ Mode::GLSL, "GLSL"},
 		{ Mode::ImGui, "ImGui"},
-		{ Mode::Debug, "Debug"},
-		{ Mode::Metrics, "Metrics"}
+		{ Mode::Metrics, "Metrics"},
+		{ Mode::GlobalMetrics, "Global metrics"}
 	};
 
 	static const std::unordered_map<ShaderGroup, std::string> shader_group_strs = {
@@ -671,6 +767,7 @@ void main_loop(LoopData& data)
 		{ ShaderGroup::Examples, "Demos"},
 		{ ShaderGroup::Shadertoy, "Shadertoy"},
 		{ ShaderGroup::Rendu, "Rendu"},
+		{ ShaderGroup::Extra, "Extra"},
 	};
 
 	static const std::unordered_map<GLenum, std::string> shader_type_strs = {
@@ -784,11 +881,14 @@ void main_loop(LoopData& data)
 									if (count) {
 										ImGui::Separator();
 									}
-									shader_gui(mode, *shader.second.m_shader, shader_code_height);
+									shader_gui(mode, *shader.second.m_shader, shader_code_height, data);
+									if (mode.first == Mode::GlobalMetrics) {
+										break;
+									}
 									++count;
 								}
 							} else if (current_shader) {
-								shader_gui(mode, *current_shader, shader_code_height);
+								shader_gui(mode, *current_shader, shader_code_height, data);
 							}
 							ImGui::EndTabItem();
 						}
@@ -827,220 +927,40 @@ void main_loop(LoopData& data)
 	}
 }
 
-
-void test_polymorphic_vector()
-{
-	struct Base {
-		virtual void f() = 0;
-		virtual ~Base() { std::cout << "Dbase" << std::endl; }
-	};
-
-	struct DerivedA final : Base {
-		~DerivedA() { std::cout << "DA" << std::endl; }
-		void f() override { std::cout << "A" << std::endl; }
-	};
-
-	struct E {
-		E() { std::cout << "E" << std::endl; }
-		~E() { std::cout << "DE" << std::endl; }
-	};
-
-	struct DerivedB : Base, E {
-		DerivedB(int j) : i(j) {}
-		virtual ~DerivedB() { std::cout << "DB" << std::endl; }
-		void f() override { std::cout << "B " << i << std::endl; }
-		int i = 0;
-	};
-
-	struct DerivedC final : DerivedB {
-		DerivedC(int j, float h) : DerivedB(j), g(h) {}
-		~DerivedC() { std::cout << "DC" << std::endl; }
-		void f() override { std::cout << "C " << i << " " << g << std::endl; }
-		float g = 1.0f;
-	};
-
-	{
-		v2::PolymorphicVector<Base, sizeof(DerivedC), alignof(DerivedC)> vec;
-
-		vec.emplace_back<DerivedB>(12);
-		vec.emplace_back<DerivedA>();
-		vec.emplace_back<DerivedC>(13, 3.2f);
-
-		for (std::size_t i = 0; i < vec.size(); ++i) {
-			vec[i].f();
-		}
-	}
-
-	{
-
-		constexpr std::size_t BandSize = 16;
-		v2::PolymorphicMemoryManager<Base, BandSize, sizeof(DerivedC), alignof(DerivedC)> memory;
-
-		std::cout << std::endl;
-
-		auto id1 = memory.emplace_back<DerivedB>(12);
-		auto id2 = memory.emplace_back<DerivedA>();
-		auto id3 = memory.emplace_back<DerivedC>(13, 3.2f);
-
-		std::cout << std::endl;
-
-		std::cout << sizeof(DerivedA) << std::endl;
-		std::cout << sizeof(DerivedB) << std::endl;
-		std::cout << sizeof(DerivedC) << std::endl;
-
-		std::cout << std::endl;
-
-		for (std::size_t i = 0; i < memory.m_buffers.size(); ++i) {
-			std::cout << memory.m_buffers[i].size() / ((i + 1) * BandSize) << std::endl;
-		}
-
-		std::cout << std::endl;
-
-		memory[id1].f();
-		memory[id2].f();
-		memory[id3].f();
-
-		std::cout << std::endl;
-	}
-
-
-}
-
 int main()
 {
-	//CSL2_UNNANMED_INTERFACE((In,Out,Layout<0,1>), Plopi, (Plop,p) , (Plop,q) )
-
-	//for profiling
-	//for (int i = 0; i < 100000; ++i) {
-	//	//get_all_suite();
-	//	test_80();
-	//}
-	//return 0;
-
-	//test_polymorphic_vector();
-	//return 0;
-
-	//test_old();
-
 	LoopData data;
 	data.m_shader_suite = get_all_suite();
 
+	for (const auto& shader : data.m_shader_suite.m_shaders) {
+		const ShaderExample& s = *shader.second;
+		data.m_global_metrics.m_time_total += s.m_glsl_timing + s.m_generation_timing;
+		data.m_global_metrics.m_expressions_count += s.m_controller.m_memory_pool.m_objects_ids.size();
+		data.m_global_metrics.m_characters_count += s.m_glsl_str.size();
+		data.m_global_metrics.m_instructions_count += s.m_controller.m_instruction_pool.m_objects_ids.size();
+		data.m_global_metrics.m_memory += s.m_controller.m_memory_pool.get_data_size() + s.m_controller.m_instruction_pool.get_data_size();
+	}
+
 	// copy previous frame as texture
-	auto before_clear = [&] {
+	auto before_clear_func = [&] {
 		data.m_previous_rendering.resize(data.m_w_screen, data.m_h_screen);
 
-		auto tmp = GLptr(
-			[](GLuint* ptr) { glGenFramebuffers(1, ptr); },
-			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
-		);
-		glBindFramebuffer(GL_FRAMEBUFFER, tmp);
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, data.m_previous_rendering.m_gl, 0);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		GLFramebuffer fb_tmp;
+		fb_tmp.init_gl();
+		fb_tmp.add_attachment(data.m_previous_rendering, GL_DRAW_FRAMEBUFFER);
+		fb_tmp.blit_inversed_from(GLFramebuffer::get_default(data.m_w_screen, data.m_h_screen), GL_LINEAR);
 
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0, 0, data.m_w_screen, data.m_h_screen, 0, data.m_h_screen, data.m_w_screen, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-		data.m_previous_rendering.bind();
-		glGenerateMipmap(GL_TEXTURE_2D);
+		data.m_previous_rendering.generate_mipmap();
 	};
 
-	create_context_and_run(before_clear, [&](GLFWwindow* window) {
+	create_context_and_run(
+		before_clear_func,
+		[&](GLFWwindow* window) {
 		glfwGetFramebufferSize(window, &data.m_w_screen, &data.m_h_screen);
 		main_loop(data);
 	});
 
-	//test_accessor();
 	testsCompliance();
-	//testArgCleaning();
-	//testStructsMacros();
-	//testArgsOrder();
-	//testInArgs();
-
-	auto start = std::chrono::steady_clock::now();
-
-	// readme examples
-	//std::string operators_str = operators_example();
-	//std::string arrays_str = arrays_example();
-	//std::string swizzling_str = swizzling_example();
-	//std::string auto_naming_str = auto_naming_example();
-	//std::string qualifier_str = qualifier_example();
-	//std::string functions_str = functions_example();
-	//std::string structure_str = structure_stratements_example();
-	//std::string structs_str = structs_examples();
-	//std::string interface_str = interface_examples();
-	//std::string struct_interface_comma_str = struct_interface_comma_examples();
-	//std::string shader_stage_str = shader_stage_options();
-	//std::string variations_str = meta_variations();
-
-	// Rendu
-	std::string blur_str = blurShader();
-	std::string ambiant_str = ambiantShader();
-	std::string ssao_str = ssaoShader();
-
-	// Shading Language Cookbook
-	std::string discard_str = discardFrag();
-	std::string transfeedBack_str = transfeedBackVertex();
-
-	// Shadertoy example
-	std::string eightiesShader_str = eightiesShader();
-
-	// Dolphin ubershaders
-	std::string dolphin_vertex_str = dolphinVertex();
-
-	auto dolphin_frag_start = std::chrono::steady_clock::now();
-	std::string dolphin_frag_str = dolphinFragment();
-	auto dolphin_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dolphin_frag_start);
-
-	//basic shaders
-	//auto phong_frag_start = std::chrono::steady_clock::now();
-	//std::string phongShading_str = phongShading();
-	//auto phong_frag_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - phong_frag_start);
-
-	//std::string per_tri_normal_str = per_triangle_normal_geom();
-	//std::string tesselation_control_str = tesselation_control_example();
-	//std::string tesselation_evaluation_str = tesselation_evaluation_example();
-	//std::string tesselation_interfaces_str = tesselation_interfaces();
-
-	//only measuring generation, not display
-	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
-
-	//display
-
-	auto seperator = [] {
-		std::cout << std::string(75, '/') << "\n\n";
-	};
-
-	//for (std::string str :
-	//{ operators_str, arrays_str, swizzling_str, auto_naming_str, qualifier_str,
-	//	functions_str, structure_str, structs_str, interface_str,
-	//	struct_interface_comma_str, shader_stage_str, variations_str
-	//})
-	//{
-	//	std::cout << str;
-	//	seperator();
-	//}
-
-	//for (std::string str :
-	//{ blur_str, ambiant_str, ssao_str, discard_str,
-	//	transfeedBack_str, eightiesShader_str, phongShading_str, per_tri_normal_str,
-	//	tesselation_control_str, tesselation_evaluation_str, tesselation_interfaces_str,
-	//	dolphin_vertex_str, dolphin_frag_str
-	//})
-	//{
-	//	std::cout << str;
-	//	seperator();
-	//}
-
-	//std::cout << "all shaders total generation elapsed time : " << duration.count() / 1000.0 << " ms" << std::endl;
-	//std::cout << "phong fragment shader generation elapsed time : " << phong_frag_duration.count() / 1000.0 << " ms" << std::endl;
-	//std::cout << "dolphin fragment shader generation elapsed time : " << dolphin_frag_duration.count() / 1000.0 << " ms" << std::endl;
-
-
-	// for profiling
-	//for (std::size_t i = 0; i < 100; ++i) {
-	//	dolphinVertex();
-	//	dolphinFragment();
-	//}
 
 	return 0;
 }

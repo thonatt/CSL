@@ -85,7 +85,6 @@ public:
 		return m_id ? *m_id : 0;
 	}
 
-protected:
 	std::shared_ptr<GLuint> m_id;
 };
 
@@ -243,7 +242,7 @@ struct GLTexture
 
 			if (data) {
 				glTexSubImage2D(m_target, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
-				compute_mipmaps();
+				generate_mipmap();
 			}
 		}
 
@@ -254,7 +253,7 @@ struct GLTexture
 		glTexParameteri(m_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
-	void compute_mipmaps() {
+	void generate_mipmap() {
 		bind();
 		glGenerateMipmap(m_target);
 	}
@@ -289,7 +288,7 @@ struct GLFramebuffer
 
 	void init_gl()
 	{
-		m_id = GLptr(
+		m_gl = GLptr(
 			[](GLuint* ptr) { glGenFramebuffers(1, ptr); },
 			[](const GLuint* ptr) { glDeleteFramebuffers(1, ptr); }
 		);
@@ -297,7 +296,7 @@ struct GLFramebuffer
 
 	void init_depth()
 	{
-		assert(m_id);
+		assert(m_gl);
 
 		m_depth_id = GLptr(
 			[](GLuint* ptr) { glGenRenderbuffers(1, ptr); },
@@ -323,7 +322,7 @@ struct GLFramebuffer
 
 	void bind(const GLenum target = GL_FRAMEBUFFER) const
 	{
-		glBindFramebuffer(target, m_id);
+		glBindFramebuffer(target, m_gl);
 	}
 
 	void bind_read(const GLenum attachment) const {
@@ -341,14 +340,20 @@ struct GLFramebuffer
 	}
 
 	void bind_draw(const GLenum attachment) {
-		bind();
+		bind(GL_DRAW_FRAMEBUFFER);
 		glDrawBuffers(1, &attachment);
 	}
 
-	void blit_from(const GLFramebuffer& from, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
+	void blit_from(const GLFramebuffer& from, const GLenum filter = GL_NEAREST, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
 		bind_draw(attachment_to);
 		from.bind_read(attachment_from);
-		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, filter);
+	}
+
+	void blit_inversed_from(const GLFramebuffer& from, const GLenum filter = GL_NEAREST, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
+		bind_draw(attachment_to);
+		from.bind_read(attachment_from);
+		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, m_h, m_w, 0, GL_COLOR_BUFFER_BIT, filter);
 	}
 
 	void resize(const int w, const int h, const GLsizei sample_count = 1)
@@ -371,11 +376,15 @@ struct GLFramebuffer
 		gl_framebuffer_check(GL_FRAMEBUFFER);
 	}
 
-	void add_attachment(const GLTexture& texture)
+	void add_attachment(const GLTexture& texture, const GLenum target = GL_FRAMEBUFFER)
 	{
-		bind();
 		assert(texture.m_sample_count == m_sample_count);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_attachments.size()), texture.m_target, texture.m_gl, 0);
+		if (m_attachments.empty() && (m_w == 0 || m_h == 0)) {
+			m_w = texture.m_w;
+			m_h = texture.m_h;
+		}
+		bind(target);
+		glFramebufferTexture2D(target, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_attachments.size()), texture.m_target, texture.m_gl, 0);
 		m_attachments.push_back(texture);
 	}
 
@@ -398,8 +407,17 @@ struct GLFramebuffer
 		((create_attachment(formats)), ...);
 	}
 
+	static GLFramebuffer& get_default(const int w, const int h)
+	{
+		static GLFramebuffer default_framebuffer;
+		default_framebuffer.m_gl.m_id = std::make_shared<GLuint>(0u);
+		default_framebuffer.m_w = w;
+		default_framebuffer.m_h = h;
+		return default_framebuffer;
+	}
+
 	std::vector<GLTexture> m_attachments;
-	GLptr m_id, m_depth_id;
+	GLptr m_gl, m_depth_id;
 	GLsizei m_sample_count = 1;
 	int m_w = 0, m_h = 0;
 };
@@ -508,7 +526,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
-	const int w = 1600, h = 1000;
+	const int w = mode->width, h = mode->height;
 	auto window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(w, h, "csl shader suite demo", NULL, NULL), glfwDestroyWindow);
 
 	if (!window) {

@@ -28,7 +28,7 @@ namespace v2 {
 
 
 	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	class Matrix : public NamedObject<Matrix<T,R,C,Qs...>> {
+	class Matrix : public NamedObject<Matrix<T, R, C, Qs...>> {
 	public:
 
 		//using Qualifiers = TList<Qs...>;
@@ -46,6 +46,7 @@ namespace v2 {
 		static constexpr std::size_t ColCount = C;
 		static constexpr bool IsScalar = (R == 1 && C == 1);
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
+		static constexpr bool IsVec = (C == 1);
 
 		static constexpr bool IsArray = false;
 		using ArrayDimensions = SizeList<>;
@@ -105,22 +106,22 @@ namespace v2 {
 
 		// swizzling
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) & {
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle)& {
 			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) && {
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle)&& {
 			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const & {
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const& {
 			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const && {
+		std::conditional_t<Swizzle::Unique, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const&& {
 			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_temp()) };
 		}
 
@@ -133,12 +134,12 @@ namespace v2 {
 
 		// unaries
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
-		QualifierFree operator-() const & {
+		QualifierFree operator-() const& {
 			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<bool b = !IsBool, typename = std::enable_if_t<b>>
-		QualifierFree operator-() const && {
+		QualifierFree operator-() const&& {
 			return { make_expr<UnaryOperator>(Op::UnarySub, NamedObjectBase::get_expr_as_temp()) };
 		}
 
@@ -183,10 +184,20 @@ namespace v2 {
 			(void)QualifierFree(make_expr<BinaryOperator>(Op::DivAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
 		}
 
+		template<typename A, typename = std::enable_if_t< IsVec && IsInteger<Matrix> && SameScalarType<Matrix, A> && (Infos<A>::IsScalar || SameSize<Matrix, A>) >  >
+			void operator&=(A&& a)& {
+			(void)QualifierFree(make_expr<BinaryOperator>(Op::BitwiseAndAssignment, NamedObjectBase::get_expr_as_ref(), EXPR(A, a)));
+		}
+
+		template<typename A, typename = std::enable_if_t< IsVec && IsInteger<Matrix> && SameScalarType<Matrix, A> && (Infos<A>::IsScalar || SameSize<Matrix, A>) >  >
+			void operator&=(A&& a)&& {
+				(void)QualifierFree(make_expr<BinaryOperator>(Op::BitwiseAndAssignment, NamedObjectBase::get_expr_as_temp(), EXPR(A, a)));
+		}
+
 		// ++
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()& {
-			return { make_expr<UnaryOperator>(Op::PrefixIncrement, NamedObjectBase::get_expr_as_ref())  };
+			return { make_expr<UnaryOperator>(Op::PrefixIncrement, NamedObjectBase::get_expr_as_ref()) };
 		}
 		template<bool b = !IsBool, typename = std::enable_if_t<b> >
 		Matrix operator++()&& {
@@ -264,20 +275,39 @@ namespace v2 {
 	}
 
 	// operator <
-	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A,B> >>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
 	Scalar<bool> operator<(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::ScalarLessThanScalar, EXPR(A,a), EXPR(B,b)) };
 	}
 
+	// operator >
 	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar >>
 	Scalar<bool> operator>(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::ScalarGreaterThanScalar, EXPR(A,a), EXPR(B,b)) };
 	}
 
+	// operator <= 
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
+	Scalar<bool> operator<=(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::ScalarLessThanEqualScalar, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	// operator <= 
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
+	Scalar<bool> operator>=(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::ScalarGreaterThanEqualScalar, EXPR(A,a), EXPR(B,b)) };
+	}
+
 	//operator ||
-	template<typename A, typename B, typename = std::enable_if_t< SameMat<A,bool> && SameMat<A, B>>>
+	template<typename A, typename B, typename = std::enable_if_t< SameMat<A, bool> && SameMat<A, B>>>
 	Scalar<bool> operator||(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::LogicalOr, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	//operator &
+	template<typename A, typename B, typename = std::enable_if_t< IsInteger<A> && IsInteger<B> && (Infos<A>::IsScalar || Infos<B>::IsScalar || SameSize<A, B>)>>
+	typename AlgebraInfos<A, B>::ReturnType operator&(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::BitwiseAnd, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//operator &&
@@ -287,7 +317,7 @@ namespace v2 {
 	}
 
 	//operator ==
-	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar  && SameMat<A, B> >>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
 	Scalar<bool> operator==(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::Equality, EXPR(A,a), EXPR(B,b)) };
 	}
@@ -296,6 +326,25 @@ namespace v2 {
 	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsScalar && SameMat<A, B> >>
 	Scalar<bool> operator!=(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::NotEquality, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	// operator |
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec && Infos<A>::IsInteger && SameMat<A, B> >>
+	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator|(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::BitwiseOr, EXPR(A,a), EXPR(B,b)) };
+
+	}
+
+	// operator <<
+	template<typename A, typename B, typename = std::enable_if_t<Infos<A>::IsVec && Infos<A>::IsInteger && SameScalarType<A, B> && (SameSize<A, B> || Infos<B>::IsScalar) >>
+	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator<<(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::BitwiseLeftShift, EXPR(A,a), EXPR(B,b)) };
+	}
+
+	// operator >>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec && Infos<A>::IsInteger && SameScalarType<A,B> && ( SameSize<A, B> || Infos<B>::IsScalar )>>
+	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator>>(A&& a, B&& b) {
+		return { make_expr<BinaryOperator>(Op::BitwiseRightShift, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>

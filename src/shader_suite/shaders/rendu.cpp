@@ -4,6 +4,11 @@
 #include <v2/glsl/BuiltIns.hpp>
 #include "v2/glsl/ToGLSL.hpp"
 
+/**
+ Shaders from the Rendu graphics engine, by Simon Rodriguez.
+ https://github.com/kosua20/Rendu
+ */
+
 v2::glsl::compute_430::Shader scattering_lookup_table()
 {
 	using namespace v2::glsl::compute_430;

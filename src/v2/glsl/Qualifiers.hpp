@@ -42,6 +42,10 @@ namespace v2
 			struct Max_vertices {};
 		}
 
+		namespace frag_common {
+			struct Early_fragment_tests {};
+		}
+
 		namespace compute_common {
 			template<std::size_t N>
 			struct Local_size_x {};

@@ -72,7 +72,7 @@ namespace v2 {
 	struct ControllerGLSL<Delayed, ShaderController> {
 		static void call(const ShaderController& controller, GLSLData& data) {
 
-			if (!controller.m_structs.empty() || !controller.m_named_interface_blocks.empty() || controller.m_unnamed_interface_blocks.empty()) {
+			if (!controller.m_structs.empty() || !controller.m_named_interface_blocks.empty() || !controller.m_unnamed_interface_blocks.empty() || !controller.m_declarations->m_instructions.empty()) {
 				data.endl();
 			}
 			for (const auto s : controller.m_structs) {
@@ -94,6 +94,7 @@ namespace v2 {
 				retrieve_instruction(i)->print_glsl(data);
 			}
 
+			data.endl();
 			for (const auto f : controller.m_functions) {
 				retrieve_instruction(f)->print_glsl(data);
 			}
@@ -107,7 +108,7 @@ namespace v2 {
 		std::string m_str;
 	};
 
-#define MAKE_OP_IT(r, data, i, elem) {  Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
+#define MAKE_OP_IT(r, data, i, elem) { Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
 
 	inline const std::unordered_map<Op, OpInfos>& glsl_op_infos() {
 		static const std::unordered_map<Op, OpInfos> op_infos = {
@@ -131,10 +132,17 @@ namespace v2 {
 			{ Op::SubAssignment, { Precedence::Assignment, " -= "} },
 			{ Op::MulAssignment, { Precedence::Assignment, " *= "} },
 			{ Op::DivAssignment, { Precedence::Assignment, " /= "} },
+			{ Op::BitwiseAndAssignment, { Precedence::Assignment, " &= "} },
 			{ Op::ScalarLessThanScalar, { Precedence::Relational, " < "} },
 			{ Op::ScalarGreaterThanScalar, { Precedence::Relational, " > "} },
+			{ Op::ScalarLessThanEqualScalar, { Precedence::Relational, " <= "} },
+			{ Op::ScalarGreaterThanEqualScalar, { Precedence::Relational, " >= "} },
 			{ Op::LogicalOr, { Precedence::LogicalOr, " || "} },
 			{ Op::LogicalAnd, { Precedence::LogicalAnd, " && "} },
+			{ Op::BitwiseAnd, { Precedence::BitwiseAnd, " & "} },
+			{ Op::BitwiseOr, { Precedence::BitwiseOr, " | "} },
+			{ Op::BitwiseLeftShift, { Precedence::BitwiseShift, " << "} },
+			{ Op::BitwiseRightShift, { Precedence::BitwiseShift, " >> "} },
 			{ Op::PostfixIncrement, { Precedence::Postfix, "++"} },
 			{ Op::PrefixIncrement, { Precedence::Prefix, "++"} },
 			{ Op::PostfixDecrement, { Precedence::Postfix, "--"} },
@@ -161,7 +169,8 @@ namespace v2 {
 			acos,
 			asin,
 			radians,
-			degrees,
+			degrees)
+			CSL_PP2_ITERATE(MAKE_OP_IT,
 			greaterThan,
 			lessThan,
 			greaterThanEqual,
@@ -184,7 +193,10 @@ namespace v2 {
 			inverse,
 			transpose,
 			imageSize,
-			imageStore)
+			imageStore,
+			round,
+			bitfieldExtract,
+			sign)
 		};
 
 		return op_infos;
@@ -205,7 +217,7 @@ namespace v2 {
 	inline Precedence glsl_op_precedence(const Op op) {
 		const auto it = glsl_op_infos().find(op);
 		if (it == glsl_op_infos().end()) {
-			return Precedence::Alias;
+			return Precedence::NoExtraParenthesis;
 		} else {
 			return it->second.m_precendence;
 		}
@@ -251,20 +263,24 @@ namespace v2 {
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_x>::get() { return "local_size_x"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_y>::get() { return "local_size_y"; }
 
-#define CSL_QUALIFIER_STR_IT(name, str) \
-	template<> inline std::string GLSLQualifier<name>::get() { return CSL_PP2_STR(str); }
+#define CSL_QUALIFIER_STR_IT(r, data, i, elem) \
+	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP2_STR(CSL_PP_SECOND(elem)); }
 
-	CSL_QUALIFIER_STR_IT(glsl::Uniform, uniform);
-	CSL_QUALIFIER_STR_IT(glsl::In, in);
-	CSL_QUALIFIER_STR_IT(glsl::Out, out);
-	CSL_QUALIFIER_STR_IT(glsl::Inout, inout);
-	CSL_QUALIFIER_STR_IT(glsl::Triangles, triangles);
-	CSL_QUALIFIER_STR_IT(glsl::Equal_spacing, equal_spacing);
-	CSL_QUALIFIER_STR_IT(glsl::Ccw, ccw);
-	CSL_QUALIFIER_STR_IT(glsl::Std140, std140);
-	CSL_QUALIFIER_STR_IT(glsl::Rgba32f, rgba32f);
-	CSL_QUALIFIER_STR_IT(glsl::tcs_common::Patch, patch);
-	CSL_QUALIFIER_STR_IT(glsl::geom_common::Line_strip, line_strip);
+	CSL_PP2_ITERATE(CSL_QUALIFIER_STR_IT,
+		(glsl::Uniform, uniform),
+		(glsl::In, in),
+		(glsl::Out, out),
+		(glsl::Inout, inout),
+		(glsl::Triangles, triangles),
+		(glsl::Equal_spacing, equal_spacing),
+		(glsl::frag_common::Early_fragment_tests, early_fragment_tests),
+		(glsl::Ccw, ccw),
+		(glsl::Std140, std140),
+		(glsl::Rgba32f, rgba32f),
+		(glsl::tcs_common::Patch, patch),
+		(glsl::geom_common::Line_strip, line_strip)
+	);
+
 
 	template<typename Q, typename ...Qs>
 	struct GLSLQualifier<TList<Q, Qs...>> {
@@ -300,7 +316,7 @@ namespace v2 {
 
 	template<> inline std::string TypePrefixStr<bool>::get() { return "b"; }
 	template<> inline std::string TypePrefixStr<int>::get() { return "i"; }
-	template<> inline std::string TypePrefixStr<unsigned char>::get() { return "u"; }
+	template<> inline std::string TypePrefixStr<unsigned int>::get() { return "u"; }
 	template<> inline std::string TypePrefixStr<float>::get() { return ""; }
 	template<> inline std::string TypePrefixStr<double>::get() { return "d"; }
 
@@ -312,7 +328,7 @@ namespace v2 {
 	template<> inline std::string GLSLTypeStr<void>::get() { return "void"; }
 	template<> inline std::string GLSLTypeStr<bool>::get() { return "bool"; }
 	template<> inline std::string GLSLTypeStr<int>::get() { return "int"; }
-	template<> inline std::string GLSLTypeStr<unsigned char>::get() { return "uint"; }
+	template<> inline std::string GLSLTypeStr<unsigned int>::get() { return "uint"; }
 	template<> inline std::string GLSLTypeStr<float>::get() { return "float"; }
 	template<> inline std::string GLSLTypeStr<double>::get() { return "double"; }
 
@@ -475,9 +491,9 @@ namespace v2 {
 
 		enum class Status { InitExpr, Condition, LoopExpr };
 
-		static void call(const ForInstruction& i, GLSLData& data) {
-			data.endl().trail() << "for(";
-
+		static void header(const ForInstruction& i, GLSLData& data)
+		{
+			data << "for(";
 			Status status = Status::InitExpr;
 			for (const auto j : i.args->m_instructions) {
 				const InstructionBase* arg_instruction = retrieve_instruction(j);
@@ -503,8 +519,13 @@ namespace v2 {
 			} else if (status == Status::Condition) {
 				data << ";";
 			}
+			data << ")";
+		}
 
-			data << ") {";
+		static void call(const ForInstruction& i, GLSLData& data) {
+			data.endl().trail();
+			header(i, data);
+			data << " {";
 			++data.trailing;
 			for (const auto j : i.body->m_instructions) {
 				retrieve_instruction(j)->print_glsl(data);
@@ -531,13 +552,13 @@ namespace v2 {
 					return;
 				}
 				if (ctor->m_flags && CtorFlags::FunctionArgument) {
-					retrieve_expr(i.m_expr)->print_glsl(data, Precedence::Alias);
+					retrieve_expr(i.m_expr)->print_glsl(data, Precedence::NoExtraParenthesis);
 					return;
 				}
 			}
 
 			data.endl().trail();
-			retrieve_expr(i.m_expr)->print_glsl(data, Precedence::Alias);
+			retrieve_expr(i.m_expr)->print_glsl(data, Precedence::NoExtraParenthesis);
 			data << ";";
 		}
 	};
@@ -566,7 +587,7 @@ namespace v2 {
 	struct InstructionGLSL<SwitchInstruction> {
 		static void call(const SwitchInstruction& i, GLSLData& data) {
 			data.endl().trail() << "switch(";
-			retrieve_expr(i.m_condition)->print_glsl(data, Precedence::Alias);
+			retrieve_expr(i.m_condition)->print_glsl(data, Precedence::NoExtraParenthesis);
 			data << ") {";
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions) {
@@ -583,7 +604,7 @@ namespace v2 {
 			data.endl().trail();
 			if (i.m_label) {
 				data << "case ";
-				retrieve_expr(i.m_label)->print_glsl(data, Precedence::Alias);
+				retrieve_expr(i.m_label)->print_glsl(data, Precedence::NoExtraParenthesis);
 			} else {
 				data << "default";
 			}
@@ -646,10 +667,11 @@ namespace v2 {
 
 	template<std::size_t NumOverloads>
 	struct OverloadGLSL {
+		
 		template<typename T, std::size_t Id>
 		struct Get {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
-				data.endl().endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
+				data.endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
 				const auto& args = overloads[Id].args->m_instructions;
 				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
 					if (!args.empty()) {
@@ -677,6 +699,7 @@ namespace v2 {
 				}
 				--data.trailing;
 				data.endl().trail() << "}";
+				data.endl();
 			}
 		};
 
@@ -873,12 +896,12 @@ namespace v2 {
 		static void call(const ArraySubscript& subscript, GLSLData& data, const Precedence precedence) {
 			auto obj = retrieve_expr(subscript.m_obj);
 			if (obj) {
-				obj->print_glsl(data, Precedence::ArraySubscript);
+				obj->print_glsl(data, precedence);
 			} else {
 				data << "null parent";
 			}
 			data << "[";
-			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::ArraySubscript);
+			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::NoExtraParenthesis);
 			data << "]";
 		}
 	};
@@ -908,11 +931,11 @@ namespace v2 {
 			} else {
 				if (static_cast<float>(static_cast<int>(litteral.value)) == litteral.value) {
 					data << static_cast<int>(litteral.value) << ".0";
-				} else if (static_cast<float>(static_cast<int>(10.0*litteral.value)) == 10.0 * litteral.value) {
+				} else if (static_cast<float>(static_cast<int>(10.0 * litteral.value)) == 10.0 * litteral.value) {
 					if (litteral.value < 0) {
 						data << "-";
 					}
-					data << static_cast<int>(std::abs(litteral.value)) << "." << std::abs(static_cast<int>(10.0 * litteral.value) - 10 * static_cast<int>(litteral.value))	;
+					data << static_cast<int>(std::abs(litteral.value)) << "." << std::abs(static_cast<int>(10.0 * litteral.value) - 10 * static_cast<int>(litteral.value));
 				} else {
 					data << std::scientific << litteral.value;
 				}
