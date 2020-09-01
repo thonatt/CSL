@@ -22,7 +22,7 @@
 #define GL_ENUM_STR(name) { name, #name }
 inline void gl_check()
 {
-	static const std::map<GLenum, std::string> errors = {
+	static const std::unordered_map<GLenum, std::string> errors = {
 		GL_ENUM_STR(GL_INVALID_ENUM),
 		GL_ENUM_STR(GL_INVALID_VALUE),
 		GL_ENUM_STR(GL_INVALID_OPERATION),
@@ -46,7 +46,7 @@ inline void gl_check()
 
 inline void gl_framebuffer_check(GLenum target)
 {
-	static const std::map<GLenum, std::string> errors = {
+	static const std::unordered_map<GLenum, std::string> errors = {
 		GL_ENUM_STR(GL_FRAMEBUFFER_UNDEFINED),
 		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT),
 		GL_ENUM_STR(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
@@ -521,10 +521,13 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	if (!mode) {
 		return;
 	}
+
+	const float desired_fps = 60.0;
+
 	glfwWindowHint(GLFW_RED_BITS, mode->redBits);
 	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
 	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+	glfwWindowHint(GLFW_REFRESH_RATE, static_cast<int>(std::round(mode->refreshRate / desired_fps)));
 
 	const int w = mode->width, h = mode->height;
 	auto window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(w, h, "csl shader suite demo", NULL, NULL), glfwDestroyWindow);
@@ -534,10 +537,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	}
 
 	glfwMakeContextCurrent(window.get());
-	const int desired_fps = 60;
-	const int interval = mode->refreshRate / desired_fps;
-	glfwSwapInterval(interval);
-
+	
 	glfwSetMouseButtonCallback(window.get(), ImGui_ImplGlfw_MouseButtonCallback);
 	glfwSetKeyCallback(window.get(), ImGui_ImplGlfw_KeyCallback);
 	glfwSetCharCallback(window.get(), ImGui_ImplGlfw_CharCallback);

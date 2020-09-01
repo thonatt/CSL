@@ -5,6 +5,7 @@
 #include "Types.hpp"
 #include "BuiltIns.hpp"
 #include "Qualifiers.hpp"
+#include "../Structs.hpp"
 
 namespace v2 {
 
@@ -43,18 +44,14 @@ namespace v2 {
 			~ShaderGLSL();
 
 			template<typename Data>
-			void print_debug(Data& data) {
-				ShaderController::template print_debug<v2::Dummy>(data);
-			}
-
-			template<typename Data>
 			void print_imgui(Data& data) {
+				BuiltInRegisters<type, version>::template call(data.glsl_data);
 				ShaderController::template print_imgui<v2::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_glsl(Data& data) {
-				BuiltInRegisters<type, version>::call(data);
+				BuiltInRegisters<type, version>::template call(data);
 				data << get_header();
 				ShaderController::template print_glsl<v2::Dummy>(data);
 			}

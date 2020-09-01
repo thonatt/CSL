@@ -10,13 +10,13 @@ matrix:
     - os: linux
       dist: focal
       compiler: gcc
-      env:
+      env: 
         - CMAKE_OPTS = ""
     - os: linux
       dist: focal
       compiler: clang
       env:
-        - CMAKE_OPTS = ""
+        - STDFLAGS="-std=c++17"
     - os: windows
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"

@@ -10,13 +10,6 @@
 namespace v2 {
 
 	template<typename Delayed, typename T>
-	struct ControllerDebug {
-
-		template<typename Data>
-		static void call(const T& t, Data& data) { }
-	};
-
-	template<typename Delayed, typename T>
 	struct ControllerImGui {
 
 		template<typename Data>
@@ -403,15 +396,6 @@ namespace v2 {
 		void main(F&& f) {
 			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>, "main function must returns void");
 			(void)define_function<void>("main", f);
-		}
-
-		// template to delay instantiation
-		template<typename Delayed, typename Data>
-		void print_debug(Data& data) {
-			auto previous_current_shader = get_current_shader();
-			set_current_shader(this);
-			ControllerDebug<Delayed, ShaderController>::call(*this, data);
-			set_current_shader(previous_current_shader);
 		}
 
 		// template to delay instantiation

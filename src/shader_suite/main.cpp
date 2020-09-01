@@ -1,13 +1,13 @@
-#include <shaders/80_s_shader.h>
-#include <shaders/dolphin.h>
-#include <shaders/rendu_compilation.h>
-#include <shaders/ogl4_sl_cookbook.h>
-//#include <shaders/examples.h>
-
-#include "tests.hpp"
-
-#include "v2/Listeners.hpp"
-#include "v2/Structs.hpp"
+//#include <shaders/80_s_shader.h>
+//#include <shaders/dolphin.h>
+//#include <shaders/rendu_compilation.h>
+//#include <shaders/ogl4_sl_cookbook.h>
+////#include <shaders/examples.h>
+//
+//#include "tests.hpp"
+//
+//#include "v2/Listeners.hpp"
+//#include "v2/Structs.hpp"
 
 #include <array>
 #include <cmath>
@@ -27,6 +27,7 @@
 #include <shaders/rendering.h>
 #include <shaders/rendu.h>
 #include <shaders/shadertoy.h>
+#include <shaders/dolphin.h>
 
 using v3 = std::array<float, 3>;
 using m4 = std::array<float, 16>;
@@ -285,7 +286,7 @@ struct LoopData {
 		m_isosphere.set_attributes(ps, uvs, ns);
 
 		m_pipelines = get_all_pipelines(*this);
-		m_current_pipeline = m_pipelines.find("csl_vaporwave")->second;
+		m_current_pipeline = {}; //m_pipelines.find("csl_vaporwave")->second;
 	}
 
 	void set_mvp(const float distance, const float radius, const float near, const float far)
@@ -779,11 +780,40 @@ void main_loop(LoopData& data)
 		{ GL_COMPUTE_SHADER, "Compute"},
 	};
 
-	static ShaderPtr current_shader = {};
+	static ShaderPtr current_shader = data.m_shader_suite.m_shaders.find(ShaderEnum::DolphinUbershaderVert)->second;
 
 	data.m_time += ImGui::GetIO().DeltaTime;
 
 	data.init_gl_once();
+
+	if (ImGui::GetIO().KeysDownDuration[GLFW_KEY_TAB] == 0.0f) {
+		data.m_current_pipeline = {};
+		if (current_shader) {
+			for (auto shader_it = data.m_shader_suite.m_shaders.begin(); shader_it != data.m_shader_suite.m_shaders.end(); ++shader_it) {
+				if (shader_it->second != current_shader) {
+					continue;
+				}
+				if (ImGui::GetIO().KeysDownDuration[GLFW_KEY_LEFT_SHIFT] >= 0.0) {
+					current_shader = (--(shader_it == data.m_shader_suite.m_shaders.begin() ? data.m_shader_suite.m_shaders.end() : shader_it))->second;
+				} else {
+					++shader_it;
+					if (shader_it == data.m_shader_suite.m_shaders.end()) {
+						shader_it = data.m_shader_suite.m_shaders.begin();
+					}
+					current_shader = shader_it->second;
+				}
+				for (const auto& pipeline : data.m_pipelines) {
+					for (const auto& shader : pipeline.second->m_shaders) {
+						if (shader.second.m_shader == current_shader) {
+							data.m_current_pipeline = pipeline.second;
+							break;
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
 
 	// Shader suite window
 	if (ImGui::Begin("Shader suite")) {
@@ -960,7 +990,7 @@ int main()
 		main_loop(data);
 	});
 
-	testsCompliance();
+	//testsCompliance();
 
 	return 0;
 }
