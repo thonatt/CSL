@@ -18,16 +18,16 @@
 
 #include "pico_gl.hpp"
 
-#include "v2/glsl/Shaders.hpp"
-#include "v2/Samplers.hpp"
-#include "v2/glsl/ToGLSL.hpp"
-#include "v2/glsl/BuiltIns.hpp"
+#include "include/glsl/Shaders.hpp"
+#include "include/Samplers.hpp"
+#include "include/glsl/ToGLSL.hpp"
+#include "include/glsl/BuiltIns.hpp"
 
+#include <shaders/dolphin.h>
 #include <shaders/readme_examples.h>
 #include <shaders/rendering.h>
 #include <shaders/rendu.h>
 #include <shaders/shadertoy.h>
-#include <shaders/dolphin.h>
 
 using v3 = std::array<float, 3>;
 using m4 = std::array<float, 16>;
@@ -49,12 +49,7 @@ v3 cross(const v3& a, const v3& b) {
 }
 
 v3 normalize(const v3& v) {
-	float n = 0.0f;
-	for (int i = 0; i < 3; ++i) {
-		n += v[i] * v[i];
-	}
-	n = 1.0f / std::sqrt(n);
-	return n * v;
+	return (1.0f / std::hypot(v[0], v[1], v[2])) * v;
 }
 
 using Clock = std::chrono::high_resolution_clock;
@@ -67,10 +62,8 @@ double get_timing(F&& f)
 	return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 }
 
-struct ShaderExample {
-
-	ShaderExample() = default;
-
+struct ShaderExample
+{
 	template<typename ShaderCreation>
 	ShaderExample(ShaderCreation&& f)
 	{
@@ -201,7 +194,7 @@ struct PipelineBase {
 
 	void add_shader(const GLenum type, const std::pair<ShaderEnum, ShaderPtr>& shader)
 	{
-		m_shaders[type] = { shader.second };
+		m_shaders[GLProgram::get_shader_type(type)] = { shader.second };
 		m_program.set_shader_glsl(type, shader.second->m_glsl_str);
 	}
 
@@ -210,7 +203,7 @@ struct PipelineBase {
 	virtual ~PipelineBase() = default;
 
 	GLProgram m_program;
-	std::unordered_map<GLenum, ShaderActive> m_shaders;
+	std::unordered_map<GLShaderType, ShaderActive> m_shaders;
 };
 
 std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines(const LoopData& data);
@@ -371,11 +364,13 @@ struct PipelineNoise final : PipelineBase {
 		data.m_screen_quad.draw();
 		data.m_framebuffer.blit_from(data.m_fractal_noise);
 	}
+
 	void additionnal_gui() override
 	{
 		ImGui::SliderInt("frequencies count", &m_frequencies_count, 1, 8);
 		ImGui::SliderFloat("uv scaling", &m_uv_scaling, 4.0, 64.0);
 	}
+
 	int m_frequencies_count = 4;
 	float m_uv_scaling = 32.0f;
 };
@@ -392,21 +387,39 @@ struct PipelinePhong final : PipelineBase {
 
 struct PipelineGeometry final : PipelineBase {
 	void draw(LoopData& data) override {
-		data.set_mvp(2.0f, 2.0f, 0.8f, 5.0f);
+		// render noise texture
+		{
+			data.m_pipelines.find("noise")->second->m_program.use();
+			data.m_fractal_noise.resize(data.m_framebuffer.m_w, data.m_framebuffer.m_h);
+			data.m_fractal_noise.clear();
+			data.m_fractal_noise.bind_draw();
+			glDisable(GL_DEPTH_TEST);
+			data.m_screen_quad.draw();
+			data.m_fractal_noise.m_attachments[0].generate_mipmap();
+		}
+
+		data.m_framebuffer.bind_draw();
+		data.set_mvp(3.0f, 2.0f, 0.1f, 5.0f);
+		glEnable(GL_DEPTH_TEST);
+
+		// render tessellated mesh
+		{
+			auto& displacement_pipeline = data.m_pipelines.find("displacement")->second->m_program;
+			displacement_pipeline.use();
+			displacement_pipeline.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
+			displacement_pipeline.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
+			displacement_pipeline.set_uniform("tessellation_amount", glUniform1f, 100.0f);
+			data.m_fractal_noise.m_attachments[0].bind_slot(GL_TEXTURE0);
+			data.m_isosphere.draw(GL_PATCHES);
+		}
+
+		data.m_framebuffer.bind_draw();
 		m_program.use();
 		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
-		data.m_isosphere.draw();
-
-		// render phong
-		{
-			auto& phong_program = data.m_pipelines.find("phong")->second->m_program;
-			phong_program.use();
-			phong_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, data.m_view_transposed.data());
-			phong_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, data.m_proj.data());
-			phong_program.set_uniform("eye", glUniform3f, data.m_eye[0], data.m_eye[1], data.m_eye[2]);
-			data.m_isosphere.draw();
-		}
+		m_program.set_uniform("tessellation_amount", glUniform1f, 100.0f);
+		data.m_fractal_noise.m_attachments[0].bind_slot(GL_TEXTURE0);
+		data.m_isosphere.draw(GL_PATCHES);
 	}
 };
 
@@ -553,8 +566,7 @@ struct PipelineAtmosphere final : PipelineBase {
 		ImGui::SliderFloat("phi", &m_phi_deg, 0, 180.0f);
 
 		constexpr float pi = 3.14159265f;
-		const float t = m_theta_deg * (pi / 180.0f);
-		const float p = m_phi_deg * (pi / 180.0f);
+		const float t = m_theta_deg * (pi / 180.0f), p = m_phi_deg * (pi / 180.0f);
 		const float cost = std::cos(t), sint = std::sin(t), cosp = std::cos(p), sinp = std::sin(p);
 		m_sun_direction = v3{ sint * cosp, sint * sinp, cost };
 	}
@@ -568,7 +580,7 @@ ShaderSuite get_all_suite()
 {
 	ShaderSuite suite;
 
-	// readme examples
+	// Readme examples
 	suite.add_shader(ShaderGroup::Readme, ShaderEnum::TypeAndOperatorsExample, types_operators_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ManualNamingExample, manual_naming_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderEnum::AutoNamingExample, auto_naming_example);
@@ -586,7 +598,7 @@ ShaderSuite get_all_suite()
 
 	suite.add_shader(ShaderGroup::Test, ShaderEnum::ScreenQuadVertex, screen_quad_vertex_shader);
 
-	// rendering examples 
+	// Rendering examples 
 	suite.add_shader(ShaderGroup::Examples, ShaderEnum::InterfaceVertex, interface_vertex_shader);
 	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TexturedMeshFrag, textured_mesh_frag);
 
@@ -605,7 +617,7 @@ ShaderSuite get_all_suite()
 	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereScatteringLUT, scattering_lookup_table);
 	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereRendering, atmosphere_rendering);
 
-	// shadertoy examples
+	// Shadertoy examples
 	suite.add_shader(ShaderGroup::Shadertoy, ShaderEnum::CSLVaporwave, shader_80);
 
 	// Extra
@@ -658,6 +670,8 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 	{
 		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
 		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
+		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
 		pipeline->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderEnum::GeometricNormalsGeom));
 		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::SingleColorFrag));
 		pipelines.emplace("vertex_normal", pipeline);
@@ -690,16 +704,17 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 
 void shader_code_gui(const std::string& code)
 {
-	if (code.size() < 3000) {
+	if (code.size() < 2000) {
 		ImGui::TextWrapped(code.c_str());
 	} else {
 		ImGui::TextUnformatted(code.data(), code.data() + code.size());
 	}
 }
 
-enum class Mode : std::size_t {
-	ImGui = 1,
+enum class Mode : std::size_t
+{
 	GLSL = 0,
+	ImGui = 1,
 	Metrics = 3,
 	GlobalMetrics = 4
 };
@@ -771,13 +786,13 @@ void main_loop(LoopData& data)
 		{ ShaderGroup::Extra, "Extra"},
 	};
 
-	static const std::unordered_map<GLenum, std::string> shader_type_strs = {
-		{ GL_VERTEX_SHADER, "Vertex"},
-		{ GL_TESS_CONTROL_SHADER, "TessControl"},
-		{ GL_TESS_EVALUATION_SHADER, "TessEval"},
-		{ GL_GEOMETRY_SHADER, "Geometry"},
-		{ GL_FRAGMENT_SHADER, "Fragment"},
-		{ GL_COMPUTE_SHADER, "Compute"},
+	static const std::unordered_map<GLShaderType, std::string> shader_type_strs = {
+		{ GLShaderType::Vertex, "Vertex"},
+		{ GLShaderType::TessellationControl, "TessControl"},
+		{ GLShaderType::TessellationEvaluation, "TessEval"},
+		{ GLShaderType::Geometry, "Geometry"},
+		{ GLShaderType::Fragement, "Fragment"},
+		{ GLShaderType::Compute, "Compute"},
 	};
 
 	static ShaderPtr current_shader = data.m_shader_suite.m_shaders.find(ShaderEnum::DolphinUbershaderVert)->second;
@@ -965,13 +980,13 @@ int main()
 	for (const auto& shader : data.m_shader_suite.m_shaders) {
 		const ShaderExample& s = *shader.second;
 		data.m_global_metrics.m_time_total += s.m_glsl_timing + s.m_generation_timing;
-		data.m_global_metrics.m_expressions_count += s.m_controller.m_memory_pool.m_objects_ids.size();
 		data.m_global_metrics.m_characters_count += s.m_glsl_str.size();
+		data.m_global_metrics.m_expressions_count += s.m_controller.m_memory_pool.m_objects_ids.size();
 		data.m_global_metrics.m_instructions_count += s.m_controller.m_instruction_pool.m_objects_ids.size();
 		data.m_global_metrics.m_memory += s.m_controller.m_memory_pool.get_data_size() + s.m_controller.m_instruction_pool.get_data_size();
 	}
 
-	// copy previous frame as texture
+	// lambda to copy previous frame as texture
 	auto before_clear_func = [&] {
 		data.m_previous_rendering.resize(data.m_w_screen, data.m_h_screen);
 

@@ -165,22 +165,12 @@ namespace v2 {
 
 		Sequence = 170,
 
-		NoExtraParenthesis = 999,
+		NoExtraParenthesis = Sequence + 1,
 	};
 
 	inline bool operator<(const Precedence a, const Precedence b) {
 		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
 	}
-
-	////////////////////////////////////////////////////////
-
-	struct DebugData;
-
-	template<typename T>
-	struct OperatorDebug
-	{
-		static void call(const T& t, DebugData& data) {}
-	};
 
 	/////////////////////////////////////////////////////////
 
@@ -276,7 +266,6 @@ namespace v2 {
 		virtual ~OperatorBase() = default;
 
 		virtual void print_spirv() const {}
-		virtual void print_debug(DebugData& data) const = 0;
 		virtual void print_imgui(ImGuiData& data) const = 0;
 		virtual void print_glsl(GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) const = 0;
 
@@ -293,10 +282,6 @@ namespace v2 {
 		virtual ~ReferenceDelayed() = default;
 
 		ReferenceDelayed(const std::size_t id) : m_id(id) {}
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<ReferenceDelayed>::call(*this, data);
-		}
 
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<ReferenceDelayed>::call(*this, data);
@@ -325,10 +310,6 @@ namespace v2 {
 	{
 		template<typename ...Args>
 		FunCall(const Op op, Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...), m_op(op) { }
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<FunCall>::call(*this, data);
-		}
 
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<FunCall>::call(*this, data);
@@ -399,10 +380,6 @@ namespace v2 {
 			return N;
 		}
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<Constructor>::call(*this, data);
-		}
-
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Constructor>::call(*this, data);
 		}
@@ -417,10 +394,6 @@ namespace v2 {
 	{
 		ArraySubscriptDelayed(const Expr obj, const Expr index) : m_obj(obj), m_index(index) {
 			//assert(m_obj);
-		}
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<ArraySubscriptDelayed>::call(*this, data);
 		}
 
 		void print_imgui(ImGuiData& data) const override {
@@ -441,7 +414,6 @@ namespace v2 {
 
 		SwizzlingBase(const Expr& expr) : m_obj(expr) { }
 
-		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
 		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
@@ -453,9 +425,6 @@ namespace v2 {
 	{
 		Swizzling(const Expr expr) : SwizzlingBase(expr) { }
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<Swizzling<S>>::call(*this, data);
-		}
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Swizzling<S>>::call(*this, data);
 		}
@@ -468,7 +437,6 @@ namespace v2 {
 	{
 		virtual ~MemberAccessorBase() = default;
 
-		virtual void print_debug(DebugData& data) const {}
 		virtual void print_imgui(ImGuiData& data) const {}
 		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
 
@@ -484,9 +452,6 @@ namespace v2 {
 
 		MemberAccessor(const Expr expr) : MemberAccessorBase(expr) { }
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<MemberAccessor<S, MemberId>>::call(*this, data);
-		}
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
@@ -511,10 +476,6 @@ namespace v2 {
 	{
 		UnaryOperatorDelayed(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<UnaryOperatorDelayed>::call(*this, data);
-		}
-
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<UnaryOperatorDelayed>::call(*this, data);
 		}
@@ -533,10 +494,6 @@ namespace v2 {
 	struct BinaryOperatorDelayed final : OperatorBase
 	{
 		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<BinaryOperatorDelayed>::call(*this, data);
-		}
 
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<BinaryOperatorDelayed>::call(*this, data);
@@ -557,10 +514,6 @@ namespace v2 {
 			: m_condition(condition), m_first(first), m_second(second) {
 		}
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<TernaryOperatorDelayed>::call(*this, data);
-		}
-
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<TernaryOperatorDelayed>::call(*this, data);
 		}
@@ -578,10 +531,6 @@ namespace v2 {
 	{
 		ConvertorOperator(const Expr& obj) : ArgSeq<1>(obj) {}
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<ConvertorOperator>::call(*this, data);
-		}
-
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<ConvertorOperator>::call(*this, data);
 		}
@@ -597,10 +546,6 @@ namespace v2 {
 		template<typename ... Args>
 		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<CustomFunCall>::call(*this, data);
-		}
-
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<CustomFunCall>::call(*this, data);
 		}
@@ -614,10 +559,6 @@ namespace v2 {
 	struct Litteral final : OperatorBase
 	{
 		Litteral(const T t) : value(t) { }
-
-		void print_debug(DebugData& data) const override {
-			OperatorDebug<Litteral>::call(*this, data);
-		}
 
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Litteral>::call(*this, data);

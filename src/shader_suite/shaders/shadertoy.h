@@ -1,10 +1,11 @@
 #pragma once
 
 
-#include "v2/Listeners.hpp"
-#include "v2/Structs.hpp"
+#include "include/Listeners.hpp"
+#include "include/Structs.hpp"
 
-#include <v2/glsl/Shaders.hpp>
+#include <include/glsl/Shaders.hpp>
+#include <include/imgui/ToImGui.hpp>
 
 /**
  Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.

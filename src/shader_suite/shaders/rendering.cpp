@@ -1,8 +1,8 @@
 #include "rendering.h"
 
-#include "v2/Samplers.hpp"
-#include <v2/glsl/BuiltIns.hpp>
-#include "v2/glsl/ToGLSL.hpp"
+#include "include/Samplers.hpp"
+#include <include/glsl/BuiltIns.hpp>
+#include "include/glsl/ToGLSL.hpp"
 
 v2::glsl::frag_420::Shader textured_mesh_frag()
 {
@@ -86,7 +86,7 @@ v2::glsl::geom_420::Shader geometric_normals() {
 
 		gl_Position = proj * view * vec4(tri_center, 1.0);
 		EmitVertex();
-		gl_Position = proj * view * vec4(tri_center + 0.2 * tri_normal, 1.0);
+		gl_Position = proj * view * vec4(tri_center + 0.05 * tri_normal, 1.0);
 		EmitVertex();
 		EndPrimitive();
 	});

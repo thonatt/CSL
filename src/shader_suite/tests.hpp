@@ -1,81 +1,81 @@
-#pragma once
-
-#include <string>
-#include <iostream>
-
-void test_old();
-
-void testSwitch();
-
-void testStructsMacros();
-
-void testArgCleaning();
-
-void testInArgs();
-
-void testsCompliance();
-
-void testList();
-
-//struct Arg {
-//	Arg(int && t) : val(t) { std::cout << val << std::endl; }
-//	~Arg() { std::cout << val << std::endl; }
-//	operator int() const { return val; }
-//	int val;
-//};
+//#pragma once
 //
-//template<typename ...Args> struct Print;
-//template<> struct Print<> {
-//	static void run() {}
-//};
+//#include <string>
+//#include <iostream>
 //
-//template<typename T, typename ... Ts> struct Print<T,Ts...> {
-//	static void run(T && t, Ts && ... ts) {
-//		std::cout << t << std::endl;
-//		Print<Ts...>::run(ts...);
-//	}
-//};
+//void test_old();
 //
-//template<typename ...Args>
-//void printArgs(Args && ... args) {
-//	Print<Args...>::run(args...);
-//}
+//void testSwitch();
 //
-//template< class, class = std::void_t<> > struct
-//needs_unapply : std::true_type { };
+//void testStructsMacros();
 //
-//template< class T > struct
-//needs_unapply<T, std::void_t<decltype(std::declval<T>()())>> : std::false_type { };
+//void testArgCleaning();
 //
-//template <typename F> auto
-//curry(F&& f);
+//void testInArgs();
 //
-//template <bool> struct
-//curry_on;
+//void testsCompliance();
 //
-//template <> struct
-//curry_on<false> {
-//	template <typename F> static auto
-//		apply(F&& f) {
-//		return f();
-//	}
-//};
+//void testList();
 //
-//template <> struct
-//curry_on<true> {
-//	template <typename F> 
-//	static auto apply(F&& f) {
-//		return [=](auto&& x) {
-//			return curry( [=](auto&&...xs) -> decltype(f(x, xs...)) {
-//				return f(x, xs...);
-//			});
-//		};
-//	}
-//};
+////struct Arg {
+////	Arg(int && t) : val(t) { std::cout << val << std::endl; }
+////	~Arg() { std::cout << val << std::endl; }
+////	operator int() const { return val; }
+////	int val;
+////};
+////
+////template<typename ...Args> struct Print;
+////template<> struct Print<> {
+////	static void run() {}
+////};
+////
+////template<typename T, typename ... Ts> struct Print<T,Ts...> {
+////	static void run(T && t, Ts && ... ts) {
+////		std::cout << t << std::endl;
+////		Print<Ts...>::run(ts...);
+////	}
+////};
+////
+////template<typename ...Args>
+////void printArgs(Args && ... args) {
+////	Print<Args...>::run(args...);
+////}
+////
+////template< class, class = std::void_t<> > struct
+////needs_unapply : std::true_type { };
+////
+////template< class T > struct
+////needs_unapply<T, std::void_t<decltype(std::declval<T>()())>> : std::false_type { };
+////
+////template <typename F> auto
+////curry(F&& f);
+////
+////template <bool> struct
+////curry_on;
+////
+////template <> struct
+////curry_on<false> {
+////	template <typename F> static auto
+////		apply(F&& f) {
+////		return f();
+////	}
+////};
+////
+////template <> struct
+////curry_on<true> {
+////	template <typename F> 
+////	static auto apply(F&& f) {
+////		return [=](auto&& x) {
+////			return curry( [=](auto&&...xs) -> decltype(f(x, xs...)) {
+////				return f(x, xs...);
+////			});
+////		};
+////	}
+////};
+////
+////template <typename F> auto
+////curry(F&& f) {
+////	return curry_on<needs_unapply<decltype(f)>::value>::template apply(f);
+////}
 //
-//template <typename F> auto
-//curry(F&& f) {
-//	return curry_on<needs_unapply<decltype(f)>::value>::template apply(f);
-//}
-
-void testArgsOrder();
+//void testArgsOrder();

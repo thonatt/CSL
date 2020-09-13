@@ -44,7 +44,7 @@ inline void gl_check()
 	}
 }
 
-inline void gl_framebuffer_check(GLenum target)
+inline void gl_framebuffer_check(GLenum target = GL_FRAMEBUFFER)
 {
 	static const std::unordered_map<GLenum, std::string> errors = {
 		GL_ENUM_STR(GL_FRAMEBUFFER_UNDEFINED),
@@ -70,9 +70,8 @@ inline void gl_framebuffer_check(GLenum target)
 }
 #undef GL_ENUM_STR
 
-class GLptr {
-
-public:
+struct GLptr
+{
 	GLptr() = default;
 
 	template<typename Creator, typename Destructor>
@@ -88,11 +87,35 @@ public:
 	std::shared_ptr<GLuint> m_id;
 };
 
-struct GLProgram {
+enum class GLShaderType {
+	Vertex,
+	TessellationControl,
+	TessellationEvaluation,
+	Geometry,
+	Fragement,
+	Compute
+};
 
+struct GLProgram 
+{
 	GLProgram() = default;
 
-	void set_shader_glsl(GLenum type, const std::string& code_str)
+	static GLShaderType get_shader_type(const GLenum type)
+	{
+		static std::unordered_map<GLenum, GLShaderType> enum_to_type =
+		{
+			{ GL_VERTEX_SHADER, GLShaderType::Vertex },
+			{ GL_TESS_CONTROL_SHADER, GLShaderType::TessellationControl },
+			{ GL_TESS_EVALUATION_SHADER, GLShaderType::TessellationEvaluation },
+			{ GL_GEOMETRY_SHADER, GLShaderType::Geometry },
+			{ GL_FRAGMENT_SHADER, GLShaderType::Fragement },
+			{ GL_COMPUTE_SHADER, GLShaderType::Compute },
+		};
+
+		return enum_to_type.find(type)->second;
+	}
+
+	void set_shader_glsl(const GLenum type, const std::string& code_str)
 	{
 		if (!m_id) {
 			m_id = GLptr(
@@ -122,7 +145,7 @@ struct GLProgram {
 		}
 		glAttachShader(m_id, shader);
 
-		m_shaders[type] = shader;
+		m_shaders[get_shader_type(type)] = shader;
 		m_link_status = GL_FALSE;
 	}
 
@@ -160,7 +183,7 @@ struct GLProgram {
 	}
 
 	GLptr m_id;
-	std::unordered_map<GLenum, GLptr> m_shaders;
+	std::unordered_map<GLShaderType, GLptr> m_shaders;
 	GLint m_link_status = GL_FALSE;
 };
 
@@ -361,6 +384,7 @@ struct GLFramebuffer
 		if (m_w == w && m_h == h) {
 			return;
 		}
+
 		m_w = w;
 		m_h = h;
 
@@ -422,11 +446,11 @@ struct GLFramebuffer
 	int m_w = 0, m_h = 0;
 };
 
-struct GLmesh {
+struct GLmesh
+{
 	GLmesh() = default;
 
-	void init()
-	{
+	void init() {
 		m_vao = GLptr(
 			[](GLuint* ptr) { glGenVertexArrays(1, ptr); },
 			[](const GLuint* ptr) { glDeleteVertexArrays(1, ptr); }

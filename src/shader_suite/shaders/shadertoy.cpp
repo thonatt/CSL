@@ -2,9 +2,10 @@
 
 #include "shadertoy.h"
 
-#include "v2/Samplers.hpp"
-#include <v2/glsl/BuiltIns.hpp>
-#include "v2/glsl/ToGLSL.hpp"
+#include <include/Samplers.hpp>
+#include <include/glsl/BuiltIns.hpp>
+#include <include/glsl/ToGLSL.hpp>
+#include <include/imgui/ToImGui.hpp>
 
 /**
  Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.

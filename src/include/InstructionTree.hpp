@@ -13,15 +13,8 @@ namespace v2 {
 	struct InstructionBase {
 		virtual ~InstructionBase() = default;
 
-		virtual void print_debug(DebugData& data) const = 0;
 		virtual void print_imgui(ImGuiData& data) const = 0;
 		virtual void print_glsl(GLSLData& data) const = 0;
-	};
-
-	template<typename Instruction>
-	struct InstructionDebug
-	{
-		static void call(const Instruction&, DebugData& data) { }
 	};
 
 	template<typename Instruction>
@@ -83,9 +76,6 @@ namespace v2 {
 	struct StatementDelayed : InstructionBase {
 		virtual ~StatementDelayed() = default;
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<StatementDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<StatementDelayed>::call(*this, data);
 		}
@@ -116,9 +106,6 @@ namespace v2 {
 		template<typename T>
 		ReturnStatementDelayed(T&& t) : Statement(get_expr(std::forward<T>(t))) {}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<ReturnStatementDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<ReturnStatementDelayed>::call(*this, data);
 		}
@@ -132,9 +119,6 @@ namespace v2 {
 	struct ForArgStatementDelayed final : Statement {
 		ForArgStatementDelayed(const Expr expr) : Statement(expr) { }
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<ForArgStatementDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<ForArgStatementDelayed>::call(*this, data);
 		}
@@ -148,9 +132,6 @@ namespace v2 {
 	struct ForIterationStatementDelayed final : Statement {
 		ForIterationStatementDelayed(const Expr& expr) : Statement(expr) { }
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<ForIterationStatementDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<ForIterationStatementDelayed>::call(*this, data);
 		}
@@ -163,9 +144,6 @@ namespace v2 {
 	template<typename T>
 	struct SpecialStatement final : InstructionBase {
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<SpecialStatement>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<SpecialStatement>::call(*this, data);
 		}
@@ -204,7 +182,6 @@ namespace v2 {
 		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) : m_name(name), m_id(fun_id) {
 		}
 
-		virtual void print_debug(DebugData& data) const override {}
 		virtual void print_imgui(ImGuiData& data) const override {}
 		virtual void print_glsl(GLSLData& data) const override {}
 
@@ -231,9 +208,6 @@ namespace v2 {
 			return N;
 		}
 
-		void print_debug(DebugData& data) const override {
-			InstructionDebug<FuncDeclaration>::call(*this, data);
-		}
 		void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<FuncDeclaration>::call(*this, data);
 		}
@@ -285,9 +259,6 @@ namespace v2 {
 			body = std::make_shared<Block>();
 		}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<ForInstructionDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<ForInstructionDelayed>::call(*this, data);
 		}
@@ -310,9 +281,6 @@ namespace v2 {
 
 		IfInstructionDelayed(const InstructionIndex parent_if) : m_parent_if(parent_if) {}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<IfInstructionDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<IfInstructionDelayed>::call(*this, data);
 		}
@@ -334,9 +302,6 @@ namespace v2 {
 			m_body = std::make_shared<Block>(parent_block);
 		}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<WhileInstructionDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<WhileInstructionDelayed>::call(*this, data);
 		}
@@ -357,9 +322,6 @@ namespace v2 {
 			m_body = std::make_shared<Block>(parent);
 		}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<SwitchCaseDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<SwitchCaseDelayed>::call(*this, data);
 		}
@@ -387,9 +349,6 @@ namespace v2 {
 			current_block = dynamic_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body;
 		}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<SwitchInstructionDelayed>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<SwitchInstructionDelayed>::call(*this, data);
 		}
@@ -407,16 +366,12 @@ namespace v2 {
 	struct StructDeclarationBase : InstructionBase {
 		virtual ~StructDeclarationBase() = default;
 
-		virtual void print_debug(DebugData& data) const override { }
 		virtual void print_imgui(ImGuiData& data) const override { }
 		virtual void print_glsl(GLSLData& data) const override { }
 	};
 
 	template<typename Struct>
 	struct StructDeclaration final : StructDeclarationBase {
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<StructDeclaration>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<StructDeclaration>::call(*this, data);
 		}
@@ -430,9 +385,6 @@ namespace v2 {
 
 		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<NamedInterfaceDeclaration>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<NamedInterfaceDeclaration>::call(*this, data);
 		}
@@ -449,9 +401,6 @@ namespace v2 {
 		template<typename ...Strings>
 		UnnamedInterfaceDeclaration(Strings&& ...names) : m_names{ names ... } { }
 
-		virtual void print_debug(DebugData& data) const override {
-			InstructionDebug<UnnamedInterfaceDeclaration>::call(*this, data);
-		}
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<UnnamedInterfaceDeclaration>::call(*this, data);
 		}

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <v2/Types.hpp>
-#include <v2/InstructionTree.hpp>
-#include <v2/Swizzles.hpp>
+#include <include/Types.hpp>
+#include <include/InstructionTree.hpp>
+#include <include/Swizzles.hpp>
 
-#include <v2/glsl/ToGLSL.hpp>
+#include <include/glsl/ToGLSL.hpp>
 
 #include <sstream>
 #include <typeinfo>
@@ -12,6 +12,8 @@
 #include <unordered_map>
 
 #include <imgui.h>
+
+#ifdef IMGUI_API
 
 namespace v2 {
 
@@ -57,60 +59,13 @@ namespace v2 {
 			return *this;
 		}
 
-		template<typename T>
-		ImGuiData& expr_vector_node(const std::string& name, const std::vector<T>& vs)
+		template<std::size_t N>
+		ImGuiData& expr_vector_node(const std::string& name, const std::array<Expr, N>& vs)
 		{
-			if (!vs.empty()) {
+			if constexpr (N > 0) {
 				if (ImGui::TreeNode(unique(name).c_str())) {
 					for (const auto& v : vs) {
 						retrieve_expr(v)->print_imgui(*this);
-					}
-					ImGui::TreePop();
-				}
-			}
-			return *this;
-		}
-
-		template<typename T>
-		ImGuiData& node_vec(const std::string& s, const std::vector<T>& vs) {
-			if (vs.empty()) {
-			} else if (vs.size() == 1) {
-				vs[0]->print_imgui(*this);
-			} else {
-				if (ImGui::TreeNode(unique(s).c_str())) {
-					for (const auto& v : vs) {
-						v->print_imgui(*this);
-					}
-					ImGui::TreePop();
-				}
-			}
-			return *this;
-		}
-
-		ImGuiData& node_vec_expr(const std::string& s, const std::vector<Expr>& vs) {
-			if (vs.empty()) {
-			} else if (vs.size() == 1) {
-				retrieve_expr(vs[0])->print_imgui(*this);
-			} else {
-				if (ImGui::TreeNode(unique(s).c_str())) {
-					for (const auto& v : vs) {
-						retrieve_expr(v)->print_imgui(*this);
-					}
-					ImGui::TreePop();
-				}
-			}
-			return *this;
-		}
-
-		ImGuiData& node_vec_instruction(const std::string& s, const std::vector<InstructionIndex>& vs) {
-			if (vs.empty()) {
-			} else if (vs.size() == 1) {
-				retrieve_instruction(vs[0])->print_imgui(*this);
-			} else {
-				if (ImGui::TreeNode(unique(s).c_str())) {
-					for (const auto& v : vs) {
-						const auto* i = retrieve_instruction(v);
-						i->print_imgui(*this);
 					}
 					ImGui::TreePop();
 				}
@@ -491,7 +446,7 @@ namespace v2 {
 			if constexpr (N == 0) {
 				data.leaf(ctor_str);
 			} else {
-				data.expr_vector_node(ctor_str, std::vector<Expr>(ctor.m_args.begin(), ctor.m_args.end()));
+				data.expr_vector_node(ctor_str, ctor.m_args);
 			}
 		}
 	};
@@ -542,7 +497,7 @@ namespace v2 {
 	template<>
 	struct OperatorImGui<BinaryOperator> {
 		static void call(const BinaryOperator& bop, ImGuiData& data) {
-			data.node(data.glsl_from_expr(bop.m_lhs), [&] { 
+			data.node(data.glsl_from_expr(bop.m_lhs), [&] {
 				retrieve_expr(bop.m_lhs)->print_imgui(data);
 			});
 			data << glsl_op_str(bop.m_op);
@@ -573,10 +528,7 @@ namespace v2 {
 	template<std::size_t N>
 	struct OperatorImGui<FunCall<N>> {
 		static void call(const FunCall<N>& fun_call, ImGuiData& data) {
-			std::string op_str = glsl_op_str(fun_call.m_op);
-			data.node(op_str, [&] {
-				OperatorImGui<ArgSeq<N>>::call(fun_call, data);
-			});
+			data.expr_vector_node(glsl_op_str(fun_call.m_op), fun_call.m_args);
 		}
 	};
 
@@ -622,3 +574,5 @@ namespace v2 {
 	};
 
 }
+
+#endif

@@ -16,14 +16,14 @@ source_group("Src" FILES ${ShaderSuiteApp})
 file(GLOB Shaders "shaders/*.h" "shaders/*.cpp")
 source_group("Src\\Shaders" FILES ${Shaders})
 
-file(GLOB CSL_CORE "./../csl/*.hpp")
+file(GLOB CSL_CORE "./../include/*.hpp")
 source_group("Src\\csl" FILES ${CSL_CORE})
 
-file(GLOB CSL_CORE_v2 "./../v2/*.hpp")
-source_group("Src\\csl_v2" FILES ${CSL_CORE_v2})
-
-file(GLOB CSL_GLSL "./../v2/glsl/*.hpp")
+file(GLOB CSL_GLSL "./../include/glsl/*.hpp")
 source_group("Src\\glsl" FILES ${CSL_GLSL})
+
+file(GLOB CSL_IMGUI "./../include/imgui/*.hpp")
+source_group("Src\\imgui" FILES ${CSL_IMGUI})
 
 set(CSL_CORE_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../")
 set(CSL_SHADER_SUITE_SHADERS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
@@ -55,7 +55,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_DOCUMENT_INTERNALS OFF CACHE BOOL "")
 add_subdirectory(${CSL_SHADER_SUITE_GLFW_PATH})
 
-add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_CORE_v2} ${CSL_GLSL}
+add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_CORE_v2} ${CSL_GLSL} ${CSL_IMGUI}
 	${CSL_SHADER_SUITE_IMGUI_HEADERS} ${CSL_SHADER_SUITE_IMGUI_SRC} ${CSL_SHADER_SUITE_GLAD_SRC}
 )
 

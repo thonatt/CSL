@@ -935,7 +935,7 @@ namespace v2 {
 					if (litteral.value < 0) {
 						data << "-";
 					}
-					data << static_cast<int>(std::abs(litteral.value)) << "." << std::abs(static_cast<int>(10.0 * litteral.value) - 10 * static_cast<int>(litteral.value));
+					data << static_cast<int>(std::abs(litteral.value)) << "." << std::abs(static_cast<int>(10.0 * litteral.value) - 10 * static_cast<int>(std::abs(litteral.value)));
 				} else {
 					data << std::scientific << litteral.value;
 				}
