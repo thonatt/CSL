@@ -793,7 +793,12 @@ void main_loop(LoopData& data)
 					continue;
 				}
 				if (ImGui::GetIO().KeysDownDuration[GLFW_KEY_LEFT_SHIFT] >= 0.0) {
-					current_shader = (--(shader_it == data.m_shader_suite.m_shaders.begin() ? data.m_shader_suite.m_shaders.end() : shader_it))->second;
+					if (shader_it == data.m_shader_suite.m_shaders.begin()) {
+						auto suite_end_it = data.m_shader_suite.m_shaders.end();
+						current_shader = (--suite_end_it)->second;
+					} else {
+						current_shader = (--shader_it)->second;
+					}
 				} else {
 					++shader_it;
 					if (shader_it == data.m_shader_suite.m_shaders.end()) {

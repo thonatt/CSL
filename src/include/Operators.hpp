@@ -11,6 +11,12 @@
 #include <utility>
 #include <vector>
 
+#if __cplusplus >= 201703L
+#define CSL_LAUNDER(...) __VA_ARGS__ // std::launder(__VA_ARGS__)
+#else 
+#define CSL_LAUNDER(...) __VA_ARGS__
+#endif
+
 namespace v2 {
 
 	enum class Op : std::size_t {
@@ -589,15 +595,15 @@ namespace v2 {
 
 			m_buffer.push_back({});
 			new (&m_buffer.back()) Derived(std::forward<Args>(args)...);
-			return std::launder(reinterpret_cast<Base*>(&m_buffer.back()));
+			return CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer.back()));
 		}
 
 		Base& operator[](const std::size_t index) {
-			return *std::launder(reinterpret_cast<Base*>(&m_buffer[index]));
+			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer[index]));
 		}
 
 		const Base& operator[](const std::size_t index) const {
-			return *std::launder(reinterpret_cast<const Base*>(&m_buffer[index]));
+			return CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffer[index]));
 		}
 
 		~PolymorphicVector() {
@@ -640,11 +646,11 @@ namespace v2 {
 		}
 
 		Base& operator[](const Index pair) {
-			return *std::launder(reinterpret_cast<Base*>(&m_buffers[pair.m_band][pair.m_id]));
+			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffers[pair.m_band][pair.m_id]));
 		}
 
 		const Base& operator[](const Index pair) const {
-			return *std::launder(reinterpret_cast<const Base*>(&m_buffers[pair.m_band][pair.m_id]));
+			return *CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffers[pair.m_band][pair.m_id]));
 		}
 
 		~PolymorphicMemoryManager() {
@@ -715,11 +721,11 @@ namespace v2 {
 		}
 
 		Base& operator[](const Index index) {
-			return *std::launder(reinterpret_cast<Base*>(&m_buffer[index.m_id]));
+			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer[index.m_id]));
 		}
 
 		const Base& operator[](const Index index) const {
-			return *std::launder(reinterpret_cast<const Base*>(&m_buffer[index.m_id]));
+			return *CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffer[index.m_id]));
 		}
 
 		~PolymorphicMemoryPool() {
