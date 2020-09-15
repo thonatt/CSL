@@ -14,6 +14,7 @@
 #include <iostream>
 #include <chrono>
 #include <filesystem>
+#include <map>
 #include <memory>
 
 #include "pico_gl.hpp"
@@ -181,7 +182,7 @@ struct ShaderSuite {
 		m_groups[group].emplace_back(shader_example);
 	}
 
-	std::unordered_map<ShaderEnum, ShaderPtr> m_shaders;
+	std::map<ShaderEnum, ShaderPtr> m_shaders;
 	std::unordered_map<ShaderGroup, std::vector<ShaderPtr>> m_groups;
 };
 
