@@ -18,6 +18,8 @@
 
 #include "pico_gl.hpp"
 
+#include <imgui.h>
+
 #include "include/glsl/Shaders.hpp"
 #include "include/Samplers.hpp"
 #include "include/glsl/ToGLSL.hpp"
@@ -279,7 +281,7 @@ struct LoopData {
 		m_isosphere.set_attributes(ps, uvs, ns);
 
 		m_pipelines = get_all_pipelines(*this);
-		m_current_pipeline = {}; //m_pipelines.find("csl_vaporwave")->second;
+		m_current_pipeline = m_pipelines.find("csl_vaporwave")->second;
 	}
 
 	void set_mvp(const float distance, const float radius, const float near, const float far)
@@ -632,72 +634,54 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 	std::unordered_map<std::string, std::shared_ptr<PipelineBase>> pipelines;
 	const auto& shaders = data.m_shader_suite.m_shaders;
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<Pipeline80>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::CSLVaporwave));
-		pipelines.emplace("csl_vaporwave", pipeline);
-	}
+	auto pipeline_vaporwave = std::static_pointer_cast<PipelineBase>(std::make_shared<Pipeline80>());
+	pipeline_vaporwave->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+	pipeline_vaporwave->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::CSLVaporwave));
+	pipelines.emplace("csl_vaporwave", pipeline_vaporwave);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineTexturedMesh>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::TexturedMeshFrag));
-		pipelines.emplace("textured_mesh", pipeline);
-	}
+	auto pipeline_textured_mesh = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineTexturedMesh>());
+	pipeline_textured_mesh->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+	pipeline_textured_mesh->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::TexturedMeshFrag));
+	pipelines.emplace("textured_mesh", pipeline_textured_mesh);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGBuffer>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::MultipleOutputsFrag));
-		pipelines.emplace("gbuffer", pipeline);
-	}
+	auto pipeline_gbuffer = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGBuffer>());
+	pipeline_gbuffer->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+	pipeline_gbuffer->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::MultipleOutputsFrag));
+	pipelines.emplace("gbuffer", pipeline_gbuffer);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineNoise>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::FractalNoiseFrag));
-		pipelines.emplace("noise", pipeline);
-	}
+	auto pipeline_noise = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineNoise>());
+	pipeline_noise->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+	pipeline_noise->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::FractalNoiseFrag));
+	pipelines.emplace("noise", pipeline_noise);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelinePhong>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
-		pipelines.emplace("phong", pipeline);
-	}
+	auto pipeline_phong = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelinePhong>());
+	pipeline_phong->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+	pipeline_phong->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
+	pipelines.emplace("phong", pipeline_phong);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
-		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
-		pipeline->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderEnum::GeometricNormalsGeom));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::SingleColorFrag));
-		pipelines.emplace("vertex_normal", pipeline);
-	}
+	auto pipeline_geometric_normals = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
+	pipeline_geometric_normals->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+	pipeline_geometric_normals->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
+	pipeline_geometric_normals->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
+	pipeline_geometric_normals->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderEnum::GeometricNormalsGeom));
+	pipeline_geometric_normals->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::SingleColorFrag));
+	pipelines.emplace("vertex_normal", pipeline_geometric_normals);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineDisplacement>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-		pipeline->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
-		pipeline->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
-		pipelines.emplace("displacement", pipeline);
-	}
+	auto pipeline_displacement = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineDisplacement>());
+	pipeline_displacement->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
+	pipeline_displacement->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
+	pipeline_displacement->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
+	pipeline_displacement->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
+	pipelines.emplace("displacement", pipeline_displacement);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineCompute>());
-		pipeline->add_shader(GL_COMPUTE_SHADER, *shaders.find(ShaderEnum::AtmosphereScatteringLUT));
-		pipelines.emplace("atmosphere scattering", pipeline);
-	}
+	auto pipeline_compute = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineCompute>());
+	pipeline_compute->add_shader(GL_COMPUTE_SHADER, *shaders.find(ShaderEnum::AtmosphereScatteringLUT));
+	pipelines.emplace("atmosphere scattering", pipeline_compute);
 
-	{
-		auto pipeline = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineAtmosphere>());
-		pipeline->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-		pipeline->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::AtmosphereRendering));
-		pipelines.emplace("atmosphere", pipeline);
-	}
+	auto pipeline_atmosphere = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineAtmosphere>());
+	pipeline_atmosphere->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
+	pipeline_atmosphere->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::AtmosphereRendering));
+	pipelines.emplace("atmosphere", pipeline_atmosphere);
 
 	return pipelines;
 }
@@ -791,7 +775,7 @@ void main_loop(LoopData& data)
 		{ GLShaderType::TessellationControl, "TessControl"},
 		{ GLShaderType::TessellationEvaluation, "TessEval"},
 		{ GLShaderType::Geometry, "Geometry"},
-		{ GLShaderType::Fragement, "Fragment"},
+		{ GLShaderType::Fragment, "Fragment"},
 		{ GLShaderType::Compute, "Compute"},
 	};
 
@@ -836,112 +820,107 @@ void main_loop(LoopData& data)
 		const float w = ImGui::GetContentRegionAvail().x;
 		const float h = ImGui::GetContentRegionAvail().y;
 
+		ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
+		for (const auto& group : data.m_shader_suite.m_groups)
 		{
-			ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
-			for (const auto& group : data.m_shader_suite.m_groups)
+			if (group.first == ShaderGroup::Test) {
+				continue;
+			}
+			ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
+			if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
 			{
-				if (group.first == ShaderGroup::Test) {
-					continue;
-				}
-				ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
-				if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
-				{
-					for (const auto& shader : group.second) {
-						bool selected = false;
-						if (current_shader && shader == current_shader) {
-							selected = true;
-						} else if (data.m_current_pipeline) {
-							for (const auto& pipeline_shader : data.m_current_pipeline->m_shaders) {
-								if (shader == pipeline_shader.second.m_shader) {
-									selected = true;
-									break;
-								}
-							}
-						}
-						if (ImGui::Selectable(shader->m_name.c_str(), selected)) {
-							current_shader = shader;
-
-							bool pipeline_found = false;
-							for (const auto& pipeline : data.m_pipelines) {
-								for (const auto& shader : pipeline.second->m_shaders) {
-									if (current_shader->m_name == shader.second.m_shader->m_name) {
-										data.m_current_pipeline = pipeline.second;
-										pipeline_found = true;
-									}
-								}
-							}
-							if (!pipeline_found) {
-								data.m_current_pipeline = {};
+				for (const auto& shader : group.second) {
+					bool selected = false;
+					if (current_shader && shader == current_shader) {
+						selected = true;
+					} else if (data.m_current_pipeline) {
+						for (const auto& pipeline_shader : data.m_current_pipeline->m_shaders) {
+							if (shader == pipeline_shader.second.m_shader) {
+								selected = true;
+								break;
 							}
 						}
 					}
-					ImGui::TreePop();
+					if (ImGui::Selectable(shader->m_name.c_str(), selected)) {
+						current_shader = shader;
+
+						bool pipeline_found = false;
+						for (const auto& pipeline : data.m_pipelines) {
+							for (const auto& shader : pipeline.second->m_shaders) {
+								if (current_shader->m_name == shader.second.m_shader->m_name) {
+									data.m_current_pipeline = pipeline.second;
+									pipeline_found = true;
+								}
+							}
+						}
+						if (!pipeline_found) {
+							data.m_current_pipeline = {};
+						}
+					}
 				}
+				ImGui::TreePop();
 			}
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 
 		ImGui::SameLine();
 
+		ImGui::BeginChild("right pane", ImVec2(), false);
+		float active_shader_count = 0;
 		{
-			ImGui::BeginChild("right pane", ImVec2(), false);
-			float active_shader_count = 0;
-			{
-				ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 10.0f), true);
-				if (data.m_current_pipeline) {
-					int count = 0;
-					for (auto& shader : data.m_current_pipeline->m_shaders) {
-						if (count > 0) {
-							ImGui::SameLine();
-							ImGui::Text("->");
-							ImGui::SameLine();
-						}
-						ImGui::Checkbox((shader_type_strs.find(shader.first)->second + "##").c_str(), &shader.second.m_active);
-						if (shader.second.m_active) {
-							++active_shader_count;
-						}
-						++count;
+			ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 10.0f), true);
+			if (data.m_current_pipeline) {
+				int count = 0;
+				for (auto& shader : data.m_current_pipeline->m_shaders) {
+					if (count > 0) {
+						ImGui::SameLine();
+						ImGui::Text("->");
+						ImGui::SameLine();
 					}
-				} else if (current_shader) {
-					active_shader_count = 1.0f;
+					ImGui::Checkbox((shader_type_strs.find(shader.first)->second + "##").c_str(), &shader.second.m_active);
+					if (shader.second.m_active) {
+						++active_shader_count;
+					}
+					++count;
 				}
-				if (data.m_current_pipeline) {
-					data.m_current_pipeline->additionnal_gui();
-				}
-				ImGui::EndChild();
+			} else if (current_shader) {
+				active_shader_count = 1.0f;
 			}
+			if (data.m_current_pipeline) {
+				data.m_current_pipeline->additionnal_gui();
+			}
+			ImGui::EndChild();
 
-			{
-				const float shader_code_height = (9.0f * h / 10.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
-				ImGui::BeginChild("bottom right pane", ImVec2(), true);
-				if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
-					for (const auto& mode : mode_strs) {
-						if (ImGui::BeginTabItem(mode.second.c_str())) {
-							if (data.m_current_pipeline) {
-								int count = 0;
-								for (auto& shader : data.m_current_pipeline->m_shaders) {
-									if (!shader.second.m_active) {
-										continue;
-									}
-									if (count) {
-										ImGui::Separator();
-									}
-									shader_gui(mode, *shader.second.m_shader, shader_code_height, data);
-									if (mode.first == Mode::GlobalMetrics) {
-										break;
-									}
-									++count;
+			const float shader_code_height = (9.0f * h / 10.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
+			ImGui::BeginChild("bottom right pane", ImVec2(), true);
+			if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
+				for (const auto& mode : mode_strs) {
+					if (ImGui::BeginTabItem(mode.second.c_str())) {
+						if (data.m_current_pipeline) {
+							int count = 0;
+							for (auto& shader : data.m_current_pipeline->m_shaders) {
+								if (!shader.second.m_active) {
+									continue;
 								}
-							} else if (current_shader) {
-								shader_gui(mode, *current_shader, shader_code_height, data);
+								if (count) {
+									ImGui::Separator();
+								}
+								shader_gui(mode, *shader.second.m_shader, shader_code_height, data);
+								if (mode.first == Mode::GlobalMetrics) {
+									break;
+								}
+								++count;
 							}
-							ImGui::EndTabItem();
+						} else if (current_shader) {
+							shader_gui(mode, *current_shader, shader_code_height, data);
 						}
+						ImGui::EndTabItem();
 					}
-					ImGui::EndTabBar();
 				}
-				ImGui::EndChild();
+				ImGui::EndTabBar();
 			}
+			ImGui::EndChild();
+
 			ImGui::EndChild();
 		}
 	}
@@ -1004,8 +983,6 @@ int main()
 		glfwGetFramebufferSize(window, &data.m_w_screen, &data.m_h_screen);
 		main_loop(data);
 	});
-
-	//testsCompliance();
 
 	return 0;
 }

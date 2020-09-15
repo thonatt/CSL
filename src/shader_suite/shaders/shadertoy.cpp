@@ -1,11 +1,4 @@
-#pragma once
-
 #include "shadertoy.h"
-
-#include <include/Samplers.hpp>
-#include <include/glsl/BuiltIns.hpp>
-#include <include/glsl/ToGLSL.hpp>
-#include <include/imgui/ToImGui.hpp>
 
 /**
  Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.

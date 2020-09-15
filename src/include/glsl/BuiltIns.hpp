@@ -8,18 +8,6 @@
 
 namespace v2 {
 
-#define EX(type, var) get_expr(std::forward<type>(var))
-
-	//#define ARG_TYPE_IT(r, data, i, elem)  CSL_PP2_COMMA_IF(i) typename FIRST(elem)
-	//#define ARG_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) FIRST(elem) && SECOND(elem)
-	//#define ARG_EXPR_IT(r, data, i, elem) , get_expr(std::forward<FIRST(elem) >(SECOND(elem) ))
-
-	//#define CSL_MAKE_OP(condition, return_type, name, ...) \
-	//	template<CSL_PP2_ITERATE(ARG_TYPE_IT, __VA_ARGS__), typename = std::enable_if_t<condition>> \
-	//	return_type name (CSL_PP2_ITERATE(ARG_IT, __VA_ARGS__)) { \
-	//		return { make_funcall(CSL_PP2_CONCAT(Op::,name) CSL_PP2_ITERATE(ARG_EXPR_IT, __VA_ARGS__)) };  \
-	//	}
-
 #define EXPR(type, var) get_expr(std::forward<type>(var))
 #define ARG_TYPE(elem) typename CSL_PP_FIRST(elem)
 #define ARG(elem) CSL_PP_FIRST(elem) && CSL_PP_SECOND(elem)
@@ -262,7 +250,5 @@ namespace v2 {
 			(I, image)
 		);
 	}
-
-#undef EX
 
 }

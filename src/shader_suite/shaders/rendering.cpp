@@ -1,8 +1,5 @@
 #include "rendering.h"
 
-#include "include/Samplers.hpp"
-#include <include/glsl/BuiltIns.hpp>
-#include "include/glsl/ToGLSL.hpp"
 
 v2::glsl::frag_420::Shader textured_mesh_frag()
 {

@@ -13,8 +13,6 @@
 
 #include <imgui.h>
 
-#ifdef IMGUI_API
-
 namespace v2 {
 
 	struct ImGuiData {
@@ -574,5 +572,3 @@ namespace v2 {
 	};
 
 }
-
-#endif

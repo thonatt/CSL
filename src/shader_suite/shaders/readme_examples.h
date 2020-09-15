@@ -1,9 +1,6 @@
 #pragma once
 
-#include "include/Listeners.hpp"
-#include "include/Structs.hpp"
-
-#include <include/glsl/Shaders.hpp>
+#include <include/csl.hpp>
 
 v2::glsl::frag_420::Shader types_operators_example();
 

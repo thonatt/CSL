@@ -1,9 +1,5 @@
 #include "dolphin.h"
 
-#include "include/Samplers.hpp"
-#include <include/glsl/BuiltIns.hpp>
-#include "include/glsl/ToGLSL.hpp"
-
 /**
  Shaders from the Dolphin emulator.
  https://github.com/dolphin-emu/dolphin

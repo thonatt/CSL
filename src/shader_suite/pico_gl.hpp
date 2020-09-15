@@ -35,12 +35,13 @@ inline void gl_check()
 	const GLenum gl_err = glGetError();
 	if (gl_err) {
 		std::string err;
-		auto it = errors.find(gl_err);
+		const auto it = errors.find(gl_err);
 		if (it != errors.end()) {
 			err = it->second;
 		} else {
 			err = "UNKNOWN_GL_ERROR";
 		}
+		std::cout << err << std::endl;
 	}
 }
 
@@ -59,7 +60,7 @@ inline void gl_framebuffer_check(GLenum target = GL_FRAMEBUFFER)
 	const GLenum status = glCheckFramebufferStatus(target);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		std::string err;
-		auto it = errors.find(status);
+		const auto it = errors.find(status);
 		if (it != errors.end()) {
 			err = it->second;
 		} else {
@@ -92,7 +93,7 @@ enum class GLShaderType {
 	TessellationControl,
 	TessellationEvaluation,
 	Geometry,
-	Fragement,
+	Fragment,
 	Compute
 };
 
@@ -108,7 +109,7 @@ struct GLProgram
 			{ GL_TESS_CONTROL_SHADER, GLShaderType::TessellationControl },
 			{ GL_TESS_EVALUATION_SHADER, GLShaderType::TessellationEvaluation },
 			{ GL_GEOMETRY_SHADER, GLShaderType::Geometry },
-			{ GL_FRAGMENT_SHADER, GLShaderType::Fragement },
+			{ GL_FRAGMENT_SHADER, GLShaderType::Fragment },
 			{ GL_COMPUTE_SHADER, GLShaderType::Compute },
 		};
 
@@ -140,7 +141,7 @@ struct GLProgram
 				std::vector<char> error_message(static_cast<size_t>(log_length) + 1);
 				glGetShaderInfoLog(shader, log_length, NULL, error_message.data());
 				std::cout << "shader " << (compile_status ? "warning" : "error") << " : " << error_message.data() << std::endl;
-				std::cout << std::endl << std::endl << code_str << std::endl;
+				std::cout << "\n\n" << code_str << std::endl;
 			}
 		}
 		glAttachShader(m_id, shader);
@@ -254,15 +255,11 @@ struct GLTexture
 		m_w = w;
 		m_h = h;
 
-		gl_check();
-
 		if (has_multi_samples()) {
 			glTexStorage2DMultisample(m_target, m_sample_count, m_format.m_internal, m_w, m_h, GL_TRUE);
-			gl_check();
 		} else {
-			GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
+			const GLsizei lod_count = static_cast<GLsizei>(std::ceil(std::log(std::max(w, h)))) + 1;
 			glTexStorage2D(m_target, lod_count, gl_format.m_internal, w, h);
-
 			if (data) {
 				glTexSubImage2D(m_target, 0, 0, 0, w, h, gl_format.m_format, gl_format.m_type, data);
 				generate_mipmap();
@@ -282,7 +279,7 @@ struct GLTexture
 	}
 
 	void set_swizzle_mask(const GLint r = GL_RED, const GLint g = GL_GREEN, const GLint b = GL_BLUE, const GLint a = GL_ALPHA) {
-		std::array<GLint, 4> swizzle_mask = { r, g, b, a };
+		const std::array<GLint, 4> swizzle_mask = { r, g, b, a };
 		bind();
 		glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data());
 	}
@@ -333,7 +330,6 @@ struct GLFramebuffer
 		}
 		bind();
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_id);
-
 	}
 
 	void clear(const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f)
@@ -396,8 +392,6 @@ struct GLFramebuffer
 		for (const GLTexture& attachment : tmp_attachments) {
 			create_attachment(attachment.m_format);
 		}
-
-		gl_framebuffer_check(GL_FRAMEBUFFER);
 	}
 
 	void add_attachment(const GLTexture& texture, const GLenum target = GL_FRAMEBUFFER)
@@ -505,9 +499,7 @@ struct GLmesh
 
 		glBindVertexArray(m_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-
 		(setup_attribute(Is, attributes), ...);
-
 		glBufferData(GL_ARRAY_BUFFER, vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW);
 	}
 
@@ -561,7 +553,8 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	}
 
 	glfwMakeContextCurrent(window.get());
-	
+	glfwSwapInterval(static_cast<int>(std::round(mode->refreshRate / desired_fps)));
+
 	glfwSetMouseButtonCallback(window.get(), ImGui_ImplGlfw_MouseButtonCallback);
 	glfwSetKeyCallback(window.get(), ImGui_ImplGlfw_KeyCallback);
 	glfwSetCharCallback(window.get(), ImGui_ImplGlfw_CharCallback);

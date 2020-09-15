@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.8)
-set(CMAKE_CXX_STANDARD 17)
 
 project(CSL_ShaderSuite)
+
+set(CMAKE_CXX_STANDARD 17)
+message("Your C++ compiler supports these C++ features:")
+foreach(i ${CMAKE_CXX_COMPILE_FEATURES})
+  message("${i}")
+endforeach()
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 if (MSVC)
-	add_definitions(/bigobj)
+	add_definitions(/bigobj /Zc:__cplusplus /std:c++17)
 endif(MSVC)
 
 # CSL
@@ -37,10 +42,12 @@ set(CSL_SHADER_SUITE_GLAD_SRC "${CSL_SHADER_SUITE_EXTLIBS_PATH}/glad/src/glad.c"
 
 ### IMGUI
 set(CSL_SHADER_SUITE_IMGUI_PATH "${CSL_SHADER_SUITE_EXTLIBS_PATH}/imgui/")
-file(GLOB CSL_SHADER_SUITE_IMGUI_HEADERS "${CSL_SHADER_SUITE_IMGUI_PATH}/*.h"
+file(GLOB CSL_SHADER_SUITE_IMGUI_HEADERS 
+	"${CSL_SHADER_SUITE_IMGUI_PATH}/*.h"
 	"${CSL_SHADER_SUITE_IMGUI_PATH}/examples/imgui_impl_glfw.h"
 	"${CSL_SHADER_SUITE_IMGUI_PATH}/examples/imgui_impl_opengl3.h")
-file(GLOB CSL_SHADER_SUITE_IMGUI_SRC "${CSL_SHADER_SUITE_IMGUI_PATH}/*.cpp"
+file(GLOB CSL_SHADER_SUITE_IMGUI_SRC 
+	"${CSL_SHADER_SUITE_IMGUI_PATH}/*.cpp"
 	"${CSL_SHADER_SUITE_IMGUI_PATH}/examples/imgui_impl_glfw.cpp"
 	"${CSL_SHADER_SUITE_IMGUI_PATH}/examples/imgui_impl_opengl3.cpp")
 set(CSL_SHADER_SUITE_IMGUI_INCLUDE ${CSL_SHADER_SUITE_IMGUI_PATH})

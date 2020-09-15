@@ -1,9 +1,5 @@
 #include "readme_examples.h"
 
-#include "include/Samplers.hpp"
-#include <include/glsl/BuiltIns.hpp>
-#include "include/glsl/ToGLSL.hpp"
-
 #include <type_traits>
 
 v2::glsl::frag_420::Shader types_operators_example()
