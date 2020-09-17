@@ -164,7 +164,7 @@ const std::string& shader_name(const ShaderEnum shader)
 		{ ShaderEnum::TessControl, "Tessellation control" },
 		{ ShaderEnum::TessEval, "Tessellation evaluation" },
 		{ ShaderEnum::AtmosphereScatteringLUT, "Atmosphere LUT compute" },
-		{ ShaderEnum::AtmosphereRendering, "Atmosphere scattering frag" },
+		{ ShaderEnum::AtmosphereRendering, "Atmosphere scattering" },
 		{ ShaderEnum::CSLVaporwave, "Vaporwave CSL" },
 		{ ShaderEnum::DolphinUbershaderVert, "Dolphin Ubershader vert" },
 		{ ShaderEnum::DolphinUbershaderFrag, "Dolphin Ubershader frag" },
@@ -235,7 +235,7 @@ struct LoopData {
 		m_fractal_noise.create_attachment(GLformat());
 		m_scattering_LUT.create_attachment(GLformat(GL_RGBA32F, GL_RGBA, GL_FLOAT));
 
-		std::filesystem::path path = "../resources/shadertoy-font-25.png";
+		std::filesystem::path path = std::string(CSL_SHADER_SUITE_RESOURCE_PATH) + "/shadertoy-font-25.png";
 		m_tex_letters.load(std::filesystem::absolute(path).string());
 
 		m_screen_quad.init();
@@ -821,6 +821,8 @@ void main_loop(LoopData& data)
 	}
 
 	// Shader suite window
+	ImGui::SetNextWindowSize(ImVec2(static_cast<float>((data.m_w_screen - 30) * 2) / 3, static_cast<float>((data.m_h_screen - 20) * 4) / 5), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos(ImVec2(10 + static_cast<float>(data.m_w_screen) / 3, 10), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Shader suite")) {
 
 		const float w = ImGui::GetContentRegionAvail().x;
@@ -895,6 +897,11 @@ void main_loop(LoopData& data)
 			if (data.m_current_pipeline) {
 				data.m_current_pipeline->additionnal_gui();
 			}
+			if (ImGui::Button("print to console")) {
+				for (auto& shader : data.m_current_pipeline->m_shaders) {
+					std::cout << shader.second.m_shader->m_glsl_str << std::endl;
+				}
+			}
 			ImGui::EndChild();
 
 			const float shader_code_height = (9.0f * h / 10.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
@@ -934,6 +941,8 @@ void main_loop(LoopData& data)
 
 	// OpenGL visualisation if selected shader has an associated pipeline
 	if (data.m_current_pipeline) {
+		ImGui::SetNextWindowSize(ImVec2(static_cast<float>(data.m_w_screen - 30) / 3, static_cast<float>((data.m_h_screen - 20) * 4) / 5), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin("OpenGL rendering")) {
 
 			const float w = ImGui::GetContentRegionAvail().x;
