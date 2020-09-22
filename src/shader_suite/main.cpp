@@ -1,14 +1,3 @@
-//#include <shaders/80_s_shader.h>
-//#include <shaders/dolphin.h>
-//#include <shaders/rendu_compilation.h>
-//#include <shaders/ogl4_sl_cookbook.h>
-////#include <shaders/examples.h>
-//
-//#include "tests.hpp"
-//
-//#include "v2/Listeners.hpp"
-//#include "v2/Structs.hpp"
-
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -20,11 +9,6 @@
 #include "pico_gl.hpp"
 
 #include <imgui.h>
-
-#include "include/glsl/Shaders.hpp"
-#include "include/Samplers.hpp"
-#include "include/glsl/ToGLSL.hpp"
-#include "include/glsl/BuiltIns.hpp"
 
 #include <shaders/dolphin.h>
 #include <shaders/readme_examples.h>
@@ -780,7 +764,7 @@ void main_loop(LoopData& data)
 		{ GLShaderType::Compute, "Compute"},
 	};
 
-	static ShaderPtr current_shader = data.m_shader_suite.m_shaders.find(ShaderEnum::DolphinUbershaderVert)->second;
+	static ShaderPtr current_shader = {}; // data.m_shader_suite.m_shaders.find(ShaderEnum::DolphinUbershaderVert)->second;
 
 	data.m_time += ImGui::GetIO().DeltaTime;
 
@@ -876,7 +860,7 @@ void main_loop(LoopData& data)
 		ImGui::BeginChild("right pane", ImVec2(), false);
 		float active_shader_count = 0;
 		{
-			ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 10.0f), true);
+			ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 8.0f), true);
 			if (data.m_current_pipeline) {
 				int count = 0;
 				for (auto& shader : data.m_current_pipeline->m_shaders) {
@@ -886,6 +870,13 @@ void main_loop(LoopData& data)
 						ImGui::SameLine();
 					}
 					ImGui::Checkbox((shader_type_strs.find(shader.first)->second + "##").c_str(), &shader.second.m_active);
+					if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
+					{
+						if (ImGui::Button("print to console")) {
+							std::cout << shader.second.m_shader->m_glsl_str << std::endl;						
+						}
+						ImGui::EndPopup();
+					}
 					if (shader.second.m_active) {
 						++active_shader_count;
 					}
@@ -897,14 +888,9 @@ void main_loop(LoopData& data)
 			if (data.m_current_pipeline) {
 				data.m_current_pipeline->additionnal_gui();
 			}
-			if (ImGui::Button("print to console")) {
-				for (auto& shader : data.m_current_pipeline->m_shaders) {
-					std::cout << shader.second.m_shader->m_glsl_str << std::endl;
-				}
-			}
 			ImGui::EndChild();
 
-			const float shader_code_height = (9.0f * h / 10.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
+			const float shader_code_height = (7.0f * h / 8.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
 			ImGui::BeginChild("bottom right pane", ImVec2(), true);
 			if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
 				for (const auto& mode : mode_strs) {
@@ -983,12 +969,10 @@ int main()
 	// lambda to copy previous frame as texture
 	auto before_clear_func = [&] {
 		data.m_previous_rendering.resize(data.m_w_screen, data.m_h_screen);
-
 		GLFramebuffer fb_tmp;
 		fb_tmp.init_gl();
 		fb_tmp.add_attachment(data.m_previous_rendering, GL_DRAW_FRAMEBUFFER);
 		fb_tmp.blit_inversed_from(GLFramebuffer::get_default(data.m_w_screen, data.m_h_screen), GL_LINEAR);
-
 		data.m_previous_rendering.generate_mipmap();
 	};
 

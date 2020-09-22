@@ -108,7 +108,7 @@ namespace v2 {
 		std::string m_str;
 	};
 
-#define MAKE_OP_IT(r, data, i, elem) { Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
+#define MAKE_OP_IT(data, i, elem) { Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
 
 	inline const std::unordered_map<Op, OpInfos>& glsl_op_infos() {
 		static const std::unordered_map<Op, OpInfos> op_infos = {
@@ -263,7 +263,7 @@ namespace v2 {
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_x>::get() { return "local_size_x"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_y>::get() { return "local_size_y"; }
 
-#define CSL_QUALIFIER_STR_IT(r, data, i, elem) \
+#define CSL_QUALIFIER_STR_IT(data, i, elem) \
 	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP2_STR(CSL_PP_SECOND(elem)); }
 
 	CSL_PP2_ITERATE(CSL_QUALIFIER_STR_IT,

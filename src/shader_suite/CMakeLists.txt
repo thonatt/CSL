@@ -11,7 +11,7 @@ endforeach()
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 if (MSVC)
-	add_definitions(/bigobj /Zc:__cplusplus /std:c++17)
+	add_definitions(/bigobj /Zc:__cplusplus /std:c++17 /experimental:preprocessor)
 endif(MSVC)
 
 # CSL
@@ -31,6 +31,7 @@ file(GLOB CSL_IMGUI "./../include/imgui/*.hpp")
 source_group("Src\\imgui" FILES ${CSL_IMGUI})
 
 set(CSL_CORE_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../")
+
 set(CSL_SHADER_SUITE_SHADERS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 
 set(CSL_SHADER_SUITE_RESOURCE_PATH "\"${CMAKE_CURRENT_SOURCE_DIR}/../../resources/\"")
@@ -65,7 +66,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_DOCUMENT_INTERNALS OFF CACHE BOOL "")
 add_subdirectory(${CSL_SHADER_SUITE_GLFW_PATH})
 
-add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_CORE_v2} ${CSL_GLSL} ${CSL_IMGUI}
+add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_GLSL} ${CSL_IMGUI}
 	${CSL_SHADER_SUITE_IMGUI_HEADERS} ${CSL_SHADER_SUITE_IMGUI_SRC} ${CSL_SHADER_SUITE_GLAD_SRC}
 )
 

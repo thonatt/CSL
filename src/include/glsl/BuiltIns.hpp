@@ -50,10 +50,10 @@ namespace v2 {
 	CSL_MAKE_OP_2(IsVecF<A> && SameMat<A CSL_PP2_COMMA B>, Vector<float CSL_PP2_COMMA 1>, name, (A, a), (B, b))
 
 #define GENTYPE_OP_GENTYPE(name) GENXTYPE_OP_GENXTYPE(float, v, float, name)
-#define GENTYPE_OP_GENTYPE_IT(r, data, i, elem) GENTYPE_OP_GENTYPE(elem) 
-#define RELATIONAL_GENTYPE_OP_IT(r, data, i, elem) RELATIONAL_GENTYPE_OP(elem)
-#define FLOAT_OP_GENTYPE_2_IT(r, data, i, elem) FLOAT_OP_GENTYPE_2(elem)
-#define GENTYPE_OP_SCALAR_OR_GENTYPE_2_IT(r, data, i, elem) GENTYPE_OP_SCALAR_OR_GENTYPE_2(elem)
+#define GENTYPE_OP_GENTYPE_IT(data, i, elem) GENTYPE_OP_GENTYPE(elem) 
+#define RELATIONAL_GENTYPE_OP_IT(data, i, elem) RELATIONAL_GENTYPE_OP(elem)
+#define FLOAT_OP_GENTYPE_2_IT(data, i, elem) FLOAT_OP_GENTYPE_2(elem)
+#define GENTYPE_OP_SCALAR_OR_GENTYPE_2_IT(data, i, elem) GENTYPE_OP_SCALAR_OR_GENTYPE_2(elem)
 
 	namespace glsl_110 {
 

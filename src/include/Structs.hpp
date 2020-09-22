@@ -16,29 +16,29 @@
 #define CSL_PP2_MEMBER_STR(elem) CSL_PP2_STR(CSL_PP2_MEMBER_NAME(elem))
 
 //macros used when iterating over members
-#define CSL_PP2_MEMBER_TYPE_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem)
-#define CSL_PP2_MEMBER_STR_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_STR(elem)
-#define CSL_PP2_MEMBER_ARG_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem),
-#define CSL_PP2_MEMBER_ARG_EX_IT(r, data, i, elem) , v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>(CSL_PP2_MEMBER_NAME(elem)))
+#define CSL_PP2_MEMBER_TYPE_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem)
+#define CSL_PP2_MEMBER_STR_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_STR(elem)
+#define CSL_PP2_MEMBER_ARG_IT(data, i, elem) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem),
+#define CSL_PP2_MEMBER_ARG_EX_IT(data, i, elem) , v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>(CSL_PP2_MEMBER_NAME(elem)))
 
-#define CSL_PP2_DECLARE_MEMBER_IT(r, data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
+#define CSL_PP2_DECLARE_MEMBER_IT(data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
 
-#define CSL_PP2_MEMBERWISE_CTOR_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem)
-#define CSL_PP2_MEMBERWISE_ARG_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>( CSL_PP2_MEMBER_NAME(elem) ) )
+#define CSL_PP2_MEMBERWISE_CTOR_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem)
+#define CSL_PP2_MEMBERWISE_ARG_IT(data, i, elem) CSL_PP2_COMMA_IF(i) v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>( CSL_PP2_MEMBER_NAME(elem) ) )
 
-#define CSL_PP2_INIT_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem)( \
+#define CSL_PP2_INIT_MEMBER_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem)( \
 	 v2::make_expr<v2::MemberAccessor<CSL_PP_FIRST(data) ,i>>(Base::m_expr), CSL_PP_SECOND(data) )
 
-#define CSL_PP2_SET_MEMBER_IT(r, data, i, elem) \
+#define CSL_PP2_SET_MEMBER_IT(data, i, elem) \
 	CSL_PP2_MEMBER_NAME(elem).m_expr = v2::make_expr<v2::MemberAccessor<data,i>>(Base::m_expr); \
 	CSL_PP2_MEMBER_NAME(elem).m_flags = v2::ObjFlags::StructMember | v2::ObjFlags::AlwaysExp;
 
-#define CSL_PP2_EMPTY_INIT_MEMBER_IT(r, data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem) ( v2::Dummy{} )
+#define CSL_PP2_EMPTY_INIT_MEMBER_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_NAME(elem) ( v2::Dummy{} )
 
-#define CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) \
+#define CSL_PP2_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(data, i, elem) \
 	CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), v2::ObjFlags::Constructor };
 
-#define CSL_PP2_DECLARE_BUILTIN_UNNAMED_INTERFACE_MEMBER_IT(r, data, i, elem) \
+#define CSL_PP2_DECLARE_BUILTIN_UNNAMED_INTERFACE_MEMBER_IT(data, i, elem) \
 	inline CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem) { CSL_PP2_MEMBER_STR(elem), data };
 
 #define CSL_PP2_ARRAY_INFOS_FROM_QUALIFIER2(Qualifiers) typename v2::ArrayInfos< CSL_PP_DEPARENTHESIS(Qualifiers) >::Dimensions

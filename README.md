@@ -14,7 +14,7 @@ CSL is a C++ header-only library, self-transpiling into GLSL. It allows to write
 CSL requires a C++17 compliant compiler. It built successfully using Visual Studio (Windows), Clang (Windows, Linux, Apple), and GCC (Linux, Apple).
 CSL does not require any external dependency as it relies only on the C++ Standard Library and some [Boost Preprocessor files](https://github.com/thonatt/CSL/blob/master/src/boost/headers_used.txt) which are included in the repo.
 
-This repo contains the [CSL source files](https://github.com/thonatt/CSL/tree/master/src/csl). It also contains a [shader suite application](#shader-suite) [shader suite application](https://github.com/thonatt/CSL/tree/master/src/shader_suite/), which shows several CSL shaders, from didactic examples to more complex shaders such as [Dolphin's ubershaders](https://github.com/thonatt/CSL/blob/master/src/shader_suite/shaders/dolphin.cpp). The application can be built using for example CMake.
+This repo contains the [CSL source files](https://github.com/thonatt/CSL/tree/master/src/include) which represent the whole library. It also contains a [shader suite application](#shader-suite), which shows several CSL shaders, from didactic examples to more complex shaders.
 
 CSL is a template-heavy library and compilation is currently noticeably slow. The run-time shader generation is however pretty fast. The whole shader suite, including all the examples present in this readme, takes approximately 5 ms to be generated. 
 
@@ -22,7 +22,7 @@ CSL is a template-heavy library and compilation is currently noticeably slow. Th
 
 # Setup
 
-As CSL is a header-only library, a simple include of the file `<csl/core.hpp>` is enough to use it. Here is a small program, showing a vertex shader example and its corresponding output. CSL syntax is described in more detail in the [syntax section](#csl-syntax).
+As CSL is a header-only library, the header files in the `CSL/src/include` are needed, and simple include of the file `<csl.hpp>` is enough to use it. Here is a small program, showing a vertex shader example and its corresponding output. CSL syntax is described in more detail in the [syntax section](#csl-syntax).
 
 <table>
   <tr>
@@ -38,15 +38,15 @@ As CSL is a header-only library, a simple include of the file `<csl/core.hpp>` i
 
 int main() {
       using namespace csl::vert_330;  
-      Shader myShader;
+      Shader shader;
 
-      In<vec3, Layout<Location<0>>> position;
+      Qualify<vec3, Layout<Location<0>>, In> position;
 
-      myShader.main([&]{
+      shader.main([&]{
             gl_Position = vec4(position, 1.0);
       });
 
-      std::cout << myShader.str() << std::endl;
+      std::cout << shader.str() << std::endl;
 }
 ```
    </td>
@@ -72,7 +72,7 @@ For readability purposes, all outputs are shown as if the code used named variab
 
 ![alt text](resources/CSLShaderSuite.png "Shader suite screenshot")
 
-The CSL shader suite is an application showcasing a collection of shaders written in CSL. For each shader, the application provides some metrics about runtime performances and a way to explore the shader expression tree. It also allows to see some shaders in action, thus serving as a practical test suite. 
+The CSL shader suite is an application showcasing a collection of shaders written in CSL. For each shader, the application provides the output GLSL string, some metrics about runtime performances, and a way to explore the shader expression tree using [ImGui](https://github.com/ocornut/imgui). It also allows to see several shaders in action, thus serving as a practical test suite. 
 
 ## Building
 
@@ -80,16 +80,18 @@ First clone the repo and its dependencies:
 
 ```
 git clone --recursive https://github.com/thonatt/CSL.git
+cd CSL
 git submodule update --init
 ```
 
 The shader suite can be then built using [CMake](https://cmake.org/):
 
 ```
-cd CSL\src\shader_suite\
+cd src\shader_suite\
 mkdir build
 cd build
-cmake .. -G ["Visual Studio 16 2019" | "Unix Makefiles" | Your favorite generator ... ]
+cmake --help ## optional - to check available generators
+cmake .. -G "Your picked generator" ## e.g "Visual Studio 16 2019"  
 ```
 
 Finally compile and run the application:
