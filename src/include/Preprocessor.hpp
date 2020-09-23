@@ -1,11 +1,5 @@
 #pragma once
 
-//#include <boost/preprocessor/seq/for_each_i.hpp>
-//#include <boost/preprocessor/variadic/to_seq.hpp>
-//#include <boost/preprocessor/stringize.hpp>
-//#include <boost/preprocessor/punctuation/comma_if.hpp>
-//#include <boost/preprocessor/facilities/is_empty.hpp>
-
 #define CSL_PP2_CONCAT_I(x, y) x ## y
 #define CSL_PP2_CONCAT(x, y) CSL_PP2_CONCAT_I(x, y)
 
@@ -22,18 +16,6 @@
 #define CSL_PP_FIRST(x) CSL_PP_FIRST_I x
 #define CSL_PP_SECOND(x) CSL_PP_SECOND_I x
 
-// helpers wrapping up BOOST_PP
-//#define CSL_PP_STR_I(x) #x
-//#define CSL_PP2_STR(arg) BOOST_PP_STRINGIZE(arg)
-//#define CSL_PP2_COMMA , //BOOST_PP_COMMA()
-//#define CSL_PP2_COMMA_IF(arg) BOOST_PP_COMMA_IF(arg)
-//
-//#define CSL_PP2_ITERATE(macro, ...) \
-//	BOOST_PP_SEQ_FOR_EACH_I(macro, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
-//
-//#define CSL_PP2_ITERATE_DATA(data, macro, ...) \
-//	BOOST_PP_SEQ_FOR_EACH_I(macro, data, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
-
 #define CSL_PP_STR_I(x) #x
 #define CSL_PP2_STR(arg) CSL_PP_STR_I(arg)
 
@@ -45,16 +27,16 @@
 
 #define COMMA() ,
 #define EMPTY()
-#define COMMA_IF(c) IF(c, COMMA, EMPTY)()
 
 #define CSL_PP2_COMMA COMMA()
-#define CSL_PP2_COMMA_IF(arg) COMMA_IF(arg)
+#define CSL_PP2_COMMA_IF(arg) IF(arg, COMMA, EMPTY)()
 
 #define ITERATE_II(macro, data, count, ...) ITERATE_ ## count(macro, data, 0, __VA_ARGS__)
 #define ITERATE_I(macro, data, count, ...) ITERATE_II(macro, data, count, __VA_ARGS__)
 #define CSL_PP2_ITERATE_DATA(data, macro, ...) ITERATE_I(macro, data, VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
 #define CSL_PP2_ITERATE(macro, ...) ITERATE_I(macro, , VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
-// Macro generator
+
+// Next macros generator
 //////////////////////////////
 //#include <iostream>
 //#include <sstream>

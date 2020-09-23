@@ -266,7 +266,13 @@ namespace v2 {
 
 
 	template<>
-	struct Infos<std::size_t> : Infos<Matrix<int, 1, 1, TList<>>> {
+	struct Infos<unsigned long long> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
+		static constexpr bool IsConstant = true;
+		static constexpr bool IsValid = true;
+	};
+
+	template<>
+	struct Infos<unsigned long> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};

@@ -18,8 +18,6 @@
 //macros used when iterating over members
 #define CSL_PP2_MEMBER_TYPE_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_TYPE(elem)
 #define CSL_PP2_MEMBER_STR_IT(data, i, elem) CSL_PP2_COMMA_IF(i) CSL_PP2_MEMBER_STR(elem)
-#define CSL_PP2_MEMBER_ARG_IT(data, i, elem) CSL_PP2_MEMBER_TYPE(elem) && CSL_PP2_MEMBER_NAME(elem),
-#define CSL_PP2_MEMBER_ARG_EX_IT(data, i, elem) , v2::get_expr(std::forward<CSL_PP2_MEMBER_TYPE(elem)>(CSL_PP2_MEMBER_NAME(elem)))
 
 #define CSL_PP2_DECLARE_MEMBER_IT(data, i, elem) CSL_PP2_MEMBER_TYPE(elem) CSL_PP2_MEMBER_NAME(elem);
 

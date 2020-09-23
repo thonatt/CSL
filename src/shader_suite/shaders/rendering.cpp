@@ -223,7 +223,7 @@ v2::glsl::frag_420::Shader phong_shading_frag() {
 		const vec3 V = normalize(eye - frag_in.position);
 
 		vec3 col = (1.0 - kd - ks) * base_color;
-		CSL_FOR(Int i = 0; i < LightArray4::ComponentCount; ++i) {
+		CSL_FOR(Int i = 0; i < 4; ++i) {
 			const vec3 L = normalize(lights[i].position - frag_in.position);
 			const vec3 R = reflect(L, N);
 			const Float diffuse = max(0.0, dot(L, N));

@@ -131,7 +131,7 @@ const std::string& shader_name(const ShaderEnum shader)
 		{ ShaderEnum::ArraysExample, "Arrays" },
 		{ ShaderEnum::FunctionsExample, "Functions" },
 		{ ShaderEnum::ControlBlocksExample, "Control blocks" },
-		{ ShaderEnum::StructsExample, "Strucs" },
+		{ ShaderEnum::StructsExample, "Structs" },
 		{ ShaderEnum::InterfaceBlocksExamples, "Interface blocks" },
 		{ ShaderEnum::CommaAndTypenamesExample, "Comma & typenames" },
 		{ ShaderEnum::ShaderStageOptionsExample, "Shader stage options" },
