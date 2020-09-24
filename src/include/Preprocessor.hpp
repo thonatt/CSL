@@ -1,7 +1,7 @@
 #pragma once
 
-#define CSL_PP2_CONCAT_I(x, y) x ## y
-#define CSL_PP2_CONCAT(x, y) CSL_PP2_CONCAT_I(x, y)
+#define CSL_PP_CONCAT_I(x, y) x ## y
+#define CSL_PP_CONCAT(x, y) CSL_PP_CONCAT_I(x, y)
 
 // helper for typed lists parsing
 #define CSL_PP_VANISH
@@ -17,7 +17,7 @@
 #define CSL_PP_SECOND(x) CSL_PP_SECOND_I x
 
 #define CSL_PP_STR_I(x) #x
-#define CSL_PP2_STR(arg) CSL_PP_STR_I(arg)
+#define CSL_PP_STR(arg) CSL_PP_STR_I(arg)
 
 #define IF_0(t, f) f
 #define IF_1(t, f) t
@@ -28,13 +28,13 @@
 #define COMMA() ,
 #define EMPTY()
 
-#define CSL_PP2_COMMA COMMA()
-#define CSL_PP2_COMMA_IF(arg) IF(arg, COMMA, EMPTY)()
+#define CSL_PP_COMMA COMMA()
+#define CSL_PP_COMMA_IF(arg) IF(arg, COMMA, EMPTY)()
 
 #define ITERATE_II(macro, data, count, ...) ITERATE_ ## count(macro, data, 0, __VA_ARGS__)
 #define ITERATE_I(macro, data, count, ...) ITERATE_II(macro, data, count, __VA_ARGS__)
-#define CSL_PP2_ITERATE_DATA(data, macro, ...) ITERATE_I(macro, data, VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
-#define CSL_PP2_ITERATE(macro, ...) ITERATE_I(macro, , VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
+#define CSL_PP_ITERATE_DATA(data, macro, ...) ITERATE_I(macro, data, VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
+#define CSL_PP_ITERATE(macro, ...) ITERATE_I(macro, , VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
 
 // Next macros generator
 //////////////////////////////

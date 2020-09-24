@@ -2,7 +2,7 @@
 
 #include "../include/Types.hpp"
 
-namespace v2
+namespace csl
 {
 	namespace glsl {
 

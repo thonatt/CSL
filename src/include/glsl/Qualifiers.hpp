@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace v2
+namespace csl
 {
 	namespace glsl {
 

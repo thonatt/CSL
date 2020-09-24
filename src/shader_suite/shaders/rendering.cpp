@@ -1,12 +1,12 @@
 #include "rendering.h"
 
 
-v2::glsl::frag_420::Shader textured_mesh_frag()
+csl::glsl::frag_420::Shader textured_mesh_frag()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+	CSL_INTERFACE_BLOCK(In, VertexData, frag_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -23,13 +23,13 @@ v2::glsl::frag_420::Shader textured_mesh_frag()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader multiple_outputs_frag()
+csl::glsl::frag_420::Shader multiple_outputs_frag()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::all;
 	Shader shader;
 
-	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+	CSL_INTERFACE_BLOCK(In, VertexData, frag_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -55,15 +55,15 @@ v2::glsl::frag_420::Shader multiple_outputs_frag()
 	return shader;
 }
 
-v2::glsl::geom_420::Shader geometric_normals() {
-	using namespace v2::glsl::geom_420;
+csl::glsl::geom_420::Shader geometric_normals() {
+	using namespace csl::glsl::geom_420;
 
 	Shader shader;
 
 	in<Layout<Triangles>>();
 	out<Layout<Line_strip, Max_vertices<2>>>();
 
-	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, vertex_in,
+	CSL_INTERFACE_BLOCK((In, Array<0>), VertexData, vertex_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -91,8 +91,8 @@ v2::glsl::geom_420::Shader geometric_normals() {
 	return shader;
 }
 
-v2::glsl::frag_420::Shader single_color_frag() {
-	using namespace v2::glsl::frag_420;
+csl::glsl::frag_420::Shader single_color_frag() {
+	using namespace csl::glsl::frag_420;
 
 	Shader shader;
 	Qualify<vec4, Layout<Location<0>>, Out> color("color");
@@ -104,20 +104,20 @@ v2::glsl::frag_420::Shader single_color_frag() {
 	return shader;
 }
 
-v2::glsl::tcs_420::Shader tessellation_control_shader_example() {
-	using namespace v2::glsl::tcs_420;
+csl::glsl::tcs_420::Shader tessellation_control_shader_example() {
+	using namespace csl::glsl::tcs_420;
 
 	Shader shader;
 	out<Layout<Vertices<3>>>();
 
-	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, tcs_in,
+	CSL_INTERFACE_BLOCK((In, Array<0>), VertexData, tcs_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
 		(vec2, uv)
 	);
 
-	CSL2_INTERFACE_BLOCK((Out, Array<0>), VertexData, tcs_out,
+	CSL_INTERFACE_BLOCK((Out, Array<0>), VertexData, tcs_out,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -145,21 +145,21 @@ v2::glsl::tcs_420::Shader tessellation_control_shader_example() {
 	return shader;
 }
 
-v2::glsl::tev_420::Shader tessellation_evaluation_shader_example()
+csl::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 {
-	using namespace v2::glsl::tev_420;
-	using namespace v2::swizzles::xyzw;
+	using namespace csl::glsl::tev_420;
+	using namespace csl::swizzles::xyzw;
 
 	Shader shader;
 
-	CSL2_INTERFACE_BLOCK((In, Array<0>), VertexData, tev_in,
+	CSL_INTERFACE_BLOCK((In, Array<0>), VertexData, tev_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
 		(vec2, uv)
 	);
 
-	CSL2_INTERFACE_BLOCK(Out, VertexData, tev_out,
+	CSL_INTERFACE_BLOCK(Out, VertexData, tev_out,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -186,11 +186,11 @@ v2::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader phong_shading_frag() {
-	using namespace v2::glsl::frag_420;
+csl::glsl::frag_420::Shader phong_shading_frag() {
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	CSL2_INTERFACE_BLOCK(In, VertexData, frag_in,
+	CSL_INTERFACE_BLOCK(In, VertexData, frag_in,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -201,7 +201,7 @@ v2::glsl::frag_420::Shader phong_shading_frag() {
 
 	Qualify<vec4, Out> out_color("out_color");
 
-	CSL2_STRUCT(Light,
+	CSL_STRUCT(Light,
 		(vec3, position),
 		(vec3, color)
 	);
@@ -237,17 +237,17 @@ v2::glsl::frag_420::Shader phong_shading_frag() {
 	return shader;
 }
 
-v2::glsl::vert_420::Shader interface_vertex_shader()
+csl::glsl::vert_420::Shader interface_vertex_shader()
 {
-	using namespace v2::glsl::vert_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::vert_420;
+	using namespace csl::swizzles::all;
 	Shader shader;
 
 	Qualify<vec3, Layout<Location<0>>, In> in_position("in_position");
 	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
 	Qualify<vec3, Layout<Location<2>>, In> in_normal("in_normal");
 
-	CSL2_INTERFACE_BLOCK(Out, VertexData, vertex_out,
+	CSL_INTERFACE_BLOCK(Out, VertexData, vertex_out,
 		(vec3, position),
 		(vec3, normal),
 		(vec3, color),
@@ -268,10 +268,10 @@ v2::glsl::vert_420::Shader interface_vertex_shader()
 	return shader;
 }
 
-v2::glsl::vert_420::Shader screen_quad_vertex_shader()
+csl::glsl::vert_420::Shader screen_quad_vertex_shader()
 {
-	using namespace v2::glsl::vert_420;
-	using namespace v2::swizzles::xyzw;
+	using namespace csl::glsl::vert_420;
+	using namespace csl::swizzles::xyzw;
 	Shader shader;
 
 	Qualify<vec3, Layout<Location<0>>, In> pos("pos");

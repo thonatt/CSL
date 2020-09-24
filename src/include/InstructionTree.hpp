@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace v2 {
+namespace csl {
 
 	struct InstructionBase {
 		virtual ~InstructionBase() = default;

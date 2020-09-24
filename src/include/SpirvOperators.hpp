@@ -1,6 +1,6 @@
 #pragma once
 
-namespace v2 {
+namespace csl {
 
 	enum class SpirvOp {
 		OpNop = 0,

@@ -7,7 +7,7 @@
 #include "Qualifiers.hpp"
 #include "../Structs.hpp"
 
-namespace v2 {
+namespace csl {
 
 	namespace glsl {
 
@@ -46,14 +46,14 @@ namespace v2 {
 			template<typename Data>
 			void print_imgui(Data& data) {
 				BuiltInRegisters<type, version>::template call(data.glsl_data);
-				ShaderController::template print_imgui<v2::Dummy>(data);
+				ShaderController::template print_imgui<csl::Dummy>(data);
 			}
 
 			template<typename Data>
 			void print_glsl(Data& data) {
 				BuiltInRegisters<type, version>::template call(data);
 				data << get_header();
-				ShaderController::template print_glsl<v2::Dummy>(data);
+				ShaderController::template print_glsl<csl::Dummy>(data);
 			}
 
 			template<typename F>
@@ -90,7 +90,7 @@ namespace v2 {
 		namespace vert_common {
 			using namespace shader_common;
 
-			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexVert, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexVert, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -123,7 +123,7 @@ namespace v2 {
 			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
 			inline const Qualify<Int, In> gl_InvocationID("gl_InvocationID");
 
-			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -132,7 +132,7 @@ namespace v2 {
 			inline Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
 			inline Qualify<Float, Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
-			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -165,13 +165,13 @@ namespace v2 {
 			inline const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
 			inline const Qualify<Float, In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
-			CSL_PP2_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexTEVout, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexTEVout, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -199,24 +199,24 @@ namespace v2 {
 		namespace geom_common {
 			using namespace shader_common;
 
-			CSL_PP2_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<vec4, Array<0>>), gl_ClipDistance)
 			);
 
-			CSL_PP2_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexGeom, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexGeom, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<vec4, Array<0>>), gl_ClipDistance)
 			);
 
 			inline void EmitVertex() {
-				listen().add_statement<SpecialStatement<v2::EmitVertexI>>();
+				listen().add_statement<SpecialStatement<csl::EmitVertexI>>();
 			}
 
 			inline void EndPrimitive() {
-				listen().add_statement<SpecialStatement<v2::EndPrimitiveI>>();
+				listen().add_statement<SpecialStatement<csl::EndPrimitiveI>>();
 			}
 		}
 
@@ -289,7 +289,7 @@ namespace v2 {
 
 		namespace vert_420
 		{
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_420;
 			using namespace vert_common;
 
@@ -298,7 +298,7 @@ namespace v2 {
 
 		namespace tcs_420
 		{
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_420;
 			using namespace tcs_common;
 
@@ -307,7 +307,7 @@ namespace v2 {
 
 		namespace tev_420
 		{
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_420;
 			using namespace tev_common;
 
@@ -317,7 +317,7 @@ namespace v2 {
 		namespace geom_420
 		{
 
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_420;
 			using namespace geom_common;
 
@@ -326,7 +326,7 @@ namespace v2 {
 
 		namespace frag_420
 		{
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_420;
 			using namespace frag_common;
 
@@ -335,7 +335,7 @@ namespace v2 {
 
 		namespace compute_430
 		{
-			using namespace v2;
+			using namespace csl;
 			using namespace glsl_430;
 			using namespace compute_common;
 

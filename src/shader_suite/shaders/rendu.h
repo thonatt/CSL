@@ -7,6 +7,6 @@
  https://github.com/kosua20/Rendu
  */
 
-v2::glsl::compute_430::Shader scattering_lookup_table();
+csl::glsl::compute_430::Shader scattering_lookup_table();
 
-v2::glsl::frag_420::Shader atmosphere_rendering();
+csl::glsl::frag_420::Shader atmosphere_rendering();

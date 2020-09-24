@@ -7,14 +7,14 @@
  https://gist.github.com/phire/25181a9bfd957ac68ea8c74afdd9e9e1
  */
 
-v2::glsl::vert_420::Shader dolphin_ubershader_vertex()
+csl::glsl::vert_420::Shader dolphin_ubershader_vertex()
 {
-	using namespace v2::glsl::vert_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::vert_420;
+	using namespace csl::swizzles::all;
 
 	Shader shader;
 
-	CSL2_STRUCT(Light,
+	CSL_STRUCT(Light,
 		(ivec4, color),
 		(vec4, cosatt),
 		(vec4, distatt),
@@ -22,7 +22,7 @@ v2::glsl::vert_420::Shader dolphin_ubershader_vertex()
 		(vec4, dir)
 	);
 
-	CSL2_UNNANMED_INTERFACE_BLOCK(
+	CSL_UNNAMED_INTERFACE_BLOCK(
 		(Layout<Binding<2>, Std140>, Uniform),
 		VSBLock,
 		(Uint, components),
@@ -41,7 +41,7 @@ v2::glsl::vert_420::Shader dolphin_ubershader_vertex()
 		((Qualify<uvec4, Array<8>>), xfmem_pack1)
 	);
 
-	CSL2_STRUCT(VS_OUTPUT,
+	CSL_STRUCT(VS_OUTPUT,
 		(vec4, pos),
 		(vec4, colors_0),
 		(vec4, colors_1),
@@ -132,7 +132,7 @@ v2::glsl::vert_420::Shader dolphin_ubershader_vertex()
 	Qualify<vec4, In> rawcolor0("rawcolor0"), rawcolor1("rawcolor1");
 	Qualify<vec3, In> rawtex0("rawtex0"), rawtex1("rawtex1"), rawtex2("rawtex2"), rawtex3("rawtex3"), rawtex4("rawtex4"), rawtex5("rawtex5"), rawtex6("rawtex6"), rawtex7("rawtex7");
 
-	CSL2_INTERFACE_BLOCK(Out, VertexData, vs,
+	CSL_INTERFACE_BLOCK(Out, VertexData, vs,
 		(vec4, pos),
 		(vec4, colors_0),
 		(vec4, colors_1),
@@ -453,10 +453,10 @@ v2::glsl::vert_420::Shader dolphin_ubershader_vertex()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader dolphin_ubershader_fragment()
+csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::all;
 	Shader shader;
 
 	// Pixel UberShader for 2 texgens, early-depth
@@ -482,7 +482,7 @@ v2::glsl::frag_420::Shader dolphin_ubershader_fragment()
 
 	Qualify< sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samp("samp");
 
-	CSL2_UNNANMED_INTERFACE_BLOCK(
+	CSL_UNNAMED_INTERFACE_BLOCK(
 		(Layout<Std140, Binding<1>>, Uniform),
 		PSBlock,
 		((Qualify<ivec4, Array<4>>), color),
@@ -512,7 +512,7 @@ v2::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		((Qualify<ivec4, Array<32>>), konstLookup)
 	);
 
-	CSL2_STRUCT(VS_OUTPUT,
+	CSL_STRUCT(VS_OUTPUT,
 		(vec4, pos),
 		(vec4, colors_0),
 		(vec4, colors_1),
@@ -527,7 +527,7 @@ v2::glsl::frag_420::Shader dolphin_ubershader_fragment()
 	Qualify<vec4, Out> ocol0("ocol0"), ocol1("ocol1");
 
 
-	CSL2_UNNANMED_INTERFACE_BLOCK(
+	CSL_UNNAMED_INTERFACE_BLOCK(
 		In,
 		VertexData,
 		(vec4, pos),
@@ -721,14 +721,14 @@ v2::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		}
 	});
 
-	CSL2_STRUCT(
+	CSL_STRUCT(
 		State,
 		((Qualify<ivec4, Array<4>>), Reg),
 		(ivec4, TexColor),
 		(Int, AlphaBump)
 	);
 
-	CSL2_STRUCT(
+	CSL_STRUCT(
 		StageState,
 		(Uint, stage),
 		(Uint, order),

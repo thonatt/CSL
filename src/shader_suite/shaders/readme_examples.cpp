@@ -2,9 +2,9 @@
 
 #include <type_traits>
 
-v2::glsl::frag_420::Shader types_operators_example()
+csl::glsl::frag_420::Shader types_operators_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	Uint counter = 0;
@@ -15,9 +15,9 @@ v2::glsl::frag_420::Shader types_operators_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader manual_naming_example()
+csl::glsl::frag_420::Shader manual_naming_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	//naming during variable declaration
@@ -39,9 +39,9 @@ v2::glsl::frag_420::Shader manual_naming_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader auto_naming_example()
+csl::glsl::frag_420::Shader auto_naming_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	Qualify<vec3, In> normal;
@@ -60,10 +60,10 @@ v2::glsl::frag_420::Shader auto_naming_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader swizzling_example()
+csl::glsl::frag_420::Shader swizzling_example()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::rgba;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::rgba;
 	Shader shader;
 
 	mat4 cols("cols");
@@ -78,9 +78,9 @@ v2::glsl::frag_420::Shader swizzling_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader qualifier_example()
+csl::glsl::frag_420::Shader qualifier_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	Qualify<vec4, Out> color("color");
@@ -90,32 +90,32 @@ v2::glsl::frag_420::Shader qualifier_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader arrays_example()
+csl::glsl::frag_420::Shader arrays_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	// array declaration
-	Qualify<vec3, Array<5>> v3x5("v3x5");
+	Qualify<vec3, Array<5>> vec3x5("vec3x5");
 
 	// array initialization
 	Qualify<Float, Array<0>> floatX = Qualify<Float, Array<0>>(0.0, 1.0, 2.0) << "floatX";
 
 	// multi dimensionnal arrays
-	Qualify<mat3, Array<2, 2>> m3x2x2 = Qualify<mat3, Array<2, 2>>(
+	Qualify<mat3, Array<2, 2>> mat3x2x2 = Qualify<mat3, Array<2, 2>>(
 		Qualify<mat3, Array<2>>(mat3(0), mat3(1)),
-		Qualify<mat3, Array<2>>(mat3(2), mat3(3))) << "m3x2x2";
+		Qualify<mat3, Array<2>>(mat3(2), mat3(3))) << "mat3x2x2";
 
 	// usage
-	v3x5[0] = floatX[1] * m3x2x2[0][0] * v3x5[1];
+	vec3x5[0] = floatX[1] * mat3x2x2[0][0] * vec3x5[1];
 
 	return shader;
 }
 
 
-v2::glsl::frag_420::Shader functions_example()
+csl::glsl::frag_420::Shader functions_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	// empty function
@@ -125,15 +125,13 @@ v2::glsl::frag_420::Shader functions_example()
 	auto add = define_function<vec3>("add",
 		[](vec3 a = "a", vec3 b = "b") {
 		CSL_RETURN(a + b);
-	}
-	);
+	});
 
 	// function with some named parameters
 	auto addI = define_function<Int>(
 		[](Int a, Int b = "b", Int c = "") {
 		CSL_RETURN(a + b + c);
-	}
-	);
+	});
 
 	// function calling another function
 	auto sub = define_function<vec3>([&](vec3 a, Qualify<vec3, Inout> b = "b") {
@@ -155,15 +153,15 @@ v2::glsl::frag_420::Shader functions_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader control_blocks_example()
+csl::glsl::frag_420::Shader control_blocks_example()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	//empty for
+	// Empty for
 	CSL_FOR(;;) { CSL_BREAK; }
 
-	//named function with named parameters
+	// Named function with named parameters
 	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
 		CSL_IF(i == 3) {
 			++i;
@@ -175,7 +173,7 @@ v2::glsl::frag_420::Shader control_blocks_example()
 				--i;
 		}
 	}
-	//Not possible as i is still in the scope
+	// Not possible as i is still in the scope
 	//Int i; 
 
 	{
@@ -197,19 +195,19 @@ v2::glsl::frag_420::Shader control_blocks_example()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader structs_examples()
+csl::glsl::frag_420::Shader structs_examples()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	// struct declaration
-	CSL2_STRUCT(Block,
+	CSL_STRUCT(Block,
 		(mat4, mvp),
 		(vec4, center)
 	);
 
 	// nested struct
-	CSL2_STRUCT(BigBlock,
+	CSL_STRUCT(BigBlock,
 		(Block, inner_block),
 		(vec4, center)
 	);
@@ -223,18 +221,18 @@ v2::glsl::frag_420::Shader structs_examples()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader interface_examples()
+csl::glsl::frag_420::Shader interface_examples()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	//unnamed interface
-	CSL2_UNNANMED_INTERFACE_BLOCK(In, SimpleInterface,
+	// Unnamed interface
+	CSL_UNNAMED_INTERFACE_BLOCK(In, SimpleInterface,
 		(Float, delta_time)
 	);
 
-	//named array interface with qualifiers
-	CSL2_INTERFACE_BLOCK((Layout<Binding<0>>, Out, Array<3>), Output, out,
+	// Named array interface with multiple qualifiers
+	CSL_INTERFACE_BLOCK((Layout<Binding<0>>, Out, Array<3>), Output, out,
 		(vec3, position),
 		(vec3, velocity)
 	);
@@ -244,23 +242,25 @@ v2::glsl::frag_420::Shader interface_examples()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader struct_interface_comma_examples()
+csl::glsl::frag_420::Shader struct_interface_comma_examples()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	using vec4x16 = Qualify<vec4, Array<16>>;
-	CSL2_INTERFACE_BLOCK((Layout<Binding<0>, Std140>, Uniform, Array<2>), MyInterface, vars,
-		(vec4x16, vecs),
-		((Qualify<mat4, Array<4>>), myMats)
+	CSL_INTERFACE_BLOCK(
+		(Layout<Binding<0>, Std140>, Uniform, Array<2>), // extra parenthesis 
+		MyInterface, vars,
+		(vec4x16, vecs),								 // typename alias
+		((Qualify<mat4, Array<4>>), myMats)				 // extra parenthesis 
 	);
 
 	return shader;
 }
 
-v2::glsl::frag_420::Shader shader_stage_options()
+csl::glsl::frag_420::Shader shader_stage_options()
 {
-	using namespace v2::glsl::frag_420;
+	using namespace csl::glsl::frag_420;
 	Shader shader;
 
 	{
@@ -269,7 +269,7 @@ v2::glsl::frag_420::Shader shader_stage_options()
 	}
 
 	{
-		using namespace v2::glsl::geom_420;
+		using namespace csl::glsl::geom_420;
 		//in a geometry shader
 		in<Layout<Triangles>>();
 		out<Layout<Line_strip, Max_vertices<2>>>();
@@ -279,15 +279,15 @@ v2::glsl::frag_420::Shader shader_stage_options()
 }
 
 template<typename T>
-auto shader_variation(T && parameter, std::array<double,2> direction , bool gamma_correction)
+auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma_correction)
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::rgba;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::rgba;
 	Shader shader;
-	
+
 	Qualify<sampler2D, Uniform> samplerA("samplerA"), samplerB("samplerB");
 	Qualify<vec2, In> uvs("uvs");
-	Qualify<vec4,Out> color("color");
+	Qualify<vec4, Out> color("color");
 
 	shader.main([&] {
 		vec2 sampling_dir = vec2(direction[0], direction[1]) << "sampling_dir";
@@ -311,12 +311,12 @@ auto shader_variation(T && parameter, std::array<double,2> direction , bool gamm
 	return shader;
 };
 
-v2::glsl::frag_420::Shader meta_variation_1()
+csl::glsl::frag_420::Shader meta_variation_1()
 {
 	return shader_variation(std::integral_constant<int, 9>{}, { 0, 1 }, true);
 }
 
-v2::glsl::frag_420::Shader meta_variation_2()
+csl::glsl::frag_420::Shader meta_variation_2()
 {
 	return shader_variation(std::integral_constant<int, 5>{}, { 1, 0 }, false);
 }

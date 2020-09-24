@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-namespace v2 {
+namespace csl {
 
 	const std::string& glsl_op_str(const Op op);
 
@@ -108,7 +108,7 @@ namespace v2 {
 		std::string m_str;
 	};
 
-#define MAKE_OP_IT(data, i, elem) { Op :: elem, { Precedence :: FunctionCall, CSL_PP2_STR(elem) }},
+#define MAKE_OP_IT(data, i, elem) { Op :: elem, { Precedence :: FunctionCall, CSL_PP_STR(elem) }},
 
 	inline const std::unordered_map<Op, OpInfos>& glsl_op_infos() {
 		static const std::unordered_map<Op, OpInfos> op_infos = {
@@ -149,7 +149,7 @@ namespace v2 {
 			{ Op::PrefixDecrement, { Precedence::Prefix, "--"} },
 			{ Op::Equality, { Precedence::Equality, " == "} },
 			{ Op::NotEquality, { Precedence::Equality, " != "} },
-			CSL_PP2_ITERATE(MAKE_OP_IT,
+			CSL_PP_ITERATE(MAKE_OP_IT,
 			dFdx,
 			dFdy,
 			abs,
@@ -170,7 +170,7 @@ namespace v2 {
 			asin,
 			radians,
 			degrees)
-			CSL_PP2_ITERATE(MAKE_OP_IT,
+			CSL_PP_ITERATE(MAKE_OP_IT,
 			greaterThan,
 			lessThan,
 			greaterThanEqual,
@@ -264,9 +264,9 @@ namespace v2 {
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_y>::get() { return "local_size_y"; }
 
 #define CSL_QUALIFIER_STR_IT(data, i, elem) \
-	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP2_STR(CSL_PP_SECOND(elem)); }
+	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP_STR(CSL_PP_SECOND(elem)); }
 
-	CSL_PP2_ITERATE(CSL_QUALIFIER_STR_IT,
+	CSL_PP_ITERATE(CSL_QUALIFIER_STR_IT,
 		(glsl::Uniform, uniform),
 		(glsl::In, in),
 		(glsl::Out, out),

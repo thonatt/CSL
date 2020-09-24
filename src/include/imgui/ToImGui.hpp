@@ -13,7 +13,7 @@
 
 #include <imgui.h>
 
-namespace v2 {
+namespace csl {
 
 	struct ImGuiData {
 
@@ -22,7 +22,7 @@ namespace v2 {
 			return s + "##" + std::to_string(counter++);
 		}
 
-		std::string glsl_from_expr(const v2::Expr expr) {
+		std::string glsl_from_expr(const csl::Expr expr) {
 			glsl_data.stream.str("");
 			retrieve_expr(expr)->print_glsl(glsl_data);
 			return glsl_data.stream.str();
@@ -426,7 +426,7 @@ namespace v2 {
 			};
 
 			data.glsl_data.stream.str("");
-			ctor.print_glsl(data.glsl_data, v2::Precedence::NoExtraParenthesis);
+			ctor.print_glsl(data.glsl_data, csl::Precedence::NoExtraParenthesis);
 			data.glsl_data << ";";
 
 			const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;

@@ -4,10 +4,10 @@
  Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.
  http://shadertoy.com/view/ttBGRD
  */
-v2::glsl::frag_420::Shader shader_80()
+csl::glsl::frag_420::Shader shader_80()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::all;
 	Shader shader;
 
 	Qualify<sampler2D, Layout<Binding<0>>, Uniform> iChannel0("iChannel0");
@@ -249,10 +249,10 @@ v2::glsl::frag_420::Shader shader_80()
 Fractal noise fragment shader by Inigo Quilez adatped from
 https://www.shadertoy.com/view/XdXGW8
 */
-v2::glsl::frag_420::Shader fractal_noise()
+csl::glsl::frag_420::Shader fractal_noise()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::xyzw;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::xyzw;
 
 	Shader shader;
 

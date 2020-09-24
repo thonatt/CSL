@@ -5,10 +5,10 @@
  https://github.com/kosua20/Rendu
  */
 
-v2::glsl::compute_430::Shader scattering_lookup_table()
+csl::glsl::compute_430::Shader scattering_lookup_table()
 {
-	using namespace v2::glsl::compute_430;
-	using namespace v2::swizzles::xyzw;
+	using namespace csl::glsl::compute_430;
+	using namespace csl::swizzles::xyzw;
 
 	Shader shader;
 
@@ -89,10 +89,10 @@ v2::glsl::compute_430::Shader scattering_lookup_table()
 	return shader;
 }
 
-v2::glsl::frag_420::Shader atmosphere_rendering()
+csl::glsl::frag_420::Shader atmosphere_rendering()
 {
-	using namespace v2::glsl::frag_420;
-	using namespace v2::swizzles::all;
+	using namespace csl::glsl::frag_420;
+	using namespace csl::swizzles::all;
 
 	Shader shader;
 

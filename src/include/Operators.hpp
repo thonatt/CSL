@@ -17,7 +17,7 @@
 #define CSL_LAUNDER(...) __VA_ARGS__
 #endif
 
-namespace v2 {
+namespace csl {
 
 	enum class Op : std::size_t {
 
@@ -577,113 +577,6 @@ namespace v2 {
 		const T value;
 	};
 
-
-	template<typename Base, std::size_t MaxSizeof, std::size_t MaxAlignment>
-	struct PolymorphicVector
-	{
-
-	public:
-		PolymorphicVector() {
-			m_buffer.reserve(2000);
-		}
-
-		template<typename Derived, typename ... Args>
-		Base* emplace_back(Args&& ...args) {
-			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
-			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
-			static_assert(alignof(Derived) <= MaxAlignment, "Derived alignement is too big");
-
-			m_buffer.push_back({});
-			new (&m_buffer.back()) Derived(std::forward<Args>(args)...);
-			return CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer.back()));
-		}
-
-		Base& operator[](const std::size_t index) {
-			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer[index]));
-		}
-
-		const Base& operator[](const std::size_t index) const {
-			return CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffer[index]));
-		}
-
-		~PolymorphicVector() {
-			for (std::size_t i = m_buffer.size(); i > 0; --i) {
-				operator[](i - 1).~Base();
-			}
-		}
-
-		std::size_t size() const {
-			return m_buffer.size();
-		}
-
-	private:
-		std::vector<std::aligned_storage_t<MaxSizeof, MaxAlignment>> m_buffer;
-	};
-
-	template<typename Base, std::size_t BandSize, std::size_t MaxSizeof, std::size_t MaxAlignment>
-	struct PolymorphicMemoryManager {
-
-		using IndexElt = std::size_t;
-		using Index = ExprOld; // std::pair<IndexElt, IndexElt>;
-
-		constexpr std::size_t get_element_size(const std::size_t band_id) {
-			return (1 + band_id) * BandSize;
-		}
-
-		template<typename Derived, typename ... Args>
-		Index emplace_back(Args&& ...args) {
-			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
-			static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
-			static_assert(alignof(Derived) <= MaxAlignment, "Derived alignement is too big");
-
-			constexpr IndexElt band = (sizeof(Derived) - 1) / BandSize;
-			constexpr std::size_t derived_max_size = (1 + band) * BandSize;
-
-			const std::size_t current_size = m_buffers[band].size();
-			m_buffers[band].resize(current_size + derived_max_size);
-			new (&m_buffers[band][current_size]) Derived(std::forward<Args>(args)...);
-			return Index{ current_size, band };
-		}
-
-		Base& operator[](const Index pair) {
-			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffers[pair.m_band][pair.m_id]));
-		}
-
-		const Base& operator[](const Index pair) const {
-			return *CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffers[pair.m_band][pair.m_id]));
-		}
-
-		~PolymorphicMemoryManager() {
-			for (std::size_t i = 0; i < m_buffers.size(); ++i) {
-				const std::size_t item_size = (i + 1) * BandSize;
-				for (std::size_t j = 0; j < m_buffers[i].size(); j += item_size) {
-					operator[](Index{ j, i }).~Base();
-				}
-			}
-		}
-
-	public:
-		static constexpr std::size_t BandCount = 1 + (std::max(MaxSizeof, static_cast<std::size_t>(1)) - 1) / BandSize;
-		std::array<std::vector<char>, BandCount> m_buffers;
-	};
-
-	template<std::size_t N>
-	struct CanFit {
-		using Type = std::conditional_t<
-			(N <= 8),
-			uint8_t,
-			std::conditional_t<
-			(N <= 16),
-			uint16_t,
-			std::conditional_t<
-			(N <= 32),
-			uint32_t,
-			uint64_t
-			>
-			>
-		>;
-	};
-
 	template<typename Base>
 	struct PolymorphicMemoryPool {
 
@@ -746,8 +639,8 @@ namespace v2 {
 	};
 
 	template<typename Base>
-	struct PolymorphicMemoryPoolDebug {
-
+	struct PolymorphicMemoryPoolDebug
+	{
 		template<typename Derived, typename ... Args>
 		Expr emplace_back(Args&& ...args) {
 			const std::size_t current_size = m_buffer.size();

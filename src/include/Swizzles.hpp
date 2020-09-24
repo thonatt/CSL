@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <type_traits>
 
-namespace v2 {
+namespace csl {
 
 	namespace detail_swizzling {
 
@@ -89,7 +89,7 @@ namespace v2 {
 
 		static_assert(Size <= 4, "Maximum swizzling size is 4");
 		static_assert(Set(), "Invalid swizzle set");
-		static_assert((std::is_same_v<Set, detail_swizzling::SwizzleSet<chars>>&& ...), "Swizzle sets cannot be mixed");
+		static_assert((std::is_same_v<Set, detail_swizzling::SwizzleSet<chars>>&& ... && true), "Swizzle sets cannot be mixed");
 
 	};
 

@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <string>
 
-namespace v2 {
+namespace csl {
 
 	struct MainListener;
 	MainListener& listen();
@@ -272,7 +272,7 @@ namespace v2 {
 
 		static constexpr bool IsArray = true;
 
-		ArrayInterface(v2::Dummy) : Base()
+		ArrayInterface(csl::Dummy) : Base()
 		{
 		}
 

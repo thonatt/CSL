@@ -54,7 +54,7 @@ struct ShaderExample
 	template<typename ShaderCreation>
 	ShaderExample(ShaderCreation&& f)
 	{
-		using namespace v2;
+		using namespace csl;
 
 		auto start = Clock::now();
 		auto shader = f();
@@ -72,7 +72,7 @@ struct ShaderExample
 
 	GLProgram m_program;
 	std::string m_glsl_str;
-	v2::ShaderController m_controller;
+	csl::ShaderController m_controller;
 	std::string m_name;
 	double m_generation_timing, m_glsl_timing;
 };
@@ -696,8 +696,8 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 	{
 	case Mode::ImGui:
 	{
-		v2::ImGuiData data;
-		shader.m_controller.template print_imgui<v2::Dummy>(data);
+		csl::ImGuiData data;
+		shader.m_controller.template print_imgui<csl::Dummy>(data);
 		break;
 	}
 	case Mode::GLSL:
@@ -873,7 +873,7 @@ void main_loop(LoopData& data)
 					if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
 					{
 						if (ImGui::Button("print to console")) {
-							std::cout << shader.second.m_shader->m_glsl_str << std::endl;						
+							std::cout << shader.second.m_shader->m_glsl_str << std::endl;
 						}
 						ImGui::EndPopup();
 					}
@@ -883,6 +883,14 @@ void main_loop(LoopData& data)
 					++count;
 				}
 			} else if (current_shader) {
+				ImGui::Text("No associated pipeline");
+				if (ImGui::BeginPopupContextItem("shader right click ## single"))
+				{
+					if (ImGui::Button("print to console")) {
+						std::cout << current_shader->m_glsl_str << std::endl;
+					}
+					ImGui::EndPopup();
+				}
 				active_shader_count = 1.0f;
 			}
 			if (data.m_current_pipeline) {

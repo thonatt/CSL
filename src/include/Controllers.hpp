@@ -7,7 +7,7 @@
 
 #include <map>
 
-namespace v2 {
+namespace csl {
 
 	template<typename Delayed, typename T>
 	struct ControllerImGui {
@@ -313,15 +313,6 @@ namespace v2 {
 		std::vector<InstructionIndex> m_unnamed_interface_blocks;
 		std::vector<InstructionIndex> m_functions;
 
-		using BiggestType = Constructor<Matrix<float, 1, 1>, 4>;
-		using PolyVector = PolymorphicVector<OperatorBase, sizeof(BiggestType), alignof(BiggestType)>;
-		//std::shared_ptr<PolyVector> m_exprs;
-
-		using Memory = PolymorphicMemoryManager<OperatorBase, 8, sizeof(BiggestType), alignof(BiggestType)>;
-
-		//std::shared_ptr<Memory> m_memory;
-		//std::map<std::size_t, std::size_t> m_expr_allocations;
-
 #ifdef NDEBUG
 		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
 #else
@@ -338,32 +329,22 @@ namespace v2 {
 
 		InstructionPool m_instruction_pool;
 
-		//static Memory& get_static_memory() {
-		//	static Memory static_memory;
-		//	return static_memory;
-		//}
-
-		static MemoryPool& get_static_memory() {
+		static MemoryPool& get_static_memory()
+		{
 			static MemoryPool static_memory;
 			return static_memory;
 		}
 
-		ShaderController() {
+		ShaderController() 
+		{
 			m_declarations = std::make_shared<MainBlock>();
 			current_block = m_declarations;
-			//m_exprs = std::make_shared<PolyVector>();
-			//m_memory = std::make_shared<Memory>();
-			//m_memory_pool = std::make_shared<MemoryPool>();
 
-			//m_memory_pool.m_buffer.reserve(10000);
-			//m_memory_pool.m_objects_ids.reserve(100);
+			m_memory_pool.m_buffer.reserve(10000);
+			m_memory_pool.m_objects_ids.reserve(100);
 
-			//m_instruction_pool.m_buffer.reserve(5000);
-			//m_instruction_pool.m_objects_ids.reserve(100);
-
-			//for (std::size_t i = 0; i < m_memory->m_buffers.size(); ++i) {
-			//	m_memory->m_buffers[i].reserve(10 * (i + 1) * 8);
-			//}
+			m_instruction_pool.m_buffer.reserve(5000);
+			m_instruction_pool.m_objects_ids.reserve(100);
 		}
 
 		ShaderController(ShaderController&& other) :
@@ -375,10 +356,10 @@ namespace v2 {
 			m_memory_pool(std::move(other.m_memory_pool)),
 			m_instruction_pool(std::move(other.m_instruction_pool))
 		{
-			//std::cout << "ShaderController(ShaderController&&)" << std::endl;
 		}
 
-		ShaderController& operator=(ShaderController&& other) {
+		ShaderController& operator=(ShaderController&& other) 
+		{
 			std::swap(m_declarations, other.m_declarations);
 			std::swap(m_structs, other.m_structs);
 			std::swap(m_named_interface_blocks, other.m_named_interface_blocks);

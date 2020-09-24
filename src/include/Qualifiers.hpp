@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace v2 {
+namespace csl {
 
 	template<std::size_t ... Ns>
 	struct Array {};

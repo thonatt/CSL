@@ -11,7 +11,7 @@
 
 #define EXPR(type, var) get_expr(std::forward<type>(var))
 
-namespace v2 {
+namespace csl {
 
 	//template< typename T, std::size_t R, std::size_t C, typename Qs>
 	//struct MatrixIndirection;
@@ -62,7 +62,7 @@ namespace v2 {
 			return false;
 		}
 
-		Matrix(v2::Dummy) : Base() {}
+		Matrix(csl::Dummy) : Base() {}
 
 		Matrix() : Base("") {}
 

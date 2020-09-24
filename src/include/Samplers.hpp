@@ -3,7 +3,7 @@
 #include "Types.hpp"
 #include "NamedObjects.hpp"
 
-namespace v2 {
+namespace csl {
 
 	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags, typename ...Qs>
 	class Sampler : public NamedObject<Sampler<Access, T, N, Type, Flags, Qs...>> {

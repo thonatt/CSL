@@ -14,7 +14,7 @@
 #include <iso646.h>
 #endif
 
-namespace v2 {
+namespace csl {
 
 	struct MainListener
 	{
@@ -212,16 +212,6 @@ namespace v2 {
 		return overmind;
 	}
 
-	//OperatorBase* retrieve_expr(const Expr index)
-	//{
-	//	if (index.m_status == Expr::Static) {
-	//		return &ShaderController::get_static_memory().operator[](index);
-	//	}
-	//	auto current_shader = listen().current_shader;
-	//	auto memory = current_shader->m_memory;
-	//	return &memory->operator[](index);
-	//}
-
 	inline OperatorBase* retrieve_expr(const Expr index)
 	{
 		if (!index) {
@@ -338,23 +328,11 @@ namespace v2 {
 	{
 		if (listen().current_shader) {
 			return listen().current_shader->m_memory_pool.emplace_back<Operator>(std::forward<Args>(args)...);
-			//return listen().current_shader->m_exprs->emplace_back<Operator>(std::forward<Args>(args)...);
 		} else {
 			Expr expr_id = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
 			expr_id.m_status = Expr::Status::Static;
 			return expr_id;
 		}
-
-		//auto wrapper = std::make_shared<Operator>(std::forward<Args>(args)...);
-		//auto expr = std::static_pointer_cast<OperatorBase>(wrapper);
-		//if (listen().current_shader) {
-		//	auto& allocations = listen().current_shader->m_expr_allocations;
-		//	if (allocations.find(sizeof(Operator)) == allocations.end()) {
-		//		std::cout << sizeof(Operator) << " " << typeid(Operator).name() << std::endl;
-		//	}
-		//	++allocations[sizeof(Operator)];
-		//}
-		//return expr.get();
 	}
 
 	template <typename ... Args>
@@ -365,8 +343,6 @@ namespace v2 {
 
 	inline NamedObjectBase::~NamedObjectBase() {
 		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
-			//assert(listen().current_shader);
-			//assert(!listen().current_shader->m_memory_pool.m_objects_ids.empty(), "variable at shader scope unused");
 			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
 				if (auto obj = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
 					obj->set_as_unused();
@@ -384,9 +360,6 @@ namespace v2 {
 		} else {
 			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags | CtorFlags::Untracked, variable_id, std::forward<Args>(args)...);
 		}
-		//if (obj_flags & ObjFlags::BuiltIn) {
-		//	std::cout << name << " " << variable_id << std::endl;
-		//}
 		listen().push_expression(expr);
 		return expr;
 	}
@@ -426,7 +399,7 @@ namespace v2 {
 
 		const Expr expr = make_expr<CustomFunCall< This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
-		//in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
+		// in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 		if constexpr (std::is_same_v<RType, void>) {
 			listen().push_expression(expr);
 		} else {
@@ -474,12 +447,5 @@ namespace v2 {
 #define CSL_TERNARY(...) _csl_ternary( __VA_ARGS__ )
 
 #define CSL_RETURN ReturnKeyword _csl_return_statement_
-
-	//#define CSL_PP_RETURN_0() listen().add_statement<ReturnStatement>();
-	//#define CSL_PP_RETURN_1(arg) listen().add_statement<ReturnStatement>(arg);
-	//
-	//#define CSL_PP_RETURN_X(x,arg,f, ...) f
-	//
-	//#define CSL_RETURN(...) CSL_PP_RETURN_X(, CSL_PP2_COUNT(__VA_ARGS__), CSL_PP_RETURN_1(__VA_ARGS__), CSL_PP_RETURN_0(__VA_ARGS__))
 
 }
