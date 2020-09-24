@@ -45,7 +45,9 @@ int main() {
             gl_Position = vec4(position, 1.0);
       });
 
-      std::cout << shader.glsl_str() << std::endl;
+      GLSLData data;
+      shader.print_glsl(data);
+      std::cout << data.stream.str() << std::endl;
 }
 ```
    </td>
@@ -124,7 +126,7 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 
 Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::glsl::vert_420` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 4.20. Vertex, fragment, geometry, compute,and tesselation shaders are currently supported.
 
-Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main function using a lambda function with no argument that returns nothing. The second one is `Shader::glsl_str`, which retrieves the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
+Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main function using a lambda function with no argument that returns nothing. The second one is `Shader::print_glsl`, which ca, be used to retrieve the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
 
 CSL assumes instructions are called sequentially and is **not** thread-safe.
 
