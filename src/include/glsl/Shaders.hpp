@@ -56,6 +56,13 @@ namespace csl {
 				ShaderController::template print_glsl<csl::Dummy>(data);
 			}
 
+			std::string glsl_str()
+			{
+				GLSLData data;
+				print_glsl(data);
+				return data.stream.str();
+			}
+
 			template<typename F>
 			void main(F&& f) {
 				ShaderController::main(std::forward<F>(f));

@@ -36,7 +36,7 @@ As CSL is a header-only library, the header files in the `CSL/src/include` are n
 #include <iostream>
 
 int main() {
-      using namespace csl::vert_330;  
+      using namespace csl::glsl::vert_420;  
       Shader shader;
 
       Qualify<vec3, Layout<Location<0>>, In> position;
@@ -45,7 +45,7 @@ int main() {
             gl_Position = vec4(position, 1.0);
       });
 
-      std::cout << shader.str() << std::endl;
+      std::cout << shader.glsl_str() << std::endl;
 }
 ```
    </td>
@@ -83,7 +83,7 @@ cd CSL
 git submodule update --init
 ```
 
-The shader suite can be then built using [CMake](https://cmake.org/):
+The shader suite can then be built using [CMake](https://cmake.org/):
 
 ```
 cd src\shader_suite\
@@ -122,11 +122,11 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 
 ## Shader setup
 
-Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::vert_330` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 3.30. Vertex, fragment, geometry, and tesselation shaders are currently supported. A [shadertoy](https://www.shadertoy.com/) namespace is also available.
+Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::glsl::vert_420` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 4.20. Vertex, fragment, geometry, compute,and tesselation shaders are currently supported.
 
-Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main using a lambda function with no argument that returns nothing. The second one is `Shader::str`, which retrieves the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
+Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main function using a lambda function with no argument that returns nothing. The second one is `Shader::glsl_str`, which retrieves the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
 
-CSL assumes instructions are called sequentially so it is not thread-safe.
+CSL assumes instructions are called sequentially and is **not** thread-safe.
 
 ## Basic and Sampler types
 

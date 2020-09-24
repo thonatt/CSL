@@ -60,6 +60,8 @@ struct ShaderExample
 		auto shader = f();
 		m_generation_timing = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 
+		//std::cout << shader.glsl_str() << std::endl;
+
 		m_glsl_timing = get_timing([&]
 		{
 			GLSLData glsl_data;
