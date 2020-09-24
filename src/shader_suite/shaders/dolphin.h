@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <include/csl.hpp>
 
 /**
  Shaders from the Dolphin emulator.
@@ -9,7 +9,7 @@
  https://gist.github.com/phire/25181a9bfd957ac68ea8c74afdd9e9e1
  */
 
-std::string dolphinVertex();
+csl::glsl::vert_420::Shader dolphin_ubershader_vertex();
 
-std::string dolphinFragment();
+csl::glsl::frag_420::Shader dolphin_ubershader_fragment();
 

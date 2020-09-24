@@ -1,7 +1,5 @@
 #include "dolphin.h"
 
-#include <csl/Core.hpp>
-
 /**
  Shaders from the Dolphin emulator.
  https://github.com/dolphin-emu/dolphin
@@ -9,57 +7,60 @@
  https://gist.github.com/phire/25181a9bfd957ac68ea8c74afdd9e9e1
  */
 
-std::string dolphinVertex() {
-
-	using namespace csl::vert_430;
+csl::glsl::vert_420::Shader dolphin_ubershader_vertex()
+{
+	using namespace csl::glsl::vert_420;
 	using namespace csl::swizzles::all;
 
 	Shader shader;
 
 	CSL_STRUCT(Light,
-		(ivec4) color,
-		(vec4) cosatt,
-		(vec4) distatt,
-		(vec4) pos,
-		(vec4) dir
+		(ivec4, color),
+		(vec4, cosatt),
+		(vec4, distatt),
+		(vec4, pos),
+		(vec4, dir)
 	);
 
-	using VSBlockQualifier = Uniform<Layout<Binding<2>, Std140>>;
-	CSL_INTERFACE_BLOCK(VSBlockQualifier, VSBLock, , ,
-		(Uint) components,
-		(Uint) xfmem_dualTexInfo,
-		(Uint) xfmem_numColorChans,
-		(Array<vec4>::Size<6>) cpnmtx,
-		(Array<vec4>::Size<4>) cproj,
-		(Array<ivec4>::Size<6>) cmtrl,
-		(Array<Light>::Size<8>) clights,
-		(Array<vec4>::Size<24>) ctexmtx,
-		(Array<vec4>::Size<64>) ctrmtx,
-		(Array<vec4>::Size<32>) cnmtx,
-		(Array<vec4>::Size<64>) cpostmtx,
-		(vec4) cpixelcenter,
-		(vec2) cviewport,
-		(Array<uvec4>::Size<8>) xfmem_pack1
+	CSL_UNNAMED_INTERFACE_BLOCK(
+		(Layout<Binding<2>, Std140>, Uniform),
+		VSBLock,
+		(Uint, components),
+		(Uint, xfmem_dualTexInfo),
+		(Uint, xfmem_numColorChans),
+		((Qualify<vec4, Array<6>>), cpnmtx),
+		((Qualify<vec4, Array<4>>), cproj),
+		((Qualify<ivec4, Array<6>>), cmtrl),
+		((Qualify<Light, Array<8>>), clights),
+		((Qualify<vec4, Array<24>>), ctexmtx),
+		((Qualify<vec4, Array<64>>), ctrmtx),
+		((Qualify<vec4, Array<32>>), cnmtx),
+		((Qualify<vec4, Array<64>>), cpostmtx),
+		(vec4, cpixelcenter),
+		(vec2, cviewport),
+		((Qualify<uvec4, Array<8>>), xfmem_pack1)
 	);
 
 	CSL_STRUCT(VS_OUTPUT,
-		(vec4) pos,
-		(vec4) colors_0,
-		(vec4) colors_1,
-		(vec3) tex0,
-		(vec3) tex1,
-		(vec4) clipPos,
-		(Float) clipDist0,
-		(Float) clipDist1
+		(vec4, pos),
+		(vec4, colors_0),
+		(vec4, colors_1),
+		(vec3, tex0),
+		(vec3, tex1),
+		(vec4, clipPos),
+		(Float, clipDist0),
+		(Float, clipDist1)
 	);
 
-	auto CalculateLighting = declareFunc<ivec4>("CalculateLighting",
+	auto CalculateLighting = define_function<ivec4>("CalculateLighting",
 		[&](Uint index = "index", Uint attnfunc = "attnfunc", Uint diffusefunc = "diffusefunc",
-			vec3 pos = "pos", vec3 normal = "normal") {
+			vec3 pos = "pos", vec3 normal = "normal")
+	{
 		vec3 ldir("ldir"), h("h"), cosAttn("cosAttn"), distAttn("distAttn");
 		Float dist("dist"), dist2("dist2"), attn("attn");
 
-		CSL_SWITCH(attnfunc) {
+		CSL_SWITCH(attnfunc)
+		{
 			// LIGNTATTN_NONE
 			CSL_CASE(0u) : { }
 
@@ -81,7 +82,7 @@ std::string dolphinVertex() {
 					distAttn = clights[index].distatt[x, y, z];
 				CSL_ELSE
 					distAttn = normalize(clights[index].distatt[x, y, z]);
-				attn = max(0.0, dot(cosAttn, vec3(1.0, attn, attn*attn))) / dot(distAttn, vec3(1.0, attn, attn*attn));
+				attn = max(0.0, dot(cosAttn, vec3(1.0, attn, attn * attn))) / dot(distAttn, vec3(1.0, attn, attn * attn));
 				CSL_BREAK;
 			}
 
@@ -106,39 +107,40 @@ std::string dolphinVertex() {
 		CSL_SWITCH(diffusefunc) {
 			// LIGHTDIF_NONE
 			CSL_CASE(0u) : {
-				CSL_RETURN(ivec4(round(attn * vec4(clights[index].color))));
+				CSL_RETURN(ivec4(round(attn* vec4(clights[index].color))));
 			}
 
 			// LIGHTDIF_SIGN
 			CSL_CASE(1u) : {
-				CSL_RETURN(ivec4(round(attn * dot(ldir, normal) * vec4(clights[index].color))));
+				CSL_RETURN(ivec4(round(attn* dot(ldir, normal)* vec4(clights[index].color))));
 			}
 
 			CSL_CASE(2u) : {
-				CSL_RETURN(ivec4(round(attn * max(0.0, dot(ldir, normal)) * vec4(clights[index].color))));
+				CSL_RETURN(ivec4(round(attn* max(0.0, dot(ldir, normal))* vec4(clights[index].color))));
 			}
 
 		CSL_DEFAULT: {
 			CSL_RETURN(ivec4(0, 0, 0, 0));
 			}
 		}
+
 	});
 
-	In<vec4> rawpos("rawpos");
-	In<uvec4> posmtx("posmtx");
-	In<vec3> rawnorm0("rawnorm0"), rawnorm1("rawnorm1"), rawnorm2("rawnorm2");
-	In<vec4> rawcolor0("rawcolor0"), rawcolor1("rawcolor1");
-	In<vec3> rawtex0("rawtex0"), rawtex1("rawtex1"), rawtex2("rawtex2"), rawtex3("rawtex3"), rawtex4("rawtex4"), rawtex5("rawtex5"), rawtex6("rawtex6"), rawtex7("rawtex7");
+	Qualify<vec4, In> rawpos("rawpos");
+	Qualify<uvec4, In> posmtx("posmtx");
+	Qualify<vec3, In> rawnorm0("rawnorm0"), rawnorm1("rawnorm1"), rawnorm2("rawnorm2");
+	Qualify<vec4, In> rawcolor0("rawcolor0"), rawcolor1("rawcolor1");
+	Qualify<vec3, In> rawtex0("rawtex0"), rawtex1("rawtex1"), rawtex2("rawtex2"), rawtex3("rawtex3"), rawtex4("rawtex4"), rawtex5("rawtex5"), rawtex6("rawtex6"), rawtex7("rawtex7");
 
-	CSL_INTERFACE_BLOCK(Out<>, VertexData, vs, ,
-		(vec4) pos,
-		(vec4) colors_0,
-		(vec4) colors_1,
-		(vec3) tex0,
-		(vec3) tex1,
-		(vec4) clipPos,
-		(Float) clipDist0,
-		(Float) clipDist1
+	CSL_INTERFACE_BLOCK(Out, VertexData, vs,
+		(vec4, pos),
+		(vec4, colors_0),
+		(vec4, colors_1),
+		(vec3, tex0),
+		(vec3, tex1),
+		(vec4, clipPos),
+		(Float, clipDist0),
+		(Float, clipDist1)
 	);
 
 	shader.main([&] {
@@ -292,28 +294,28 @@ std::string dolphinVertex() {
 					coord[x, y, z] = CSL_TERNARY((components & 4096u /* VB_HAS_NRM2 */) != 0u, rawnorm2[x, y, z], coord[x, y, z]); CSL_BREAK;
 
 				CSL_CASE(5u) : // XF_SRCTEX0_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 32768u /* VB_HAS_UV0 */) != 0u, vec4(rawtex0[x], rawtex0[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 32768u /* VB_HAS_UV0 */) != 0u, vec4(rawtex0[x], rawtex0[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(6u) :  // XF_SRCTEX1_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 65536u /* VB_HAS_UV1 */) != 0u, vec4(rawtex1[x], rawtex1[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 65536u /* VB_HAS_UV1 */) != 0u, vec4(rawtex1[x], rawtex1[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(7u) : // XF_SRCTEX2_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 131072u /* VB_HAS_UV2 */) != 0u, vec4(rawtex2[x], rawtex2[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 131072u /* VB_HAS_UV2 */) != 0u, vec4(rawtex2[x], rawtex2[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(8u) : // XF_SRCTEX3_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 262144u /* VB_HAS_UV3 */) != 0u, vec4(rawtex3[x], rawtex3[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 262144u /* VB_HAS_UV3 */) != 0u, vec4(rawtex3[x], rawtex3[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(9u) : // XF_SRCTEX4_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 524288u /* VB_HAS_UV4 */) != 0u, vec4(rawtex4[x], rawtex4[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 524288u /* VB_HAS_UV4 */) != 0u, vec4(rawtex4[x], rawtex4[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(10u) : // XF_SRCTEX5_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 1048576u /* VB_HAS_UV5 */) != 0u, vec4(rawtex5[x], rawtex5[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 1048576u /* VB_HAS_UV5 */) != 0u, vec4(rawtex5[x], rawtex5[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(11u) : // XF_SRCTEX6_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 2097152u /* VB_HAS_UV6 */) != 0u, vec4(rawtex6[x], rawtex6[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 2097152u /* VB_HAS_UV6 */) != 0u, vec4(rawtex6[x], rawtex6[y], 1.0, 1.0), coord); CSL_BREAK;
 
 				CSL_CASE(12u) : // XF_SRCTEX7_INROW
-					coord[x, y, z] = CSL_TERNARY((components & 4194304u /* VB_HAS_UV7 */) != 0u, vec4(rawtex7[x], rawtex7[y], 1.0, 1.0), coord); CSL_BREAK;
+					coord = CSL_TERNARY((components & 4194304u /* VB_HAS_UV7 */) != 0u, vec4(rawtex7[x], rawtex7[y], 1.0, 1.0), coord); CSL_BREAK;
 
 			CSL_DEFAULT: {}
 			}
@@ -448,17 +450,17 @@ std::string dolphinVertex() {
 		gl_Position = o.pos;
 	});
 
-	return shader.str();
+	return shader;
 }
 
-std::string dolphinFragment() {
-	using namespace csl::frag_430;
+csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
+{
+	using namespace csl::glsl::frag_420;
 	using namespace csl::swizzles::all;
-
 	Shader shader;
 
 	// Pixel UberShader for 2 texgens, early-depth
-	auto idot = declareFunc<Int, Int>("idot",
+	auto idot = define_function<Int, Int>("idot",
 		[](ivec3 ix = "x", ivec3 iy = "y") {
 		ivec3 tmp = ix * iy << "tmp";
 		CSL_RETURN(tmp[x] + tmp[y] + tmp[z]);
@@ -467,7 +469,7 @@ std::string dolphinFragment() {
 		CSL_RETURN(tmp[x] + tmp[y] + tmp[z] + tmp[w]);
 	});
 
-	auto iround = declareFunc<Float, vec2, vec3, vec4>("iround",
+	auto iround = define_function<Float, vec2, vec3, vec4>("iround",
 		[](Float x = "x") {
 		CSL_RETURN(Int(round(x)));
 	}, [](vec2 x = "x") {
@@ -478,63 +480,67 @@ std::string dolphinFragment() {
 		CSL_RETURN(ivec4(round(x)));
 	});
 
+	Qualify< sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samp("samp");
 
-	Array<Uniform<sampler2DArray, Layout<Binding<0>>>, 8> samp("samp");
-
-	using PSBlockQuali = Uniform<Layout<Std140, Binding<1>>>;
-	CSL_INTERFACE_BLOCK(PSBlockQuali, PSBlock, , ,
-		(Array<ivec4>::Size<4>) color,
-		(Array<ivec4>::Size<4>)  k,
-		(ivec4)alphaRef,
-		(Array<vec4>::Size<8>)  texdim,
-		(Array<ivec4>::Size<2>)  czbias,
-		(Array<ivec4>::Size<2>)  cindscale,
-		(Array<ivec4>::Size<6>)  cindmtx,
-		(ivec4)cfogcolor,
-		(ivec4)cfogi,
-		(Array<vec4>::Size<2>)  cfogf,
-		(vec4)czslope,
-		(vec2)cefbscale,
-		(Uint)bpmem_genmode,
-		(Uint)bpmem_alphaTest,
-		(Uint)bpmem_fogParam3,
-		(Uint)bpmem_fogRangeBase,
-		(Uint)bpmem_dstalpha,
-		(Uint)bpmem_ztex_op,
-		(Bool)bpmem_early_ztest,
-		(Bool)bpmem_rgba6_format,
-		(Bool)bpmem_dither,
-		(Bool)bpmem_bounding_box,
-		(Array<uvec4>::Size<16>) bpmem_pack1,
-		(Array<uvec4>::Size<8>) bpmem_pack2,
-		(Array<ivec4>::Size<32>) konstLookup
+	CSL_UNNAMED_INTERFACE_BLOCK(
+		(Layout<Std140, Binding<1>>, Uniform),
+		PSBlock,
+		((Qualify<ivec4, Array<4>>), color),
+		((Qualify<ivec4, Array<4>>), k),
+		(ivec4, alphaRef),
+		((Qualify<vec4, Array<8>>), texdim),
+		((Qualify<ivec4, Array<2>>), czbias),
+		((Qualify<ivec4, Array<2>>), cindscale),
+		((Qualify<ivec4, Array<6>>), cindmtx),
+		(ivec4, cfogcolor),
+		(ivec4, cfogi),
+		((Qualify<vec4, Array<2>>), cfogf),
+		(vec4, czslope),
+		(vec2, cefbscale),
+		(Uint, bpmem_genmode),
+		(Uint, bpmem_alphaTest),
+		(Uint, bpmem_fogParam3),
+		(Uint, bpmem_fogRangeBase),
+		(Uint, bpmem_dstalpha),
+		(Uint, bpmem_ztex_op),
+		(Bool, bpmem_early_ztest),
+		(Bool, bpmem_rgba6_format),
+		(Bool, bpmem_dither),
+		(Bool, bpmem_bounding_box),
+		((Qualify<uvec4, Array<16>>), bpmem_pack1),
+		((Qualify<uvec4, Array<8>>), bpmem_pack2),
+		((Qualify<ivec4, Array<32>>), konstLookup)
 	);
 
 	CSL_STRUCT(VS_OUTPUT,
-		(vec4) pos,
-		(vec4) colors_0,
-		(vec4) colors_1,
-		(vec3) tex0,
-		(vec3) tex1,
-		(vec4) clipPos,
-		(Float) clipDist0,
-		(Float) clipDist1
+		(vec4, pos),
+		(vec4, colors_0),
+		(vec4, colors_1),
+		(vec3, tex0),
+		(vec3, tex1),
+		(vec4, clipPos),
+		(Float, clipDist0),
+		(Float, clipDist1)
 	);
 
-	Out<vec4> ocol0("ocol0"), ocol1("ocol1");
 
-	CSL_INTERFACE_BLOCK(In<>, VertexData, , ,
-		(vec4)pos,
-		(vec4)colors_0,
-		(vec4)colors_1,
-		(vec3)tex0,
-		(vec3)tex1,
-		(vec4)clipPos,
-		(Float)clipDist0,
-		(Float)clipDist1
+	Qualify<vec4, Out> ocol0("ocol0"), ocol1("ocol1");
+
+
+	CSL_UNNAMED_INTERFACE_BLOCK(
+		In,
+		VertexData,
+		(vec4, pos),
+		(vec4, colors_0),
+		(vec4, colors_1),
+		(vec3, tex0),
+		(vec3, tex1),
+		(vec4, clipPos),
+		(Float, clipDist0),
+		(Float, clipDist1)
 	);
 
-	auto selectTexCoord = declareFunc<vec3>("selectTexCoord",
+	auto selectTexCoord = define_function<vec3>("selectTexCoord",
 		[&](Uint index = "index") {
 		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {
@@ -549,12 +555,12 @@ std::string dolphinFragment() {
 		}
 	});
 
-	auto sampleTexture = declareFunc<ivec4>("sampleTexture",
+	auto sampleTexture = define_function<ivec4>("sampleTexture",
 		[&](Uint sampler_num, vec2 uv) {
-		return iround(texture(samp[sampler_num], vec3(uv, 0.0)) * 255.0);
+		CSL_RETURN(iround(texture(samp[sampler_num], vec3(uv, 0.0)) * 255.0));
 	});
 
-	auto Swizzle = declareFunc<ivec4>("Swizzle",
+	auto Swizzle = define_function<ivec4>("Swizzle",
 		[&](Uint s, ivec4 color) {
 		// AKA: Color Channel Swapping
 
@@ -566,97 +572,98 @@ std::string dolphinFragment() {
 		CSL_RETURN(ret);
 	});
 
-	auto Wrap = declareFunc<Int>("Wrap",
+	auto Wrap = define_function<Int>("Wrap",
 		[](Int coord, Uint mode) {
-		CSL_IF (mode == 0u) // ITW_OFF
+		CSL_IF(mode == 0u) { // ITW_OFF
 			CSL_RETURN(coord);
-		CSL_ELSE_IF (mode < 6u) // ITW_256 to ITW_16
-			CSL_RETURN( coord & (0xfffe >> mode) );
-		CSL_ELSE // ITW_0
+		} CSL_ELSE_IF(mode < 6u) { // ITW_256 to ITW_16
+			CSL_RETURN(coord & (0xfffe >> Int(mode)));
+		} CSL_ELSE{ // ITW_0
 			CSL_RETURN(0);
+		}
 	});
 
 	// TEV's Linear Interpolate, plus bias, add/subtract and scale
-	auto tevLerp = declareFunc<Int>("tevLerp",
+	auto tevLerp = define_function<Int>("tevLerp",
 		[](Int A = "A", Int B = "B", Int C = "C", Int D = "D", Uint bias = "bias",
 			Bool op = "op", Bool alpha = "alpha", Uint shift = "shift") {
 		// Scale C from 0..255 to 0..256
 		C += C >> 7;
 
 		// Add bias to D
-		CSL_IF (bias == 1u) D += 128;
-		CSL_ELSE_IF (bias == 2u) D -= 128;
+		CSL_IF(bias == 1u) D += 128;
+		CSL_ELSE_IF(bias == 2u) D -= 128;
 
-		Int lerp = (A << 8) + (B - A)*C;
-		CSL_IF (shift != 3u) {
-			lerp = lerp << shift;
-			D = D << shift;
+		Int lerp = (A << 8) + (B - A) * C;
+		CSL_IF(shift != 3u) {
+			lerp = lerp << Int(shift);
+			D = D << Int(shift);
 		}
 
-		CSL_IF ((shift == 3u) == alpha)
+		CSL_IF((shift == 3u) == alpha)
 			lerp = lerp + CSL_TERNARY(op, 127, 128);
 
 		Int result = lerp >> 8;
 
 		// Add/Subtract D
-		CSL_IF (op) // Subtract
+		CSL_IF(op) // Subtract
 			result = D - result;
 		CSL_ELSE // Add
 			result = D + result;
 
 		// Most of the Shift was moved inside the lerp for improved percision
 		// But we still do the divide by 2 here
-		CSL_IF (shift == 3u)
+		CSL_IF(shift == 3u)
 			result = result >> 1;
 
 		CSL_RETURN(result);
 	});
-	
+
 	// TEV's Linear Interpolate, plus bias, add/subtract and scale
-	auto tevLerp3 = declareFunc<ivec3>("tevLerp3",
-		[](ivec3 A, ivec3 B, ivec3 C, ivec3 D, 
+	auto tevLerp3 = define_function<ivec3>("tevLerp3",
+		[](ivec3 A, ivec3 B, ivec3 C, ivec3 D,
 			Uint bias, Bool op, Bool alpha, Uint shift) {
-	
+
 		// Scale C from 0..255 to 0..256
 		C += C >> 7;
 
 		// Add bias to D
-		CSL_IF (bias == 1u) D += 128;
-		CSL_ELSE_IF (bias == 2u) D -= 128;
+		CSL_IF(bias == 1u) D += 128;
+		CSL_ELSE_IF(bias == 2u) D -= 128;
 
-		ivec3 lerp = (A << 8) + (B - A)*C;
-		CSL_IF (shift != 3u) {
-			lerp = lerp << shift;
-			D = D << shift;
+		ivec3 lerp = (A << 8) + (B - A) * C;
+		CSL_IF(shift != 3u) {
+			lerp = lerp << Int(shift);
+			D = D << Int(shift);
 		}
 
-		CSL_IF ((shift == 3u) == alpha)
+		CSL_IF((shift == 3u) == alpha)
 			lerp = lerp + CSL_TERNARY(op, 127, 128);
 
 		ivec3 result = lerp >> 8;
 
 		// Add/Subtract D
-		CSL_IF (op) // Subtract
+		CSL_IF(op) // Subtract
 			result = D - result;
 		CSL_ELSE // Add
 			result = D + result;
 
 		// Most of the Shift was moved inside the lerp for improved percision
 		// But we still do the divide by 2 here
-		CSL_IF (shift == 3u)
+		CSL_IF(shift == 3u)
 			result = result >> 1;
-		
+
 		CSL_RETURN(result);
 	});
 
 	// Implements operations 0-5 of tev's compare mode,
 	// which are common to both color and alpha channels
-	auto tevCompare = declareFunc<Bool>("tevCompare", 
+	auto tevCompare = define_function<Bool>("tevCompare",
 		[](Uint op, ivec3 color_A, ivec3 color_B) {
-		CSL_SWITCH (op) {
+		CSL_SWITCH(op) {
 			CSL_CASE(0u) : { // TEVCMP_R8_GT
 				CSL_RETURN(color_A[r] > color_B[r]);
-			} 
+			}
 			CSL_CASE(1u) : {// TEVCMP_R8_EQ
 				CSL_RETURN(color_A[r] == color_B[r]);
 			}
@@ -676,16 +683,16 @@ std::string dolphinFragment() {
 			CSL_CASE(5u) : { // TEVCMP_BGR24_EQ
 				CSL_RETURN(color_A[r] == color_B[r] && color_A[g] == color_B[g] && color_A[b] == color_B[b]);
 			}
-			CSL_DEFAULT: {
-				CSL_RETURN(false);
+		CSL_DEFAULT: {
+			CSL_RETURN(false);
 			}
 		}
 	});
 
 	// Helper function for Alpha Test
-	auto alphaCompare = declareFunc<Bool>("alphaCompare",
+	auto alphaCompare = define_function<Bool>("alphaCompare",
 		[](Int a, Int b, Uint compare) {
-		CSL_SWITCH (compare) {
+		CSL_SWITCH(compare) {
 			CSL_CASE(0u) : {// NEVER
 				CSL_RETURN(false);
 			}
@@ -710,59 +717,61 @@ std::string dolphinFragment() {
 			CSL_CASE(7u) : {// ALWAYS
 				CSL_RETURN(true);
 			}
-			CSL_DEFAULT: {}
+		CSL_DEFAULT: {}
 		}
 	});
 
-	CSL_STRUCT(State,
-		(Array<ivec4>::Size<4>) Reg,
-		(ivec4) TexColor,
-		(Int) AlphaBump
+	CSL_STRUCT(
+		State,
+		((Qualify<ivec4, Array<4>>), Reg),
+		(ivec4, TexColor),
+		(Int, AlphaBump)
 	);
 
-	CSL_STRUCT(StageState,
-		(Uint) stage,
-		(Uint) order,
-		(Uint) cc,
-		(Uint) ac
+	CSL_STRUCT(
+		StageState,
+		(Uint, stage),
+		(Uint, order),
+		(Uint, cc),
+		(Uint, ac)
 	);
 
-	auto getRasColor = declareFunc<ivec4>("getRasColor",
+	auto getRasColor = define_function<ivec4>("getRasColor",
 		[&](State s, StageState ss, vec4 colors_0, vec4 colors_1) {
 		// Select Ras for stage
 		Uint ras = bitfieldExtract(ss.order, 7, 3);
-		CSL_IF (ras < 2u) { // Lighting Channel 0 or 1
+		CSL_IF(ras < 2u) { // Lighting Channel 0 or 1
 			ivec4 color = iround(CSL_TERNARY((ras == 0u), colors_0, colors_1) * 255.0);
 			Uint swap = bitfieldExtract(ss.ac, 0, 2);
 			CSL_RETURN(Swizzle(swap, color));
 		}
-		CSL_ELSE_IF (ras == 5u) { // Alpha Bumb
+		CSL_ELSE_IF(ras == 5u) { // Alpha Bumb
 			CSL_RETURN(ivec4(s.AlphaBump, s.AlphaBump, s.AlphaBump, s.AlphaBump));
 		}
-		CSL_ELSE_IF (ras == 6u) { // Normalzied Alpha Bump
+		CSL_ELSE_IF(ras == 6u) { // Normalzied Alpha Bump
 			Int normalized = s.AlphaBump | s.AlphaBump >> 5;
 			CSL_RETURN(ivec4(normalized, normalized, normalized, normalized));
 		}
-		CSL_ELSE {
+		CSL_ELSE{
 			CSL_RETURN(ivec4(0, 0, 0, 0));
 		}
 	});
 
-	auto getKonstColor = declareFunc<ivec4>("getKonstColor",
-	 [&](State s, StageState ss) {
+	auto getKonstColor = define_function<ivec4>("getKonstColor",
+		[&](State s, StageState ss) {
 		// Select Konst for stage
 		// TODO: a switch case might be better here than an dynamically  // indexed uniform lookup
-		Uint tevksel = (bpmem_pack2[(ss.stage >> 1)][y]);
-		CSL_IF ((ss.stage & 1u) == 0u)
-			CSL_RETURN(ivec4(konstLookup[bitfieldExtract(tevksel, 4, 5)][r,g,b], konstLookup[bitfieldExtract(tevksel, 9, 5)][a]));
+		Uint tevksel = (bpmem_pack2[(ss.stage >> 1u)][y]);
+		CSL_IF((ss.stage & 1u) == 0u)
+			CSL_RETURN(ivec4(konstLookup[bitfieldExtract(tevksel, 4, 5)][r, g, b], konstLookup[bitfieldExtract(tevksel, 9, 5)][a]));
 		CSL_ELSE
 			CSL_RETURN(ivec4(konstLookup[bitfieldExtract(tevksel, 14, 5)][r, g, b], konstLookup[bitfieldExtract(tevksel, 19, 5)][a]));
 	});
 
-	auto selectColorInput = declareFunc<ivec3>("selectColorInput",
-		[&](State s, StageState ss, vec4 colors_0, 
+	auto selectColorInput = define_function<ivec3>("selectColorInput",
+		[&](State s, StageState ss, vec4 colors_0,
 			vec4 colors_1, Uint index) {
-		CSL_SWITCH (index) {
+		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {// prev.rgb
 				CSL_RETURN(s.Reg[0][r, g, b]);
 			}
@@ -815,9 +824,9 @@ std::string dolphinFragment() {
 		}
 	});
 
-	auto selectAlphaInput = declareFunc<Int>("selectAlphaInput",
+	auto selectAlphaInput = define_function<Int>("selectAlphaInput",
 		[&](State s, StageState ss, vec4 colors_0, vec4 colors_1, Uint index) {
-		CSL_SWITCH (index) {
+		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {// prev.a
 				CSL_RETURN(s.Reg[0][a]);
 			}
@@ -846,9 +855,9 @@ std::string dolphinFragment() {
 		}
 	});
 
-	auto getTevReg = declareFunc<ivec4>("getTevReg", 
-		[](State s, Uint index){
-		CSL_SWITCH (index) {
+	auto getTevReg = define_function<ivec4>("getTevReg",
+		[](State s, Uint index) {
+		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {// prev
 				CSL_RETURN(s.Reg[0]);
 			}
@@ -861,13 +870,13 @@ std::string dolphinFragment() {
 			CSL_CASE(3u) : {// c2
 				CSL_RETURN(s.Reg[3]);
 			}
-			CSL_DEFAULT: {// prev
-				CSL_RETURN(s.Reg[0]);
+		CSL_DEFAULT: {// prev
+			CSL_RETURN(s.Reg[0]);
 			}
 		}
 	});
-	
-	auto setRegColor = declareFunc<void>("setRegColor",
+
+	auto setRegColor = define_function<void>("setRegColor",
 		[&](State s, Uint index, ivec3 color) {
 		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {// prev
@@ -890,7 +899,7 @@ std::string dolphinFragment() {
 		}
 	});
 
-	auto setRegAlpha = declareFunc<void>("setRegAlpha",
+	auto setRegAlpha = define_function<void>("setRegAlpha",
 		[&](State s, Uint index, Int alpha) {
 		CSL_SWITCH(index) {
 			CSL_CASE(0u) : {// prev
@@ -929,21 +938,21 @@ std::string dolphinFragment() {
 		Uint num_stages = bitfieldExtract(bpmem_genmode, 10, 4);
 
 		// Main tev loop
-		CSL_FOR (Uint stage = 0u; stage <= num_stages; stage++){
+		CSL_FOR(Uint stage = 0u; stage <= num_stages; stage++) {
 			StageState ss;
 			ss.stage = stage;
-			ss.cc = (bpmem_pack1[(stage)][x,y])[x];
-			ss.ac = (bpmem_pack1[(stage)][x,y])[y];
-			ss.order = (bpmem_pack2[(stage >> 1)][x]);
-			CSL_IF ((stage & 1u) == 1u)
-				ss.order = ss.order >> 12;
+			ss.cc = (bpmem_pack1[(stage)][x, y])[x];
+			ss.ac = (bpmem_pack1[(stage)][x, y])[y];
+			ss.order = (bpmem_pack2[(stage >> 1u)][x]);
+			CSL_IF((stage & 1u) == 1u)
+				ss.order = ss.order >> 12u;
 
 			Uint tex_coord = bitfieldExtract(ss.order, 3, 3);
 			vec3 uv = selectTexCoord((tex_coord));
 			ivec2 fixedPoint_uv = ivec2(CSL_TERNARY(uv[z] == 0.0, uv[x, y], (uv[x, y] / uv[z])) * texdim[tex_coord][z, w]);
 
 			Bool texture_enabled = (ss.order & 64u) != 0u;
-			
+
 			// Indirect textures
 			Uint tevind = (bpmem_pack1[(stage)][z]);
 			CSL_IF(tevind != 0u) {
@@ -964,12 +973,12 @@ std::string dolphinFragment() {
 						ivec2 fixedPoint_uv = ivec2(CSL_TERNARY(uv[z] == 0.0, uv[x, y], (uv[x, y] / uv[z])) * texdim[texcoord][z, w]);
 
 						CSL_IF((bt & 1u) == 0u)
-							fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1][x, y];
+							fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1u][x, y];
 						CSL_ELSE
-							fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1][z, w];
+							fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1u][z, w];
 
 						indcoord = sampleTexture(texmap, vec2(fixedPoint_uv) * texdim[texmap][x, y])[a, b, g];
-					} CSL_ELSE {
+					} CSL_ELSE{
 						indcoord = ivec3(0, 0, 0);
 					}
 				}
@@ -1007,14 +1016,14 @@ std::string dolphinFragment() {
 					}
 				CSL_DEFAULT: {}
 				}
-				
+
 				// Matrix multiply
 				ivec2 indtevtrans = ivec2(0, 0);
 				CSL_IF((mid & 3u) != 0u) {
 					Uint mtxidx = 2u * ((mid & 3u) - 1u);
 					Int shift = cindmtx[mtxidx][w];
 
-					CSL_SWITCH(mid >> 2) {
+					CSL_SWITCH(mid >> 2u) {
 						CSL_CASE(0u) : {// 3x2 S0.10 matrix
 							indtevtrans = ivec2(idot(cindmtx[mtxidx][x, y, z], indcoord), idot(cindmtx[mtxidx + 1u][x, y, z], indcoord)) >> 3;
 							CSL_BREAK;
@@ -1050,12 +1059,12 @@ std::string dolphinFragment() {
 				// Emulate s24 overflows
 				tevcoord[x, y] = (tevcoord[x, y] << 8) >> 8;
 
-			} CSL_ELSE_IF (texture_enabled) {
-				tevcoord[x,y] = fixedPoint_uv;
+			} CSL_ELSE_IF(texture_enabled) {
+				tevcoord[x, y] = fixedPoint_uv;
 			}
 
 			// Sample texture for stage
-			CSL_IF (texture_enabled) {
+			CSL_IF(texture_enabled) {
 				Uint sampler_num = bitfieldExtract(ss.order, 0, 3);
 
 				vec2 uv = (vec2(tevcoord[x, y])) * texdim[sampler_num][x, y];
@@ -1064,12 +1073,12 @@ std::string dolphinFragment() {
 
 				Uint swap = bitfieldExtract(ss.ac, 2, 2);
 				s.TexColor = Swizzle(swap, color);
-			} CSL_ELSE {
+			} CSL_ELSE{
 				// Texture is OpFlags::DISABLED
 				s.TexColor = ivec4(255, 255, 255, 255);
 			}
 
-			// This is the Meat of TEV
+				// This is the Meat of TEV
 			{
 				// Color Combiner
 				Uint color_a = bitfieldExtract(ss.cc, 12, 4);
@@ -1081,37 +1090,37 @@ std::string dolphinFragment() {
 				Bool color_clamp = Bool(bitfieldExtract(ss.cc, 19, 1));
 				Uint color_shift = bitfieldExtract(ss.cc, 20, 2);
 				Uint color_dest = bitfieldExtract(ss.cc, 22, 2);
-				Uint color_compare_op = color_shift << 1 | Uint(color_op);
+				Uint color_compare_op = color_shift << 1u | Uint(color_op);
 
 				ivec3 color_A = selectColorInput(s, ss, colors_0, colors_1, color_a) & ivec3(255, 255, 255);
 				ivec3 color_B = selectColorInput(s, ss, colors_0, colors_1, color_b) & ivec3(255, 255, 255);
 				ivec3 color_C = selectColorInput(s, ss, colors_0, colors_1, color_c) & ivec3(255, 255, 255);
 				ivec3 color_D = selectColorInput(s, ss, colors_0, colors_1, color_d);  // 10 bits + sign
-				
+
 				ivec3 color;
-				CSL_IF (color_bias != 3u) { // Normal mode
+				CSL_IF(color_bias != 3u) { // Normal mode
 					color = tevLerp3(color_A, color_B, color_C, color_D, color_bias, color_op, false, color_shift);
-				} CSL_ELSE { // Compare mode
+				} CSL_ELSE{ // Compare mode
 					// op 6 and 7 do a select per color channel
-					CSL_IF (color_compare_op == 6u) {
-						// TEVCMP_RGB8_GT
-						color[r] = CSL_TERNARY((color_A[r] > color_B[r]), color_C[r], 0);
-						color[g] = CSL_TERNARY((color_A[g] > color_B[g]), color_C[g], 0);
-						color[b] = CSL_TERNARY((color_A[b] > color_B[b]), color_C[b], 0);
-					} CSL_ELSE_IF (color_compare_op == 7u) {
-						// TEVCMP_RGB8_EQ
-						color[r] = CSL_TERNARY((color_A[r] == color_B[r]), color_C[r], 0);
-						color[g] = CSL_TERNARY((color_A[g] == color_B[g]), color_C[g], 0);
-						color[b] = CSL_TERNARY((color_A[b] > color_B[b]), color_C[b], 0);
-					} CSL_ELSE {
-						// The remaining ops do one compare which selects all 3 channels
-						color = CSL_TERNARY(tevCompare(color_compare_op, color_A, color_B), color_C, ivec3(0, 0, 0));
-					}
-					color = color_D + color;
+					CSL_IF(color_compare_op == 6u) {
+					// TEVCMP_RGB8_GT
+					color[r] = CSL_TERNARY((color_A[r] > color_B[r]), color_C[r], 0);
+					color[g] = CSL_TERNARY((color_A[g] > color_B[g]), color_C[g], 0);
+					color[b] = CSL_TERNARY((color_A[b] > color_B[b]), color_C[b], 0);
+				} CSL_ELSE_IF(color_compare_op == 7u) {
+					// TEVCMP_RGB8_EQ
+					color[r] = CSL_TERNARY((color_A[r] == color_B[r]), color_C[r], 0);
+					color[g] = CSL_TERNARY((color_A[g] == color_B[g]), color_C[g], 0);
+					color[b] = CSL_TERNARY((color_A[b] > color_B[b]), color_C[b], 0);
+				} CSL_ELSE {
+					// The remaining ops do one compare which selects all 3 channels
+					color = CSL_TERNARY(tevCompare(color_compare_op, color_A, color_B), color_C, ivec3(0, 0, 0));
+				}
+				color = color_D + color;
 				}
 
-				// Clamp result
-				CSL_IF (color_clamp)
+					// Clamp result
+					CSL_IF(color_clamp)
 					color = clamp(color, 0, 255);
 				CSL_ELSE
 					color = clamp(color, -1024, 1023);
@@ -1129,37 +1138,37 @@ std::string dolphinFragment() {
 				Bool alpha_clamp = Bool(bitfieldExtract(ss.ac, 19, 1));
 				Uint alpha_shift = bitfieldExtract(ss.ac, 20, 2);
 				Uint alpha_dest = bitfieldExtract(ss.ac, 22, 2);
-				Uint alpha_compare_op = alpha_shift << 1 | Uint(alpha_op);
+				Uint alpha_compare_op = alpha_shift << 1u | Uint(alpha_op);
 
 				Int alpha_A;
 				Int alpha_B;
-				CSL_IF (alpha_bias != 3u || alpha_compare_op > 5u) {
+				CSL_IF(alpha_bias != 3u || alpha_compare_op > 5u) {
 					// Small optimisation here: alpha_A and alpha_B are unused by compare ops 0-5
 					alpha_A = selectAlphaInput(s, ss, colors_0, colors_1, alpha_a) & 255;
 					alpha_B = selectAlphaInput(s, ss, colors_0, colors_1, alpha_b) & 255;
 				}
 				Int alpha_C = selectAlphaInput(s, ss, colors_0, colors_1, alpha_c) & 255;
 				Int alpha_D = selectAlphaInput(s, ss, colors_0, colors_1, alpha_d); // 10 bits + sign
-			
+
 				Int alpha;
-				CSL_IF (alpha_bias != 3u) { // Normal mode
+				CSL_IF(alpha_bias != 3u) { // Normal mode
 					alpha = tevLerp(alpha_A, alpha_B, alpha_C, alpha_D, alpha_bias, alpha_op, true, alpha_shift);
-				} CSL_ELSE { // Compare mode
-					CSL_IF (alpha_compare_op == 6u) {
-						// TEVCMP_A8_GT
-						alpha = CSL_TERNARY((alpha_A > alpha_B), alpha_C, 0);
-					} CSL_ELSE_IF(alpha_compare_op == 7u) {
-						// TEVCMP_A8_EQ
-						alpha = CSL_TERNARY((alpha_A == alpha_B), alpha_C, 0);
-					} CSL_ELSE {
-						// All remaining alpha compare ops actually compare the color channels
-						alpha = CSL_TERNARY(tevCompare(alpha_compare_op, color_A, color_B), alpha_C, 0);
-					}
-					alpha = alpha_D + alpha;
+				} CSL_ELSE{ // Compare mode
+					CSL_IF(alpha_compare_op == 6u) {
+					// TEVCMP_A8_GT
+					alpha = CSL_TERNARY((alpha_A > alpha_B), alpha_C, 0);
+				} CSL_ELSE_IF(alpha_compare_op == 7u) {
+					// TEVCMP_A8_EQ
+					alpha = CSL_TERNARY((alpha_A == alpha_B), alpha_C, 0);
+				} CSL_ELSE {
+					// All remaining alpha compare ops actually compare the color channels
+					alpha = CSL_TERNARY(tevCompare(alpha_compare_op, color_A, color_B), alpha_C, 0);
+				}
+				alpha = alpha_D + alpha;
 				}
 
-				// Clamp result
-				CSL_IF (alpha_clamp)
+					// Clamp result
+					CSL_IF(alpha_clamp)
 					alpha = clamp(alpha, 0, 255);
 				CSL_ELSE
 					alpha = clamp(alpha, -1024, 1023);
@@ -1179,7 +1188,7 @@ std::string dolphinFragment() {
 
 		// Depth Texture
 		Int early_zCoord = zCoord;
-		CSL_IF (bpmem_ztex_op != 0u) {
+		CSL_IF(bpmem_ztex_op != 0u) {
 			Int ztex = Int(czbias[1][w]); // fixed bias
 
 			// Whatever texture was in our last stage, it's now our depth texture
@@ -1189,14 +1198,14 @@ std::string dolphinFragment() {
 		}
 
 		// Alpha Test
-		CSL_IF (bpmem_alphaTest != 0u) {
+		CSL_IF(bpmem_alphaTest != 0u) {
 			Bool comp0 = alphaCompare(TevResult[a], alphaRef[r], bitfieldExtract(bpmem_alphaTest, 16, 3));
 			Bool comp1 = alphaCompare(TevResult[a], alphaRef[g], bitfieldExtract(bpmem_alphaTest, 19, 3));
 
 			// These if statements are written weirdly to work around intel and qualcom bugs with handling booleans.
-			CSL_SWITCH (bitfieldExtract(bpmem_alphaTest, 22, 2)) {
+			CSL_SWITCH(bitfieldExtract(bpmem_alphaTest, 22, 2)) {
 				CSL_CASE(0u) : {// AND
-					CSL_IF(comp0 && comp1) { CSL_BREAK; } CSL_ELSE{ CSL_DISCARD; CSL_BREAK };
+					CSL_IF(comp0&& comp1) { CSL_BREAK; } CSL_ELSE{ CSL_DISCARD; CSL_BREAK };
 				}
 				CSL_CASE(1u) : {// OR
 					CSL_IF(comp0 || comp1) { CSL_BREAK; } CSL_ELSE{ CSL_DISCARD; CSL_BREAK };
@@ -1220,20 +1229,20 @@ std::string dolphinFragment() {
 
 		// Fog
 		Uint fog_function = bitfieldExtract(bpmem_fogParam3, 21, 3);
-		CSL_IF (fog_function != 0u) {
+		CSL_IF(fog_function != 0u) {
 			// TODO: This all needs to be converted from float to fixed point
 			Float ze;
-			CSL_IF (bitfieldExtract(bpmem_fogParam3, 20, 1) == 0u) {
+			CSL_IF(bitfieldExtract(bpmem_fogParam3, 20, 1) == 0u) {
 				// perspective
 				// ze = A/(B - (Zs >> B_SHF)
 				ze = (cfogf[1][x] * 16777216.0) / Float(cfogi[y] - (zCoord >> cfogi[w]));
-			} CSL_ELSE {
+			} CSL_ELSE{
 				// orthographic
 				// ze = a*Zs    (here, no B_SHF)
 				ze = cfogf[1][x] * Float(zCoord) / 16777216.0;
 			}
 
-			CSL_IF(Bool(bitfieldExtract(bpmem_fogRangeBase, 10, 1))) {
+				CSL_IF(Bool(bitfieldExtract(bpmem_fogRangeBase, 10, 1))) {
 				// x_adjust = sqrt((x-center)^2 + k^2)/k
 				// ze *= x_adjust
 				// TODO Instead of this theoretical calculation, we should use the
@@ -1253,7 +1262,7 @@ std::string dolphinFragment() {
 					}
 					CSL_CASE(5u) : {
 						fog = 1.0 - exp2(-8.0 * fog * fog);
-					CSL_BREAK;
+						CSL_BREAK;
 					}
 					CSL_CASE(6u) : {
 						fog = exp2(-8.0 * (1.0 - fog));
@@ -1277,7 +1286,7 @@ std::string dolphinFragment() {
 				ocol0[r, g, b] = vec3(TevResult[r, g, b]) / 255.0;
 
 			CSL_IF(bpmem_dstalpha != 0u)
-				ocol0[a] = Float(bitfieldExtract(bpmem_dstalpha, 0, 8) >> 2) / 63.0;
+				ocol0[a] = Float(bitfieldExtract(bpmem_dstalpha, 0, 8) >> 2u) / 63.0;
 			CSL_ELSE
 				ocol0[a] = Float(TevResult[a] >> 2) / 63.0;
 
@@ -1288,6 +1297,5 @@ std::string dolphinFragment() {
 		}
 	});
 
-	return shader.str();
-
+	return shader;
 }
