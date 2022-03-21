@@ -2,6 +2,7 @@ branches:
   only:
   - master
   - v2
+  - spring_cleanup
 
 language: cpp
 

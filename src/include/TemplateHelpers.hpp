@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <tuple>
 #include <utility>
 
-namespace csl {
-
-	//
+namespace csl 
+{
 	template<std::size_t ...Ns>
 	struct SizeList;
 
@@ -40,22 +38,9 @@ namespace csl {
 
 		template<std::size_t M>
 		using PushBack = SizeList<N, Ns..., M>;
-	};
 
-	template<typename T, std::size_t Id>
-	struct GetValueAtImpl;
-
-	template<typename T, std::size_t Id>
-	constexpr std::size_t GetValueAt = GetValueAtImpl<T, Id>::Value;
-
-	template<std::size_t N, std::size_t ...Ns>
-	struct GetValueAtImpl<SizeList<N, Ns...>, 0> {
-		static constexpr std::size_t Value = N;
-	};
-
-	template<std::size_t Id, std::size_t N, std::size_t ...Ns>
-	struct GetValueAtImpl<SizeList<N, Ns...>, Id> {
-		static constexpr std::size_t Value = GetValueAt<SizeList<Ns...>, Id - 1>;
+		template<std::size_t Index>
+		static constexpr std::size_t At = (Index == 0 ? N : Tail::template At<Index - 1>);
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -65,14 +50,13 @@ namespace csl {
 	struct TList;
 
 	template<>
-	struct TList<> {
-		using Tuple = std::tuple<>;
-
+	struct TList<> 
+	{
 		using Front = void;
 		using Tail = TList<>;
 
-		template<std::size_t Id>
-		using GetType = void;
+		template<std::size_t Index>
+		using At = void;
 
 		template<typename T>
 		using PushFront = TList<T>;
@@ -85,14 +69,13 @@ namespace csl {
 
 
 	template<typename T, typename ... Ts>
-	struct TList<T, Ts...> {
-		using Tuple = std::tuple<T, Ts...>;
-
+	struct TList<T, Ts...> 
+	{
 		using Front = T;
 		using Tail = TList<Ts...>;
 
-		template<std::size_t Id>
-		using GetType = typename std::tuple_element<Id, Tuple>::type;
+		template<std::size_t Index>
+		using At = std::conditional_t<Index == 0, T, typename Tail::template At<Index - 1>>;
 
 		template<typename U>
 		using PushFront = TList<U, T, Ts...>;
@@ -107,73 +90,65 @@ namespace csl {
 	struct IterateOverListImpl {
 		template<std::size_t ...Ns, typename ...Args>
 		static void call(std::index_sequence<Ns...>, Args&& ... args) {
-			(F<typename TList::template GetType<Ns>, Ns>::call(std::forward<Args>(args)...), ...);
+			(F<typename TList::template At<Ns>, Ns>::call(std::forward<Args>(args)...), ...);
 		}
 	};
 
-	// Iterate over type list using functor taking type and index as template argument
+	// Iterate over type list using functor taking type and index as template argument.
 	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
 	void iterate_over_typelist(Args&& ...args) {
 		IterateOverListImpl<TList, F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
 	}
 
-	template<typename List, std::size_t first, typename Range>
+	template<typename List, std::size_t First, typename Range>
 	struct SubsetImpl;
 
-	// Extract type list subset given first (inclusive) and last (exclusive) indexesù
-	template<typename List, size_t first, size_t last>
-	using Subset = typename SubsetImpl<List, first, ::std::make_index_sequence<last - first>>::Type;
+	// Extract type list subset given first (inclusive) and last (exclusive) indexes.
+	template<typename List, size_t First, size_t Last>
+	using Subset = typename SubsetImpl<List, First, std::make_index_sequence<Last - First>>::Type;
 
-	template<size_t first, size_t ... Is, typename ... Ts>
-	struct SubsetImpl<TList<Ts...>, first, ::std::index_sequence<Is...>> {
-		using Type = TList<::std::tuple_element_t<first + Is, ::std::tuple<Ts...>> ...>;
+	template<std::size_t First, std::size_t ... Is, typename ... Ts>
+	struct SubsetImpl<TList<Ts...>, First, std::index_sequence<Is...>> {
+		using Type = TList<typename TList<Ts...>::template At<First + Is>...>;
 	};
 
-	// Convert tuple to type list
-	template<typename T>
-	struct GetTList;
-
-	template<typename ...Args>
-	struct GetTList<std::tuple<Args...>> {
-		using Type = TList<Args...>;
-	};
-
-	template<template <typename> typename Pred, typename List, std::size_t Id>
+	template<template <typename> typename Pred, typename List, std::size_t Index>
 	class MatchingImpl {
 	public:
 		using Values = TList<>;
-		using Ids = SizeList<>;
+		using Indexes = SizeList<>;
 	};
 
-	// Match a type over a type list using a predicates, defines list of matched types (::Values) and their indexes (::Ids) from the input type list
+	// Match a type over a type list using a predicates, defines list of matched types (::Values) and their indexes (::Indexes) from the input type list.
 	template<template <typename> typename Pred, typename List>
 	using Matching = MatchingImpl<Pred, List, 0>;
 
-	template<template <typename> typename Pred, typename T, std::size_t Id, typename ...Ts>
-	class MatchingImpl<Pred, TList<T, Ts...>, Id> {
+	template<template <typename> typename Pred, typename T, std::size_t Index, typename ...Ts>
+	class MatchingImpl<Pred, TList<T, Ts...>, Index> 
+	{
 	protected:
-		using Next = MatchingImpl<Pred, TList<Ts...>, Id + 1>;
+		using Next = MatchingImpl<Pred, TList<Ts...>, Index + 1>;
 		using NextValues = typename Next::Values;
-		using NextIds = typename Next::Ids;
+		using NextIndexes = typename Next::Indexes;
 	public:
 		using Values = std::conditional_t<Pred<T>::Value, typename NextValues::template PushFront<T>, NextValues>;
-		using Ids = std::conditional_t<Pred<T>::Value, typename NextIds::template PushFront<Id>, NextIds>;
+		using Indexes = std::conditional_t<Pred<T>::Value, typename NextIndexes::template PushFront<Index>, NextIndexes>;
 	};
 
-	template<typename IdList, typename List, std::size_t Id>
+	template<typename IndexList, typename TypeList, std::size_t Index>
 	struct RemoveAtImpl {
-		using Type = List;
+		using Type = TypeList;
 	};
 
-	// Remove type from type list given index
-	template<typename IdList, typename List>
-	using RemoveAt = typename RemoveAtImpl<IdList, List, 0>::Type;
+	// Remove type from type list given index.
+	template<typename IndexList, typename TypeList>
+	using RemoveAt = typename RemoveAtImpl<IndexList, TypeList, 0>::Type;
 
-	template<std::size_t Id, std::size_t ...Ids, typename T, typename ...Ts, std::size_t CurrentId>
-	struct RemoveAtImpl<SizeList<Id, Ids...>, TList<T, Ts...>, CurrentId> {
-		static constexpr bool RemoveCurrent = (Id == CurrentId);
-		using NextIds = std::conditional_t<RemoveCurrent, SizeList<Ids...>, SizeList<Id, Ids...>>;
-		using Next = typename RemoveAtImpl<NextIds, TList<Ts...>, CurrentId + 1>::Type;
+	template<std::size_t Index, std::size_t ...Indexes, typename T, typename ...Ts, std::size_t CurrentIndex>
+	struct RemoveAtImpl<SizeList<Index, Indexes...>, TList<T, Ts...>, CurrentIndex> {
+		static constexpr bool RemoveCurrent = (Index == CurrentIndex);
+		using NextIds = std::conditional_t<RemoveCurrent, SizeList<Indexes...>, SizeList<Index, Indexes...>>;
+		using Next = typename RemoveAtImpl<NextIds, TList<Ts...>, CurrentIndex + 1>::Type;
 		using Type = std::conditional_t<RemoveCurrent, Next, typename Next::template PushFront<T>>;
 	};
 

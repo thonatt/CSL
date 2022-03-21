@@ -75,7 +75,8 @@ namespace csl {
 	};
 
 	template<typename ...Qs>
-	struct ArrayInfos {
+	struct ArrayInfos 
+	{
 		using List = TList<Qs...>;
 
 		template<typename T>
@@ -85,8 +86,8 @@ namespace csl {
 
 		using Matches = Matching<ArrayPred, List>;
 		static constexpr bool HasArray = (Matches::Values::Size > 0);
-		static constexpr std::size_t Id = (HasArray ? Matches::Ids::Back : 0);
-		using Dimensions = std::conditional_t<HasArray, typename IsArray<typename List::template GetType<Id>>::Dimensions, SizeList<>>;
+		static constexpr std::size_t Index = (HasArray ? Matches::Indexes::Back : 0);
+		using Dimensions = std::conditional_t<HasArray, typename IsArray<typename List::template At<Index>>::Dimensions, SizeList<>>;
 		static constexpr bool Value = (Dimensions::Size > 0);
 	};
 
@@ -94,7 +95,6 @@ namespace csl {
 	struct ArrayInfos<> {
 		using List = TList<>;
 		static constexpr bool HasArray = false;
-		static constexpr std::size_t Id = 0;
 		using Dimensions = SizeList<>;
 		static constexpr bool Value = false;
 	};
@@ -327,7 +327,7 @@ namespace csl {
 	};
 
 	template<typename ...Qs>
-	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Ids, TList<Qs...>>;
+	using RemoveArrayFromQualifiers = RemoveAt<typename Matching<IsArray, TList<Qs...>>::Indexes, TList<Qs...>>;
 
 	template<typename T, typename ... Qs>
 	struct QualifiedIndirection;

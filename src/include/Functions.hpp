@@ -46,12 +46,12 @@ namespace csl {
 			static constexpr bool Value = EqualLists<TypeMatchingPred, GetArgTList<F>, ArgList>;
 		};
 
-		using Candidates = typename Matching<FunMatchingPred, FList>::Ids;
+		using Candidates = typename Matching<FunMatchingPred, FList>::Indexes;
 
 		static_assert(Candidates::Size >= 1, "Invalid call, no overload candidate found");
 		static_assert(Candidates::Size <= 1, "Ambiguous call, multiple overload candidates found");
 
-		using ReturnType = typename ReturnTypeList::template GetType<Candidates::Front>;
+		using ReturnType = typename ReturnTypeList::template At<Candidates::Front>;
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
