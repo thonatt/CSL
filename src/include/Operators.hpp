@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <memory>
 #include <new>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -202,24 +203,6 @@ namespace csl {
 
 	struct OperatorBase;
 
-	//using Expr = std::shared_ptr<OperatorBase>;
-
-	struct ExprOld
-	{
-		enum Status : std::uint8_t { Empty, Static, Default };
-
-		ExprOld() = default;
-		ExprOld(const std::size_t id, const std::size_t band) : m_id(static_cast<std::uint32_t>(id)), m_band(static_cast<uint8_t>(band)), m_status(Default) { }
-
-		operator bool() const {
-			return m_status != Empty;
-		}
-
-		std::uint32_t m_id = 0;
-		std::uint8_t m_band = 0;
-		Status m_status = Empty;
-	};
-
 	struct Expr
 	{
 		enum class Status : std::uint8_t { Empty, Static, Default };
@@ -249,10 +232,10 @@ namespace csl {
 	};
 
 	constexpr bool operator&&(CtorFlags a, CtorFlags b) {
-		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+		return static_cast<bool>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
 	}
 	constexpr CtorFlags operator&(CtorFlags a, CtorFlags b) {
-		return static_cast<CtorFlags>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+		return static_cast<CtorFlags>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
 	}
 	constexpr CtorFlags operator|(const CtorFlags a, const CtorFlags b) {
 		return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
@@ -367,7 +350,6 @@ namespace csl {
 	template<typename T, std::size_t N>
 	struct Constructor final : ConstructorBase, ArgSeq<N>
 	{
-
 		using ArgSeq<N>::m_args;
 
 		template<typename ...Args>
@@ -599,15 +581,11 @@ namespace csl {
 		template<typename Derived, typename ... Args>
 		Index emplace_back(Args&& ...args) {
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
-			//static_assert(sizeof(Derived) <= MaxSizeof, "Derived sizeof is too big");
-
-			constexpr std::size_t derived_size = sizeof(Derived);
-			constexpr std::size_t derived_alignment = alignof(Derived);
 
 			std::size_t current_size = m_buffer.size();
 			const char* data = m_buffer.data() + current_size;
-			current_size += reinterpret_cast<std::uintptr_t>(data) % derived_alignment;
-			m_buffer.resize(current_size + derived_size);
+			current_size += reinterpret_cast<std::uintptr_t>(data) % alignof(Derived);
+			m_buffer.resize(current_size + sizeof(Derived));
 			m_objects_ids.push_back(current_size);
 			new (&m_buffer[current_size]) Derived(std::forward<Args>(args)...);
 			return Index{ current_size };
@@ -622,9 +600,8 @@ namespace csl {
 		}
 
 		~PolymorphicMemoryPool() {
-			//std::cout << "PolymorphicMemoryPool dtor " << m_objects_ids.size() << " objects" << std::endl;
-			for (auto it = m_objects_ids.begin(); it != m_objects_ids.end(); ++it) {
-				Base& obj = operator[](*it);
+			for (const std::size_t index : m_objects_ids) {
+				Base& obj = operator[](index);
 				obj.~Base();
 			}
 		}

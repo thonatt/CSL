@@ -11,7 +11,7 @@ endforeach()
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 if (MSVC)
-	add_definitions(/bigobj /Zc:__cplusplus /std:c++17 /experimental:preprocessor)
+	add_definitions(/bigobj /Zc:__cplusplus /std:c++17 /Zc:preprocessor)
 endif(MSVC)
 
 # CSL

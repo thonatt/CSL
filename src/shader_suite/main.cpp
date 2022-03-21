@@ -122,7 +122,7 @@ enum class ShaderEnum {
 
 const std::string& shader_name(const ShaderEnum shader)
 {
-	static std::unordered_map<ShaderEnum, std::string> shaders_strs = {
+	static const std::unordered_map<ShaderEnum, std::string> shaders_strs = {
 		{ ShaderEnum::TypeAndOperatorsExample, "Types & Operators" },
 		{ ShaderEnum::ManualNamingExample, "Manual naming" },
 		{ ShaderEnum::AutoNamingExample, "Automatic naming" },
@@ -720,7 +720,7 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 	}
 	case Mode::GlobalMetrics:
 	{
-		const auto& metrics = data.m_global_metrics;
+		const GlobalMetrics& metrics = data.m_global_metrics;
 		std::stringstream s;
 		s << "Shader suite statistics \n";
 		s << "\t Total generation time " << metrics.m_time_total << " ms\n";
@@ -791,10 +791,10 @@ void main_loop(LoopData& data)
 					}
 					current_shader = shader_it->second;
 				}
-				for (const auto& pipeline : data.m_pipelines) {
-					for (const auto& shader : pipeline.second->m_shaders) {
+				for (const auto& [name, pipeline] : data.m_pipelines) {
+					for (const auto& shader : pipeline->m_shaders) {
 						if (shader.second.m_shader == current_shader) {
-							data.m_current_pipeline = pipeline.second;
+							data.m_current_pipeline = pipeline;
 							break;
 						}
 					}
@@ -813,15 +813,15 @@ void main_loop(LoopData& data)
 		const float h = ImGui::GetContentRegionAvail().y;
 
 		ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
-		for (const auto& group : data.m_shader_suite.m_groups)
+		for (const auto& [group_type, group] : data.m_shader_suite.m_groups)
 		{
-			if (group.first == ShaderGroup::Test) {
+			if (group_type == ShaderGroup::Test) {
 				continue;
 			}
 			ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
-			if (ImGui::TreeNode(shader_group_strs.find(group.first)->second.c_str()))
+			if (ImGui::TreeNode(shader_group_strs.find(group_type)->second.c_str()))
 			{
-				for (const auto& shader : group.second) {
+				for (const auto& shader : group) {
 					bool selected = false;
 					if (current_shader && shader == current_shader) {
 						selected = true;
@@ -837,10 +837,10 @@ void main_loop(LoopData& data)
 						current_shader = shader;
 
 						bool pipeline_found = false;
-						for (const auto& pipeline : data.m_pipelines) {
-							for (const auto& shader : pipeline.second->m_shaders) {
-								if (current_shader->m_name == shader.second.m_shader->m_name) {
-									data.m_current_pipeline = pipeline.second;
+						for (const auto& [name, pipeline] : data.m_pipelines) {
+							for (const auto& [type, shader] : pipeline->m_shaders) {
+								if (current_shader->m_name == shader.m_shader->m_name) {
+									data.m_current_pipeline = pipeline;
 									pipeline_found = true;
 								}
 							}
@@ -857,79 +857,81 @@ void main_loop(LoopData& data)
 
 		ImGui::SameLine();
 
-		ImGui::BeginChild("right pane", ImVec2(), false);
-		float active_shader_count = 0;
-		{
-			ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 8.0f), true);
-			if (data.m_current_pipeline) {
-				int count = 0;
-				for (auto& shader : data.m_current_pipeline->m_shaders) {
-					if (count > 0) {
-						ImGui::SameLine();
-						ImGui::Text("->");
-						ImGui::SameLine();
+		if (ImGui::BeginChild("right pane", ImVec2(), false)) {
+			float active_shader_count = 0;
+
+			if (ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 8.0f), true))
+			{
+				if (data.m_current_pipeline) {
+					int count = 0;
+					for (auto& [type, shader] : data.m_current_pipeline->m_shaders) {
+						if (count > 0) {
+							ImGui::SameLine();
+							ImGui::Text("->");
+							ImGui::SameLine();
+						}
+						ImGui::Checkbox((shader_type_strs.find(type)->second + "##").c_str(), &shader.m_active);
+						if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
+						{
+							if (ImGui::Button("print to console")) {
+								std::cout << shader.m_shader->m_glsl_str << std::endl;
+							}
+							ImGui::EndPopup();
+						}
+						if (shader.m_active) {
+							++active_shader_count;
+						}
+						++count;
 					}
-					ImGui::Checkbox((shader_type_strs.find(shader.first)->second + "##").c_str(), &shader.second.m_active);
-					if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
+				} else if (current_shader) {
+					ImGui::Text("No associated pipeline");
+					if (ImGui::BeginPopupContextItem("shader right click ## single"))
 					{
 						if (ImGui::Button("print to console")) {
-							std::cout << shader.second.m_shader->m_glsl_str << std::endl;
+							std::cout << current_shader->m_glsl_str << std::endl;
 						}
 						ImGui::EndPopup();
 					}
-					if (shader.second.m_active) {
-						++active_shader_count;
-					}
-					++count;
+					active_shader_count = 1.0f;
 				}
-			} else if (current_shader) {
-				ImGui::Text("No associated pipeline");
-				if (ImGui::BeginPopupContextItem("shader right click ## single"))
-				{
-					if (ImGui::Button("print to console")) {
-						std::cout << current_shader->m_glsl_str << std::endl;
-					}
-					ImGui::EndPopup();
+				if (data.m_current_pipeline) {
+					data.m_current_pipeline->additionnal_gui();
 				}
-				active_shader_count = 1.0f;
-			}
-			if (data.m_current_pipeline) {
-				data.m_current_pipeline->additionnal_gui();
 			}
 			ImGui::EndChild();
 
 			const float shader_code_height = (7.0f * h / 8.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
-			ImGui::BeginChild("bottom right pane", ImVec2(), true);
-			if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
-				for (const auto& mode : mode_strs) {
-					if (ImGui::BeginTabItem(mode.second.c_str())) {
-						if (data.m_current_pipeline) {
-							int count = 0;
-							for (auto& shader : data.m_current_pipeline->m_shaders) {
-								if (!shader.second.m_active) {
-									continue;
+			if (ImGui::BeginChild("bottom right pane", ImVec2(), true)) {
+				if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
+					for (const auto& mode : mode_strs) {
+						if (ImGui::BeginTabItem(mode.second.c_str())) {
+							if (data.m_current_pipeline) {
+								int count = 0;
+								for (auto& [type, shader] : data.m_current_pipeline->m_shaders) {
+									if (!shader.m_active) {
+										continue;
+									}
+									if (count) {
+										ImGui::Separator();
+									}
+									shader_gui(mode, *shader.m_shader, shader_code_height, data);
+									if (mode.first == Mode::GlobalMetrics) {
+										break;
+									}
+									++count;
 								}
-								if (count) {
-									ImGui::Separator();
-								}
-								shader_gui(mode, *shader.second.m_shader, shader_code_height, data);
-								if (mode.first == Mode::GlobalMetrics) {
-									break;
-								}
-								++count;
+							} else if (current_shader) {
+								shader_gui(mode, *current_shader, shader_code_height, data);
 							}
-						} else if (current_shader) {
-							shader_gui(mode, *current_shader, shader_code_height, data);
+							ImGui::EndTabItem();
 						}
-						ImGui::EndTabItem();
 					}
+					ImGui::EndTabBar();
 				}
-				ImGui::EndTabBar();
 			}
 			ImGui::EndChild();
-
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 	ImGui::End();
 
@@ -963,15 +965,15 @@ void main_loop(LoopData& data)
 int main()
 {
 	LoopData data;
-	data.m_shader_suite = get_all_suite();
+	for (int i = 0; i < 1; ++i)
+		data.m_shader_suite = get_all_suite();
 
-	for (const auto& shader : data.m_shader_suite.m_shaders) {
-		const ShaderExample& s = *shader.second;
-		data.m_global_metrics.m_time_total += s.m_glsl_timing + s.m_generation_timing;
-		data.m_global_metrics.m_characters_count += s.m_glsl_str.size();
-		data.m_global_metrics.m_expressions_count += s.m_controller.m_memory_pool.m_objects_ids.size();
-		data.m_global_metrics.m_instructions_count += s.m_controller.m_instruction_pool.m_objects_ids.size();
-		data.m_global_metrics.m_memory += s.m_controller.m_memory_pool.get_data_size() + s.m_controller.m_instruction_pool.get_data_size();
+	for (const auto& [typen, shader] : data.m_shader_suite.m_shaders) {
+		data.m_global_metrics.m_time_total += shader->m_glsl_timing + shader->m_generation_timing;
+		data.m_global_metrics.m_characters_count += shader->m_glsl_str.size();
+		data.m_global_metrics.m_expressions_count += shader->m_controller.m_memory_pool.m_objects_ids.size();
+		data.m_global_metrics.m_instructions_count += shader->m_controller.m_instruction_pool.m_objects_ids.size();
+		data.m_global_metrics.m_memory += shader->m_controller.m_memory_pool.get_data_size() + shader->m_controller.m_instruction_pool.get_data_size();
 	}
 
 	// lambda to copy previous frame as texture
@@ -980,7 +982,7 @@ int main()
 		GLFramebuffer fb_tmp;
 		fb_tmp.init_gl();
 		fb_tmp.add_attachment(data.m_previous_rendering, GL_DRAW_FRAMEBUFFER);
-		fb_tmp.blit_inversed_from(GLFramebuffer::get_default(data.m_w_screen, data.m_h_screen), GL_LINEAR);
+		fb_tmp.blit_from_inversed(GLFramebuffer::get_default(data.m_w_screen, data.m_h_screen), GL_LINEAR);
 		data.m_previous_rendering.generate_mipmap();
 	};
 

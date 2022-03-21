@@ -77,7 +77,7 @@ namespace csl {
 
 		/////////////////////////////////////////////////
 
-		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar && Infos<B>::IsBool > >
+		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar&& Infos<B>::IsBool > >
 		void begin_if(B&& condition) {
 			if (active && current_shader) {
 				current_shader->begin_if(get_expr(std::forward<B>(condition)));
@@ -90,7 +90,7 @@ namespace csl {
 			}
 		}
 
-		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar && Infos<B>::IsBool > >
+		template<typename B, typename = std::enable_if_t< Infos<B>::IsScalar&& Infos<B>::IsBool > >
 		void begin_else_if(B&& condition) {
 			if (active && current_shader) {
 				current_shader->begin_else_if(get_expr(std::forward<B>(condition)));
@@ -218,14 +218,14 @@ namespace csl {
 			return nullptr;
 		}
 		if (index.m_status == Expr::Status::Static) {
-			return &ShaderController::get_static_memory().operator[](index);
+			return &ShaderController::get_static_memory()[index];
 		}
-		return &listen().current_shader->m_memory_pool.operator[](index);
+		return &listen().current_shader->m_memory_pool[index];
 	}
 
 	inline InstructionBase* retrieve_instruction(const InstructionIndex index)
 	{
-		return &listen().current_shader->m_instruction_pool.operator[](index);
+		return &listen().current_shader->m_instruction_pool[index];
 	}
 
 

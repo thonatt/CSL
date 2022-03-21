@@ -3,6 +3,7 @@
 #include "NamedObjects.hpp"
 #include "Types.hpp"
 
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 

@@ -201,7 +201,7 @@ namespace csl {
 			m_expr = create_variable_expr<T>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
 		}
 
-		void set_members(){ }
+		//void set_members(){ }
 	private:
 	};
 

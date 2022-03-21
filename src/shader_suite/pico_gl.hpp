@@ -7,7 +7,7 @@
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 
-#include <any>
+#include <array>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -97,7 +97,7 @@ enum class GLShaderType {
 	Compute
 };
 
-struct GLProgram 
+struct GLProgram
 {
 	GLProgram() = default;
 
@@ -369,7 +369,7 @@ struct GLFramebuffer
 		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, 0, m_w, m_h, GL_COLOR_BUFFER_BIT, filter);
 	}
 
-	void blit_inversed_from(const GLFramebuffer& from, const GLenum filter = GL_NEAREST, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
+	void blit_from_inversed(const GLFramebuffer& from, const GLenum filter = GL_NEAREST, const GLenum attachment_from = GL_COLOR_ATTACHMENT0, const GLenum attachment_to = GL_COLOR_ATTACHMENT0) {
 		bind_draw(attachment_to);
 		from.bind_read(attachment_from);
 		glBlitFramebuffer(0, 0, from.m_w, from.m_h, 0, m_h, m_w, 0, GL_COLOR_BUFFER_BIT, filter);
@@ -471,13 +471,20 @@ struct GLmesh
 	}
 
 	template<std::size_t ...Is, typename ...Ts>
-	void set_attributes(std::index_sequence<Is...> const&, const std::vector<Ts>& ... attributes) {
+	void set_attributes(std::index_sequence<Is...>, const std::vector<Ts>& ... attributes) {
 		assert(m_vao);
+
+		m_vertex_buffer = GLptr(
+			[](GLuint* ptr) { glGenBuffers(1, ptr); },
+			[](const GLuint* ptr) { glDeleteBuffers(1, ptr); }
+		);
+
+		glBindVertexArray(m_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
 
 		auto get_size = [](const auto& attribute) {
 			return attribute.size() * sizeof(attribute[0]);
 		};
-
 		const std::size_t vertex_data_size = (get_size(attributes) + ...);
 		std::vector<char> vertex_data(vertex_data_size);
 
@@ -492,13 +499,6 @@ struct GLmesh
 			m_vertices_count = static_cast<GLsizei>(attribute.size());
 		};
 
-		m_vertex_buffer = GLptr(
-			[](GLuint* ptr) { glGenBuffers(1, ptr); },
-			[](const GLuint* ptr) { glDeleteBuffers(1, ptr); }
-		);
-
-		glBindVertexArray(m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
 		(setup_attribute(Is, attributes), ...);
 		glBufferData(GL_ARRAY_BUFFER, vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW);
 	}
@@ -530,7 +530,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	}
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -546,7 +546,7 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	glfwWindowHint(GLFW_REFRESH_RATE, static_cast<int>(std::round(mode->refreshRate / desired_fps)));
 
 	const int w = mode->width, h = mode->height;
-	auto window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(w, h, "csl shader suite demo", NULL, NULL), glfwDestroyWindow);
+	auto window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(w, h, "CSL shader suite demo", NULL, NULL), glfwDestroyWindow);
 
 	if (!window) {
 		std::cout << " Window or OpenGL context creation failed " << std::endl;
@@ -561,8 +561,14 @@ void create_context_and_run(BeforeClearFun&& before_clear_fun, LoopFun&& loop_fu
 	glfwSetScrollCallback(window.get(), ImGui_ImplGlfw_ScrollCallback);
 
 	const int version = gladLoadGL();
-	std::cout << "glad version : " << version << std::endl;
-	std::cout << "OpenGL version " << GLVersion.major << "." << GLVersion.minor << std::endl;
+	const unsigned char* renderer = glGetString(GL_RENDERER);
+	const unsigned char* shading_langage_version = glGetString(GL_SHADING_LANGUAGE_VERSION);
+	std::cout << "Glad version : " << version << std::endl;
+	std::cout << "OpenGL version : " << GLVersion.major << "." << GLVersion.minor << std::endl;
+	std::cout << "GPU : " << renderer << std::endl;
+	std::cout << "GLSL version : " << shading_langage_version << std::endl;
+	std::cout << "ImGui version : " << IMGUI_VERSION << std::endl;
+
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
