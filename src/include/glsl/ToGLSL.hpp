@@ -64,7 +64,7 @@ namespace csl {
 				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(var.get_plain_expr()));
 				assert(ctor);
 				register_var_name(ctor->m_name, ctor->m_variable_id);
-			}(vars), ...);
+				}(vars), ...);
 		}
 	};
 
@@ -667,7 +667,7 @@ namespace csl {
 
 	template<std::size_t NumOverloads>
 	struct OverloadGLSL {
-		
+
 		template<typename T, std::size_t Id>
 		struct Get {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
@@ -807,10 +807,10 @@ namespace csl {
 			data << "(";
 			if constexpr (N > 0) {
 				retrieve_expr(seq.m_args[0])->print_glsl(data, precedence);
-			}
-			for (std::size_t i = 1; i < N; ++i) {
-				data << ", ";
-				retrieve_expr(seq.m_args[i])->print_glsl(data, precedence);
+				for (std::size_t i = 1; i < N; ++i) {
+					data << ", ";
+					retrieve_expr(seq.m_args[i])->print_glsl(data, precedence);
+				}
 			}
 			data << ")";
 		}
@@ -895,11 +895,8 @@ namespace csl {
 	struct OperatorGLSL<ArraySubscript> {
 		static void call(const ArraySubscript& subscript, GLSLData& data, const Precedence precedence) {
 			auto obj = retrieve_expr(subscript.m_obj);
-			if (obj) {
-				obj->print_glsl(data, precedence);
-			} else {
-				data << "null parent";
-			}
+			assert(obj);
+			obj->print_glsl(data, precedence);
 			data << "[";
 			retrieve_expr(subscript.m_index)->print_glsl(data, Precedence::NoExtraParenthesis);
 			data << "]";
@@ -911,12 +908,11 @@ namespace csl {
 		static void call(const SwizzlingBase& swizzle, GLSLData& data, const Precedence precedence) { }
 	};
 
-	template<char c, char ... chars>
-	struct OperatorGLSL<Swizzling<Swizzle<c, chars...>>> {
-		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
+	template<char ... chars>
+	struct OperatorGLSL<Swizzling<Swizzle<chars...>>> {
+		static void call(const Swizzling<Swizzle<chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
 			retrieve_expr(swizzle.m_obj)->print_glsl(data, Precedence::Swizzle);
 			data << ".";
-			data << c;
 			((data << chars), ...);
 		}
 	};

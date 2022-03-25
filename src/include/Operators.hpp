@@ -122,10 +122,6 @@ namespace csl {
 		imageSize,
 	};
 
-	//inline std::ostream& operator<<(std::ostream& t, const Op op) {
-	//	return t << static_cast<std::size_t>(op);
-	//}
-
 	enum class Precedence : std::size_t
 	{
 		Alias = 10,
@@ -184,10 +180,7 @@ namespace csl {
 	struct ImGuiData;
 
 	template<typename T>
-	struct OperatorImGui
-	{
-		static void call(const T& t, ImGuiData& data) {}
-	};
+	struct OperatorImGui;
 
 	//////////////////////////////////////////////////////////
 
@@ -195,9 +188,6 @@ namespace csl {
 
 	template<typename T>
 	struct OperatorGLSL;
-	//{
-	//	static void call(const T& t, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {}
-	//};
 
 	//////////////////////////////////////////////////////////
 

@@ -4,8 +4,8 @@
 
 namespace csl
 {
-	namespace glsl {
-
+	namespace glsl 
+	{
 		template<typename ...Ts>
 		struct Layout {};
 

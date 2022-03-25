@@ -214,11 +214,11 @@ namespace csl {
 			data.node("switch", [&] {
 				data.node("condition : " + data.unique(data.glsl_from_expr(i.m_condition)), [&] {
 					retrieve_expr(i.m_condition)->print_imgui(data);
-				});
+					});
 				for (const auto& c : i.m_body->m_instructions) {
 					retrieve_instruction(c)->print_imgui(data);
 				}
-			});
+				});
 		}
 	};
 
@@ -248,7 +248,7 @@ namespace csl {
 			std::string return_str = "return " + data.glsl_from_expr(i.m_expr) + ";";
 			data.node(return_str, [&] {
 				retrieve_expr(i.m_expr)->print_imgui(data);
-			});
+				});
 		}
 	};
 
@@ -290,7 +290,7 @@ namespace csl {
 					for (const auto& i : overloads[Id].body->m_instructions) {
 						retrieve_instruction(i)->print_imgui(data);
 					}
-				});
+					});
 			}
 		};
 
@@ -325,7 +325,7 @@ namespace csl {
 		static void call(const StructDeclaration<S>& s, ImGuiData& data) {
 			data.node(data.unique(GLSLTypeStr<S>::get()), [&] {
 				iterate_over_typelist<typename S::MemberTList, StructMemberDeclaration>(data);
-			});
+				});
 		}
 	};
 
@@ -350,7 +350,7 @@ namespace csl {
 			interface_name += ";";
 			data.node(interface_name, [&] {
 				iterate_over_typelist<typename Interface::MemberTList, StructMemberDeclaration>(data);
-			});
+				});
 		}
 	};
 
@@ -378,7 +378,7 @@ namespace csl {
 			interface_name += s.m_names[0];
 			data.node(interface_name, [&] {
 				iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);;
-			});
+				});
 		}
 	};
 
@@ -460,7 +460,7 @@ namespace csl {
 				retrieve_expr(subscript.m_obj)->print_imgui(data);
 				data << "at index ";
 				retrieve_expr(subscript.m_index)->print_imgui(data);
-			});
+				});
 		}
 	};
 
@@ -476,7 +476,7 @@ namespace csl {
 		static void call(const Swizzling<Swizzle<c, chars...>>& swizzle, ImGuiData& data) {
 			data.node(data.glsl_from_expr(swizzle.m_obj), [&] {
 				retrieve_expr(swizzle.m_obj)->print_imgui(data);
-			});
+				});
 
 			std::string swizzle_str = ".";
 			swizzle_str += c;
@@ -497,11 +497,11 @@ namespace csl {
 		static void call(const BinaryOperator& bop, ImGuiData& data) {
 			data.node(data.glsl_from_expr(bop.m_lhs), [&] {
 				retrieve_expr(bop.m_lhs)->print_imgui(data);
-			});
+				});
 			data << glsl_op_str(bop.m_op);
 			data.node(data.glsl_from_expr(bop.m_rhs), [&] {
 				retrieve_expr(bop.m_rhs)->print_imgui(data);
-			});
+				});
 		}
 	};
 
@@ -510,7 +510,7 @@ namespace csl {
 		static void call(const UnaryOperator& uop, ImGuiData& data) {
 			data.node(glsl_op_str(uop.m_op), [&] {
 				retrieve_expr(uop.m_arg)->print_imgui(data);
-			});
+				});
 		}
 	};
 
@@ -519,7 +519,7 @@ namespace csl {
 		static void call(const ConvertorOperator< From, To>& op, ImGuiData& data) {
 			data.node("convertor", [&] {
 				retrieve_expr(op.m_args[0])->print_imgui(data);
-			});
+				});
 		}
 	};
 
@@ -542,8 +542,8 @@ namespace csl {
 					for (std::size_t i = 0; i < N; ++i) {
 						retrieve_expr(fun_call.m_args[i])->print_imgui(data);
 					}
+					});
 				});
-			});
 		}
 	};
 
@@ -567,8 +567,18 @@ namespace csl {
 					accessor_wrapper->print_imgui(data);
 				}
 				data << S::get_member_name(Id);
-			});
+				});
 		}
 	};
 
+	template<>
+	struct OperatorImGui<TernaryOperator> {
+		static void call(const TernaryOperator& top, ImGuiData& data) {
+			data.node("ternary", [&] {
+				retrieve_expr(top.m_condition)->print_imgui(data);
+				retrieve_expr(top.m_first)->print_imgui(data);
+				retrieve_expr(top.m_second)->print_imgui(data);
+				});
+		}
+	};
 }

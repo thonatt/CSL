@@ -1,5 +1,7 @@
 #pragma once
 
+#include "TemplateHelpers.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <type_traits>
@@ -8,24 +10,47 @@ namespace csl
 {
 	namespace swizzling
 	{
-		template<char...>
-		constexpr bool is_different_from = false;
-
-		template<char c, char ...cs>
-		constexpr bool is_different_from<c, cs...> = ((c != cs) && ...);
-
-		template<char ...>
-		constexpr bool are_unique = true;
-
-		template<char c, char ...cs>
-		constexpr bool are_unique<c, cs...> = is_different_from<c, cs...> && are_unique<cs...>;
-
 		template<char... chars>
-		struct CharSeq : std::true_type {};
+		struct CharSeq {};
 
 		using SwizzleRGBA = CharSeq<'r', 'g', 'b', 'a'>;
 		using SwizzleXYZW = CharSeq<'x', 'y', 'z', 'w'>;
 		using SwizzleSTPQ = CharSeq<'s', 't', 'p', 'q'>;
+
+		using AllowedSwizzleSets = TList<SwizzleRGBA, SwizzleXYZW, SwizzleSTPQ>;
+
+		template<char c, typename Set>
+		constexpr bool is_in_set = false;
+
+		template<char c, char... chars>
+		constexpr bool is_in_set<c, CharSeq<chars...>> = ((c == chars) || ...);
+
+		template<char c>
+		struct SwizzleGetter
+		{
+			template<typename Set>
+			struct IsInSet {
+				static constexpr bool Value = is_in_set<c, Set>;
+			};
+		};
+
+		template<char c>
+		using MatchedSwizzleSet = typename Matching<SwizzleGetter<c>::template IsInSet, AllowedSwizzleSets>::Values;
+
+		template<char ...cs>
+		struct MatchedSwizzleSets
+		{
+			static constexpr bool AllValid = ((MatchedSwizzleSet<cs>::Size == 1) &&...);
+			static_assert(AllValid, "Invalid Swizzle Set");
+			using AllValidSets = TList<typename MatchedSwizzleSet<cs>::template At<0> ...>;
+			using ValidSets = RemoveDuplicates<AllValidSets>; 
+		};
+
+		template<char ...>
+		constexpr bool are_unique = true;
+
+		template<char c, char d, char ...cs>
+		constexpr bool are_unique<c, d, cs...> = (c != d) && are_unique<d, cs...>;
 
 		template<char c>
 		constexpr std::size_t SwizzleIndex = 0;
@@ -44,50 +69,31 @@ namespace csl
 		template<> constexpr std::size_t SwizzleIndex<'t'> = 2;
 		template<> constexpr std::size_t SwizzleIndex<'p'> = 3;
 		template<> constexpr std::size_t SwizzleIndex<'q'> = 4;
-
-		template<char ... chars>
-		constexpr std::size_t HighestComponent = std::max({ SwizzleIndex<chars> ... });
-
-		template<char c, typename T>
-		constexpr bool is_in_set = false;
-
-		template<char c, char... chars>
-		constexpr bool is_in_set<c, CharSeq<chars...>> = ((c == chars) || ...);
-
-		template<char c, typename ...Sets>
-		struct SwizzleGetter { using Type = std::false_type; };
-
-		template<char c, typename Set, typename ...Sets>
-		struct SwizzleGetter<c, Set, Sets...> {
-			using Type = typename std::conditional_t< is_in_set<c, Set>, Set, typename SwizzleGetter<c, Sets...>::Type >;
-		};
-
-		template<char c>
-		using SwizzleSet = typename SwizzleGetter<c, SwizzleRGBA, SwizzleXYZW, SwizzleSTPQ>::Type;
 	}
 
-	template<char c, char... chars>
+	template<char... chars>
 	class Swizzle
 	{
 	public:
-		static constexpr bool Unique = swizzling::are_unique<c, chars...>;
-		static constexpr std::size_t Size = 1 + sizeof...(chars);
-		static constexpr std::size_t HighestComponent = swizzling::HighestComponent<c, chars...>;
+		static constexpr bool Unique = swizzling::are_unique<chars...>;
+		static constexpr std::size_t Size = sizeof...(chars);
+		static constexpr std::size_t HighestComponent = std::max({ swizzling::SwizzleIndex<chars> ... });
 
 		constexpr Swizzle() = default;
 
 		template<char other_c>
-		constexpr Swizzle<c, chars..., other_c> operator,(Swizzle<other_c>) const
+		constexpr Swizzle<chars..., other_c> operator,(Swizzle<other_c>) const
 		{
 			return {};
 		}
 
 	private:
-		using Set = swizzling::SwizzleSet<c>;
-
+		static_assert(Size >= 1, "Minimum swizzling size is 1");
 		static_assert(Size <= 4, "Maximum swizzling size is 4");
-		static_assert(Set(), "Invalid swizzle set");
-		static_assert(((std::is_same_v<Set, swizzling::SwizzleSet<chars>>)&& ...), "Swizzle sets cannot be mixed");
+
+		using Sets = typename swizzling::MatchedSwizzleSets<chars...>::ValidSets;
+		static_assert(Sets::Size == 1, "Swizzle sets cannot be mixed");
+		using Set = typename Sets::template At<0>;
 	};
 
 	namespace swizzles

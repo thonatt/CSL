@@ -2,8 +2,8 @@
 
 #include <cstddef>
 
-namespace csl {
-
+namespace csl
+{
 	template<std::size_t ... Ns>
 	struct Array {};
 }

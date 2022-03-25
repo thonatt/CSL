@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace csl 
+namespace csl
 {
 	template<std::size_t ...Ns>
 	struct SizeList;
@@ -50,7 +50,7 @@ namespace csl
 	struct TList;
 
 	template<>
-	struct TList<> 
+	struct TList<>
 	{
 		using Front = void;
 		using Tail = TList<>;
@@ -64,12 +64,14 @@ namespace csl
 		template<typename T>
 		using PushBack = TList<T>;
 
+		template<typename T>
+		static constexpr bool Contains = false;
+
 		static constexpr std::size_t Size = 0;
 	};
 
-
 	template<typename T, typename ... Ts>
-	struct TList<T, Ts...> 
+	struct TList<T, Ts...>
 	{
 		using Front = T;
 		using Tail = TList<Ts...>;
@@ -83,9 +85,32 @@ namespace csl
 		template<typename U>
 		using PushBack = TList<T, Ts..., U>;
 
+		template<typename U>
+		static constexpr bool Contains = std::is_same_v<U, T> || ((std::is_same_v<U, Ts>) || ...);
+
 		static constexpr std::size_t Size = 1 + sizeof...(Ts);
 	};
 
+	template<typename TListUnique, typename TListRemaining>
+	struct RemoveDuplicatesImpl;
+
+	template<typename InputTList>
+	using RemoveDuplicates = typename RemoveDuplicatesImpl<TList<>, InputTList>::Type;
+
+	template<typename ...Ts>
+	struct RemoveDuplicatesImpl<TList<Ts...>, TList<>>
+	{
+		using Type = TList<Ts...>;
+	};
+
+	template<typename ...Ts, typename T, typename ...Us>
+	struct RemoveDuplicatesImpl<TList<Ts...>, TList<T, Us...>>
+	{
+		using Current = TList<Ts...>;
+		using Next = std::conditional_t<Current::template Contains<T>, Current, typename Current::template PushBack<T>>;
+		using Type = typename RemoveDuplicatesImpl<Next, TList<Us...>>::Type;
+	};
+	
 	template<typename TList, template<typename, std::size_t> typename F>
 	struct IterateOverListImpl {
 		template<std::size_t ...Ns, typename ...Args>
@@ -119,12 +144,13 @@ namespace csl
 		using Indexes = SizeList<>;
 	};
 
-	// Match a type over a type list using a predicates, defines list of matched types (::Values) and their indexes (::Indexes) from the input type list.
+	// Match a type over a type list using a predicate (must implement a constexpr bool ::Value).
+	// Return a list of matched types (::Values) and their indexes (::Indexes) from the input type list.
 	template<template <typename> typename Pred, typename List>
 	using Matching = MatchingImpl<Pred, List, 0>;
 
 	template<template <typename> typename Pred, typename T, std::size_t Index, typename ...Ts>
-	class MatchingImpl<Pred, TList<T, Ts...>, Index> 
+	class MatchingImpl<Pred, TList<T, Ts...>, Index>
 	{
 	protected:
 		using Next = MatchingImpl<Pred, TList<Ts...>, Index + 1>;

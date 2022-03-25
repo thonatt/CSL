@@ -10,7 +10,8 @@
 
 namespace csl {
 
-	struct InstructionBase {
+	struct InstructionBase
+	{
 		virtual ~InstructionBase() = default;
 
 		virtual void print_imgui(ImGuiData& data) const = 0;
@@ -18,16 +19,10 @@ namespace csl {
 	};
 
 	template<typename Instruction>
-	struct InstructionImGui
-	{
-		static void call(const Instruction&, ImGuiData& data) { }
-	};
+	struct InstructionImGui;
 
 	template<typename Instruction>
-	struct InstructionGLSL
-	{
-		static void call(const Instruction&, GLSLData& data) { }
-	};
+	struct InstructionGLSL;
 
 	using InstructionIndex = Expr;
 
