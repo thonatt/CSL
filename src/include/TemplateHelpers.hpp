@@ -5,42 +5,45 @@
 
 namespace csl
 {
-	template<std::size_t ...Ns>
-	struct SizeList;
+	template<typename T, T ...Vs>
+	struct VList;
 
-	template<>
-	struct SizeList<>
+	template<std::size_t ...Ns>
+	using SizeList = VList<std::size_t, Ns...>;
+
+	template<typename T>
+	struct VList<T>
 	{
-		using Tail = SizeList<>;
+		using Tail = VList<T>;
 		static constexpr std::size_t Size = 0;
 
-		static constexpr std::size_t Front = 0;
-		static constexpr std::size_t Back = 0;
+		static constexpr T Front = {};
+		static constexpr T Back = {};
 
-		template<std::size_t M>
-		using PushFront = SizeList<M>;
+		template<T M>
+		using PushFront = VList<T, M>;
 
-		template<std::size_t M>
-		using PushBack = SizeList<M>;
+		template<T M>
+		using PushBack = VList<T, M>;
 	};
 
-	template<std::size_t N, std::size_t ...Ns>
-	struct SizeList<N, Ns...>
+	template<typename T, T N, T ...Ns>
+	struct VList<T, N, Ns...>
 	{
-		using Tail = SizeList<Ns...>;
+		using Tail = VList<T, Ns...>;
 
 		static constexpr std::size_t Size = 1 + sizeof...(Ns);
-		static constexpr std::size_t Front = N;
-		static constexpr std::size_t Back = (Size == 1 ? N : Tail::Back);
+		static constexpr T Front = N;
+		static constexpr T Back = (Size == 1 ? N : Tail::Back);
 
-		template<std::size_t M>
-		using PushFront = SizeList<M, N, Ns...>;
+		template<T M>
+		using PushFront = VList<T, M, N, Ns...>;
 
-		template<std::size_t M>
-		using PushBack = SizeList<N, Ns..., M>;
+		template<T M>
+		using PushBack = VList<T, N, Ns..., M>;
 
 		template<std::size_t Index>
-		static constexpr std::size_t At = (Index == 0 ? N : Tail::template At<Index - 1>);
+		static constexpr T At = (Index == 0 ? N : Tail::template At<Index - 1>);
 	};
 
 	//////////////////////////////////////////////////////////////////////////
