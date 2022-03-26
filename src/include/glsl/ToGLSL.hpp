@@ -2,6 +2,7 @@
 
 #include "../InstructionTree.hpp"
 #include "../Preprocessor.hpp"
+#include "../TemplateHelpers.hpp"
 
 #include "Shaders.hpp"
 
@@ -497,8 +498,8 @@ namespace csl {
 			Status status = Status::InitExpr;
 			for (const auto j : i.args->m_instructions) {
 				const InstructionBase* arg_instruction = retrieve_instruction(j);
-				const Expr arg_expr = reinterpret_cast<const Statement*>(arg_instruction)->m_expr;
-				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(arg_expr));
+				const Expr arg_expr = safe_static_cast<const Statement*>(arg_instruction)->m_expr;
+				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(arg_expr));
 				if (status == Status::InitExpr && (ctor->m_flags && CtorFlags::Initialisation)) {
 					arg_instruction->print_glsl(data);
 					status = Status::Condition;
@@ -726,7 +727,7 @@ namespace csl {
 	};
 
 	template<typename S>
-	struct InstructionGLSL<StructDeclaration<S>> 
+	struct InstructionGLSL<StructDeclaration<S>>
 	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<S, T, Id>;
@@ -742,7 +743,7 @@ namespace csl {
 	};
 
 	template<typename Interface>
-	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>> 
+	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>>
 	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<Interface, T, Id>;
@@ -1041,9 +1042,8 @@ namespace csl {
 					}
 				}
 			} else {
-				if (auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj))) {
-					accessor_wrapper->print_glsl(data, precedence);
-				}
+				auto accessor_wrapper = safe_static_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
+				accessor_wrapper->print_glsl(data, precedence);
 			}
 			data << "." << S::get_member_name(Id);
 		}

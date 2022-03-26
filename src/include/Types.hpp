@@ -15,7 +15,7 @@ namespace csl {
 	constexpr bool EqualLists = false;
 
 	template<template<typename, typename> typename Pred, typename ...As, typename ...Bs>
-	constexpr bool EqualLists<Pred, TList<As...>, TList<Bs...>> = (sizeof...(As) == sizeof...(Bs)) && (Pred<As, Bs>::Value && ... && true);
+	constexpr bool EqualLists<Pred, TList<As...>, TList<Bs...>> = (sizeof...(As) == sizeof...(Bs)) && ((Pred<As, Bs>::Value) &&...);
 
 	template<typename List>
 	struct GetArrayFromList;
@@ -24,7 +24,6 @@ namespace csl {
 	struct GetArrayFromList<SizeList<Ns...>> {
 		using Type = Array<Ns...>;
 	};
-
 
 	///////////////////////////////////
 
@@ -48,7 +47,7 @@ namespace csl {
 		return static_cast<SamplerFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
 	}
 	constexpr bool operator&(const SamplerFlags a, const SamplerFlags b) {
-		return static_cast<bool>(static_cast<std::size_t>(a)& static_cast<std::size_t>(b));
+		return static_cast<bool>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
 	}
 
 	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type = SamplerType::Basic, SamplerFlags Flags = SamplerFlags::None, typename ...Qs>
@@ -75,7 +74,7 @@ namespace csl {
 	};
 
 	template<typename ...Qs>
-	struct ArrayInfos 
+	struct ArrayInfos
 	{
 		using List = TList<Qs...>;
 

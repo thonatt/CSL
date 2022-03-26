@@ -1,10 +1,25 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <utility>
 
 namespace csl
 {
+	template<typename ToRef, typename From>
+	ToRef safe_static_cast(From& from)
+	{
+		assert(dynamic_cast<std::remove_cv_t<ToRef>*>(&from));
+		return reinterpret_cast<ToRef>(from);
+	}
+
+	template<typename ToPtr, typename From>
+	ToPtr safe_static_cast(From* from)
+	{
+		assert(dynamic_cast<ToPtr>(from));
+		return reinterpret_cast<ToPtr>(from);
+	}
+
 	template<typename T, T ...Vs>
 	struct VList;
 

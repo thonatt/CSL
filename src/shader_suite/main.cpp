@@ -965,7 +965,7 @@ void main_loop(LoopData& data)
 int main()
 {
 	LoopData data;
-	for (int i = 0; i < 1e0; ++i)
+	for (int i = 0; i < 1e1; ++i)
 		data.m_shader_suite = get_all_suite();
 
 	for (const auto& [typen, shader] : data.m_shader_suite.m_shaders) {

@@ -2,6 +2,7 @@
 
 #include "InstructionTree.hpp"
 #include "Functions.hpp"
+#include "TemplateHelpers.hpp"
 
 #include <cassert>
 
@@ -421,19 +422,14 @@ namespace csl {
 
 		ReturnBlockBase* get_return_block() {
 			Block* test_block = current_block;
-			bool found_return_block = false;
-			while (!found_return_block) {
+			while (test_block) {
 				if (dynamic_cast<ReturnBlockBase*>(test_block)) {
-					found_return_block = true;
-				} else if (test_block->m_parent) {
-					test_block = test_block->m_parent;
-				} else {
 					break;
-				}
+				} else {
+					test_block = test_block->m_parent;
+				} 
 			}
-
-			assert(found_return_block);
-			return dynamic_cast<ReturnBlockBase*>(test_block);
+			return safe_static_cast<ReturnBlockBase*>(test_block);
 		}
 
 		template<typename S, typename ... Args>

@@ -151,7 +151,8 @@ namespace csl {
 	}
 
 	template<typename T>
-	struct NamedObjectInit {
+	struct NamedObjectInit
+	{
 		NamedObjectInit(const Expr& expr, const std::string& name) : m_expr(expr), m_name(name) {}
 		Expr m_expr;
 		std::string m_name;

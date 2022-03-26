@@ -464,7 +464,6 @@ namespace csl {
 
 		Expr m_arg;
 		Op m_op;
-
 	};
 	using UnaryOperator = UnaryOperatorDelayed<Dummy>;
 

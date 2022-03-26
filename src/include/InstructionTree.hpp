@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Operators.hpp"
-
+#include "TemplateHelpers.hpp"
 #include <array>
 #include <cassert>
 #include <memory>
@@ -86,8 +86,8 @@ namespace csl {
 	struct FunctionArgBlock : Block {
 		using Ptr = std::unique_ptr<FunctionArgBlock>;
 		void push_instruction(const InstructionIndex i) override {
-			const Expr expr = dynamic_cast<Statement*>(retrieve_instruction(i))->m_expr;
-			auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
+			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
+			auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(expr));
 			ctor->m_flags = CtorFlags::FunctionArgument;
 			m_instructions.push_back(i);
 		}
@@ -218,7 +218,8 @@ namespace csl {
 		using Block::Block;
 
 		void push_instruction(const InstructionIndex i) override {
-			const Expr expr = dynamic_cast<Statement*>(retrieve_instruction(i))->m_expr;
+			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
+
 			//auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
 			//if (ctor->m_flags && CtorFlags::Declaration) {
 			//	assert(m_instructions.empty());
@@ -342,7 +343,7 @@ namespace csl {
 		void add_case(const Expr expr, Block*& current_block) {
 			m_current_case = make_instruction<SwitchCase>(expr, m_body.get());
 			m_body->push_instruction(m_current_case);
-			current_block = dynamic_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body.get();
+			current_block = safe_static_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body.get();
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
