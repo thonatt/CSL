@@ -92,16 +92,13 @@ namespace csl
 	};
 
 	template<typename TListUnique, typename TListRemaining>
-	struct RemoveDuplicatesImpl;
+	struct RemoveDuplicatesImpl
+	{
+		using Type = TListUnique;
+	};
 
 	template<typename InputTList>
 	using RemoveDuplicates = typename RemoveDuplicatesImpl<TList<>, InputTList>::Type;
-
-	template<typename ...Ts>
-	struct RemoveDuplicatesImpl<TList<Ts...>, TList<>>
-	{
-		using Type = TList<Ts...>;
-	};
 
 	template<typename ...Ts, typename T, typename ...Us>
 	struct RemoveDuplicatesImpl<TList<Ts...>, TList<T, Us...>>
@@ -112,16 +109,19 @@ namespace csl
 	};
 	
 	template<typename TList, template<typename, std::size_t> typename F>
-	struct IterateOverListImpl {
+	struct IterateOverListImpl
+	{
 		template<std::size_t ...Ns, typename ...Args>
-		static void call(std::index_sequence<Ns...>, Args&& ... args) {
+		static void call(std::index_sequence<Ns...>, Args&& ... args) 
+		{
 			(F<typename TList::template At<Ns>, Ns>::call(std::forward<Args>(args)...), ...);
 		}
 	};
 
 	// Iterate over type list using functor taking type and index as template argument.
 	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
-	void iterate_over_typelist(Args&& ...args) {
+	void iterate_over_typelist(Args&& ...args) 
+	{
 		IterateOverListImpl<TList, F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
 	}
 
@@ -133,12 +133,14 @@ namespace csl
 	using Subset = typename SubsetImpl<List, First, std::make_index_sequence<Last - First>>::Type;
 
 	template<std::size_t First, std::size_t ... Is, typename ... Ts>
-	struct SubsetImpl<TList<Ts...>, First, std::index_sequence<Is...>> {
+	struct SubsetImpl<TList<Ts...>, First, std::index_sequence<Is...>> 
+	{
 		using Type = TList<typename TList<Ts...>::template At<First + Is>...>;
 	};
 
 	template<template <typename> typename Pred, typename List, std::size_t Index>
-	class MatchingImpl {
+	class MatchingImpl 
+	{
 	public:
 		using Values = TList<>;
 		using Indexes = SizeList<>;
@@ -162,7 +164,8 @@ namespace csl
 	};
 
 	template<typename IndexList, typename TypeList, std::size_t Index>
-	struct RemoveAtImpl {
+	struct RemoveAtImpl 
+	{
 		using Type = TypeList;
 	};
 
@@ -171,11 +174,11 @@ namespace csl
 	using RemoveAt = typename RemoveAtImpl<IndexList, TypeList, 0>::Type;
 
 	template<std::size_t Index, std::size_t ...Indexes, typename T, typename ...Ts, std::size_t CurrentIndex>
-	struct RemoveAtImpl<SizeList<Index, Indexes...>, TList<T, Ts...>, CurrentIndex> {
+	struct RemoveAtImpl<SizeList<Index, Indexes...>, TList<T, Ts...>, CurrentIndex>
+	{
 		static constexpr bool RemoveCurrent = (Index == CurrentIndex);
 		using NextIds = std::conditional_t<RemoveCurrent, SizeList<Indexes...>, SizeList<Index, Indexes...>>;
 		using Next = typename RemoveAtImpl<NextIds, TList<Ts...>, CurrentIndex + 1>::Type;
 		using Type = std::conditional_t<RemoveCurrent, Next, typename Next::template PushFront<T>>;
 	};
-
 }

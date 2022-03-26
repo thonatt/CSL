@@ -29,7 +29,8 @@ namespace csl
 		struct SwizzleGetter
 		{
 			template<typename Set>
-			struct IsInSet {
+			struct IsInSet
+			{
 				static constexpr bool Value = is_in_set<c, Set>;
 			};
 		};

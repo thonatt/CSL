@@ -726,8 +726,8 @@ namespace csl {
 	};
 
 	template<typename S>
-	struct InstructionGLSL<StructDeclaration<S>> {
-
+	struct InstructionGLSL<StructDeclaration<S>> 
+	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<S, T, Id>;
 
@@ -742,8 +742,8 @@ namespace csl {
 	};
 
 	template<typename Interface>
-	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>> {
-
+	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>> 
+	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<Interface, T, Id>;
 
@@ -796,7 +796,6 @@ namespace csl {
 			data.endl().trail() << "};";
 		}
 	};
-
 
 	//////////////////////////////////////////////////////
 	// operators
@@ -992,15 +991,14 @@ namespace csl {
 	};
 
 	template<typename From, typename To>
-	struct OperatorGLSL<ConvertorOperator< From, To>> {
-		static void call(const ConvertorOperator< From, To>& op, GLSLData& data, const Precedence precedence) {
+	struct OperatorGLSL<ConvertorOperator<From, To>> {
+		static void call(const ConvertorOperator<From, To>& op, GLSLData& data, const Precedence precedence) {
 			if constexpr (SameMat<From, To>) {
 				retrieve_expr(op.m_args[0])->print_glsl(data);
 			} else {
 				data << GLSLTypeStr<To>::get();
 				OperatorGLSL<ArgSeq<1>>::call(op, data);
 			}
-
 		}
 	};
 

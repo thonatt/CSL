@@ -79,15 +79,6 @@ struct ShaderExample
 
 using ShaderPtr = std::shared_ptr<ShaderExample>;
 
-// csl::swizzling::SwizzleGetter<'r'>::IsInSet a;
-
-constexpr bool A = csl::swizzling::SwizzleGetter<'r'>::IsInSet<csl::swizzling::SwizzleXYZW>::Value;
-constexpr bool B = std::is_same_v<csl::RemoveDuplicates<csl::swizzling::MatchedSwizzleSets<'r'>::ValidSets>, 
-	csl::TList<csl::swizzling::SwizzleRGBA>>;
-
-constexpr bool C = csl::swizzling::MatchedSwizzleSets<'r'>::ValidSets::template Contains<csl::swizzling::SwizzleXYZW>;
-
-
 enum class ShaderGroup {
 	Test,
 	Examples,
@@ -974,7 +965,7 @@ void main_loop(LoopData& data)
 int main()
 {
 	LoopData data;
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 1e0; ++i)
 		data.m_shader_suite = get_all_suite();
 
 	for (const auto& [typen, shader] : data.m_shader_suite.m_shaders) {
