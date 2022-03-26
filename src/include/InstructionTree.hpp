@@ -34,7 +34,7 @@ namespace csl {
 	/////////////////////////////////////////
 
 	struct Block {
-		using Ptr = std::shared_ptr<Block>;
+		using Ptr = std::unique_ptr<Block>;
 
 		Block(Block* parent = nullptr) : m_parent(parent) {}
 
@@ -49,11 +49,11 @@ namespace csl {
 	};
 
 	struct MainBlock : Block {
-		using Ptr = std::shared_ptr<MainBlock>;
+		using Ptr = std::unique_ptr<MainBlock>;
 	};
 
 	struct ReturnBlockBase : Block {
-		using Ptr = std::shared_ptr<ReturnBlockBase>;
+		using Ptr = std::unique_ptr<ReturnBlockBase>;
 		using Block::Block;
 
 		virtual ~ReturnBlockBase() = default;
@@ -61,7 +61,7 @@ namespace csl {
 
 	template<typename ReturnType>
 	struct ReturnBlock : ReturnBlockBase {
-		using Ptr = std::shared_ptr<ReturnBlock<ReturnType>>;
+		using Ptr = std::unique_ptr<ReturnBlock<ReturnType>>;
 
 		ReturnBlock(Block* parent = {}) : ReturnBlockBase(parent) {}
 		virtual ~ReturnBlock() = default;
@@ -84,7 +84,7 @@ namespace csl {
 	using Statement = StatementDelayed<Dummy>;
 
 	struct FunctionArgBlock : Block {
-		using Ptr = std::shared_ptr<FunctionArgBlock>;
+		using Ptr = std::unique_ptr<FunctionArgBlock>;
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = dynamic_cast<Statement*>(retrieve_instruction(i))->m_expr;
 			auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
@@ -165,8 +165,8 @@ namespace csl {
 
 	struct OverloadData {
 		OverloadData() {
-			args = std::make_shared<FunctionArgBlock>();
-			body = std::make_shared<Block>();
+			args = std::make_unique<FunctionArgBlock>();
+			body = std::make_unique<Block>();
 		}
 		Block::Ptr args, body;
 	};
@@ -214,7 +214,7 @@ namespace csl {
 	};
 
 	struct ForArgsBlock : Block {
-		using Ptr = std::shared_ptr<ForArgsBlock>;
+		using Ptr = std::unique_ptr<ForArgsBlock>;
 		using Block::Block;
 
 		void push_instruction(const InstructionIndex i) override {
@@ -250,8 +250,8 @@ namespace csl {
 	template<typename Delayed>
 	struct ForInstructionDelayed final : InstructionBase {
 		ForInstructionDelayed() {
-			args = std::make_shared<ForArgsBlock>();
-			body = std::make_shared<Block>();
+			args = std::make_unique<ForArgsBlock>();
+			body = std::make_unique<Block>();
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -267,11 +267,12 @@ namespace csl {
 	using ForInstruction = ForInstructionDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct IfInstructionDelayed final : InstructionBase {
-
-		struct IfCase {
+	struct IfInstructionDelayed final : InstructionBase 
+	{
+		struct IfCase 
+		{
 			Expr condition;
-			Block::Ptr body;
+			std::unique_ptr<Block> body;
 		};
 
 		IfInstructionDelayed(const InstructionIndex parent_if) : m_parent_if(parent_if) {}
@@ -294,7 +295,7 @@ namespace csl {
 
 		WhileInstructionDelayed(const Expr expr, Block* parent_block) {
 			m_condition = expr;
-			m_body = std::make_shared<Block>(parent_block);
+			m_body = std::make_unique<Block>(parent_block);
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -314,7 +315,7 @@ namespace csl {
 
 		SwitchCaseDelayed(const Expr& expr, Block* parent) {
 			m_label = expr;
-			m_body = std::make_shared<Block>(parent);
+			m_body = std::make_unique<Block>(parent);
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -334,7 +335,7 @@ namespace csl {
 
 		SwitchInstructionDelayed(const Expr expr, Block* parent, const InstructionIndex parent_switch) {
 			m_condition = expr;
-			m_body = std::make_shared<Block>(parent);
+			m_body = std::make_unique<Block>(parent);
 			m_parent_switch = parent_switch;
 		}
 

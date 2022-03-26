@@ -138,56 +138,57 @@ namespace csl {
 
 	struct IfController : virtual ControllerBase {
 
-		IfInstruction& get() {
+		IfInstruction& get_current_if() {
 			return *reinterpret_cast<IfInstruction*>(retrieve_instruction(current_if));
 		}
 
 		void begin_if(const Expr& expr) {
 			current_if = make_instruction<IfInstruction>(current_if);
-			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block) };
-			get().m_cases.push_back(if_case);
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Block>(current_block) };
+			Block* future_current_block = if_case.body.get();
+			get_current_if().m_cases.push_back(std::move(if_case));
 			push_instruction(current_if);
-			current_block = if_case.body.get();
+			current_block = future_current_block;
 		}
 
 		void begin_else() {
-			IfInstruction::IfCase if_case{ {}, std::make_shared<Block>(current_block->m_parent) };
-			get().m_cases.push_back(if_case);
+			IfInstruction::IfCase if_case{ {}, std::make_unique<Block>(current_block->m_parent) };
 			current_block = if_case.body.get();
+			get_current_if().m_cases.push_back(std::move(if_case));
 			delay_end_if();
 		}
 
 		void begin_else_if(const Expr& expr) {
-			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block->m_parent) };
-			get().m_cases.push_back(if_case);
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Block>(current_block->m_parent) };
 			current_block = if_case.body.get();
+			get_current_if().m_cases.push_back(std::move(if_case));
 		}
 
 		void end_if_sub_block() {
-			if (get().waiting_for_else) {
+			if (get_current_if().waiting_for_else) {
 				end_if();
 				end_if_sub_block();
 			} else {
-				get().waiting_for_else = true;
+				get_current_if().waiting_for_else = true;
 			}
 
 		}
 		void end_if() {
-			current_if = get().m_parent_if;
+			current_if = get_current_if().m_parent_if;
 			current_block = current_block->m_parent;
 		}
 		void delay_end_if() {
 			if (current_if) {
-				get().waiting_for_else = false;
+				get_current_if().waiting_for_else = false;
 			}
 		}
 		void check_begin_if() {
-			if (current_if && get().waiting_for_else) {
+			if (current_if && get_current_if().waiting_for_else) {
 				end_if();
 			}
 		}
 		void check_end_if() {
-			if (current_if && get().waiting_for_else) {
+			if (current_if && get_current_if().waiting_for_else) {
 				end_if();
 			}
 		}
@@ -337,7 +338,7 @@ namespace csl {
 
 		ShaderController() 
 		{
-			m_declarations = std::make_shared<MainBlock>();
+			m_declarations = std::make_unique<MainBlock>();
 			current_block = m_declarations.get();
 
 			m_memory_pool.m_buffer.reserve(10000);
