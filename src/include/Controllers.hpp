@@ -29,7 +29,7 @@ namespace csl {
 			current_block->push_instruction(make_instruction<Statement>(e));
 		}
 
-		Block::Ptr current_block;
+		Block* current_block;
 
 		virtual void push_instruction(const InstructionIndex i) {}
 
@@ -56,7 +56,7 @@ namespace csl {
 
 		void check_num_args() {
 			if (current_func && current_overload_arg_counter == current_func_overloads_num_args[current_overload]) {
-				current_block = get_current_func().get_overload(current_overload).body;
+				current_block = get_current_func().get_overload(current_overload).body.get();
 				feeding_args = false;
 			}
 		}
@@ -82,7 +82,7 @@ namespace csl {
 			current_overload_arg_counter = 0;
 			feeding_args = true;
 			if (current_overload < get_current_func().overload_count()) {
-				current_block = get_current_func().get_overload(current_overload).args;
+				current_block = get_current_func().get_overload(current_overload).args.get();
 				check_num_args();
 			}
 		}
@@ -94,7 +94,7 @@ namespace csl {
 		}
 
 		std::vector<std::size_t> current_func_overloads_num_args;
-		Block::Ptr current_func_parent;
+		Block* current_func_parent;
 		InstructionIndex current_func;
 		std::size_t current_overload;
 		std::size_t current_overload_arg_counter;
@@ -115,11 +115,11 @@ namespace csl {
 
 		void begin_for_args() {
 			get().body->m_parent = current_block;
-			current_block = get().args;
+			current_block = get().args.get();
 		}
 
 		void begin_for_body() {
-			current_block = get().body;
+			current_block = get().body.get();
 		}
 
 		virtual void end_for() {
@@ -147,20 +147,20 @@ namespace csl {
 			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block) };
 			get().m_cases.push_back(if_case);
 			push_instruction(current_if);
-			current_block = if_case.body;
+			current_block = if_case.body.get();
 		}
 
 		void begin_else() {
 			IfInstruction::IfCase if_case{ {}, std::make_shared<Block>(current_block->m_parent) };
 			get().m_cases.push_back(if_case);
-			current_block = if_case.body;
+			current_block = if_case.body.get();
 			delay_end_if();
 		}
 
 		void begin_else_if(const Expr& expr) {
 			IfInstruction::IfCase if_case{ expr, std::make_shared<Block>(current_block->m_parent) };
 			get().m_cases.push_back(if_case);
-			current_block = if_case.body;
+			current_block = if_case.body.get();
 		}
 
 		void end_if_sub_block() {
@@ -200,7 +200,7 @@ namespace csl {
 		virtual void begin_while(const Expr& expr) {
 			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
 			push_instruction(current_while);
-			current_block = reinterpret_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body;
+			current_block = reinterpret_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
 		}
 
 		virtual void end_while() {
@@ -218,7 +218,7 @@ namespace csl {
 		virtual void begin_switch(const Expr& expr) {
 			current_switch = make_instruction<SwitchInstruction>(expr, current_block, current_switch);
 			push_instruction(current_switch);
-			current_block = get().m_body;
+			current_block = get().m_body.get();
 		}
 
 		virtual void add_case(const Expr& expr) {
@@ -338,7 +338,7 @@ namespace csl {
 		ShaderController() 
 		{
 			m_declarations = std::make_shared<MainBlock>();
-			current_block = m_declarations;
+			current_block = m_declarations.get();
 
 			m_memory_pool.m_buffer.reserve(10000);
 			m_memory_pool.m_objects_ids.reserve(100);
@@ -418,11 +418,11 @@ namespace csl {
 			m_functions.push_back(current_func);
 		}
 
-		ReturnBlockBase::Ptr get_return_block() {
-			Block::Ptr test_block = current_block;
+		ReturnBlockBase* get_return_block() {
+			Block* test_block = current_block;
 			bool found_return_block = false;
 			while (!found_return_block) {
-				if (std::dynamic_pointer_cast<ReturnBlockBase>(test_block)) {
+				if (dynamic_cast<ReturnBlockBase*>(test_block)) {
 					found_return_block = true;
 				} else if (test_block->m_parent) {
 					test_block = test_block->m_parent;
@@ -432,7 +432,7 @@ namespace csl {
 			}
 
 			assert(found_return_block);
-			return std::dynamic_pointer_cast<ReturnBlockBase>(test_block);
+			return dynamic_cast<ReturnBlockBase*>(test_block);
 		}
 
 		template<typename S, typename ... Args>

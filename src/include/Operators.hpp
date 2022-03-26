@@ -611,9 +611,9 @@ namespace csl {
 		template<typename Derived, typename ... Args>
 		Expr emplace_back(Args&& ...args) {
 			const std::size_t current_size = m_buffer.size();
-			m_buffer.emplace_back(std::make_shared<Derived>(std::forward<Args>(args)...));
+			m_buffer.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
 			m_objects_ids.push_back(current_size);
-			m_data_size += sizeof(std::shared_ptr<Base>) + sizeof(Derived);
+			m_data_size += sizeof(std::unique_ptr<Base>) + sizeof(Derived);
 			return Expr(current_size);
 		}
 
@@ -629,7 +629,7 @@ namespace csl {
 			return m_data_size;
 		}
 
-		std::vector<std::shared_ptr<Base>> m_buffer;
+		std::vector<std::unique_ptr<Base>> m_buffer;
 		std::vector<std::size_t> m_objects_ids;
 
 		std::size_t m_data_size = 0;

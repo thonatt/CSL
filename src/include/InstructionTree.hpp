@@ -36,7 +36,7 @@ namespace csl {
 	struct Block {
 		using Ptr = std::shared_ptr<Block>;
 
-		Block(const Block::Ptr& parent = {}) : m_parent(parent) {}
+		Block(Block* parent = nullptr) : m_parent(parent) {}
 
 		virtual ~Block() = default;
 
@@ -45,7 +45,7 @@ namespace csl {
 		}
 
 		std::vector<InstructionIndex> m_instructions;
-		Block::Ptr m_parent;
+		Block* m_parent;
 	};
 
 	struct MainBlock : Block {
@@ -63,7 +63,7 @@ namespace csl {
 	struct ReturnBlock : ReturnBlockBase {
 		using Ptr = std::shared_ptr<ReturnBlock<ReturnType>>;
 
-		ReturnBlock(const Block::Ptr& parent = {}) : ReturnBlockBase(parent) {}
+		ReturnBlock(Block* parent = {}) : ReturnBlockBase(parent) {}
 		virtual ~ReturnBlock() = default;
 	};
 
@@ -292,7 +292,7 @@ namespace csl {
 	template<typename Delayed>
 	struct WhileInstructionDelayed final : InstructionBase {
 
-		WhileInstructionDelayed(const Expr expr, const Block::Ptr& parent_block) {
+		WhileInstructionDelayed(const Expr expr, Block* parent_block) {
 			m_condition = expr;
 			m_body = std::make_shared<Block>(parent_block);
 		}
@@ -312,7 +312,7 @@ namespace csl {
 	template<typename Delayed>
 	struct SwitchCaseDelayed final : InstructionBase {
 
-		SwitchCaseDelayed(const Expr& expr, const Block::Ptr& parent) {
+		SwitchCaseDelayed(const Expr& expr, Block* parent) {
 			m_label = expr;
 			m_body = std::make_shared<Block>(parent);
 		}
@@ -332,16 +332,16 @@ namespace csl {
 	template<typename Delayed>
 	struct SwitchInstructionDelayed final : InstructionBase {
 
-		SwitchInstructionDelayed(const Expr expr, const Block::Ptr& parent, const InstructionIndex parent_switch) {
+		SwitchInstructionDelayed(const Expr expr, Block* parent, const InstructionIndex parent_switch) {
 			m_condition = expr;
 			m_body = std::make_shared<Block>(parent);
 			m_parent_switch = parent_switch;
 		}
 
-		void add_case(const Expr expr, Block::Ptr& current_block) {
-			m_current_case = make_instruction<SwitchCase>(expr, m_body);
+		void add_case(const Expr expr, Block*& current_block) {
+			m_current_case = make_instruction<SwitchCase>(expr, m_body.get());
 			m_body->push_instruction(m_current_case);
-			current_block = dynamic_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body;
+			current_block = dynamic_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body.get();
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
