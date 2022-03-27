@@ -1,6 +1,6 @@
 #pragma once
 
-#include <include/csl.hpp>
+#include <csl/csl.hpp>
 
 csl::glsl::frag_420::Shader types_operators_example();
 

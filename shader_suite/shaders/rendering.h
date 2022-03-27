@@ -1,6 +1,6 @@
 #pragma once
 
-#include <include/csl.hpp>
+#include <csl/csl.hpp>
 
 /**
  Shader examples with rendering demos

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <include/csl.hpp>
+#include <csl/csl.hpp>
 
 /**
  Shaders from the Rendu graphics engine, by Simon Rodriguez.

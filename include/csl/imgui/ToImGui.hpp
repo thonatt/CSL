@@ -1,10 +1,10 @@
 #pragma once
 
-#include <include/Types.hpp>
-#include <include/InstructionTree.hpp>
-#include <include/Swizzles.hpp>
+#include <csl/Types.hpp>
+#include <csl/InstructionTree.hpp>
+#include <csl/Swizzles.hpp>
 
-#include <include/glsl/ToGLSL.hpp>
+#include <csl/glsl/ToGLSL.hpp>
 
 #include <sstream>
 #include <typeinfo>

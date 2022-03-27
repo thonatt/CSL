@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <include/csl.hpp>
+#include <csl/csl.hpp>
 
 /**
  Shaderwave shader adapted specifically for the CSL project, by Simon Rodriguez.

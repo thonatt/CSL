@@ -21,21 +21,21 @@ source_group("Src" FILES ${ShaderSuiteApp})
 file(GLOB Shaders "shaders/*.h" "shaders/*.cpp")
 source_group("Src\\Shaders" FILES ${Shaders})
 
-file(GLOB CSL_CORE "./../include/*.hpp")
-source_group("Src\\csl" FILES ${CSL_CORE})
+set(CSL_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
-file(GLOB CSL_GLSL "./../include/glsl/*.hpp")
+file(GLOB CSL_FILES "${CSL_INCLUDE}/csl/*.hpp")
+source_group("Src\\csl" FILES ${CSL_FILES})
+
+file(GLOB CSL_GLSL "${CSL_INCLUDE}/csl/glsl/*.hpp")
 source_group("Src\\glsl" FILES ${CSL_GLSL})
 
-file(GLOB CSL_IMGUI "./../include/imgui/*.hpp")
+file(GLOB CSL_IMGUI "${CSL_INCLUDE}/csl/imgui/*.hpp")
 source_group("Src\\imgui" FILES ${CSL_IMGUI})
-
-set(CSL_CORE_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 set(CSL_SHADER_SUITE_SHADERS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 
-set(CSL_SHADER_SUITE_RESOURCE_PATH "\"${CMAKE_CURRENT_SOURCE_DIR}/../../resources/\"")
-add_compile_definitions(CSL_SHADER_SUITE_RESOURCE_PATH=${CSL_SHADER_SUITE_RESOURCE_PATH})
+set(CSL_SHADER_SUITE_RESOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../resources/")
+add_compile_definitions(CSL_SHADER_SUITE_RESOURCE_PATH=\"${CSL_SHADER_SUITE_RESOURCE_PATH}\")
 
 # EXTLIBS
 set(CSL_SHADER_SUITE_EXTLIBS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extlibs/")
@@ -66,12 +66,12 @@ set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_DOCUMENT_INTERNALS OFF CACHE BOOL "")
 add_subdirectory(${CSL_SHADER_SUITE_GLFW_PATH})
 
-add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_CORE} ${CSL_GLSL} ${CSL_IMGUI}
+add_executable(CSL_ShaderSuite ${ShaderSuiteApp} ${Shaders} ${CSL_FILES} ${CSL_GLSL} ${CSL_IMGUI}
 	${CSL_SHADER_SUITE_IMGUI_HEADERS} ${CSL_SHADER_SUITE_IMGUI_SRC} ${CSL_SHADER_SUITE_GLAD_SRC}
 )
 
 target_include_directories(CSL_ShaderSuite PRIVATE 
-	${CMAKE_CURRENT_SOURCE_DIR} ${CSL_CORE_INCLUDE} ${CSL_SHADER_SUITE_SHADERS_INCLUDE} ${CSL_SHADER_SUITE_IMGUI_INCLUDE} ${CSL_SHADER_SUITE_GLAD_INCLUDE} ${CSL_SHADER_SUITE_GLFW_INCLUDE}
+	${CMAKE_CURRENT_SOURCE_DIR} ${CSL_INCLUDE} ${CSL_SHADER_SUITE_SHADERS_INCLUDE} ${CSL_SHADER_SUITE_IMGUI_INCLUDE} ${CSL_SHADER_SUITE_GLAD_INCLUDE} ${CSL_SHADER_SUITE_GLFW_INCLUDE}
 )
 
 target_link_libraries(CSL_ShaderSuite PRIVATE
