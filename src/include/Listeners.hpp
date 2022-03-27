@@ -343,7 +343,8 @@ namespace csl {
 
 	inline NamedObjectBase::~NamedObjectBase() {
 		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
-			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_ids.empty()) {
+			// TODO: Why is third case necessary?
+			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_offsets.empty()) {
 				if (auto obj = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
 					obj->set_as_unused();
 				}

@@ -712,8 +712,8 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 		const auto& mem = shader.m_controller.m_memory_pool;
 		const auto& ins = shader.m_controller.m_instruction_pool;
 		s << "\t Shader size : " << shader.m_glsl_str.size() << " characters\n";
-		s << "\t Expressions, count : " << mem.m_objects_ids.size() << ", total size : " << mem.get_data_size() << "\n";
-		s << "\t Instructions, count : " << ins.m_objects_ids.size() << ", total size : " << ins.get_data_size() << "\n";
+		s << "\t Expressions, count : " << mem.m_objects_offsets.size() << ", total size : " << mem.get_data_size() << "\n";
+		s << "\t Instructions, count : " << ins.m_objects_offsets.size() << ", total size : " << ins.get_data_size() << "\n";
 		s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
 		ImGui::TextWrapped(s.str().c_str());
 		break;
@@ -971,8 +971,8 @@ int main()
 	for (const auto& [typen, shader] : data.m_shader_suite.m_shaders) {
 		data.m_global_metrics.m_time_total += shader->m_glsl_timing + shader->m_generation_timing;
 		data.m_global_metrics.m_characters_count += shader->m_glsl_str.size();
-		data.m_global_metrics.m_expressions_count += shader->m_controller.m_memory_pool.m_objects_ids.size();
-		data.m_global_metrics.m_instructions_count += shader->m_controller.m_instruction_pool.m_objects_ids.size();
+		data.m_global_metrics.m_expressions_count += shader->m_controller.m_memory_pool.m_objects_offsets.size();
+		data.m_global_metrics.m_instructions_count += shader->m_controller.m_instruction_pool.m_objects_offsets.size();
 		data.m_global_metrics.m_memory += shader->m_controller.m_memory_pool.get_data_size() + shader->m_controller.m_instruction_pool.get_data_size();
 	}
 

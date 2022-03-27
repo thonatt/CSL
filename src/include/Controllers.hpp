@@ -341,12 +341,6 @@ namespace csl {
 		{
 			m_declarations = std::make_unique<MainBlock>();
 			current_block = m_declarations.get();
-
-			m_memory_pool.m_buffer.reserve(10000);
-			m_memory_pool.m_objects_ids.reserve(100);
-
-			m_instruction_pool.m_buffer.reserve(5000);
-			m_instruction_pool.m_objects_ids.reserve(100);
 		}
 
 		ShaderController(ShaderController&& other) :

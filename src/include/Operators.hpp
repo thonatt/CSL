@@ -549,21 +549,22 @@ namespace csl {
 	};
 
 	template<typename Base>
-	struct PolymorphicMemoryPool {
-
+	struct PolymorphicMemoryPool
+	{
 		using Index = Expr;
 		//using DeltaOffsetType = typename CanFit<MaxSizeof>::Type;
 
 		PolymorphicMemoryPool() {
-			//std::cout << "PolymorphicMemoryPool ctor" << std::endl;
+			m_objects_offsets.reserve(124);
+			m_buffer.reserve(10000);
 		}
 
-		PolymorphicMemoryPool(PolymorphicMemoryPool&& other)
-			: m_buffer(std::move(other.m_buffer)), m_objects_ids(std::move(other.m_objects_ids)) { }
+		PolymorphicMemoryPool(PolymorphicMemoryPool&& other) noexcept
+			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets)) { }
 
-		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) {
+		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept {
 			m_buffer = std::move(other.m_buffer);
-			m_objects_ids = std::move(other.m_objects_ids);
+			m_objects_offsets = std::move(other.m_objects_offsets);
 			return *this;
 		}
 
@@ -575,7 +576,7 @@ namespace csl {
 			const char* data = m_buffer.data() + current_size;
 			current_size += reinterpret_cast<std::uintptr_t>(data) % alignof(Derived);
 			m_buffer.resize(current_size + sizeof(Derived));
-			m_objects_ids.push_back(current_size);
+			m_objects_offsets.push_back(current_size);
 			new (&m_buffer[current_size]) Derived(std::forward<Args>(args)...);
 			return Index{ current_size };
 		}
@@ -589,19 +590,19 @@ namespace csl {
 		}
 
 		~PolymorphicMemoryPool() {
-			for (const std::size_t index : m_objects_ids) {
+			for (const std::size_t index : m_objects_offsets) {
 				Base& obj = operator[](index);
 				obj.~Base();
 			}
 		}
 
 		std::size_t get_data_size() const {
-			return m_buffer.size() + sizeof(std::size_t) * m_objects_ids.size();
+			return m_buffer.size() + sizeof(std::size_t) * m_objects_offsets.size();
 		}
 
 	public:
 		std::vector<char> m_buffer;
-		std::vector<std::size_t> m_objects_ids;
+		std::vector<std::size_t> m_objects_offsets;
 	};
 
 	template<typename Base>
@@ -611,7 +612,7 @@ namespace csl {
 		Expr emplace_back(Args&& ...args) {
 			const std::size_t current_size = m_buffer.size();
 			m_buffer.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
-			m_objects_ids.push_back(current_size);
+			m_objects_offsets.push_back(current_size);
 			m_data_size += sizeof(std::unique_ptr<Base>) + sizeof(Derived);
 			return Expr(current_size);
 		}
@@ -629,7 +630,7 @@ namespace csl {
 		}
 
 		std::vector<std::unique_ptr<Base>> m_buffer;
-		std::vector<std::size_t> m_objects_ids;
+		std::vector<std::size_t> m_objects_offsets;
 
 		std::size_t m_data_size = 0;
 	};

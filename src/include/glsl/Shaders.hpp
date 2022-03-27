@@ -33,10 +33,10 @@ namespace csl {
 
 		public:
 			ShaderGLSL();
-			ShaderGLSL(ShaderGLSL&& other) : ShaderController(std::move(other)) {
+			ShaderGLSL(ShaderGLSL&& other) noexcept : ShaderController(std::move(other))  {
 				//std::cout << "ShaderGLSL(ShaderGLSL&&)" << std::endl;
 			}
-			ShaderGLSL& operator=(ShaderGLSL&& other) {
+			ShaderGLSL& operator=(ShaderGLSL&& other) noexcept {
 				static_cast<ShaderController&>(*this) = std::move(other);
 				return *this;
 			}
