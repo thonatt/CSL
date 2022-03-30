@@ -4,29 +4,11 @@
 #include "Qualifiers.hpp"
 
 #include <cstdint>
-#include <tuple>
+#include <type_traits>
 #include <utility>
 
-namespace csl {
-
-	using uint = std::uint32_t;
-
-	template<template<typename, typename> typename Pred, typename A, typename B>
-	constexpr bool EqualLists = false;
-
-	template<template<typename, typename> typename Pred, typename ...As, typename ...Bs>
-	constexpr bool EqualLists<Pred, TList<As...>, TList<Bs...>> = (sizeof...(As) == sizeof...(Bs)) && ((Pred<As, Bs>::Value) &&...);
-
-	template<typename List>
-	struct GetArrayFromList;
-
-	template<std::size_t ... Ns>
-	struct GetArrayFromList<SizeList<Ns...>> {
-		using Type = Array<Ns...>;
-	};
-
-	///////////////////////////////////
-
+namespace csl 
+{
 	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
 	class Matrix;
 
@@ -36,22 +18,36 @@ namespace csl {
 	template<typename T, typename ...Qs>
 	using Scalar = Vector<T, 1, Qs...>;
 
-	enum class SamplerAccessType : std::size_t { Sampler, Image };
-	enum class SamplerType : std::size_t { Basic, Cube, Rectangle, MultiSample, Buffer, Atomic };
-	enum class SamplerFlags : std::size_t {
-		None = 0,
-		Array = 1 << 1,
-		Shadow = 1 << 2
+	enum class SamplerFlags : std::uint32_t 
+	{
+		Sampler = 1 << 0,
+		Image = 1 << 1,
+
+		Basic = 1 << 2,
+		Cube = 1 << 3,
+		Rectangle = 1 << 4,
+		Multisample = 1 << 5,
+		Buffer = 1 << 5,
+		Atomic = 1 << 6,
+
+		Array = 1 << 7,
+		Shadow = 1 << 8,
+
+		Default = Sampler | Basic,
+		MaskAccessType = Sampler | Image,
+		MaskSamplerType = Basic | Cube | Rectangle | Multisample | Buffer | Atomic,
 	};
 	constexpr SamplerFlags operator|(const SamplerFlags a, const SamplerFlags b) {
-		return static_cast<SamplerFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+		return static_cast<SamplerFlags>(static_cast<std::underlying_type_t<SamplerFlags>>(a) | static_cast<std::underlying_type_t<SamplerFlags>>(b));
 	}
-	constexpr bool operator&(const SamplerFlags a, const SamplerFlags b) {
-		return static_cast<bool>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
+	constexpr SamplerFlags operator&(const SamplerFlags a, const SamplerFlags b) {
+		return static_cast<SamplerFlags>(static_cast<std::underlying_type_t<SamplerFlags>>(a) & static_cast<std::underlying_type_t<SamplerFlags>>(b));
 	}
 
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type = SamplerType::Basic, SamplerFlags Flags = SamplerFlags::None, typename ...Qs>
+	template<typename T, std::size_t N, SamplerFlags Flags = SamplerFlags::Default, typename ...Qs>
 	class Sampler;
+
+	///
 
 	template<typename T, typename Ds, typename ... Qs>
 	struct ArrayInterface;
@@ -60,6 +56,14 @@ namespace csl {
 	struct TypeInterface;
 
 	enum class ObjFlags : std::size_t;
+
+	template<typename List>
+	struct GetArrayFromList;
+
+	template<std::size_t ... Ns>
+	struct GetArrayFromList<SizeList<Ns...>> {
+		using Type = Array<Ns...>;
+	};
 
 	template<typename T>
 	struct IsArray {
@@ -136,7 +140,7 @@ namespace csl {
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
 		static constexpr bool IsFloat = std::is_same_v<T, float>;
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
-		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, unsigned int> || std::is_same_v<T, uint>;
+		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, unsigned int>;
 
 		static constexpr bool IsValid = true;
 
@@ -157,12 +161,10 @@ namespace csl {
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 	};
 
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType sType, SamplerFlags sFlags, typename ...Qs>
-	struct Infos<Sampler<Access, T, N, sType, sFlags, Qs...>> {
+	template<typename T, std::size_t N, SamplerFlags sFlags, typename ...Qs>
+	struct Infos<Sampler<T, N, sFlags, Qs...>> {
 		using ScalarType = T;
 		static constexpr std::size_t DimensionCount = N;
-		static constexpr SamplerAccessType AccessType = Access;
-		static constexpr SamplerType Type = sType;
 		static constexpr SamplerFlags Flags = sFlags;
 
 		using ArrayDimensions = SizeList<>;
@@ -343,9 +345,9 @@ namespace csl {
 	struct TypeInterfaceIndirection<Matrix<T, R, C>, TList<Qs...>> {
 		using Type = Matrix<T, R, C, Qs...>;
 	};
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType sType, SamplerFlags Flags, typename ...Qs>
-	struct TypeInterfaceIndirection<Sampler<Access, T, N, sType, Flags>, TList<Qs...>> {
-		using Type = Sampler<Access, T, N, sType, Flags, Qs...>;
+	template<typename T, std::size_t N, SamplerFlags Flags, typename ...Qs>
+	struct TypeInterfaceIndirection<Sampler<T, N, Flags>, TList<Qs...>> {
+		using Type = Sampler<T, N, Flags, Qs...>;
 	};
 
 	template<typename T, typename Ds, typename QList>

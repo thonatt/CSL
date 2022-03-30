@@ -360,37 +360,37 @@ namespace csl {
 		}
 	};
 
-	inline const std::unordered_map<SamplerAccessType, std::string>& get_sampler_access_strs()
+	inline const std::unordered_map<SamplerFlags, std::string>& get_sampler_access_strs()
 	{
-		static const std::unordered_map<SamplerAccessType, std::string> sampler_access_strs = {
-				{ SamplerAccessType::Sampler, "sampler" },
-				{ SamplerAccessType::Image, "image"}
+		static const std::unordered_map<SamplerFlags, std::string> sampler_access_strs = {
+				{ SamplerFlags::Sampler, "sampler" },
+				{ SamplerFlags::Image, "image"}
 		};
 		return sampler_access_strs;
 	}
 
-	inline const std::unordered_map<SamplerType, std::string>& get_sampler_type_strs()
+	inline const std::unordered_map<SamplerFlags, std::string>& get_sampler_type_strs()
 	{
-		static const std::unordered_map<SamplerType, std::string> sampler_type_strs = {
-			{ SamplerType::Basic, "" },
-			{ SamplerType::Cube, "Cube"},
-			{ SamplerType::Rectangle , "Rect"},
-			{ SamplerType::MultiSample, "MS"},
-			{ SamplerType::Buffer, "Buffer"},
+		static const std::unordered_map<SamplerFlags, std::string> sampler_type_strs = {
+			{ SamplerFlags::Basic, ""},
+			{ SamplerFlags::Cube, "Cube"},
+			{ SamplerFlags::Rectangle , "Rect"},
+			{ SamplerFlags::Multisample, "MS"},
+			{ SamplerFlags::Buffer, "Buffer"},
 		};
 		return sampler_type_strs;
 	}
 
-	template<SamplerAccessType Access, typename T, std::size_t N, SamplerType Type, SamplerFlags Flags, typename ...Qs>
-	struct GLSLTypeStr<Sampler<Access, T, N, Type, Flags, Qs...>> {
+	template<typename T, std::size_t N, SamplerFlags Flags, typename ...Qs>
+	struct GLSLTypeStr<Sampler< T, N, Flags, Qs...>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() +
-					get_sampler_access_strs().find(Access)->second +
+					get_sampler_access_strs().find(Flags & SamplerFlags::MaskAccessType)->second +
 					(N != 0 ? std::to_string(N) + 'D' : "") +
-					get_sampler_type_strs().find(Type)->second +
-					(Flags & SamplerFlags::Array ? "Array" : "") +
-					(Flags & SamplerFlags::Shadow ? "Shadow" : "");
+					get_sampler_type_strs().find(Flags & SamplerFlags::MaskSamplerType)->second +
+					(bool(Flags & SamplerFlags::Array) ? "Array" : "") +
+					(bool(Flags & SamplerFlags::Shadow) ? "Shadow" : "");
 			}();
 			return type_str;
 		}

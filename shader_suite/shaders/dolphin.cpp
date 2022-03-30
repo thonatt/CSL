@@ -480,7 +480,7 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		CSL_RETURN(ivec4(round(x)));
 	});
 
-	Qualify< sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samp("samp");
+	Qualify<sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samp("samp");
 
 	CSL_UNNAMED_INTERFACE_BLOCK(
 		(Layout<Std140, Binding<1>>, Uniform),

@@ -199,4 +199,10 @@ namespace csl
 		using Next = typename RemoveAtImpl<NextIds, TList<Ts...>, CurrentIndex + 1>::Type;
 		using Type = std::conditional_t<RemoveCurrent, Next, typename Next::template PushFront<T>>;
 	};
+
+	template<template<typename, typename> typename Pred, typename A, typename B>
+	constexpr bool EqualLists = false;
+
+	template<template<typename, typename> typename Pred, typename ...As, typename ...Bs>
+	constexpr bool EqualLists<Pred, TList<As...>, TList<Bs...>> = (sizeof...(As) == sizeof...(Bs)) && ((Pred<As, Bs>::Value) &&...);
 }

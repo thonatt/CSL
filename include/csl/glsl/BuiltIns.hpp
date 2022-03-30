@@ -108,7 +108,7 @@ namespace csl {
 		);
 
 		CSL_MAKE_OP_3(
-			IsVecF<A>&& IsVecF<B> && SameMat<B CSL_PP_COMMA C> && (SameSize<A CSL_PP_COMMA B> || IsFloat<B>),
+			IsVecF<A>&& IsVecF<B>&& SameMat<B CSL_PP_COMMA C> && (SameSize<A CSL_PP_COMMA B> || IsFloat<B>),
 			Vector<float CSL_PP_COMMA Infos<A>::RowCount>,
 			clamp,
 			(A, x), (B, minVal), (C, maxVal)
@@ -160,22 +160,22 @@ namespace csl {
 		using namespace glsl_120;
 
 		CSL_MAKE_OP_2(
-			(Infos<S>::AccessType == SamplerAccessType::Sampler) &&
-			(Infos<S>::Type == SamplerType::Basic) &&
-			!(Infos<S>::Flags& SamplerFlags::Shadow) &&
+			bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
+			bool(Infos<S>::Flags& SamplerFlags::Basic) &&
+			!bool(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P>&&
-			Infos<P>::RowCount == (Infos<S>::DimensionCount + ((Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
+			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
 			Vector<typename Infos<S>::ScalarType CSL_PP_COMMA 4>,
 			texture,
 			(S, sampler), (P, point)
 		);
 
 		CSL_MAKE_OP_3(
-			(Infos<S>::AccessType == SamplerAccessType::Sampler) &&
-			(Infos<S>::Type == SamplerType::Basic) &&
-			!(Infos<S>::Flags& SamplerFlags::Shadow) &&
+			bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
+			bool(Infos<S>::Flags& SamplerFlags::Basic) &&
+			!bool(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P>&& IsFloat<B>&&
-			Infos<P>::RowCount == (Infos<S>::DimensionCount + ((Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
+			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
 			Vector<typename Infos<S>::ScalarType CSL_PP_COMMA 4>,
 			texture,
 			(S, sampler), (P, point), (B, biais)
@@ -217,7 +217,7 @@ namespace csl {
 		);
 
 		CSL_MAKE_OP_3(
-			Infos<A>::IsVec && Infos<B>::IsInteger && SameMat<B CSL_PP_COMMA C> && (SameSize<A CSL_PP_COMMA B> || Infos<B>::IsScalar),
+			Infos<A>::IsVec&& Infos<B>::IsInteger&& SameMat<B CSL_PP_COMMA C> && (SameSize<A CSL_PP_COMMA B> || Infos<B>::IsScalar),
 			Vector<typename Infos<A>::ScalarType CSL_PP_COMMA Infos<A>::RowCount>,
 			clamp,
 			(A, x), (B, minVal), (C, maxVal)
@@ -244,7 +244,7 @@ namespace csl {
 		using namespace glsl_420;
 
 		CSL_MAKE_OP_1(
-			(Infos<I>::AccessType == SamplerAccessType::Image),
+			bool(Infos<I>::Flags & SamplerFlags::Image),
 			Vector<int CSL_PP_COMMA Infos<I>::DimensionCount>,
 			imageSize,
 			(I, image)
