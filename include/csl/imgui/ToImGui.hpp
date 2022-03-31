@@ -195,10 +195,10 @@ namespace csl {
 			}
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (ctor->m_flags && CtorFlags::Temporary) {
+				if (bool(ctor->m_flags & CtorFlags::Temporary)) {
 					return;
 				}
-				if (ctor->m_flags && CtorFlags::Untracked || ctor->m_flags && CtorFlags::FunctionArgument) {
+				if (bool(ctor->m_flags & CtorFlags::Untracked) || bool(ctor->m_flags & CtorFlags::FunctionArgument)) {
 					data.glsl_data.register_var_name(ctor->m_name, ctor->m_variable_id);
 					return;
 				}
@@ -557,7 +557,7 @@ namespace csl {
 
 			data.node(member_str, [&] {
 				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-					if (ctor->m_flags && CtorFlags::Temporary) {
+					if (bool(ctor->m_flags & CtorFlags::Temporary)) {
 						ctor->print_imgui(data);
 					} else {
 						data << ("$" + std::to_string(ctor->m_variable_id));

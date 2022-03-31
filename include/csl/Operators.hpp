@@ -221,9 +221,6 @@ namespace csl {
 		SwitchMask = Declaration | Initialisation | Temporary | Unused | FunctionArgument
 	};
 
-	constexpr bool operator&&(CtorFlags a, CtorFlags b) {
-		return static_cast<bool>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
-	}
 	constexpr CtorFlags operator&(CtorFlags a, CtorFlags b) {
 		return static_cast<CtorFlags>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
 	}
@@ -237,9 +234,6 @@ namespace csl {
 		a = a | b;
 		return a;
 	}
-	//inline std::ostream& operator<<(std::ostream& t, const CtorFlags op) {
-	//	return t << static_cast<std::size_t>(op);
-	//}
 
 	struct OperatorBase {
 		virtual ~OperatorBase() = default;
@@ -316,7 +310,7 @@ namespace csl {
 		}
 
 		void set_as_unused() {
-			if (m_flags && CtorFlags::Initialisation) {
+			if (bool(m_flags & CtorFlags::Initialisation)) {
 				m_flags = CtorFlags::Unused;
 			}
 		}

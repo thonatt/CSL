@@ -323,19 +323,31 @@ namespace csl {
 
 	template<typename T>
 	struct GLSLTypeStr {
-		static std::string get() { return T::get_type_str(); }
+		static const std::string& get() { return T::get_type_str(); }
 	};
 
-	template<> inline std::string GLSLTypeStr<void>::get() { return "void"; }
-	template<> inline std::string GLSLTypeStr<bool>::get() { return "bool"; }
-	template<> inline std::string GLSLTypeStr<int>::get() { return "int"; }
-	template<> inline std::string GLSLTypeStr<unsigned int>::get() { return "uint"; }
-	template<> inline std::string GLSLTypeStr<float>::get() { return "float"; }
-	template<> inline std::string GLSLTypeStr<double>::get() { return "double"; }
+	template<> inline const std::string& GLSLTypeStr<void>::get() {
+		static const std::string s = "void"; return s;
+	}
+	template<> inline const std::string& GLSLTypeStr<bool>::get() {
+		static const std::string s = "bool"; return s;
+	}
+	template<> inline const std::string& GLSLTypeStr<int>::get() {
+		static const std::string s = "int"; return s;
+	}
+	template<> inline const std::string& GLSLTypeStr<unsigned int>::get() {
+		static const std::string s = "uint"; return s;
+	}
+	template<> inline const std::string& GLSLTypeStr<float>::get() {
+		static const std::string s = "float"; return s;
+	}
+	template<> inline const std::string& GLSLTypeStr<double>::get() {
+		static const std::string s = "double"; return s;
+	}
 
 	template<typename T>
 	struct GLSLTypeStr<Scalar<T>> {
-		static std::string get() {
+		static const std::string& get() {
 			return GLSLTypeStr<T>::get();
 		}
 	};
@@ -407,14 +419,14 @@ namespace csl {
 
 	template<typename T, typename ...Qs>
 	struct GLSLTypeStr<TypeInterface<T, Qs...>> {
-		static std::string get() {
+		static const std::string& get() {
 			return GLSLTypeStr<T>::get();
 		}
 	};
 
 	template<typename T, typename Ds, typename ...Qs>
 	struct GLSLTypeStr<ArrayInterface<T, Ds, Qs...>> {
-		static std::string get() {
+		static const std::string& get() {
 			return GLSLTypeStr<T>::get();
 		}
 	};
@@ -500,7 +512,7 @@ namespace csl {
 				const InstructionBase* arg_instruction = retrieve_instruction(j);
 				const Expr arg_expr = safe_static_cast<const Statement*>(arg_instruction)->m_expr;
 				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(arg_expr));
-				if (status == Status::InitExpr && (ctor->m_flags && CtorFlags::Initialisation)) {
+				if (status == Status::InitExpr && bool(ctor->m_flags & CtorFlags::Initialisation)) {
 					arg_instruction->print_glsl(data);
 					status = Status::Condition;
 					continue;
@@ -545,14 +557,14 @@ namespace csl {
 			}
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (ctor->m_flags && CtorFlags::Temporary) {
+				if (bool(ctor->m_flags & CtorFlags::Temporary)) {
 					return;
 				}
-				if (ctor->m_flags && CtorFlags::Untracked) {
+				if (bool(ctor->m_flags & CtorFlags::Untracked)) {
 					data.register_var_name(ctor->m_name, ctor->m_variable_id);
 					return;
 				}
-				if (ctor->m_flags && CtorFlags::FunctionArgument) {
+				if (bool(ctor->m_flags & CtorFlags::FunctionArgument)) {
 					retrieve_expr(i.m_expr)->print_glsl(data, Precedence::NoExtraParenthesis);
 					return;
 				}
@@ -840,7 +852,7 @@ namespace csl {
 
 		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
 
-			if (ctor.m_flags && CtorFlags::Const) {
+			if (bool(ctor.m_flags & CtorFlags::Const)) {
 				//data << "const "; TODO implement operators with all &, &&, const&, const&& versions
 			}
 
@@ -1031,7 +1043,7 @@ namespace csl {
 	struct OperatorGLSL<MemberAccessor<S, Id>> {
 		static void call(const MemberAccessor<S, Id>& accessor, GLSLData& data, const Precedence precedence) {
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-				if (ctor->m_flags && CtorFlags::Temporary) {
+				if (bool(ctor->m_flags & CtorFlags::Temporary)) {
 					ctor->print_glsl(data, precedence);
 				} else {
 					const auto it = data.var_names.find(ctor->m_variable_id);
