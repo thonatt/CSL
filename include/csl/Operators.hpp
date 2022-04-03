@@ -331,7 +331,7 @@ namespace csl {
 		CtorFlags m_flags;
 	};
 
-	template<typename T, std::size_t N>
+	template<typename T, std::size_t N, typename Dimensions, typename Qualifiers>
 	struct Constructor final : ConstructorBase, ArgSeq<N>
 	{
 		using ArgSeq<N>::m_args;
@@ -420,8 +420,8 @@ namespace csl {
 	};
 
 	template<typename S, std::size_t MemberId>
-	struct MemberAccessor final : MemberAccessorBase {
-
+	struct MemberAccessor final : MemberAccessorBase
+	{
 		MemberAccessor(const Expr expr) : MemberAccessorBase(expr) { }
 
 		void print_imgui(ImGuiData& data) const override {

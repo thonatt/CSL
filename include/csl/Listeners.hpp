@@ -352,15 +352,13 @@ namespace csl {
 		}
 	}
 
-	template<typename T, typename ... Args>
-	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
+	template<typename T, typename Dimensions, typename Qualifiers, typename ... Args>
+	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		Expr expr;
-		if (obj_flags & ObjFlags::Tracked) {
-			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
-		} else {
-			expr = make_expr<Constructor<T, sizeof...(Args)>>(name, ctor_flags | CtorFlags::Untracked, variable_id, std::forward<Args>(args)...);
-		}
+		if (!bool(obj_flags & ObjFlags::Tracked))
+			ctor_flags |= CtorFlags::Untracked;
+
+		const Expr expr = make_expr<Constructor<T, sizeof...(Args), Dimensions, Qualifiers>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
 		listen().push_expression(expr);
 		return expr;
 	}
@@ -398,7 +396,7 @@ namespace csl {
 		using This = Function<ReturnTList, Fs...>;
 		using RType = ReturnType<Args...>;
 
-		const Expr expr = make_expr<CustomFunCall< This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
+		const Expr expr = make_expr<CustomFunCall<This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
 		// in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
 		if constexpr (std::is_same_v<RType, void>) {

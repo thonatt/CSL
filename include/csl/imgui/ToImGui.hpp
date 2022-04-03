@@ -412,10 +412,10 @@ namespace csl {
 		}
 	};
 
-	template<typename T, std::size_t N>
-	struct OperatorImGui<Constructor<T, N>> {
-
-		static void call(const Constructor<T, N>& ctor, ImGuiData& data) {
+	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
+	struct OperatorImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>> 
+	{
+		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) {
 
 			static const std::unordered_map<CtorFlags, std::string> flag_strs = {
 				{ CtorFlags::Declaration, "Declaration" },
@@ -438,8 +438,8 @@ namespace csl {
 			//ctor_str += std::string(" $") + std::to_string(ctor.m_variable_id);
 			std::string ctor_str = data.glsl_data.stream.str();
 
-			using ArrayDimensions = typename T::ArrayDimensions;
-			using Qualifiers = typename T::Qualifiers;
+			//using ArrayDimensions = typename T::ArrayDimensions;
+			//using Qualifiers = typename T::Qualifiers;
 
 			if constexpr (N == 0) {
 				data.leaf(ctor_str);

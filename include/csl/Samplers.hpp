@@ -5,26 +5,23 @@
 
 namespace csl {
 
-	template<typename T, std::size_t N, SamplerFlags Flags, typename ...Qs>
-	class Sampler : public NamedObject<Sampler<T, N, Flags, Qs...>> 
+	template<typename T, std::size_t N, SamplerFlags Flags>
+	class Sampler : public NamedObject<Sampler<T, N, Flags>> 
 	{
 	public:
 		using Base = NamedObject<Sampler>;
-		using ArrayDimensions = SizeList<>;
-		using Qualifiers = TList<Qs...>;
-		using QualifierFree = Sampler;
-
-		Sampler() : Base("") {}
 
 		Sampler(Dummy) : Base() {}
 
+		Sampler() : Sampler("") {}
+
 		Sampler(const std::string& s, const ObjFlags obj_flags = ObjFlags::Default)
-			: Base(s, obj_flags)
+			: Base(s, obj_flags, SizeList<>{}, TList<>{})
 		{
 		}
 
 		Sampler(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: Base(expr, obj_flags)
+			: Base(expr, obj_flags, SizeList<>{}, TList<>{})
 		{
 		}
 

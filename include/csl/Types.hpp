@@ -9,14 +9,14 @@
 
 namespace csl 
 {
-	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
+	template<typename T, std::size_t R, std::size_t C>
 	class Matrix;
 
-	template<typename T, std::size_t R, typename ...Qs>
-	using Vector = Matrix<T, R, 1, Qs...>;
+	template<typename T, std::size_t R>
+	using Vector = Matrix<T, R, 1>;
 
-	template<typename T, typename ...Qs>
-	using Scalar = Vector<T, 1, Qs...>;
+	template<typename T>
+	using Scalar = Vector<T, 1>;
 
 	enum class SamplerFlags : std::uint32_t 
 	{
@@ -44,7 +44,7 @@ namespace csl
 		return static_cast<SamplerFlags>(static_cast<std::underlying_type_t<SamplerFlags>>(a) & static_cast<std::underlying_type_t<SamplerFlags>>(b));
 	}
 
-	template<typename T, std::size_t N, SamplerFlags Flags = SamplerFlags::Default, typename ...Qs>
+	template<typename T, std::size_t N, SamplerFlags Flags = SamplerFlags::Default>
 	class Sampler;
 
 	///
@@ -125,8 +125,8 @@ namespace csl
 	template<typename T>
 	struct Infos<const T&> : Infos<T> { };
 
-	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	struct Infos<Matrix<T, R, C, Qs...>> {
+	template<typename T, std::size_t R, std::size_t C>
+	struct Infos<Matrix<T, R, C>> {
 		static constexpr bool IsConst = false;
 		static constexpr bool IsConstant = false;
 		static constexpr bool IsScalar = (R == 1 && C == 1);
@@ -144,11 +144,10 @@ namespace csl
 
 		static constexpr bool IsValid = true;
 
-		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
+		using ArrayDimensions = SizeList<>;
 
-		using Type = Matrix<T, R, C, Qs...>;
+		using Type = Matrix<T, R, C>;
 		using ScalarType = T;
-		using QualifierFree = Matrix<T, R, C>;
 	};
 
 	template<typename T, typename Ds, typename ... Qs>
@@ -161,8 +160,8 @@ namespace csl
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 	};
 
-	template<typename T, std::size_t N, SamplerFlags sFlags, typename ...Qs>
-	struct Infos<Sampler<T, N, sFlags, Qs...>> {
+	template<typename T, std::size_t N, SamplerFlags sFlags>
+	struct Infos<Sampler<T, N, sFlags>> {
 		using ScalarType = T;
 		static constexpr std::size_t DimensionCount = N;
 		static constexpr SamplerFlags Flags = sFlags;
@@ -260,32 +259,32 @@ namespace csl
 	};
 
 	template<>
-	struct Infos<int> : Infos<Matrix<int, 1, 1, TList<>>> {
+	struct Infos<int> : Infos<Matrix<int, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
 
 
 	template<>
-	struct Infos<unsigned long long> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
+	struct Infos<unsigned long long> : Infos<Matrix<unsigned int, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
 
 	template<>
-	struct Infos<unsigned long> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
+	struct Infos<unsigned long> : Infos<Matrix<unsigned int, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
 
 	template<>
-	struct Infos<unsigned int> : Infos<Matrix<unsigned int, 1, 1, TList<>>> {
+	struct Infos<unsigned int> : Infos<Matrix<unsigned int, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
 
 	template<>
-	struct Infos<bool> : Infos<Matrix<bool, 1, 1, TList<>>> {
+	struct Infos<bool> : Infos<Matrix<bool, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
@@ -312,7 +311,7 @@ namespace csl
 	template<typename A, typename B>
 	struct AlgebraInfos {
 		static_assert(SameScalarType<A, B>);
-		using ReturnType = typename Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::QualifierFree;
+		using ReturnType = typename Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::Type;
 
 		static constexpr Op OperatorAdd =
 			SameSize<A, B> ? Op::CWiseAdd :
@@ -341,15 +340,6 @@ namespace csl
 		using Type = TypeInterface<T, Qs...>;
 	};
 
-	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	struct TypeInterfaceIndirection<Matrix<T, R, C>, TList<Qs...>> {
-		using Type = Matrix<T, R, C, Qs...>;
-	};
-	template<typename T, std::size_t N, SamplerFlags Flags, typename ...Qs>
-	struct TypeInterfaceIndirection<Sampler<T, N, Flags>, TList<Qs...>> {
-		using Type = Sampler<T, N, Flags, Qs...>;
-	};
-
 	template<typename T, typename Ds, typename QList>
 	struct ArrayInterfaceIndirection;
 
@@ -364,11 +354,4 @@ namespace csl
 		typename ArrayInterfaceIndirection<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >::Type,
 		typename TypeInterfaceIndirection<T, RemoveArrayFromQualifiers<Qs...> >::Type
 	>;
-
-	//template<typename T>
-	//struct Arr {
-	//	template<std::size_t S>
-	//	using Size = Qualify<T, Array<S>>;
-	//};
-
 }

@@ -104,7 +104,7 @@ namespace csl
 		using PushBack = TList<T, Ts..., U>;
 
 		template<typename U>
-		static constexpr bool Contains = std::is_same_v<U, T> || ((std::is_same_v<U, Ts>) || ...);
+		static constexpr bool Contains = std::is_same_v<U, T> || Tail::template Contains<U>;
 
 		static constexpr std::size_t Size = 1 + sizeof...(Ts);
 	};

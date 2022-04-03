@@ -228,10 +228,9 @@ namespace csl {
 	// qualifiers
 
 	template<typename QList>
-	struct GLSLQualifier {
-		static std::string get() {
-			return typeid(QList).name();
-		}
+	struct GLSLQualifier
+	{
+		static std::string get() { return ""; }
 	};
 
 	template<template<std::size_t N> class T>
@@ -323,7 +322,9 @@ namespace csl {
 
 	template<typename T>
 	struct GLSLTypeStr {
-		static const std::string& get() { return T::get_type_str(); }
+		static const std::string& get() {
+			return T::get_type_str();
+		}
 	};
 
 	template<> inline const std::string& GLSLTypeStr<void>::get() {
@@ -352,8 +353,8 @@ namespace csl {
 		}
 	};
 
-	template<typename T, std::size_t R, typename ...Qs>
-	struct GLSLTypeStr<Vector<T, R, Qs...>> {
+	template<typename T, std::size_t R>
+	struct GLSLTypeStr<Vector<T, R>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() + "vec" + std::to_string(R);
@@ -362,8 +363,8 @@ namespace csl {
 		}
 	};
 
-	template<typename T, std::size_t R, std::size_t C, typename ...Qs>
-	struct GLSLTypeStr<Matrix<T, R, C, Qs...>> {
+	template<typename T, std::size_t R, std::size_t C>
+	struct GLSLTypeStr<Matrix<T, R, C>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() + "mat" + std::to_string(C) + (C == R ? "" : "x" + std::to_string(R));
@@ -393,8 +394,8 @@ namespace csl {
 		return sampler_type_strs;
 	}
 
-	template<typename T, std::size_t N, SamplerFlags Flags, typename ...Qs>
-	struct GLSLTypeStr<Sampler< T, N, Flags, Qs...>> {
+	template<typename T, std::size_t N, SamplerFlags Flags>
+	struct GLSLTypeStr<Sampler< T, N, Flags>> {
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() +
@@ -431,25 +432,45 @@ namespace csl {
 		}
 	};
 
-	template<typename T>
+	template<typename T, typename ...Qualifiers>
+	struct GLSLTypeDeclaration {
+		static const std::string& get()
+		{
+			static const std::string s = []
+			{
+				using ArrayDimensions = typename ArrayInfos<Qualifiers...>::Dimensions;
+				using QualifierList = RemoveArrayFromQualifiers<Qualifiers...>;
+
+				std::string s;
+				if constexpr (QualifierList::Size > 0)
+					s += GLSLQualifier<QualifierList>::get() + " ";
+				s += GLSLTypeStr<T>::get();
+				if ()
+					s += ArraySizePrinterGLSL<ArrayDimensions>::get();
+				return s;
+			}();
+			return s;
+		}
+	};
+
+	template<typename T, typename Dimensions = SizeList<>, typename Qualifiers = TList<>>
 	struct GLSLDeclaration {
+		static const std::string& prefix()
+		{
+			static const std::string s = [] {
+				std::string s;
+				if constexpr (Qualifiers::Size > 0)
+					s += GLSLQualifier<Qualifiers>::get() + " ";
+				s += GLSLTypeStr<T>::get();
+				return s;
+			}();
+			return s;
+		}
+
 		static std::string get(const std::string& var_name) {
-			using ArrayDimensions = typename T::ArrayDimensions;
-			using Qualifiers = typename T::Qualifiers;
-			using U = typename T::QualifierFree;
-
-			std::string str;
-
-			if constexpr (Qualifiers::Size > 0) {
-				str += GLSLQualifier<Qualifiers>::get() + " ";
-			}
-
-			str += GLSLTypeStr<U>::get() + " " + var_name;
-
-			if constexpr (ArrayDimensions::Size > 0) {
-				str += ArraySizePrinterGLSL<ArrayDimensions>::get();
-			}
-
+			std::string str = prefix() + " " + var_name;
+			if constexpr (Dimensions::Size > 0)
+				str += ArraySizePrinterGLSL<Dimensions>::get();
 			return str;
 		}
 	};
@@ -847,32 +868,28 @@ namespace csl {
 		}
 	};
 
-	template<typename T, std::size_t N>
-	struct OperatorGLSL<Constructor<T, N>> {
+	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
+	struct OperatorGLSL<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
+	{
+		using Dimensions = SizeList<Ds...>;
+		using QualifersList = TList<Qualifiers...>;
 
-		static void call(const Constructor<T, N>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) {
-
-			if (bool(ctor.m_flags & CtorFlags::Const)) {
-				//data << "const "; TODO implement operators with all &, &&, const&, const&& versions
-			}
-
+		static void call(const Constructor<T, N, Dimensions, QualifersList>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis)
+		{
 			const CtorFlags ctor_flag = ctor.m_flags & CtorFlags::SwitchMask;
 			switch (ctor_flag)
 			{
 			case CtorFlags::Declaration: {
-				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
+				data << GLSLDeclaration<T, Dimensions, QualifersList>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				break;
 			}
 			case CtorFlags::Initialisation: {
-				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
+				data << GLSLDeclaration<T, Dimensions, QualifersList>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				data << " = ";
 				if (ctor.arg_count() == 1) {
 					retrieve_expr(ctor.first_arg())->print_glsl(data);
 				} else {
-					data << GLSLTypeStr<T>::get();
-					if constexpr (T::ArrayDimensions::Size > 0) {
-						data << ArraySizePrinterGLSL<typename T::ArrayDimensions>::get();
-					}
+					data << GLSLTypeStr<T>::get() << ArraySizePrinterGLSL<Dimensions>::get();
 					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
 				}
 				break;
@@ -881,10 +898,7 @@ namespace csl {
 				if (ctor.arg_count() == 1) {
 					retrieve_expr(ctor.first_arg())->print_glsl(data);
 				} else {
-					data << GLSLTypeStr<T>::get();
-					if constexpr (T::ArrayDimensions::Size > 0) {
-						data << ArraySizePrinterGLSL<typename T::ArrayDimensions>::get();
-					}
+					data << GLSLTypeStr<T>::get() << ArraySizePrinterGLSL<Dimensions>::get();
 					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
 				}
 				break;
@@ -894,7 +908,7 @@ namespace csl {
 				break;
 			}
 			case CtorFlags::FunctionArgument: {
-				data << GLSLDeclaration<T>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
+				data << GLSLDeclaration<T, Dimensions, QualifersList>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				break;
 			}
 			default:

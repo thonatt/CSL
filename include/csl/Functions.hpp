@@ -133,18 +133,19 @@ namespace csl {
 	///////////////////////////////////////////////////////////////////////////////////////////
 	// function objects
 
-	struct FuncBase : NamedObjectBase {
+	struct FuncBase : NamedObjectBase
+	{
 		FuncBase() : NamedObjectBase(ObjFlags::None) {}
 	};
 
 	template<typename ReturnTList, typename ... Fs>
-	struct Function : FuncBase {
-
+	struct Function : FuncBase
+	{
 		using FuncTList = TList<Fs...>;
 
 		static_assert(ReturnTList::Size == FuncTList::Size, "Number of overloads and return types dont match");
 		static_assert(FuncTList::Size > 0, "Functions must have at least one overload");
-		static_assert((std::is_same_v<GetReturnType<std::remove_reference_t<Fs>>, void>&& ... && true), "C++ return detected in CSL function, use CSL_RETURN instead");
+		static_assert(((std::is_same_v<GetReturnType<std::remove_reference_t<Fs>>, void>)&& ...), "C++ return detected in CSL function, use CSL_RETURN instead");
 
 		Function(const std::string& name, Fs&& ... fs);
 

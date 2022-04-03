@@ -52,10 +52,9 @@
 		using MemberTList = csl::TList< CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) >; \
 		using ArrayDimensions = CSL_PP_ARRAY_INFOS_FROM_QUALIFIER2( _Qualifiers ); \
 		using Qualifiers = CSL_PP_QUALIFIERS_LIST( _Qualifiers ); \
-		using QualifierFree = StructTypename; \
 		\
 		StructTypename( CSL_PP_ITERATE( CSL_PP_MEMBERWISE_CTOR_IT, __VA_ARGS__ ) ) \
-			 : Base("", csl::ObjFlags::Default, csl::CtorFlags::Initialisation, CSL_PP_ITERATE(CSL_PP_MEMBERWISE_ARG_IT, __VA_ARGS__) ), CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
+			 : Base("", csl::ObjFlags::Default, csl::CtorFlags::Initialisation, SizeList<>{}, TList<>{}, CSL_PP_ITERATE(CSL_PP_MEMBERWISE_ARG_IT, __VA_ARGS__) ), CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(StructTypename && other) : Base(other), \
 			CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
@@ -63,7 +62,7 @@
 		StructTypename(csl::Dummy) : Base(), CSL_PP_ITERATE(CSL_PP_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const std::string& name = "", const csl::ObjFlags obj_flags = csl::ObjFlags::Default) \
-			: Base(name, obj_flags), \
+			: Base(name, obj_flags, SizeList<>{}, TList<>{}), \
 			CSL_PP_ITERATE_DATA((StructTypename, obj_flags | DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const csl::Expr expr, const csl::ObjFlags obj_flags = csl::ObjFlags::Default) \
@@ -107,7 +106,7 @@
 	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name), DefaultObjFlags | csl::ObjFlags::UsedAsRef );
 
 #define CSL_PP_BUILTIN_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, ...) \
-	CSL_PP_STRUCT((),UniqueTypename, Typename,  csl::ObjFlags::BuiltInConstructor | csl::ObjFlags::UsedAsRef, 1, __VA_ARGS__); \
+	CSL_PP_STRUCT((),UniqueTypename, Typename, csl::ObjFlags::BuiltInConstructor | csl::ObjFlags::UsedAsRef, 1, __VA_ARGS__); \
 	inline Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name) );
 
 #define CSL_PP_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \

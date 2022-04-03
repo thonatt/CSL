@@ -376,7 +376,9 @@ struct Application : public framework::Application
 				{ns, GL_FLOAT, 3}
 			});
 
-		m_shader_suite = get_all_suite();
+		for (int i = 0; i < 1e1; ++i)
+			m_shader_suite = get_all_suite();
+
 		for (const auto& [typen, shader] : m_shader_suite.m_shaders) {
 			m_global_metrics.m_time_total += shader->m_glsl_timing + shader->m_generation_timing;
 			m_global_metrics.m_characters_count += shader->m_glsl_str.size();
