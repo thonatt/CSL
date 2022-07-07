@@ -13,6 +13,7 @@
 #include "picogl/picogl.hpp"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
@@ -37,15 +38,13 @@ struct ShaderExample
 	template<typename ShaderCreation>
 	ShaderExample(ShaderCreation&& f)
 	{
-		using namespace csl;
-
 		auto start = Clock::now();
 		auto shader = f();
 		m_generation_timing = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 
 		m_glsl_timing = get_timing([&]
 			{
-				GLSLData glsl_data;
+				csl::GLSLData glsl_data;
 				shader.print_glsl(glsl_data);
 				m_glsl_str = glsl_data.stream.str();
 			});
@@ -61,7 +60,8 @@ struct ShaderExample
 
 using ShaderPtr = std::shared_ptr<ShaderExample>;
 
-enum class ShaderGroup {
+enum class ShaderGroup
+{
 	Test,
 	Examples,
 	Readme,
@@ -70,7 +70,8 @@ enum class ShaderGroup {
 	Extra
 };
 
-enum class ShaderEnum {
+enum class ShaderId
+{
 	TypeAndOperatorsExample,
 	ManualNamingExample,
 	AutoNamingExample,
@@ -102,38 +103,38 @@ enum class ShaderEnum {
 	DolphinUbershaderFrag
 };
 
-const std::string& shader_name(const ShaderEnum shader)
+const std::string& shader_name(const ShaderId shader)
 {
-	static const std::unordered_map<ShaderEnum, std::string> shaders_strs = {
-		{ ShaderEnum::TypeAndOperatorsExample, "Types & Operators" },
-		{ ShaderEnum::ManualNamingExample, "Manual naming" },
-		{ ShaderEnum::AutoNamingExample, "Automatic naming" },
-		{ ShaderEnum::SwizzlingExample, "Swizzling" },
-		{ ShaderEnum::QualifiersExample, "Qualifiers" },
-		{ ShaderEnum::ArraysExample, "Arrays" },
-		{ ShaderEnum::FunctionsExample, "Functions" },
-		{ ShaderEnum::ControlBlocksExample, "Control blocks" },
-		{ ShaderEnum::StructsExample, "Structs" },
-		{ ShaderEnum::InterfaceBlocksExamples, "Interface blocks" },
-		{ ShaderEnum::CommaAndTypenamesExample, "Comma & typenames" },
-		{ ShaderEnum::ShaderStageOptionsExample, "Shader stage options" },
-		{ ShaderEnum::MetaVariation1Example, "Variation 1" },
-		{ ShaderEnum::MetaVariation2Example, "Variation 2" },
-		{ ShaderEnum::ScreenQuadVertex, "Screen quad" },
-		{ ShaderEnum::InterfaceVertex, "Interface vert" },
-		{ ShaderEnum::TexturedMeshFrag, "Textured mesh frag" },
-		{ ShaderEnum::FractalNoiseFrag, "Fractal noise frag" },
-		{ ShaderEnum::MultipleOutputsFrag, "Multiple outputs frag" },
-		{ ShaderEnum::PhongFrag, "Phong shading frag" },
-		{ ShaderEnum::GeometricNormalsGeom, "Geometric normals geom" },
-		{ ShaderEnum::SingleColorFrag, "Single color frag" },
-		{ ShaderEnum::TessControl, "Tessellation control" },
-		{ ShaderEnum::TessEval, "Tessellation evaluation" },
-		{ ShaderEnum::AtmosphereScatteringLUT, "Atmosphere LUT compute" },
-		{ ShaderEnum::AtmosphereRendering, "Atmosphere scattering" },
-		{ ShaderEnum::CSLVaporwave, "Vaporwave CSL" },
-		{ ShaderEnum::DolphinUbershaderVert, "Dolphin Ubershader vert" },
-		{ ShaderEnum::DolphinUbershaderFrag, "Dolphin Ubershader frag" },
+	static const std::unordered_map<ShaderId, std::string> shaders_strs = {
+		{ ShaderId::TypeAndOperatorsExample, "Types & Operators" },
+		{ ShaderId::ManualNamingExample, "Manual naming" },
+		{ ShaderId::AutoNamingExample, "Automatic naming" },
+		{ ShaderId::SwizzlingExample, "Swizzling" },
+		{ ShaderId::QualifiersExample, "Qualifiers" },
+		{ ShaderId::ArraysExample, "Arrays" },
+		{ ShaderId::FunctionsExample, "Functions" },
+		{ ShaderId::ControlBlocksExample, "Control blocks" },
+		{ ShaderId::StructsExample, "Structs" },
+		{ ShaderId::InterfaceBlocksExamples, "Interface blocks" },
+		{ ShaderId::CommaAndTypenamesExample, "Comma & typenames" },
+		{ ShaderId::ShaderStageOptionsExample, "Shader stage options" },
+		{ ShaderId::MetaVariation1Example, "Variation 1" },
+		{ ShaderId::MetaVariation2Example, "Variation 2" },
+		{ ShaderId::ScreenQuadVertex, "Screen quad" },
+		{ ShaderId::InterfaceVertex, "Interface vert" },
+		{ ShaderId::TexturedMeshFrag, "Textured mesh frag" },
+		{ ShaderId::FractalNoiseFrag, "Fractal noise frag" },
+		{ ShaderId::MultipleOutputsFrag, "Multiple outputs frag" },
+		{ ShaderId::PhongFrag, "Phong shading frag" },
+		{ ShaderId::GeometricNormalsGeom, "Geometric normals geom" },
+		{ ShaderId::SingleColorFrag, "Single color frag" },
+		{ ShaderId::TessControl, "Tessellation control" },
+		{ ShaderId::TessEval, "Tessellation evaluation" },
+		{ ShaderId::AtmosphereScatteringLUT, "Atmosphere LUT compute" },
+		{ ShaderId::AtmosphereRendering, "Atmosphere scattering" },
+		{ ShaderId::CSLVaporwave, "Vaporwave CSL" },
+		{ ShaderId::DolphinUbershaderVert, "Dolphin Ubershader vert" },
+		{ ShaderId::DolphinUbershaderFrag, "Dolphin Ubershader frag" },
 	};
 
 	return shaders_strs.find(shader)->second;
@@ -142,14 +143,14 @@ const std::string& shader_name(const ShaderEnum shader)
 struct ShaderSuite
 {
 	template<typename F>
-	void add_shader(const ShaderGroup group, const ShaderEnum shader, F&& f) {
+	void add_shader(const ShaderGroup group, const ShaderId shader, F&& f) {
 		auto shader_example = std::make_shared<ShaderExample>(std::forward<F>(f));
 		shader_example->m_name = shader_name(shader);
 		m_shaders.emplace(shader, shader_example);
 		m_groups[group].emplace_back(shader_example);
 	}
 
-	std::map<ShaderEnum, ShaderPtr> m_shaders;
+	std::map<ShaderId, ShaderPtr> m_shaders;
 	std::unordered_map<ShaderGroup, std::vector<ShaderPtr>> m_groups;
 };
 
@@ -163,7 +164,7 @@ struct PipelineBase
 		bool m_active = true;
 	};
 
-	void add_shader(const GLenum type, const std::pair<ShaderEnum, ShaderPtr>& shader)
+	void add_shader(const GLenum type, const std::pair<ShaderId, ShaderPtr>& shader)
 	{
 		m_shaders[type] = { shader.second };
 	}
@@ -188,7 +189,8 @@ struct PipelineBase
 	std::unordered_map<GLenum, ShaderActive> m_shaders;
 };
 
-struct GlobalMetrics {
+struct GlobalMetrics
+{
 	double m_time_total = 0.0f;
 	std::size_t m_characters_count = 0;
 	std::size_t m_expressions_count = 0;
@@ -201,48 +203,48 @@ ShaderSuite get_all_suite()
 	ShaderSuite suite;
 
 	// Readme examples
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::TypeAndOperatorsExample, types_operators_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ManualNamingExample, manual_naming_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::AutoNamingExample, auto_naming_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::SwizzlingExample, swizzling_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::QualifiersExample, qualifier_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ArraysExample, arrays_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::FunctionsExample, functions_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ControlBlocksExample, control_blocks_example);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::StructsExample, structs_examples);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::InterfaceBlocksExamples, interface_examples);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::CommaAndTypenamesExample, struct_interface_comma_examples);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::ShaderStageOptionsExample, shader_stage_options);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::MetaVariation1Example, meta_variation_1);
-	suite.add_shader(ShaderGroup::Readme, ShaderEnum::MetaVariation2Example, meta_variation_2);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::TypeAndOperatorsExample, types_operators_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::ManualNamingExample, manual_naming_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::AutoNamingExample, auto_naming_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::SwizzlingExample, swizzling_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::QualifiersExample, qualifier_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::ArraysExample, arrays_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::FunctionsExample, functions_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::ControlBlocksExample, control_blocks_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::StructsExample, structs_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::InterfaceBlocksExamples, interface_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::CommaAndTypenamesExample, struct_interface_comma_examples);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::ShaderStageOptionsExample, shader_stage_options);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::MetaVariation1Example, meta_variation_1);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::MetaVariation2Example, meta_variation_2);
 
-	suite.add_shader(ShaderGroup::Test, ShaderEnum::ScreenQuadVertex, screen_quad_vertex_shader);
+	suite.add_shader(ShaderGroup::Test, ShaderId::ScreenQuadVertex, screen_quad_vertex_shader);
 
 	// Rendering examples 
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::InterfaceVertex, interface_vertex_shader);
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TexturedMeshFrag, textured_mesh_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::InterfaceVertex, interface_vertex_shader);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::TexturedMeshFrag, textured_mesh_frag);
 
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::FractalNoiseFrag, fractal_noise);
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::MultipleOutputsFrag, multiple_outputs_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::FractalNoiseFrag, fractal_noise);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::MultipleOutputsFrag, multiple_outputs_frag);
 
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::PhongFrag, phong_shading_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::PhongFrag, phong_shading_frag);
 
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::GeometricNormalsGeom, geometric_normals);
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::SingleColorFrag, single_color_frag);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::GeometricNormalsGeom, geometric_normals);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::SingleColorFrag, single_color_frag);
 
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TessControl, tessellation_control_shader_example);
-	suite.add_shader(ShaderGroup::Examples, ShaderEnum::TessEval, tessellation_evaluation_shader_example);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::TessControl, tessellation_control_shader_example);
+	suite.add_shader(ShaderGroup::Examples, ShaderId::TessEval, tessellation_evaluation_shader_example);
 
 	// Rendu examples
-	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereScatteringLUT, scattering_lookup_table);
-	suite.add_shader(ShaderGroup::Rendu, ShaderEnum::AtmosphereRendering, atmosphere_rendering);
+	suite.add_shader(ShaderGroup::Rendu, ShaderId::AtmosphereScatteringLUT, scattering_lookup_table);
+	suite.add_shader(ShaderGroup::Rendu, ShaderId::AtmosphereRendering, atmosphere_rendering);
 
 	// Shadertoy examples
-	suite.add_shader(ShaderGroup::Shadertoy, ShaderEnum::CSLVaporwave, shader_80);
+	suite.add_shader(ShaderGroup::Shadertoy, ShaderId::CSLVaporwave, shader_80);
 
 	// Extra
-	suite.add_shader(ShaderGroup::Extra, ShaderEnum::DolphinUbershaderVert, dolphin_ubershader_vertex);
-	suite.add_shader(ShaderGroup::Extra, ShaderEnum::DolphinUbershaderFrag, dolphin_ubershader_fragment);
+	suite.add_shader(ShaderGroup::Extra, ShaderId::DolphinUbershaderVert, dolphin_ubershader_vertex);
+	suite.add_shader(ShaderGroup::Extra, ShaderId::DolphinUbershaderFrag, dolphin_ubershader_fragment);
 
 	return suite;
 }
@@ -255,7 +257,6 @@ void shader_code_gui(const std::string& code)
 		ImGui::TextWrapped(code.c_str());
 	else
 		ImGui::TextUnformatted(code.data(), code.data() + code.size());
-
 }
 
 enum class Mode : std::size_t
@@ -376,7 +377,7 @@ struct Application : public framework::Application
 				{ns, GL_FLOAT, 3}
 			});
 
-		for (int i = 0; i < 1e1; ++i)
+		for (int i = 0; i < 10; ++i)
 			m_shader_suite = get_all_suite();
 
 		for (const auto& [typen, shader] : m_shader_suite.m_shaders) {
@@ -640,26 +641,8 @@ struct Application : public framework::Application
 		const float theta = std::fmod(m_time / 12.0f, 1.0f) * two_pi;
 		m_eye = glm::vec3{ radius * std::cos(theta), radius * std::sin(theta), distance };
 
-		const glm::vec3 z_axis = glm::normalize(at - m_eye);
-		const glm::vec3 x_axis = glm::normalize(glm::cross(up, z_axis));
-		const glm::vec3 y_axis = glm::cross(z_axis, x_axis);
-
-		m_view_transposed = {
-			x_axis[0], x_axis[1], x_axis[2], glm::dot(x_axis, m_eye),
-			y_axis[0], y_axis[1], y_axis[2], glm::dot(y_axis, m_eye),
-			z_axis[0], z_axis[1], z_axis[2], glm::dot(z_axis, m_eye),
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		const float fov_deg = 90.0f;
-		const float scale = 1.0f / std::tan((two_pi * fov_deg) / (4.0f * 180.0f));
-
-		m_proj = {
-			scale, 0.0f, 0.0f, 0.0f,
-			0.0f, scale, 0.0f, 0.0f,
-			0.0f, 0.0f,  -(far + near) / (far - near), -1.0f,
-			0.0f, 0.0f,  -2.0f * far * near / (far - near), -0.0f
-		};
+		m_view = glm::lookAt(m_eye, at, up);
+		m_proj = glm::perspective(glm::radians(90.0f), 0.7f, near, 2.0f * far);
 	}
 
 	void render_noise_texture()
@@ -685,7 +668,7 @@ struct Application : public framework::Application
 	picogl::Framebuffer m_framebuffer, m_previous_rendering, m_fractal_noise, m_scattering_LUT;
 	picogl::Mesh m_isosphere, m_quad, m_screen_quad, m_triangle;
 	GlobalMetrics m_global_metrics;
-	glm::mat4 m_view_transposed, m_proj;
+	glm::mat4 m_view, m_proj;
 	glm::vec3 m_eye;
 	float m_time = 0.0f;
 	int m_w_screen = 0, m_h_screen = 0;
@@ -713,7 +696,7 @@ struct PipelineTexturedMesh final : PipelineBase {
 	void draw(Application& data) override {
 		data.m_framebuffer.clear({ 0.3f, 0.3f, 0.3f, 1.0f });
 		data.set_mvp(1.2f, 0.1f, 0.1f, 5.0f);
-		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
 		data.m_previous_rendering.color_attachments()[0].bind_as_sampler(GL_TEXTURE0);
 		data.m_quad.draw();
@@ -749,7 +732,7 @@ struct PipelineNoise final : PipelineBase {
 struct PipelinePhong final : PipelineBase {
 	void draw(Application& data) override {
 		data.set_mvp(2.5f, 2.0f, 0.8f, 5.0f);
-		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
 		m_program.set_uniform("eye", glUniform3f, data.m_eye[0], data.m_eye[1], data.m_eye[2]);
 		data.m_isosphere.draw();
@@ -770,7 +753,7 @@ struct PipelineGeometry final : PipelineBase
 		{
 			auto& displacement_pipeline = data.m_pipelines.find("displacement")->second->m_program;
 			displacement_pipeline.use();
-			displacement_pipeline.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+			displacement_pipeline.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 			displacement_pipeline.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
 			displacement_pipeline.set_uniform("tessellation_amount", glUniform1f, 100.0f);
 			data.m_fractal_noise.color_attachments()[0].bind_as_sampler(GL_TEXTURE0);
@@ -779,7 +762,7 @@ struct PipelineGeometry final : PipelineBase
 
 		data.m_framebuffer.bind_draw();
 		m_program.use();
-		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
 		m_program.set_uniform("tessellation_amount", glUniform1f, 100.0f);
 		data.m_fractal_noise.color_attachments()[0].bind_as_sampler(GL_TEXTURE0);
@@ -796,7 +779,7 @@ struct PipelineDisplacement final : PipelineBase
 		data.m_framebuffer.bind_draw();
 		m_program.use();
 		data.set_mvp(3.0f, 2.0f, 0.1f, 5.0f);
-		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
 		m_program.set_uniform("tessellation_amount", glUniform1f, m_tessellation_amount);
 		data.m_fractal_noise.color_attachments()[0].bind_as_sampler(GL_TEXTURE0);
@@ -840,12 +823,13 @@ struct PipelineGBuffer final : PipelineBase
 		m_gbuffer.clear();
 
 		m_gbuffer.bind_draw();
-		data.set_mvp(2.0f, 2.0f, 0.8f, 5.0f);
-		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_TRUE, glm::value_ptr(data.m_view_transposed));
+		data.set_mvp(3.0f, 2.0f, 0.8f, 5.0f);
+		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
 		m_program.set_uniform("proj", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_proj));
+		m_program.set_uniform("tessellation_amount", glUniform1f, 100.0f);
 		data.m_fractal_noise.color_attachments()[0].bind_as_sampler(GL_TEXTURE0);
 		glEnable(GL_DEPTH_TEST);
-		data.m_isosphere.draw();
+		data.m_isosphere.draw(GL_PATCHES);
 
 		m_gbuffer.blit_to(data.m_framebuffer, GL_COLOR_ATTACHMENT0, GL_LINEAR, GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(m_mode));
 		if (m_mode == Mode::Depth)
@@ -930,52 +914,54 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 	const auto& shaders = data.m_shader_suite.m_shaders;
 
 	auto pipeline_vaporwave = std::static_pointer_cast<PipelineBase>(std::make_shared<Pipeline80>());
-	pipeline_vaporwave->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-	pipeline_vaporwave->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::CSLVaporwave));
+	pipeline_vaporwave->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::ScreenQuadVertex));
+	pipeline_vaporwave->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::CSLVaporwave));
 	pipelines.emplace("csl_vaporwave", pipeline_vaporwave);
 
 	auto pipeline_textured_mesh = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineTexturedMesh>());
-	pipeline_textured_mesh->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-	pipeline_textured_mesh->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::TexturedMeshFrag));
+	pipeline_textured_mesh->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::InterfaceVertex));
+	pipeline_textured_mesh->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::TexturedMeshFrag));
 	pipelines.emplace("textured_mesh", pipeline_textured_mesh);
 
 	auto pipeline_gbuffer = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGBuffer>());
-	pipeline_gbuffer->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-	pipeline_gbuffer->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::MultipleOutputsFrag));
+	pipeline_gbuffer->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::InterfaceVertex));
+	pipeline_gbuffer->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderId::TessControl));
+	pipeline_gbuffer->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderId::TessEval));
+	pipeline_gbuffer->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::MultipleOutputsFrag));
 	pipelines.emplace("gbuffer", pipeline_gbuffer);
 
 	auto pipeline_noise = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineNoise>());
-	pipeline_noise->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-	pipeline_noise->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::FractalNoiseFrag));
+	pipeline_noise->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::ScreenQuadVertex));
+	pipeline_noise->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::FractalNoiseFrag));
 	pipelines.emplace("noise", pipeline_noise);
 
 	auto pipeline_phong = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelinePhong>());
-	pipeline_phong->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-	pipeline_phong->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
+	pipeline_phong->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::InterfaceVertex));
+	pipeline_phong->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::PhongFrag));
 	pipelines.emplace("phong", pipeline_phong);
 
 	auto pipeline_geometric_normals = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineGeometry>());
-	pipeline_geometric_normals->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-	pipeline_geometric_normals->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
-	pipeline_geometric_normals->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
-	pipeline_geometric_normals->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderEnum::GeometricNormalsGeom));
-	pipeline_geometric_normals->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::SingleColorFrag));
+	pipeline_geometric_normals->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::InterfaceVertex));
+	pipeline_geometric_normals->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderId::TessControl));
+	pipeline_geometric_normals->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderId::TessEval));
+	pipeline_geometric_normals->add_shader(GL_GEOMETRY_SHADER, *shaders.find(ShaderId::GeometricNormalsGeom));
+	pipeline_geometric_normals->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::SingleColorFrag));
 	pipelines.emplace("vertex_normal", pipeline_geometric_normals);
 
 	auto pipeline_displacement = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineDisplacement>());
-	pipeline_displacement->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::InterfaceVertex));
-	pipeline_displacement->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderEnum::TessControl));
-	pipeline_displacement->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderEnum::TessEval));
-	pipeline_displacement->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::PhongFrag));
+	pipeline_displacement->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::InterfaceVertex));
+	pipeline_displacement->add_shader(GL_TESS_CONTROL_SHADER, *shaders.find(ShaderId::TessControl));
+	pipeline_displacement->add_shader(GL_TESS_EVALUATION_SHADER, *shaders.find(ShaderId::TessEval));
+	pipeline_displacement->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::PhongFrag));
 	pipelines.emplace("displacement", pipeline_displacement);
 
 	auto pipeline_compute = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineCompute>());
-	pipeline_compute->add_shader(GL_COMPUTE_SHADER, *shaders.find(ShaderEnum::AtmosphereScatteringLUT));
+	pipeline_compute->add_shader(GL_COMPUTE_SHADER, *shaders.find(ShaderId::AtmosphereScatteringLUT));
 	pipelines.emplace("atmosphere scattering", pipeline_compute);
 
 	auto pipeline_atmosphere = std::static_pointer_cast<PipelineBase>(std::make_shared<PipelineAtmosphere>());
-	pipeline_atmosphere->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderEnum::ScreenQuadVertex));
-	pipeline_atmosphere->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderEnum::AtmosphereRendering));
+	pipeline_atmosphere->add_shader(GL_VERTEX_SHADER, *shaders.find(ShaderId::ScreenQuadVertex));
+	pipeline_atmosphere->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::AtmosphereRendering));
 	pipelines.emplace("atmosphere", pipeline_atmosphere);
 
 	for (const auto& pipeline : pipelines)

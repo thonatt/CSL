@@ -42,7 +42,7 @@ namespace csl {
 
 		FuncDeclarationBase& get_current_func()
 		{
-			return *reinterpret_cast<FuncDeclarationBase*>(retrieve_instruction(current_func));
+			return safe_static_cast<FuncDeclarationBase&>(*retrieve_instruction(current_func));
 		}
 
 		template<typename ReturnTList, typename ... Fs>
@@ -106,7 +106,7 @@ namespace csl {
 	struct ForController : virtual ControllerBase {
 
 		ForInstruction& get() {
-			return *reinterpret_cast<ForInstruction*>(retrieve_instruction(current_for));
+			return safe_static_cast<ForInstruction&>(*retrieve_instruction(current_for));
 		}
 
 		virtual void begin_for() {
@@ -140,7 +140,7 @@ namespace csl {
 	struct IfController : virtual ControllerBase {
 
 		IfInstruction& get_current_if() {
-			return *reinterpret_cast<IfInstruction*>(retrieve_instruction(current_if));
+			return safe_static_cast<IfInstruction&>(*retrieve_instruction(current_if));
 		}
 
 		void begin_if(const Expr& expr) {
@@ -202,7 +202,7 @@ namespace csl {
 		virtual void begin_while(const Expr& expr) {
 			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
 			push_instruction(current_while);
-			current_block = reinterpret_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
+			current_block = safe_static_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
 		}
 
 		virtual void end_while() {
@@ -214,7 +214,7 @@ namespace csl {
 
 		SwitchInstruction& get()
 		{
-			return *reinterpret_cast<SwitchInstruction*>(retrieve_instruction(current_switch));
+			return safe_static_cast<SwitchInstruction&>(*retrieve_instruction(current_switch));
 		}
 
 		virtual void begin_switch(const Expr& expr) {
@@ -306,7 +306,8 @@ namespace csl {
 		}
 	};
 
-	struct ShaderController : MainController {
+	struct ShaderController : MainController 
+	{
 		using Ptr = std::shared_ptr<ShaderController>;
 
 		MainBlock::Ptr m_declarations;
@@ -324,7 +325,7 @@ namespace csl {
 		MemoryPool m_memory_pool;
 
 #ifdef NDEBUG
-		using InstructionPool = PolymorphicMemoryPool<InstructionBase>;	
+		using InstructionPool = PolymorphicMemoryPool<InstructionBase>;
 #else
 		using InstructionPool = PolymorphicMemoryPoolDebug<InstructionBase>;
 #endif
@@ -337,7 +338,7 @@ namespace csl {
 			return static_memory;
 		}
 
-		ShaderController() 
+		ShaderController()
 		{
 			m_declarations = std::make_unique<MainBlock>();
 			current_block = m_declarations.get();
@@ -354,7 +355,7 @@ namespace csl {
 		{
 		}
 
-		ShaderController& operator=(ShaderController&& other) 
+		ShaderController& operator=(ShaderController&& other)
 		{
 			std::swap(m_declarations, other.m_declarations);
 			std::swap(m_structs, other.m_structs);
@@ -421,7 +422,7 @@ namespace csl {
 					break;
 				} else {
 					test_block = test_block->m_parent;
-				} 
+				}
 			}
 			return safe_static_cast<ReturnBlockBase*>(test_block);
 		}

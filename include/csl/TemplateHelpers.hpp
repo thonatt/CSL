@@ -9,7 +9,7 @@ namespace csl
 	template<typename ToRef, typename From>
 	ToRef safe_static_cast(From& from)
 	{
-		assert(dynamic_cast<std::remove_cv_t<ToRef>*>(&from));
+		assert(dynamic_cast<std::remove_reference_t<ToRef>*>(&from));
 		return reinterpret_cast<ToRef>(from);
 	}
 

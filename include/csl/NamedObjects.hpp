@@ -50,25 +50,15 @@ namespace csl {
 
 		void set_as_temp() const {
 			if (m_flags & ObjFlags::Constructor) {
-				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
-					ctor->set_as_temp();
+				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr));
+				ctor->set_as_temp();
 
-					//auto tmp = ctor->first_arg();
-
-					if (ctor->arg_count() == 1) {
-						m_expr = ctor->first_arg();
-					}
-				}
-
-				//m_expr = std::dynamic_pointer_cast<OperatorWrapper<ConstructorWrapper>>(ctor->first_arg());
-				//m_expr.swap(ctor->first_arg());
+				if (ctor->arg_count() == 1)
+					m_expr = ctor->first_arg();
 			}
 
-			if (m_flags & ObjFlags::StructMember) {
-				if (auto accessor = dynamic_cast<MemberAccessorBase*>(retrieve_expr(m_expr))) {
-					accessor->set_as_temp();
-				}
-			}
+			if (m_flags & ObjFlags::StructMember)
+				safe_static_cast<MemberAccessorBase*>(retrieve_expr(m_expr))->set_as_temp();
 		}
 
 		void set_as_const() const
@@ -182,21 +172,6 @@ namespace csl {
 		{
 		}
 
-		//NamedObject(const std::string& name, const ObjFlags obj_flags = ObjFlags::Default)
-		//	: NamedObjectBase(obj_flags) {
-		//	if (obj_flags & ObjFlags::Constructor)
-		//		m_expr = create_variable_expr<T>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
-		//}
-
-		//template<typename ... Args>
-		//NamedObject(const std::string& name, const ObjFlags obj_flags, const CtorFlags ctor_flags, Args&&... args)
-		//	: NamedObjectBase(obj_flags) {
-		//	if (obj_flags & ObjFlags::Constructor) {
-		//		m_expr = create_variable_expr<T>(name, obj_flags, ctor_flags, NamedObjectBase::id, std::forward<Args>(args)...);
-		//	}
-		//	assert(m_expr);
-		//}
-
 		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags) {
 			if (obj_flags & ObjFlags::StructMember) {
@@ -213,8 +188,6 @@ namespace csl {
 		{
 			m_expr = create_variable_expr<T, ArrayDimensions, Qualifiers>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
 		}
-
-	private:
 	};
 
 
@@ -289,20 +262,17 @@ namespace csl {
 
 		ArrayInterface() : Base("")
 		{
-			assert(m_expr);
 		}
 
 		template<std::size_t N>
 		explicit ArrayInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
 			: Base(name, obj_flags, ArrayDimensions{}, QualifierList{})
 		{
-			assert(m_expr);
 		}
 
 		ArrayInterface(const Expr expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: Base(expr, obj_flags)
 		{
-			assert(m_expr);
 		}
 
 		template<typename U, typename = std::enable_if_t<SameType<ArrayInterface, U>>>

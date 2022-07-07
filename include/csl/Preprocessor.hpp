@@ -46,26 +46,21 @@
 //    const int n = 64;
 //    std::stringstream s;
 //    s << "#define VARIADIC_SIZE_I(";
-//    for (int i = 1; i <= n; ++i) {
+//    for (int i = 1; i <= n; ++i)
 //        s << (i == 1 ? "" : ",") << "_" << i;
-//    }
 //    s << ",N,...) N\n";
 //    s << "#define VARIADIC_SIZE(...) VARIADIC_SIZE_I(__VA_ARGS__,";
-//    for (int i = n; i >= 1; --i) {
+//    for (int i = n; i >= 1; --i)
 //        s << i << ",";
-//    }
 //    s << ")\n\n";
-//    for (int i = 1; i < n; ++i) {
+//    for (int i = 1; i < n; ++i)
 //        s << "#define ITERATE_" << i + 1 << "(m, d, i, e, ...) m(d, i, e) ITERATE_" << i << "(m, d, INC(i), __VA_ARGS__)" << "\n";
-//    }
 //    s << "\n";
-//    for (int i = 0; i < n; ++i) {
+//    for (int i = 0; i < n; ++i)
 //        s << "#define INC_" << i << " " << i + 1 << "\n";
-//    }
 //    s << "\n";
-//    for (int i = 0; i < n; ++i) {
+//    for (int i = 0; i < n; ++i)
 //        s << "#define BOOL_" << i << " " << (i ? 1 : 0) << "\n";
-//    }
 //    std::cout << s.str() << std::endl;
 //    return 0;
 //}

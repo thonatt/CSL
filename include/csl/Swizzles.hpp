@@ -73,7 +73,7 @@ namespace csl
 		static_assert(Size >= 1, "Minimum swizzling size is 1");
 		static_assert(Size <= 4, "Maximum swizzling size is 4");
 
-		static constexpr std::size_t HighestComponent = std::max({ Set::template GetIndex<chars>() ...});
+		static constexpr std::size_t HighestComponent = std::max({ Set::template GetIndex<chars>() ... });
 		static constexpr bool NoDuplicates = swizzling::are_unique<chars...>;
 
 		constexpr Swizzle() = default;
@@ -89,26 +89,26 @@ namespace csl
 	{
 		namespace rgba
 		{
-			constexpr Swizzle<'r'> r;
-			constexpr Swizzle<'g'> g;
-			constexpr Swizzle<'b'> b;
-			constexpr Swizzle<'a'> a;
+			inline constexpr Swizzle<'r'> r;
+			inline constexpr Swizzle<'g'> g;
+			inline constexpr Swizzle<'b'> b;
+			inline constexpr Swizzle<'a'> a;
 		}
 
 		namespace xyzw
 		{
-			constexpr Swizzle<'x'> x;
-			constexpr Swizzle<'y'> y;
-			constexpr Swizzle<'z'> z;
-			constexpr Swizzle<'w'> w;
+			inline constexpr Swizzle<'x'> x;
+			inline constexpr Swizzle<'y'> y;
+			inline constexpr Swizzle<'z'> z;
+			inline constexpr Swizzle<'w'> w;
 		}
 
 		namespace stpq
 		{
-			constexpr Swizzle<'s'> s;
-			constexpr Swizzle<'t'> t;
-			constexpr Swizzle<'p'> p;
-			constexpr Swizzle<'q'> q;
+			inline constexpr Swizzle<'s'> s;
+			inline constexpr Swizzle<'t'> t;
+			inline constexpr Swizzle<'p'> p;
+			inline constexpr Swizzle<'q'> q;
 		}
 
 		namespace all

@@ -84,6 +84,12 @@ namespace csl
 		}
 
 		// swizzling
+		// TODO
+		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::highest<cs...> <= R)> >
+		std::conditional_t<swizzling::unique<cs...>, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles)& {
+			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
+		}
+
 		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
 		std::conditional_t<Swizzle::NoDuplicates, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle)& {
 			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };

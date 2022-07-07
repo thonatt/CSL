@@ -217,7 +217,7 @@ namespace csl {
 		if (!index) {
 			return nullptr;
 		}
-		if (index.m_status == Expr::Status::Static) {
+		if (index.is_static()) {
 			return &ShaderController::get_static_memory()[index];
 		}
 		return &listen().current_shader->m_memory_pool[index];
@@ -314,7 +314,7 @@ namespace csl {
 	};
 
 	template<typename A, typename B, typename C>
-	std::remove_reference_t<B> _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
+	typename Infos<B>::Type _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
 		//static_assert(SameMat<B, C>, "ternary error");
 		//static_assert(SameMat<A, Bool>, "ternary error"); TODO
 		return { make_expr<TernaryOperator>(get_expr(std::forward<A>(condition)), get_expr(std::forward<B>(lhs)), get_expr(std::forward<C>(rhs))) };
@@ -329,9 +329,9 @@ namespace csl {
 		if (listen().current_shader) {
 			return listen().current_shader->m_memory_pool.emplace_back<Operator>(std::forward<Args>(args)...);
 		} else {
-			Expr expr_id = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
-			expr_id.m_status = Expr::Status::Static;
-			return expr_id;
+			Expr handle = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
+			handle.m_id |= ExpressionHandle::Static;
+			return handle;
 		}
 	}
 
@@ -342,12 +342,10 @@ namespace csl {
 	}
 
 	inline NamedObjectBase::~NamedObjectBase() {
-		if (m_flags & ObjFlags::Constructor && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn)) {
+		if (m_flags & ObjFlags::Constructor && m_flags & ObjFlags::Tracked && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && !(m_flags & ObjFlags::StructMember)) {
 			// TODO: Why is third case necessary?
 			if (m_expr && listen().current_shader && !listen().current_shader->m_memory_pool.m_objects_offsets.empty()) {
-				if (auto obj = dynamic_cast<ConstructorBase*>(retrieve_expr(m_expr))) {
-					obj->set_as_unused();
-				}
+				safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
 			}
 		}
 	}

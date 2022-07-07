@@ -193,20 +193,35 @@ namespace csl {
 
 	struct OperatorBase;
 
-	struct Expr
+	struct ExpressionHandle
 	{
-		enum class Status : std::uint8_t { Empty, Static, Default };
+		static constexpr std::uint32_t Defined = 1 << 31;
+		static constexpr std::uint32_t Static = 1 << 30;
+		static constexpr std::uint32_t IndexMask = ~(Defined | Static);
 
-		Expr() = default;
-		Expr(const std::size_t id) : m_id(static_cast<std::uint32_t>(id)), m_status(Status::Default) { }
+		ExpressionHandle() = default;
 
-		operator bool() const {
-			return m_status != Status::Empty;
+		ExpressionHandle(const std::uint32_t index)
+			: m_id{ index | Defined }
+		{
+			assert((index & IndexMask) == index);
+		}
+
+		explicit operator bool() const {
+			return m_id & Defined;
+		}
+
+		std::uint32_t get_index() const {
+			return m_id & IndexMask;
+		}
+
+		bool is_static() const {
+			return m_id & Static;
 		}
 
 		std::uint32_t m_id = 0;
-		Status m_status = Status::Empty;
 	};
+	using Expr = ExpressionHandle;
 
 	OperatorBase* retrieve_expr(const Expr index);
 
@@ -545,9 +560,6 @@ namespace csl {
 	template<typename Base>
 	struct PolymorphicMemoryPool
 	{
-		using Index = Expr;
-		//using DeltaOffsetType = typename CanFit<MaxSizeof>::Type;
-
 		PolymorphicMemoryPool() {
 			m_objects_offsets.reserve(124);
 			m_buffer.reserve(10000);
@@ -563,7 +575,8 @@ namespace csl {
 		}
 
 		template<typename Derived, typename ... Args>
-		Index emplace_back(Args&& ...args) {
+		Expr emplace_back(Args&& ...args) 
+		{
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
 
 			std::size_t current_size = m_buffer.size();
@@ -572,20 +585,20 @@ namespace csl {
 			m_buffer.resize(current_size + sizeof(Derived));
 			m_objects_offsets.push_back(current_size);
 			new (&m_buffer[current_size]) Derived(std::forward<Args>(args)...);
-			return Index{ current_size };
+			return Expr(static_cast<std::uint32_t>(current_size));
 		}
 
-		Base& operator[](const Index index) {
-			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer[index.m_id]));
+		Base& operator[](const Expr index) {
+			return *CSL_LAUNDER(reinterpret_cast<Base*>(&m_buffer[index.get_index()]));
 		}
 
-		const Base& operator[](const Index index) const {
-			return *CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffer[index.m_id]));
+		const Base& operator[](const Expr index) const {
+			return *CSL_LAUNDER(reinterpret_cast<const Base*>(&m_buffer[index.get_index()]));
 		}
 
 		~PolymorphicMemoryPool() {
 			for (const std::size_t index : m_objects_offsets) {
-				Base& obj = operator[](index);
+				Base& obj = reinterpret_cast<Base&>(m_buffer[index]);
 				obj.~Base();
 			}
 		}
@@ -608,15 +621,15 @@ namespace csl {
 			m_buffer.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
 			m_objects_offsets.push_back(current_size);
 			m_data_size += sizeof(std::unique_ptr<Base>) + sizeof(Derived);
-			return Expr(current_size);
+			return Expr(static_cast<std::uint32_t>(current_size));
 		}
 
 		Base& operator[](const Expr index) {
-			return *m_buffer[index.m_id];
+			return *m_buffer[index.get_index()];
 		}
 
 		const Base& operator[](const Expr index) const {
-			return *m_buffer[index.m_id];
+			return *m_buffer[index.get_index()];
 		}
 
 		std::size_t get_data_size() const {
