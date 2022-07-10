@@ -151,31 +151,34 @@ namespace csl {
 	namespace glsl_120 {
 		using namespace glsl_110;
 
-		CSL_MAKE_OP_1(Infos<A>::IsFloat && (Infos<A>::RowCount > 0) && (Infos<A>::ColCount > 0), Matrix<float CSL_PP_COMMA Infos<A>::ColCount CSL_PP_COMMA Infos<A>::RowCount>,
+		CSL_MAKE_OP_1
+			(Infos<A>::IsFloat && (Infos<A>::RowCount > 0) && (Infos<A>::ColCount > 0), 
+			Matrix<float CSL_PP_COMMA Infos<A>::ColCount CSL_PP_COMMA Infos<A>::RowCount>,
 			transpose,
-			(A, a));
+			(A, a)
+		);
 	}
 
 	namespace glsl_130 {
 		using namespace glsl_120;
 
 		CSL_MAKE_OP_2(
-			bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
+			(bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
 			bool(Infos<S>::Flags& SamplerFlags::Basic) &&
 			!bool(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P>&&
-			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
+			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0))),
 			Vector<typename Infos<S>::ScalarType CSL_PP_COMMA 4>,
 			texture,
 			(S, sampler), (P, point)
 		);
 
 		CSL_MAKE_OP_3(
-			bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
+			(bool(Infos<S>::Flags& SamplerFlags::Sampler) &&
 			bool(Infos<S>::Flags& SamplerFlags::Basic) &&
 			!bool(Infos<S>::Flags& SamplerFlags::Shadow) &&
 			IsVecF<P>&& IsFloat<B>&&
-			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0)),
+			Infos<P>::RowCount == (Infos<S>::DimensionCount + (bool(Infos<S>::Flags & SamplerFlags::Array) ? 1 : 0))),
 			Vector<typename Infos<S>::ScalarType CSL_PP_COMMA 4>,
 			texture,
 			(S, sampler), (P, point), (B, biais)

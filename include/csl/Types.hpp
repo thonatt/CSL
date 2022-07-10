@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace csl 
+namespace csl
 {
 	template<typename T, std::size_t R, std::size_t C>
 	class Matrix;
@@ -18,7 +18,7 @@ namespace csl
 	template<typename T>
 	using Scalar = Vector<T, 1>;
 
-	enum class SamplerFlags : std::uint32_t 
+	enum class SamplerFlags : std::uint32_t
 	{
 		Sampler = 1 << 0,
 		Image = 1 << 1,
@@ -173,40 +173,49 @@ namespace csl
 		static constexpr std::size_t ColCount = 0;
 	};
 
-	//template<typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
-	//struct Infos<MatrixArray<T, Ds, R, C, Qs...>> : Infos<Matrix<T, R, C, Qs...>> {
-	//	//TODO fix me
-	//};
+	namespace detail {
+		template<class>
+		struct sfinae_true : std::true_type {};
 
-	//////////////////////////////////////////////////////////////
+		template<class T>
+		static auto test_is_valid(int)->sfinae_true<decltype(T::IsValid())>;
+		template<class>
+		static auto test_is_valid(long)->std::false_type;
+	} // detail::
 
-	//template<>
-	//struct Infos<Expr> {
-	//	static constexpr std::size_t NumElements = 0;
-	//	using ScalarType = void;
-	//};
+	template<class T>
+	constexpr bool IsCSLType()
+	{
+		if constexpr (decltype(detail::test_is_valid<T>(0)){})
+			return true;
+		else
+			return Infos<T>::IsValid;
+	};
 
-	//template<>
-	//struct Infos<ObjFlags> {
-	//	static constexpr std::size_t NumElements = 0;
-	//	using ScalarType = void;
-	//};
+	template<typename ...Ts>
+	struct TypeInfos
+	{
+		using List = TList<Ts...>;
 
-	//template<std::size_t N>
-	//struct Infos<const char(&)[N]> {
-	//	static constexpr std::size_t NumElements = 0;
-	//	using ScalarType = void;
-	//	static constexpr std::size_t RowCount = 0;
-	//	static constexpr std::size_t ColCount = 0;
-	//};
+		template<typename T>
+		struct TypePred {
+			static bool constexpr Value = IsCSLType<T>();
+		};
 
-	//template<>
-	//struct Infos<std::string> {
-	//	static constexpr std::size_t NumElements = 0;
-	//	using ScalarType = void;
-	//	static constexpr std::size_t RowCount = 0;
-	//	static constexpr std::size_t ColCount = 0;
-	//};
+		using Matches = Matching<TypePred, List>;
+		using Values = typename Matches::Values;
+		static_assert(Values::Size == 1);
+
+		using T = typename Values::Front;
+		using TIndex = typename Matches::Indexes;
+	};
+
+	template<>
+	struct TypeInfos<>
+	{
+		using T = void;
+		using TIndex = SizeList<0>;
+	};
 
 	////////////////////////////////////////////////////////////////////////
 
@@ -348,10 +357,28 @@ namespace csl
 		using Type = ArrayInterface<T, Ds, Qs...>;
 	};
 
+	template<typename T, typename Qs>
+	struct QualifyIndirectionDetail;
+
 	template<typename T, typename ... Qs>
-	using Qualify = std::conditional_t<
-		ArrayInfos<Qs...>::Value,
-		typename ArrayInterfaceIndirection<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >::Type,
-		typename TypeInterfaceIndirection<T, RemoveArrayFromQualifiers<Qs...> >::Type
-	>;
+	struct QualifyIndirectionDetail<T, TList<Qs...>>
+	{
+		using Type = std::conditional_t<
+			ArrayInfos<Qs...>::Value,
+			typename ArrayInterfaceIndirection<T, typename ArrayInfos<Qs...>::Dimensions, RemoveArrayFromQualifiers<Qs...> >::Type,
+			typename TypeInterfaceIndirection<T, RemoveArrayFromQualifiers<Qs...> >::Type
+		>;
+	};
+
+	template<typename ...Ts>
+	struct QualifyIndirection
+	{
+		using TInfos = TypeInfos<Ts...>;
+		using T = typename TInfos::T;
+		using QualifiersList = RemoveAt<typename TInfos::TIndex, TList<Ts...>>;
+		using Type = typename QualifyIndirectionDetail<T, QualifiersList>::Type;
+	};
+
+	template<typename ...Ts>
+	using Qualify = typename QualifyIndirection<Ts...>::Type;
 }

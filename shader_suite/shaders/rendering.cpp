@@ -13,9 +13,9 @@ csl::glsl::frag_420::Shader textured_mesh_frag()
 		(vec2, uv)
 	);
 
-	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
+	Qualify<Layout<Binding<0>>, Uniform, sampler2D> tex("tex");
 
-	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+	Qualify<Layout<Location<0>>, Out, vec4> color("color");
 
 	shader.main([&] {
 		color = texture(tex, frag_in.uv);
@@ -38,18 +38,18 @@ csl::glsl::frag_420::Shader multiple_outputs_frag()
 
 	Qualify<sampler2D, Layout<Binding<0>>, Uniform> tex("tex");
 
-	Qualify<vec3, Layout<Location<0>>, Out> out_position("out_position");
-	Qualify<vec3, Layout<Location<1>>, Out> out_normal("out_normal");
-	Qualify<vec2, Layout<Location<2>>, Out> out_uv("out_uv");
-	Qualify<Float, Layout<Location<3>>, Out> out_depth("out_depth");
-	Qualify<vec3, Layout<Location<4>>, Out> out_tex("out_tex");
+	Qualify<Layout<Location<0>>, Out, vec3> out_position("out_position");
+	Qualify<Layout<Location<1>>, Out, vec3> out_normal("out_normal");
+	Qualify<Layout<Location<2>>, Out, vec2> out_uv("out_uv");
+	Qualify<Layout<Location<3>>, Out, Float> out_depth("out_depth");
+	Qualify<Layout<Location<4>>, Out, vec3> out_tex("out_tex");
 
 	shader.main([&] {
 		out_position = 0.5 * (1.0 + frag_in.position);
 		out_normal = 0.5 * (1.0 + normalize(frag_in.normal));
 		out_uv = frag_in.uv;
-		out_tex = texture(tex, frag_in.uv)[x, y, z];
-		out_depth = gl_FragCoord[z];
+		out_tex = texture(tex, frag_in.uv)(x, y, z);
+		out_depth = gl_FragCoord(z);
 	});
 
 	return shader;
@@ -70,8 +70,8 @@ csl::glsl::geom_420::Shader geometric_normals() {
 		(vec2, uv)
 	);
 
-	Qualify<mat4, Uniform> view("view");
-	Qualify<mat4, Uniform> proj("proj");
+	Qualify<Uniform, mat4> view("view");
+	Qualify<Uniform, mat4> proj("proj");
 
 	shader.main([&] {
 		vec3 a = vertex_in[0].position;
@@ -95,7 +95,7 @@ csl::glsl::frag_420::Shader single_color_frag() {
 	using namespace csl::glsl::frag_420;
 
 	Shader shader;
-	Qualify<vec4, Layout<Location<0>>, Out> color("color");
+	Qualify<Layout<Location<0>>, Out, vec4> color("color");
 
 	shader.main([&] {
 		color = vec4(1.0, 0.0, 1.0, 1.0);
@@ -124,7 +124,7 @@ csl::glsl::tcs_420::Shader tessellation_control_shader_example() {
 		(vec2, uv)
 	);
 
-	Qualify<Float, Uniform> tessellation_amount("tessellation_amount");
+	Qualify<Uniform, Float> tessellation_amount("tessellation_amount");
 
 	shader.main([&] {
 
@@ -167,9 +167,9 @@ csl::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 	);
 
 	in<Layout<Triangles, Equal_spacing, Ccw>>();
-	Qualify<sampler2D, Layout<Binding<0>>, Uniform> displacement_tex("displacement_tex");
-	Qualify<mat4, Uniform> view("view");
-	Qualify<mat4, Uniform> proj("proj");
+	Qualify<Layout<Binding<0>>, Uniform, sampler2D> displacement_tex("displacement_tex");
+	Qualify<Uniform, mat4> view("view");
+	Qualify<Uniform, mat4> proj("proj");
 
 	shader.main([&] {
 		tev_out.normal = normalize(gl_TessCoord[0] * tev_in[0].normal + gl_TessCoord[1] * tev_in[1].normal + gl_TessCoord[2] * tev_in[2].normal);
@@ -177,9 +177,9 @@ csl::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 		tev_out.uv = gl_TessCoord[0] * tev_in[0].uv + gl_TessCoord[1] * tev_in[1].uv + gl_TessCoord[2] * tev_in[2].uv;
 
 		vec3 pos = gl_TessCoord[0] * tev_in[0].position + gl_TessCoord[1] * tev_in[1].position + gl_TessCoord[2] * tev_in[2].position;
-		Float displacement = texture(displacement_tex, tev_out.uv)[x] << "displacement";
+		Float displacement = texture(displacement_tex, tev_out.uv)(x) << "displacement";
 		vec4 delta_pos = 2.0 * vec4(displacement * tev_out.normal, 0.0);
-		tev_out.position = pos + displacement * delta_pos[x, y, z];
+		tev_out.position = pos + displacement * delta_pos(x, y, z);
 		gl_Position = proj * view * vec4(tev_out.position, 1.0);
 	});
 
@@ -197,9 +197,9 @@ csl::glsl::frag_420::Shader phong_shading_frag() {
 		(vec2, uv)
 	);
 
-	Qualify<vec3, Uniform> eye("eye");
+	Qualify<Uniform, vec3> eye("eye");
 
-	Qualify<vec4, Out> out_color("out_color");
+	Qualify<Out, vec4> out_color("out_color");
 
 	CSL_STRUCT(Light,
 		(vec3, position),
@@ -243,9 +243,9 @@ csl::glsl::vert_420::Shader interface_vertex_shader()
 	using namespace csl::swizzles::all;
 	Shader shader;
 
-	Qualify<vec3, Layout<Location<0>>, In> in_position("in_position");
-	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
-	Qualify<vec3, Layout<Location<2>>, In> in_normal("in_normal");
+	Qualify<Layout<Location<0>>, In, vec3> in_position("in_position");
+	Qualify<Layout<Location<1>>, In, vec2> in_uv("in_uv");
+	Qualify<Layout<Location<2>>, In, vec3> in_normal("in_normal");
 
 	CSL_INTERFACE_BLOCK(Out, VertexData, vertex_out,
 		(vec3, position),
@@ -254,8 +254,8 @@ csl::glsl::vert_420::Shader interface_vertex_shader()
 		(vec2, uv)
 	);
 
-	Qualify<mat4, Uniform> view("view");
-	Qualify<mat4, Uniform> proj("proj");
+	Qualify<Uniform, mat4> view("view");
+	Qualify<Uniform, mat4> proj("proj");
 
 	shader.main([&] {
 		vertex_out.position = in_position;
@@ -274,9 +274,9 @@ csl::glsl::vert_420::Shader screen_quad_vertex_shader()
 	using namespace csl::swizzles::xyzw;
 	Shader shader;
 
-	Qualify<vec3, Layout<Location<0>>, In> pos("pos");
-	Qualify<vec2, Layout<Location<1>>, In> in_uv("in_uv");
-	Qualify<vec2, Out> uv("uv");
+	Qualify<Layout<Location<0>>, In, vec3> pos("pos");
+	Qualify<Layout<Location<1>>, In, vec2> in_uv("in_uv");
+	Qualify<Out, vec2> uv("uv");
 
 	shader.main([&]
 	{

@@ -85,7 +85,6 @@ namespace csl {
 				retrieve_instruction(i)->print_glsl(data);
 				data.endl();
 			}
-
 			for (const auto i : controller.m_unnamed_interface_blocks) {
 				retrieve_instruction(i)->print_glsl(data);
 				data.endl();
@@ -934,9 +933,9 @@ namespace csl {
 		static void call(const SwizzlingBase& swizzle, GLSLData& data, const Precedence precedence) { }
 	};
 
-	template<char ... chars>
-	struct OperatorGLSL<Swizzling<Swizzle<chars...>>> {
-		static void call(const Swizzling<Swizzle<chars...>>& swizzle, GLSLData& data, const Precedence precedence) {
+	template<char ...chars>
+	struct OperatorGLSL<Swizzling<chars...>> {
+		static void call(const Swizzling<chars...>& swizzle, GLSLData& data, const Precedence precedence) {
 			retrieve_expr(swizzle.m_obj)->print_glsl(data, Precedence::Swizzle);
 			data << ".";
 			((data << chars), ...);

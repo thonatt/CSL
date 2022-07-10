@@ -236,7 +236,7 @@ namespace csl {
 		SwitchMask = Declaration | Initialisation | Temporary | Unused | FunctionArgument
 	};
 
-	constexpr CtorFlags operator&(CtorFlags a, CtorFlags b) {
+	constexpr CtorFlags operator&(const CtorFlags a, const CtorFlags b) {
 		return static_cast<CtorFlags>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
 	}
 	constexpr CtorFlags operator|(const CtorFlags a, const CtorFlags b) {
@@ -245,7 +245,7 @@ namespace csl {
 	constexpr CtorFlags operator~(const CtorFlags a) {
 		return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
 	}
-	inline CtorFlags& operator|=(CtorFlags& a, const CtorFlags b) {
+	constexpr CtorFlags& operator|=(CtorFlags& a, const CtorFlags b) {
 		a = a | b;
 		return a;
 	}
@@ -407,16 +407,16 @@ namespace csl {
 		Expr m_obj;
 	};
 
-	template<typename S>
+	template<char ...chars>
 	struct Swizzling final : SwizzlingBase
 	{
 		Swizzling(const Expr expr) : SwizzlingBase(expr) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Swizzling<S>>::call(*this, data);
+			OperatorImGui<Swizzling<chars...>>::call(*this, data);
 		}
 		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Swizzling<S>>::call(*this, data, precedence);
+			OperatorGLSL<Swizzling<chars...>>::call(*this, data, precedence);
 		}
 	};
 
@@ -575,7 +575,7 @@ namespace csl {
 		}
 
 		template<typename Derived, typename ... Args>
-		Expr emplace_back(Args&& ...args) 
+		Expr emplace_back(Args&& ...args)
 		{
 			static_assert(std::is_base_of_v<Base, Derived>, "Derived should inherit from Base");
 

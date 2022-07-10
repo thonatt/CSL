@@ -130,7 +130,7 @@ namespace csl {
 			);
 
 			inline Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline Qualify<Float, Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline Qualify<Float, Out, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
 				(vec4, gl_Position),
@@ -163,7 +163,7 @@ namespace csl {
 			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
 
 			inline const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline const Qualify<Float, In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline const Qualify<Float, In, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
 				(vec4, gl_Position),

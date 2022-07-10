@@ -43,13 +43,13 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 
 		const Uint samplesCount = Uint(256) << "samplesCount";
 
-		const Int i = gl_GlobalInvocationID[y];
-		const Int j = gl_GlobalInvocationID[x];
+		const Int i = gl_GlobalInvocationID(y);
+		const Int j = gl_GlobalInvocationID(x);
 
 		// Move to 0,1.
 		// No need to take care of the 0.5 shift as we are working with indices
-		const Float xf = Float(j) / (Float(resolution[x]) - 1.0);
-		const Float yf = Float(i) / (Float(resolution[y]) - 1.0);
+		const Float xf = Float(j) / (Float(resolution(x)) - 1.0);
+		const Float yf = Float(i) / (Float(resolution(y)) - 1.0);
 		// Position and ray direction.
 		// x becomes the height
 		// y become the cosine
@@ -61,7 +61,7 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 		vec2 interSecondTop;
 		const Bool didHitSecondTop = intersects(currPos, sunDir, topRadius, interSecondTop);
 		// Divide the distance traveled through the atmosphere in samplesCount parts.
-		Float secondStepSize = CSL_TERNARY(didHitSecondTop, interSecondTop[y] / Float(samplesCount), 0.0);
+		Float secondStepSize = CSL_TERNARY(didHitSecondTop, interSecondTop(y) / Float(samplesCount), 0.0);
 
 		// Accumulate optical distance for both scatterings.
 		Float rayleighSecondDist = 0.0;
@@ -184,9 +184,9 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		// Now intersect with the planet.
 		Bool didHitGround = intersects(rayOrigin, rayDir, atmosphereGroundRadius, interGround);
 		// Distance to the closest intersection.
-		Float distanceToInter = min(interTop[y], CSL_TERNARY(didHitGround, interGround[x], 0.0));
+		Float distanceToInter = min(interTop(y), CSL_TERNARY(didHitGround, interGround(x), 0.0));
 		// Divide the distance traveled through the atmosphere in SAMPLES_COUNT_ATMO parts.
-		Float stepSize = (distanceToInter - interTop[x]) / Float(SAMPLES_COUNT_ATMO);
+		Float stepSize = (distanceToInter - interTop(x)) / Float(SAMPLES_COUNT_ATMO);
 		// Angle between the sun direction and the ray.
 		Float cosViewSun = dot(rayDir, sunDir);
 
@@ -220,10 +220,10 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 			// The secondary attenuation lookup table is parametrized by
 			// the height in the atmosphere, and the cosine of the vertical angle with the sun.
 			Float relativeHeight = (length(currPos) - atmosphereGroundRadius) / (atmosphereTopRadius - atmosphereGroundRadius);
-			Float relativeCosAngle = -0.5 * sunDir[y] + 0.5;
+			Float relativeCosAngle = -0.5 * sunDir(y) + 0.5;
 			// Compute UVs, scaled to read at the center of pixels.
 			vec2 attenuationUVs = (1.0 - 1.0 / 512.0) * vec2(relativeHeight, relativeCosAngle) + 0.5 / 512.0;
-			vec3 secondaryAttenuation = texture(scatterTable, attenuationUVs)[r, g, b];
+			vec3 secondaryAttenuation = texture(scatterTable, attenuationUVs)(r, g, b);
 
 			// Final attenuation.
 			vec3 attenuation = directAttenuation * secondaryAttenuation;
@@ -239,7 +239,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 
 		// The sun itself if we're looking at it.
 		vec3 sunRadiance = vec3(0.0);
-		Bool didHitGroundForward = didHitGround && interGround[y] > 0.0;
+		Bool didHitGroundForward = didHitGround && interGround(y) > 0.0;
 		CSL_IF(!didHitGroundForward && dot(rayDir, sunDir) > sunAngularRadiusCos) {
 			sunRadiance = sunColor / (M_PI * sunAngularRadius * sunAngularRadius);
 		}
@@ -252,7 +252,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		// Move to -1,1
 		vec4 clipVertex = vec4(-1.0 + 2.0 * uv, 0.0, 1.0);
 		// Then to world space.
-		vec3 viewRay = normalize((clipToWorld * clipVertex)[x, y, z]);
+		vec3 viewRay = normalize((clipToWorld * clipVertex)(x, y, z));
 		// We then move to the planet model space, where its center is in (0,0,0).
 		vec3 planetSpaceViewPos = viewPos + vec3(0.0, atmosphereGroundRadius, 0.0) + vec3(0.0, altitude, 0.0);
 		vec3 atmosphereColor = computeAtmosphereRadiance(planetSpaceViewPos, viewRay, lightDirection, defaultSunColor, precomputedScattering);

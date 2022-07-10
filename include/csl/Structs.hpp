@@ -43,7 +43,7 @@
 #define CSL_PP_ARRAY_INFOS_FROM_QUALIFIER2(Qualifiers) typename csl::ArrayInfos< CSL_PP_DEPARENTHESIS(Qualifiers) >::Dimensions
 #define CSL_PP_QUALIFIERS_LIST(Qualifiers) csl::RemoveArrayFromQualifiers< CSL_PP_DEPARENTHESIS(Qualifiers) > 
 
-#define CSL_PP_STRUCT( _Qualifiers, StructTypename, StructTypenameStr, DefaultObjFlags, IsBuiltIn, ...) \
+#define CSL_PP_STRUCT( _Qualifiers, StructTypename, StructTypenameStr, DefaultObjFlags, ...) \
 	struct StructTypename : public csl::NamedObject<StructTypename> { \
 		using Base = csl::NamedObject<StructTypename>;\
 		\
@@ -97,16 +97,18 @@
 			static const std::string type_str = CSL_PP_STR(StructTypenameStr); \
 			return type_str; \
 		} \
+		\
+		static constexpr bool IsValid() { return true; } \
 	}
 
 #define CSL_PP_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, DefaultObjFlags, ...) \
 	struct UniqueTypename; \
 	csl::listen().add_named_interface_block<UniqueTypename>(CSL_PP_STR(Name)); \
-	CSL_PP_STRUCT(Qualifiers, UniqueTypename, Typename, DefaultObjFlags, 0, __VA_ARGS__); \
+	CSL_PP_STRUCT(Qualifiers, UniqueTypename, Typename, DefaultObjFlags, __VA_ARGS__); \
 	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name), DefaultObjFlags | csl::ObjFlags::UsedAsRef );
 
 #define CSL_PP_BUILTIN_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, ...) \
-	CSL_PP_STRUCT((),UniqueTypename, Typename, csl::ObjFlags::BuiltInConstructor | csl::ObjFlags::UsedAsRef, 1, __VA_ARGS__); \
+	CSL_PP_STRUCT((),UniqueTypename, Typename, csl::ObjFlags::BuiltInConstructor | csl::ObjFlags::UsedAsRef, __VA_ARGS__); \
 	inline Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name) );
 
 #define CSL_PP_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
@@ -121,7 +123,7 @@
 #define CSL_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
 	csl::listen().add_struct<StructTypename>(); \
-	CSL_PP_STRUCT((),StructTypename, StructTypename, csl::ObjFlags::StructMember | csl::ObjFlags::AlwaysExp, 0, __VA_ARGS__ )
+	CSL_PP_STRUCT((),StructTypename, StructTypename, csl::ObjFlags::StructMember | csl::ObjFlags::AlwaysExp, __VA_ARGS__ )
 
 #define CSL_INTERFACE_BLOCK(Qualifiers, StructTypename, Name, ...) \
 	CSL_PP_INTERFACE_BLOCK(Qualifiers, StructTypename, CSL_PP_CONCAT(StructTypename, __COUNTER__), Name, csl::ObjFlags::Constructor,  __VA_ARGS__ )

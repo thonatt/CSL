@@ -70,10 +70,10 @@ csl::glsl::frag_420::Shader swizzling_example()
 	vec4 col("col");
 	vec4 out("out");
 
-	cols[0] = CSL_TERNARY(col[a] > 0, col, 1.0 - col);
+	cols[0] = CSL_TERNARY(col(a) > 0, col, 1.0 - col);
 
 	//can you guess what is actually assigned ?
-	out[a] = col[b, a, r][b, g][r];
+	out(a) = col(b, a, r)(b, g)(r);
 
 	return shader;
 }
@@ -304,7 +304,7 @@ auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma
 		}
 
 		if (gamma_correction) {
-			color[r, g, b] = pow(color[r, g, b], vec3(2.2));
+			color(r, g, b) = pow(color(r, g, b), vec3(2.2));
 		}
 	});
 

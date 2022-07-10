@@ -58,31 +58,28 @@ namespace csl
 
 		template<char c, char d, char ...cs>
 		constexpr bool are_unique<c, d, cs...> = (c != d) && are_unique<d, cs...>;
+
+		template<char... chars>
+		struct SwizzleInfo
+		{
+		private:
+			using Sets = typename swizzling::MatchedSwizzleSets<chars...>::ValidSets;
+			static_assert(Sets::Size == 1, "Swizzle sets cannot be mixed");
+			using Set = typename Sets::template At<0>;
+
+		public:
+			static constexpr std::size_t Size = sizeof...(chars);
+			static_assert(Size >= 1, "Minimum swizzling size is 1");
+			static_assert(Size <= 4, "Maximum swizzling size is 4");
+
+			static constexpr std::size_t HighestComponent = std::max({ Set::template GetIndex<chars>() ... });
+			static constexpr bool NoRepetition = swizzling::are_unique<chars...>;
+		};
 	}
 
-	template<char... chars>
-	class Swizzle
+	template<char c>
+	struct Swizzle
 	{
-	private:
-		using Sets = typename swizzling::MatchedSwizzleSets<chars...>::ValidSets;
-		static_assert(Sets::Size == 1, "Swizzle sets cannot be mixed");
-		using Set = typename Sets::template At<0>;
-
-	public:
-		static constexpr std::size_t Size = sizeof...(chars);
-		static_assert(Size >= 1, "Minimum swizzling size is 1");
-		static_assert(Size <= 4, "Maximum swizzling size is 4");
-
-		static constexpr std::size_t HighestComponent = std::max({ Set::template GetIndex<chars>() ... });
-		static constexpr bool NoDuplicates = swizzling::are_unique<chars...>;
-
-		constexpr Swizzle() = default;
-
-		template<char other_c>
-		constexpr Swizzle<chars..., other_c> operator,(Swizzle<other_c>) const
-		{
-			return {};
-		}
 	};
 
 	namespace swizzles

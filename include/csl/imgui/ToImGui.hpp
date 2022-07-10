@@ -470,10 +470,10 @@ namespace csl {
 	};
 
 
-	template<char ... chars>
-	struct OperatorImGui<Swizzling<Swizzle<chars...>>> {
+	template<char ...chars>
+	struct OperatorImGui<Swizzling<chars...>> {
 
-		static void call(const Swizzling<Swizzle<chars...>>& swizzle, ImGuiData& data) {
+		static void call(const Swizzling<chars...>& swizzle, ImGuiData& data) {
 			data.node(data.glsl_from_expr(swizzle.m_obj), [&] {
 				retrieve_expr(swizzle.m_obj)->print_imgui(data);
 				});

@@ -10,11 +10,11 @@ csl::glsl::frag_420::Shader shader_80()
 	using namespace csl::swizzles::all;
 	Shader shader;
 
-	Qualify<sampler2D, Layout<Binding<0>>, Uniform> iChannel0("iChannel0");
-	Qualify<vec2, Uniform> iResolution("iResolution");
+	Qualify<Layout<Binding<0>>, Uniform, sampler2D> iChannel0("iChannel0");
+	Qualify<Uniform, vec2> iResolution("iResolution");
 
-	Qualify<Float, Uniform> iTime("iTime");
-	Qualify<vec4, Out> fragColor("fragColor");
+	Qualify<Uniform, Float> iTime("iTime");
+	Qualify<Out, vec4> fragColor("fragColor");
 
 	/// Noise helpers.	
 	auto noise = define_function<Float, vec4>("noise",
@@ -34,9 +34,9 @@ csl::glsl::frag_420::Shader shader_80()
 	});
 
 	auto hash = define_function<Float>([](vec2 p) {
-		vec3 p3 = fract(p[x, y, x] * 0.2831);
-		p3 += dot(p3, p3[y, z, x] + 19.19);
-		CSL_RETURN(fract((p3[x] + p3[y]) * p3[z]));
+		vec3 p3 = fract(p(x, y, x) * 0.2831);
+		p3 += dot(p3, p3(y, z, x) + 19.19);
+		CSL_RETURN(fract((p3(x) + p3(y)) * p3(z)));
 	});
 
 	/// Background utilities.
@@ -64,17 +64,17 @@ csl::glsl::frag_420::Shader shader_80()
 		// Point at the bottom center, shared by all triangles.
 		vec2 point0 = vec2(0.5, 0.37);
 		// Distance to each segment.
-		Float minDist = segmentDistance(p, point0, tri[x, y]);
-		minDist = min(minDist, segmentDistance(p, tri[x, y], tri[z, w]));
-		minDist = min(minDist, segmentDistance(p, tri[z, w], point0));
+		Float minDist = segmentDistance(p, point0, tri(x, y));
+		minDist = min(minDist, segmentDistance(p, tri(x, y), tri(z, w)));
+		minDist = min(minDist, segmentDistance(p, tri(z, w), point0));
 		// Smooth result for transition.
 		CSL_RETURN(1.0 - smoothstep(0.0, width, minDist));
 	});
-
+	
 	/// Text utilities.
 	auto getLetter = define_function<Float>([&](Int lid, vec2 uv) {
 		// If outside, return arbitrarily high distance.
-		CSL_IF(uv[x] < 0.0 || uv[y] < 0.0 || uv[x] > 1.0 || uv[y] > 1.0) {
+		CSL_IF(uv(x) < 0.0 || uv(y) < 0.0 || uv(x) > 1.0 || uv(y) > 1.0) {
 			CSL_RETURN(1000.0);
 		}
 		// The font texture is 16x16 glyphs.
@@ -87,8 +87,8 @@ csl::glsl::frag_420::Shader shader_80()
 			CSL_FOR(Int j = -1; j < 2; ++j) {
 				vec2 offset = vec2(i, j) / 1024.0;
 				vec2 uv_tex = fontUV + offset;
-				uv_tex[y] = 1.0 - uv_tex[y];
-				accum += texture(iChannel0, uv_tex, 0.0)[a];
+				uv_tex(y) = 1.0 - uv_tex(y);
+				accum += texture(iChannel0, uv_tex, 0.0)(a);
 			}
 		}
 		CSL_RETURN(accum / 9.0);
@@ -98,10 +98,10 @@ csl::glsl::frag_420::Shader shader_80()
 		// Use squared blend for the interior gradients.
 		vec2 alphas2 = alphas * alphas;
 		// Generate the four possible gradients (interior/edge x upper/lower)
-		vec3 bottomInterior = mix(vec3(0.987, 0.746, 0.993), vec3(0.033, 0.011, 0.057), alphas2[x]);
-		vec3 bottomExterior = mix(vec3(0.633, 0.145, 0.693), vec3(0.977, 1.000, 1.000), alphas[x]);
-		vec3 topInterior = mix(vec3(0.024, 0.811, 0.924), vec3(0.600, 0.960, 1.080), alphas2[y]);
-		vec3 topExterior = mix(vec3(0.494, 0.828, 0.977), vec3(0.968, 0.987, 0.999), alphas[y]);
+		vec3 bottomInterior = mix(vec3(0.987, 0.746, 0.993), vec3(0.033, 0.011, 0.057), alphas2(x));
+		vec3 bottomExterior = mix(vec3(0.633, 0.145, 0.693), vec3(0.977, 1.000, 1.000), alphas(x));
+		vec3 topInterior = mix(vec3(0.024, 0.811, 0.924), vec3(0.600, 0.960, 1.080), alphas2(y));
+		vec3 topExterior = mix(vec3(0.494, 0.828, 0.977), vec3(0.968, 0.987, 0.999), alphas(y));
 		// Blend based on current location.
 		vec3 gradInterior = mix(bottomInterior, topInterior, top);
 		vec3 gradExterior = mix(bottomExterior, topExterior, top);
@@ -111,28 +111,28 @@ csl::glsl::frag_420::Shader shader_80()
 	shader.main(
 		[&] {
 		// Normalized pixel coordinates.
-		vec2 uv = gl_FragCoord[x, y] / iResolution[x, y];
+		vec2 uv = gl_FragCoord(x, y) / iResolution(x, y);
 		vec2 uvCenter = 2.0 * uv - 1.0;
 
 		/// Background.
 		// Color gradient.
-		vec3 finalColor = 1.5 * mix(vec3(0.308, 0.066, 0.327), vec3(0.131, 0.204, 0.458), uv[x]);
+		vec3 finalColor = 1.5 * mix(vec3(0.308, 0.066, 0.327), vec3(0.131, 0.204, 0.458), uv(x));
 
 		const Float gridHeight = 0.3;
-		CSL_IF(uv[y] < gridHeight) {
+		CSL_IF(uv(y) < gridHeight) {
 
 			/// Bottom grid.
 			// Compute local cflipped oordinates for the grid.
 			vec2 localUV = uv * vec2(2.0, -1.0 / gridHeight) + vec2(-1.0, 1.0);
 			// Perspective division, scaling, foreshortening and alignment.
-			localUV[x] = localUV[x] / (localUV[y] + 0.8);
+			localUV(x) = localUV(x) / (localUV(y) + 0.8);
 			localUV *= vec2(10.0, 20.0);
-			localUV[y] = sqrt(localUV[y]);
-			localUV[x] += 0.5;
+			localUV(y) = sqrt(localUV(y));
+			localUV(x) += 0.5;
 			// Generate grid smooth lines (translate along time).
 			vec2 unitUV = fract(localUV - vec2(0.0, 0.3 * iTime));
 			vec2 gridAxes = smoothstep(0.02, 0.07, unitUV) * (1.0 - smoothstep(0.93, 0.98, unitUV));
-			Float gridAlpha = 1.0 - clamp(gridAxes[x] * gridAxes[y], 0.0, 1.0);
+			Float gridAlpha = 1.0 - clamp(gridAxes(x) * gridAxes(y), 0.0, 1.0);
 
 			/// Fixed star halos.
 			// Loop UVs.
@@ -152,9 +152,9 @@ csl::glsl::frag_420::Shader shader_80()
 		} CSL_ELSE{
 			/// Starfield.
 			// Compensate aspect ratio for circular stars.
-			vec2 ratioUVs = uv * vec2(1.0, iResolution[y] / iResolution[x]);
+			vec2 ratioUVs = uv * vec2(1.0, iResolution(y) / iResolution(x));
 		// Decrease density towards the bottom of the screen.
-		Float baseDens = clamp(uv[y] - 0.3, 0.0, 1.0);
+		Float baseDens = clamp(uv(y) - 0.3, 0.0, 1.0);
 		// Three layers of stars with varying density, cyclic animation.
 		Float deltaDens = 20.0 * (sin(0.05 * iTime - 1.5) + 1.0);
 		finalColor += 0.50 * stars(ratioUVs, 0.10 * baseDens, 150.0 - deltaDens);
@@ -182,25 +182,25 @@ csl::glsl::frag_420::Shader shader_80()
 		Float tri5 = triangleDistance(uv, points5, 0.003);
 		Float intensityTri = 0.9 * tri1 + 0.5 * tri2 + 0.2 * tri3 + 0.6 * tri4 + 0.5 * tri5;
 		// Triangles color gradient, from left to right.
-		Float alphaTriangles = clamp((uv[x] - 0.3) / 0.4, 0.0, 1.0);
+		Float alphaTriangles = clamp((uv(x) - 0.3) / 0.4, 0.0, 1.0);
 		vec3 baseTriColor = mix(vec3(0.957, 0.440, 0.883), vec3(0.473, 0.548, 0.919), alphaTriangles);
 		// Additive blending.
 		finalColor += intensityTri * baseTriColor;
 
 		/// Horizon gradient.
 		const Float horizonHeight = 0.025;
-		Float horizonIntensity = 1.0 - min(abs(uv[y] - gridHeight), horizonHeight) / horizonHeight;
+		Float horizonIntensity = 1.0 - min(abs(uv(y) - gridHeight), horizonHeight) / horizonHeight;
 		// Modulate base on distance to screen edges.
-		horizonIntensity *= (1.0 - 0.7 * abs(uvCenter[x]) + 0.5);
+		horizonIntensity *= (1.0 - 0.7 * abs(uvCenter(x)) + 0.5);
 		finalColor += 2.0 * horizonIntensity * baseTriColor;
 
 		/// Letters.
 		// Centered UVs for text box.
 		vec2 textUV = uvCenter * 2.2 - vec2(0.0, 0.5);
-		CSL_IF(abs(textUV[x]) < 1.0 && abs(textUV[y]) < 1.0) {
+		CSL_IF(abs(textUV(x)) < 1.0 && abs(textUV(y)) < 1.0) {
 			// Rescale UVs.
 			textUV = textUV * 0.5 + 0.5;
-			textUV[x] *= 3.5;
+			textUV(x) *= 3.5;
 			// Per-sign UV, manual shifts for kerning.
 			const vec2 letterScaling = vec2(0.47, 0.93);
 			vec2 uvLetter1 = (textUV - vec2(0.60, 0.50)) * letterScaling + 0.5;
@@ -213,18 +213,18 @@ csl::glsl::frag_420::Shader shader_80()
 			// Merge and threshold.
 			Float finalDist = 0.52 - min(let1, min(let2, let3));
 			// Split between top and bottom gradients (landscape in the reflection).
-			Float localTh = 0.49 + 0.03 * noise(70.0 * uv[x] + iTime);
-			Float isTop = smoothstep(localTh - 0.01, localTh + 0.01, textUV[y]);
+			Float localTh = 0.49 + 0.03 * noise(70.0 * uv(x) + iTime);
+			Float isTop = smoothstep(localTh - 0.01, localTh + 0.01, textUV(y));
 			// Split between interior and edge gradients.
 			Float isInt = smoothstep(0.018, 0.022, finalDist);
 			// Compute relative heights along the color gradients (both bottom and up (shifted)), rescale.
-			vec2 localUBYs = vec2(1.8 * (textUV[y] - 0.5) + 0.5);
-			localUBYs[y] -= isTop * 0.5;
+			vec2 localUBYs = vec2(1.8 * (textUV(y) - 0.5) + 0.5);
+			localUBYs(y) -= isTop * 0.5;
 			vec2 gradientBlend = localUBYs / localTh;
 			// Evaluate final mixed color gradient.
 			vec3 textColor = textGradient(isInt, isTop, gradientBlend);
 			// Add sharp reflection along a flat diagonal.
-			CSL_IF(textUV[x] - 20.0 * textUV[y] < -14.0 || textUV[x] - 20.0 * textUV[y] > -2.5) {
+			CSL_IF(textUV(x) - 20.0 * textUV(y) < -14.0 || textUV(x) - 20.0 * textUV(y) > -2.5) {
 				textColor += 0.1;
 			}
 			// Soft letter edges.
@@ -264,8 +264,8 @@ csl::glsl::frag_420::Shader fractal_noise()
 	auto hash = define_function<vec2>([](vec2 p)
 	{
 		const vec2 k = vec2(0.3183099, 0.3678794);
-		p = p * k + k[y, x];
-		CSL_RETURN(-1.0 + 2.0 * fract(16.0 * k * fract(p[x] * p[y] * (p[x] + p[y]))));
+		p = p * k + k(y, x);
+		CSL_RETURN(-1.0 + 2.0 * fract(16.0 * k * fract(p(x) * p(y) * (p(x) + p(y)))));
 	});
 
 	auto noise = define_function<Float>([&](vec2 p) {
@@ -274,9 +274,9 @@ csl::glsl::frag_420::Shader fractal_noise()
 		vec2 u = f * f * (3.0 - 2.0 * f);
 		CSL_RETURN(
 			mix(mix(dot(hash(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),
-				dot(hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u[x]),
+				dot(hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u(x)),
 				mix(dot(hash(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),
-					dot(hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u[x]), u[y])
+					dot(hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u(x)), u(y))
 		);
 	});
 

@@ -84,30 +84,24 @@ namespace csl
 		}
 
 		// swizzling
-		// TODO
-		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::highest<cs...> <= R)> >
-		std::conditional_t<swizzling::unique<cs...>, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles)& {
-			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
+		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) & {
+			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_ref()) };
 		}
 
-		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::NoDuplicates, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle)& {
-			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
+		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) && {
+			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_temp()) };
 		}
 
-		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::NoDuplicates, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle)&& {
-			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_temp()) };
+		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) const& {
+			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_ref()) };
 		}
 
-		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::NoDuplicates, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const& {
-			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_ref()) };
-		}
-
-		template<typename Swizzle, typename = std::enable_if_t<C == 1 && R != 1 && (Swizzle::HighestComponent <= R)> >
-		std::conditional_t<Swizzle::NoDuplicates, SubCol<Swizzle::Size>, const SubCol<Swizzle::Size>> operator[](Swizzle swizzle) const&& {
-			return { make_expr<Swizzling<Swizzle>>(NamedObjectBase::get_expr_as_temp()) };
+		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) const&& {
+			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_temp()) };
 		}
 
 		// col access

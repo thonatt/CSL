@@ -173,10 +173,8 @@ struct PipelineBase
 	{
 		std::vector<picogl::Shader> shaders(m_shaders.size());
 		int shader_count = 0;
-		for (const auto& [type, shader] : m_shaders) {
-			shaders[shader_count] = picogl::Shader::make(type, shader.m_shader->m_glsl_str);
-			++shader_count;
-		}
+		for (const auto& [type, shader] : m_shaders)
+			shaders[shader_count++] = picogl::Shader::make(type, shader.m_shader->m_glsl_str);
 		std::vector<std::reference_wrapper<const picogl::Shader>> shaders_refs(shaders.begin(), shaders.end());
 		m_program = picogl::Program::make(shaders_refs);
 	}
@@ -433,7 +431,6 @@ struct Application : public framework::Application
 			0, 0, m_w_screen, m_h_screen, GL_BACK);
 
 		m_previous_rendering.color_attachments()[0].generate_mipmap();
-
 		picogl::Framebuffer::get_default(m_w_screen, m_h_screen).clear();
 
 		m_time += ImGui::GetIO().DeltaTime;
@@ -442,9 +439,9 @@ struct Application : public framework::Application
 			m_current_pipeline = {};
 			if (current_shader) {
 				for (auto shader_it = m_shader_suite.m_shaders.begin(); shader_it != m_shader_suite.m_shaders.end(); ++shader_it) {
-					if (shader_it->second != current_shader) {
+					if (shader_it->second != current_shader)
 						continue;
-					}
+
 					if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
 						if (shader_it == m_shader_suite.m_shaders.begin()) {
 							auto suite_end_it = m_shader_suite.m_shaders.end();
@@ -454,9 +451,8 @@ struct Application : public framework::Application
 						}
 					} else {
 						++shader_it;
-						if (shader_it == m_shader_suite.m_shaders.end()) {
+						if (shader_it == m_shader_suite.m_shaders.end())
 							shader_it = m_shader_suite.m_shaders.begin();
-						}
 						current_shader = shader_it->second;
 					}
 					for (const auto& [name, pipeline] : m_pipelines) {
@@ -483,9 +479,9 @@ struct Application : public framework::Application
 			ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
 			for (const auto& [group_type, group] : m_shader_suite.m_groups)
 			{
-				if (group_type == ShaderGroup::Test) {
+				if (group_type == ShaderGroup::Test) 
 					continue;
-				}
+
 				ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
 				if (ImGui::TreeNode(shader_group_strs.find(group_type)->second.c_str()))
 				{
@@ -513,9 +509,8 @@ struct Application : public framework::Application
 									}
 								}
 							}
-							if (!pipeline_found) {
+							if (!pipeline_found)
 								m_current_pipeline = {};
-							}
 						}
 					}
 					ImGui::TreePop();
@@ -541,30 +536,26 @@ struct Application : public framework::Application
 							ImGui::Checkbox((shader_type_strs.find(type)->second + "##").c_str(), &shader.m_active);
 							if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
 							{
-								if (ImGui::Button("print to console")) {
+								if (ImGui::Button("print to console"))
 									std::cout << shader.m_shader->m_glsl_str << std::endl;
-								}
 								ImGui::EndPopup();
 							}
-							if (shader.m_active) {
+							if (shader.m_active)
 								++active_shader_count;
-							}
 							++count;
 						}
 					} else if (current_shader) {
 						ImGui::Text("No associated pipeline");
 						if (ImGui::BeginPopupContextItem("shader right click ## single"))
 						{
-							if (ImGui::Button("print to console")) {
-								std::cout << current_shader->m_glsl_str << std::endl;
-							}
+							if (ImGui::Button("print to console")) 
+								std::cout << current_shader->m_glsl_str << std::endl;							
 							ImGui::EndPopup();
 						}
 						active_shader_count = 1.0f;
 					}
-					if (m_current_pipeline) {
+					if (m_current_pipeline)
 						m_current_pipeline->additionnal_gui();
-					}
 				}
 				ImGui::EndChild();
 
@@ -576,21 +567,17 @@ struct Application : public framework::Application
 								if (m_current_pipeline) {
 									int count = 0;
 									for (auto& [type, shader] : m_current_pipeline->m_shaders) {
-										if (!shader.m_active) {
+										if (!shader.m_active)
 											continue;
-										}
-										if (count) {
+										if (count)
 											ImGui::Separator();
-										}
 										shader_gui(mode, *shader.m_shader, shader_code_height, *this);
-										if (mode.first == Mode::GlobalMetrics) {
+										if (mode.first == Mode::GlobalMetrics)
 											break;
-										}
 										++count;
 									}
-								} else if (current_shader) {
+								} else if (current_shader)
 									shader_gui(mode, *current_shader, shader_code_height, *this);
-								}
 								ImGui::EndTabItem();
 							}
 						}
@@ -618,7 +605,6 @@ struct Application : public framework::Application
 					m_framebuffer.set_depth_attachment();
 				}
 
-				// default settings, can be overrided by pipelines
 				glViewport(0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
 				glEnable(GL_DEPTH_TEST);
 				const_cast<picogl::Texture&>(m_framebuffer.color_attachments()[0]).set_swizzling();
@@ -674,7 +660,8 @@ struct Application : public framework::Application
 	int m_w_screen = 0, m_h_screen = 0;
 };
 
-struct PipelineGrid final : PipelineBase {
+struct PipelineGrid final : PipelineBase
+{
 	void draw(Application& data) override {
 		m_program.set_uniform("time", glUniform1f, data.m_time);
 		glDisable(GL_DEPTH_TEST);
@@ -682,7 +669,8 @@ struct PipelineGrid final : PipelineBase {
 	}
 };
 
-struct Pipeline80 final : PipelineBase {
+struct Pipeline80 final : PipelineBase
+{
 	void draw(Application& data) override {
 		m_program.set_uniform("iTime", glUniform1f, data.m_time);
 		m_program.set_uniform("iResolution", glUniform2f, (float)data.m_framebuffer.width(), (float)data.m_framebuffer.height());
@@ -692,7 +680,8 @@ struct Pipeline80 final : PipelineBase {
 	}
 };
 
-struct PipelineTexturedMesh final : PipelineBase {
+struct PipelineTexturedMesh final : PipelineBase
+{
 	void draw(Application& data) override {
 		data.m_framebuffer.clear({ 0.3f, 0.3f, 0.3f, 1.0f });
 		data.set_mvp(1.2f, 0.1f, 0.1f, 5.0f);
@@ -703,7 +692,8 @@ struct PipelineTexturedMesh final : PipelineBase {
 	}
 };
 
-struct PipelineNoise final : PipelineBase {
+struct PipelineNoise final : PipelineBase
+{
 	void draw(Application& data) override {
 		if (data.m_fractal_noise.width() != data.m_framebuffer.width() || data.m_fractal_noise.height() != data.m_framebuffer.height())
 		{
@@ -729,7 +719,8 @@ struct PipelineNoise final : PipelineBase {
 	float m_uv_scaling = 32.0f;
 };
 
-struct PipelinePhong final : PipelineBase {
+struct PipelinePhong final : PipelineBase
+{
 	void draw(Application& data) override {
 		data.set_mvp(2.5f, 2.0f, 0.8f, 5.0f);
 		m_program.set_uniform("view", glUniformMatrix4fv, 1, GL_FALSE, glm::value_ptr(data.m_view));
@@ -850,9 +841,8 @@ struct PipelineGBuffer final : PipelineBase
 		ImGui::Text("Output : ");
 		for (const auto& mode : mode_strs) {
 			ImGui::SameLine();
-			if (ImGui::RadioButton(mode.second.c_str(), mode.first == m_mode)) {
+			if (ImGui::RadioButton(mode.second.c_str(), mode.first == m_mode))
 				m_mode = mode.first;
-			}
 		}
 	}
 
@@ -964,8 +954,8 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 	pipeline_atmosphere->add_shader(GL_FRAGMENT_SHADER, *shaders.find(ShaderId::AtmosphereRendering));
 	pipelines.emplace("atmosphere", pipeline_atmosphere);
 
-	for (const auto& pipeline : pipelines)
-		pipeline.second->compile();
+	for (const auto& [name, pipeline] : pipelines)
+		pipeline->compile();
 
 	return pipelines;
 }
