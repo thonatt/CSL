@@ -83,9 +83,9 @@ csl::glsl::frag_420::Shader qualifier_example()
 	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	Qualify<vec4, Out> color("color");
-	Qualify<vec3, Layout<Location<4>>, In> position("position");
-	Qualify<sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samplers("samplers");
+	Qualify<Out, vec4> color("color");
+	Qualify<Layout<Location<4>>, In, vec3> position("position");
+	Qualify<Layout<Binding<0>>, Uniform, sampler2DArray, Array<8>> samplers("samplers");
 
 	return shader;
 }

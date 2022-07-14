@@ -310,11 +310,7 @@ namespace csl {
 	{
 		using Ptr = std::shared_ptr<ShaderController>;
 
-		MainBlock::Ptr m_declarations;
-		std::vector<InstructionIndex> m_structs;
-		std::vector<InstructionIndex> m_named_interface_blocks;
-		std::vector<InstructionIndex> m_unnamed_interface_blocks;
-		std::vector<InstructionIndex> m_functions;
+		MainBlock::Ptr m_scope;
 
 #ifdef NDEBUG
 		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
@@ -340,16 +336,12 @@ namespace csl {
 
 		ShaderController()
 		{
-			m_declarations = std::make_unique<MainBlock>();
-			current_block = m_declarations.get();
+			m_scope = std::make_unique<MainBlock>();
+			current_block = m_scope.get();
 		}
 
 		ShaderController(ShaderController&& other) :
-			m_declarations(std::move(other.m_declarations)),
-			m_structs(std::move(other.m_structs)),
-			m_named_interface_blocks(std::move(other.m_named_interface_blocks)),
-			m_unnamed_interface_blocks(std::move(other.m_unnamed_interface_blocks)),
-			m_functions(std::move(other.m_functions)),
+			m_scope(std::move(other.m_scope)),
 			m_memory_pool(std::move(other.m_memory_pool)),
 			m_instruction_pool(std::move(other.m_instruction_pool))
 		{
@@ -357,11 +349,7 @@ namespace csl {
 
 		ShaderController& operator=(ShaderController&& other)
 		{
-			std::swap(m_declarations, other.m_declarations);
-			std::swap(m_structs, other.m_structs);
-			std::swap(m_named_interface_blocks, other.m_named_interface_blocks);
-			std::swap(m_unnamed_interface_blocks, other.m_unnamed_interface_blocks);
-			std::swap(m_functions, other.m_functions);
+			std::swap(m_scope, other.m_scope);
 			std::swap(m_memory_pool, other.m_memory_pool);
 			std::swap(m_instruction_pool, other.m_instruction_pool);
 			return *this;
@@ -396,23 +384,23 @@ namespace csl {
 
 		template<typename Struct>
 		void add_struct() {
-			m_structs.push_back(make_instruction<StructDeclaration<Struct>>());
+			m_scope->m_instructions.push_back(make_instruction<StructDeclaration<Struct>>());
 		}
 
 		template<typename Interface>
 		void add_named_interface_block(const std::string& name) {
-			m_named_interface_blocks.push_back(make_instruction<NamedInterfaceDeclaration<Interface>>(name));
+			m_scope->m_instructions.push_back(make_instruction<NamedInterfaceDeclaration<Interface>>(name));
 		}
 
 		template<typename QualifierList, typename TypeList, typename ...Strings>
 		void add_unnamed_interface_block(Strings&& ... names) {
-			m_unnamed_interface_blocks.push_back(make_instruction<UnnamedInterfaceDeclaration<QualifierList, TypeList>>(std::forward<Strings>(names)...));
+			m_scope->m_instructions.push_back(make_instruction<UnnamedInterfaceDeclaration<QualifierList, TypeList>>(std::forward<Strings>(names)...));
 		}
 
 		template<typename ReturnTList, typename ... Fs>
 		void begin_func(const std::string& name, const std::size_t fun_id, const Fs& ... fs) {
 			begin_func_internal<ReturnTList, Fs...>(name, fun_id);
-			m_functions.push_back(current_func);
+			m_scope->m_instructions.push_back(current_func);
 		}
 
 		ReturnBlockBase* get_return_block() {

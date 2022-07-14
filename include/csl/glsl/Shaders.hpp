@@ -52,7 +52,7 @@ namespace csl {
 			template<typename Data>
 			void print_glsl(Data& data) {
 				BuiltInRegisters<type, version>::template call(data);
-				data << get_header();
+				data << get_header() << "\n";
 				ShaderController::template print_glsl<csl::Dummy>(data);
 			}
 

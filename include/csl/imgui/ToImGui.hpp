@@ -81,23 +81,11 @@ namespace csl {
 	};
 
 	template<typename Delayed>
-	struct ControllerImGui<Delayed, ShaderController> {
-		static void call(const ShaderController& controller, ImGuiData& data) {
-
-			for (const auto i : controller.m_declarations->m_instructions) {
-				retrieve_instruction(i)->print_glsl(data.glsl_data);
-			}
-			data.glsl_data.stream.str("");
-
-			data.vector_node("Declarations", controller.m_declarations->m_instructions);
-
-			data.vector_node("Structs", controller.m_structs);
-
-			data.vector_node("Named interface blocks", controller.m_named_interface_blocks);
-
-			data.vector_node("Unnamed interface blocks", controller.m_unnamed_interface_blocks);
-
-			data.vector_node("Functions", controller.m_functions);
+	struct ControllerImGui<Delayed, ShaderController> 
+	{
+		static void call(const ShaderController& controller, ImGuiData& data) 
+		{
+			data.vector_node("Shader scope", controller.m_scope->m_instructions);
 		}
 	};
 

@@ -214,12 +214,12 @@ namespace csl {
 
 	inline OperatorBase* retrieve_expr(const Expr index)
 	{
-		if (!index) {
+		if (!index) 
 			return nullptr;
-		}
-		if (index.is_static()) {
+
+		if (index.is_static()) 
 			return &ShaderController::get_static_memory()[index];
-		}
+
 		return &listen().current_shader->m_memory_pool[index];
 	}
 

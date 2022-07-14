@@ -25,9 +25,8 @@ namespace csl {
 		int trailing = 0;
 
 		GLSLData& trail() {
-			for (int t = 0; t < trailing; ++t) {
+			for (int t = 0; t < trailing; ++t)
 				stream << "    ";
-			}
 			return *this;
 		}
 
@@ -45,13 +44,11 @@ namespace csl {
 		void check_for_parenthesis(const Expr& expr, const Precedence parent, const Precedence current)
 		{
 			const bool inversion = (parent < current);
-			if (inversion) {
+			if (inversion)
 				stream << "(";
-			}
 			retrieve_expr(expr)->print_glsl(*this, current);
-			if (inversion) {
+			if (inversion)
 				stream << ")";
-			}
 		}
 
 		const std::string& register_var_name(const std::string& name, const std::size_t id)
@@ -71,33 +68,10 @@ namespace csl {
 
 	template<typename Delayed>
 	struct ControllerGLSL<Delayed, ShaderController> {
-		static void call(const ShaderController& controller, GLSLData& data) {
-
-			if (!controller.m_structs.empty() || !controller.m_named_interface_blocks.empty() || !controller.m_unnamed_interface_blocks.empty() || !controller.m_declarations->m_instructions.empty()) {
-				data.endl();
-			}
-			for (const auto s : controller.m_structs) {
-				retrieve_instruction(s)->print_glsl(data);
-				data.endl();
-			}
-
-			for (const auto i : controller.m_named_interface_blocks) {
+		static void call(const ShaderController& controller, GLSLData& data)
+		{
+			for (const auto i : controller.m_scope->m_instructions)
 				retrieve_instruction(i)->print_glsl(data);
-				data.endl();
-			}
-			for (const auto i : controller.m_unnamed_interface_blocks) {
-				retrieve_instruction(i)->print_glsl(data);
-				data.endl();
-			}
-
-			for (const auto i : controller.m_declarations->m_instructions) {
-				retrieve_instruction(i)->print_glsl(data);
-			}
-
-			data.endl();
-			for (const auto f : controller.m_functions) {
-				retrieve_instruction(f)->print_glsl(data);
-			}
 		}
 	};
 
@@ -520,8 +494,8 @@ namespace csl {
 	};
 
 	template<>
-	struct InstructionGLSL<ForInstruction> {
-
+	struct InstructionGLSL<ForInstruction>
+	{
 		enum class Status { InitExpr, Condition, LoopExpr };
 
 		static void header(const ForInstruction& i, GLSLData& data)
@@ -693,31 +667,31 @@ namespace csl {
 		}
 	};
 
-	template<>
-	struct InstructionGLSL<FuncDeclarationBase> {
-		static void call(const FuncDeclarationBase& f, GLSLData& data) { }
-	};
+	//template<>
+	//struct InstructionGLSL<FuncDeclarationBase> {
+	//	static void call(const FuncDeclarationBase& f, GLSLData& data) { }
+	//};
 
 	template<std::size_t NumOverloads>
-	struct OverloadGLSL {
-
+	struct OverloadGLSL
+	{
 		template<typename T, std::size_t Id>
 		struct Get {
 			static void call(const std::array<OverloadData, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
 				data.endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
 				const auto& args = overloads[Id].args->m_instructions;
 				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
-					if (!args.empty()) {
+					if (!args.empty())
 						retrieve_instruction(args.front())->print_glsl(data);
-					}
+
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data << ", ";
 						retrieve_instruction(args[i])->print_glsl(data);
 					}
 				} else {
-					if (!args.empty()) {
+					if (!args.empty())
 						retrieve_instruction(args.back())->print_glsl(data);
-					}
+
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data << ", ";
 						retrieve_instruction(args[args.size() - i - 1])->print_glsl(data);
@@ -746,10 +720,10 @@ namespace csl {
 		}
 	};
 
-	template<>
-	struct InstructionGLSL<StructDeclarationBase> {
-		static void call(const StructDeclarationBase& f, GLSLData& data) { }
-	};
+	//template<>
+	//struct InstructionGLSL<StructDeclarationBase> {
+	//	static void call(const StructDeclarationBase& f, GLSLData& data) { }
+	//};
 
 	template<typename S, typename T, std::size_t Id>
 	struct StructDeclarationMemberGLSL {
@@ -771,6 +745,7 @@ namespace csl {
 			iterate_over_typelist<typename S::MemberTList, StructMemberDeclaration>(data);
 			--data.trailing;
 			data.endl().trail() << "};";
+			data.endl();
 		}
 	};
 
@@ -797,19 +772,21 @@ namespace csl {
 				data << ArraySizePrinterGLSL<ArrayDimensions>::get();
 			}
 			data << ";";
+			data.endl();
 		}
 	};
 
 	template<typename Interface, typename T, std::size_t Id>
-	struct UnnamedInterfaceDeclarationMemberGLSL {
+	struct UnnamedInterfaceDeclarationMemberGLSL
+	{
 		static void call(const Interface& i, GLSLData& data) {
 			data.endl().trail() << GLSLDeclaration<T>::get(i.m_names[1 + Id]) << ";";
 		}
 	};
 
 	template<typename ...Qs, typename ...Ts>
-	struct InstructionGLSL<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>> {
-
+	struct InstructionGLSL<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>>
+	{
 		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 		using Qualifiers = RemoveArrayFromQualifiers<Qs...>;
 		using Interface = UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>;
@@ -819,14 +796,15 @@ namespace csl {
 
 		static void call(const Interface& s, GLSLData& data) {
 			data.endl().trail();
-			if constexpr (Qualifiers::Size > 0) {
+			if constexpr (Qualifiers::Size > 0)
 				data << GLSLQualifier<Qualifiers>::get() + " ";
-			}
+
 			data << s.m_names[0] << " {";
 			++data.trailing;
 			iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);
 			--data.trailing;
 			data.endl().trail() << "};";
+			data.endl();
 		}
 	};
 
@@ -873,6 +851,16 @@ namespace csl {
 		using Dimensions = SizeList<Ds...>;
 		using QualifersList = TList<Qualifiers...>;
 
+		static void temporary_str(const Constructor<T, N, Dimensions, QualifersList>& ctor, GLSLData& data)
+		{
+			if (ctor.arg_count() == 1) {
+				retrieve_expr(ctor.first_arg())->print_glsl(data);
+			} else {
+				data << GLSLTypeStr<T>::get() << ArraySizePrinterGLSL<Dimensions>::get();
+				OperatorGLSL<ArgSeq<N>>::call(ctor, data);
+			}
+		}
+
 		static void call(const Constructor<T, N, Dimensions, QualifersList>& ctor, GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis)
 		{
 			const CtorFlags ctor_flag = ctor.m_flags & CtorFlags::SwitchMask;
@@ -885,21 +873,11 @@ namespace csl {
 			case CtorFlags::Initialisation: {
 				data << GLSLDeclaration<T, Dimensions, QualifersList>::get(data.register_var_name(ctor.m_name, ctor.m_variable_id));
 				data << " = ";
-				if (ctor.arg_count() == 1) {
-					retrieve_expr(ctor.first_arg())->print_glsl(data);
-				} else {
-					data << GLSLTypeStr<T>::get() << ArraySizePrinterGLSL<Dimensions>::get();
-					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
-				}
+				temporary_str(ctor, data);
 				break;
 			}
 			case CtorFlags::Temporary: {
-				if (ctor.arg_count() == 1) {
-					retrieve_expr(ctor.first_arg())->print_glsl(data);
-				} else {
-					data << GLSLTypeStr<T>::get() << ArraySizePrinterGLSL<Dimensions>::get();
-					OperatorGLSL<ArgSeq<N>>::call(ctor, data);
-				}
+				temporary_str(ctor, data);
 				break;
 			}
 			case CtorFlags::Unused: {
