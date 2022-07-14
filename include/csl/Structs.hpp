@@ -90,7 +90,7 @@
 		}\
 		\
 		static const std::string& get_member_name(const std::size_t member_id) { \
-			static const std::array<std::string, VARIADIC_SIZE(__VA_ARGS__)> member_names = { CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) }; \
+			static const std::array<std::string, CSL_PP_VARIADIC_SIZE(__VA_ARGS__)> member_names = { CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) }; \
 			return member_names[member_id]; \
 		} \
 		static const std::string& get_type_str() { \
