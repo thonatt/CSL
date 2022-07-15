@@ -98,8 +98,8 @@ namespace csl {
 		LeftToRight, RightToLeft, NotSupported
 	};
 
-	struct ArgOrdering {
-
+	struct ArgOrdering 
+	{
 		ArgOrdering(const std::size_t i) : value(i) {
 			static size_t counter = 0;
 			counter_value = counter;

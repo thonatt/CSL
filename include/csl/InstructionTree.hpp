@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-namespace csl {
-
+namespace csl 
+{
 	struct InstructionBase
 	{
 		virtual ~InstructionBase() = default;
@@ -137,8 +137,8 @@ namespace csl {
 	using ForIterationStatement = ForIterationStatementDelayed<Dummy>;
 
 	template<typename T>
-	struct SpecialStatement final : InstructionBase {
-
+	struct SpecialStatement final : InstructionBase 
+	{
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<SpecialStatement>::call(*this, data);
 		}

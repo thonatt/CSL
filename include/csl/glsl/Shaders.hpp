@@ -7,16 +7,20 @@
 #include "Qualifiers.hpp"
 #include "../Structs.hpp"
 
-namespace csl {
+namespace csl
+{
 
-	namespace glsl {
+	namespace glsl
+	{
 
-		enum class GLSLversion : std::size_t {
+		enum class GLSLversion : std::size_t
+		{
 			_420 = 420,
 			_430 = 430
 		};
 
-		enum class ShaderType : std::size_t {
+		enum class ShaderType : std::size_t
+		{
 			Vertex,
 			TessellationControl,
 			TessellationEvaluation,
@@ -29,11 +33,12 @@ namespace csl {
 		struct BuiltInRegisters;
 
 		template<ShaderType type, GLSLversion version>
-		class ShaderGLSL final : protected ShaderController {
+		class ShaderGLSL final : protected ShaderController 
+		{
 
 		public:
 			ShaderGLSL();
-			ShaderGLSL(ShaderGLSL&& other) noexcept : ShaderController(std::move(other))  {
+			ShaderGLSL(ShaderGLSL&& other) noexcept : ShaderController(std::move(other)) {
 				//std::cout << "ShaderGLSL(ShaderGLSL&&)" << std::endl;
 			}
 			ShaderGLSL& operator=(ShaderGLSL&& other) noexcept {
@@ -77,12 +82,12 @@ namespace csl {
 		{
 			template<typename ...Qs>
 			void in() {
-				listen().add_statement<SpecialStatement<InInstruction<Qs...>>>();
+				context::get().add_statement<SpecialStatement<InInstruction<Qs...>>>();
 			}
 
 			template<typename ...Qs>
 			void out() {
-				listen().add_statement<SpecialStatement<OutInstruction<Qs...>>>();
+				context::get().add_statement<SpecialStatement<OutInstruction<Qs...>>>();
 			}
 
 		}
@@ -212,11 +217,11 @@ namespace csl {
 			);
 
 			inline void EmitVertex() {
-				listen().add_statement<SpecialStatement<csl::EmitVertexI>>();
+				context::get().add_statement<SpecialStatement<csl::EmitVertexI>>();
 			}
 
 			inline void EndPrimitive() {
-				listen().add_statement<SpecialStatement<csl::EndPrimitiveI>>();
+				context::get().add_statement<SpecialStatement<csl::EndPrimitiveI>>();
 			}
 		}
 
@@ -244,7 +249,7 @@ namespace csl {
 			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
 			inline void _csl_only_available_in_discard_context_() {
-				listen().add_statement<SpecialStatement<Discard>>();
+				context::get().add_statement<SpecialStatement<Discard>>();
 			}
 		}
 
@@ -346,15 +351,15 @@ namespace csl {
 		template<ShaderType type, GLSLversion version>
 		inline ShaderGLSL<type, version>::ShaderGLSL()
 		{
-			listen().current_shader = this;
+			auto& s = context::g_current_shader;
+			context::g_current_shader = this;
 		}
 
 		template<ShaderType type, GLSLversion version>
 		inline ShaderGLSL<type, version>::~ShaderGLSL()
 		{
-			if (listen().current_shader == this) {
-				listen().current_shader = nullptr;
-			}
+			if (context::g_current_shader == this)
+				context::g_current_shader = nullptr;
 		}
 
 		template<ShaderType type, GLSLversion version>

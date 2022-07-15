@@ -85,7 +85,8 @@ namespace csl {
 	{
 		static void call(const ShaderController& controller, ImGuiData& data) 
 		{
-			data.vector_node("Shader scope", controller.m_scope->m_instructions);
+			for (const auto& i : controller.m_scope->m_instructions)
+				retrieve_instruction(i)->print_imgui(data);
 		}
 	};
 

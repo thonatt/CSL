@@ -103,7 +103,7 @@
 
 #define CSL_PP_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, DefaultObjFlags, ...) \
 	struct UniqueTypename; \
-	csl::listen().add_named_interface_block<UniqueTypename>(CSL_PP_STR(Name)); \
+	csl::context::get().add_named_interface_block<UniqueTypename>(CSL_PP_STR(Name)); \
 	CSL_PP_STRUCT(Qualifiers, UniqueTypename, Typename, DefaultObjFlags, __VA_ARGS__); \
 	Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name), DefaultObjFlags | csl::ObjFlags::UsedAsRef );
 
@@ -112,7 +112,7 @@
 	inline Qualify<UniqueTypename, CSL_PP_DEPARENTHESIS(Qualifiers)> Name( CSL_PP_STR(Name) );
 
 #define CSL_PP_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
-	csl::listen().add_unnamed_interface_block< \
+	csl::context::get().add_unnamed_interface_block< \
 		csl::TList< CSL_PP_DEPARENTHESIS(Qualifiers) >, csl::TList< CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) > > ( \
 			CSL_PP_STR(Typename), CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	CSL_PP_ITERATE(CSL_PP_DECLARE_UNNAMED_INTERFACE_MEMBER_IT, __VA_ARGS__ );
@@ -122,7 +122,7 @@
 
 #define CSL_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
-	csl::listen().add_struct<StructTypename>(); \
+	csl::context::get().add_struct<StructTypename>(); \
 	CSL_PP_STRUCT((),StructTypename, StructTypename, csl::ObjFlags::StructMember | csl::ObjFlags::AlwaysExp, __VA_ARGS__ )
 
 #define CSL_INTERFACE_BLOCK(Qualifiers, StructTypename, Name, ...) \

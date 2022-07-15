@@ -18,10 +18,10 @@
 #define CSL_LAUNDER(...) __VA_ARGS__
 #endif
 
-namespace csl {
-
-	enum class Op : std::size_t {
-
+namespace csl
+{
+	enum class Op : std::size_t 
+	{
 		// algebra operators
 		CWiseMul,
 		MatrixTimesScalar,
