@@ -49,7 +49,7 @@ namespace csl
 			current_block->push_instruction(make_instruction<Statement>(e));
 		}
 
-		Block* current_block;
+		Scope* current_block;
 
 		virtual void push_instruction(const InstructionIndex i) {}
 
@@ -116,7 +116,7 @@ namespace csl
 		}
 
 		std::vector<std::size_t> current_func_overloads_num_args;
-		Block* current_func_parent;
+		Scope* current_func_parent;
 		InstructionIndex current_func;
 		std::size_t current_overload;
 		std::size_t current_overload_arg_counter;
@@ -173,8 +173,8 @@ namespace csl
 		void begin_if(const Expr& expr)
 		{
 			current_if = make_instruction<IfInstruction>(current_if);
-			IfInstruction::IfCase if_case{ expr, std::make_unique<Block>(current_block) };
-			Block* future_current_block = if_case.body.get();
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block) };
+			Scope* future_current_block = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
 			push_instruction(current_if);
 			current_block = future_current_block;
@@ -182,7 +182,7 @@ namespace csl
 
 		void begin_else()
 		{
-			IfInstruction::IfCase if_case{ {}, std::make_unique<Block>(current_block->m_parent) };
+			IfInstruction::IfCase if_case{ {}, std::make_unique<Scope>(current_block->m_parent) };
 			current_block = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
 			delay_end_if();
@@ -190,7 +190,7 @@ namespace csl
 
 		void begin_else_if(const Expr& expr)
 		{
-			IfInstruction::IfCase if_case{ expr, std::make_unique<Block>(current_block->m_parent) };
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block->m_parent) };
 			current_block = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
 		}
@@ -277,8 +277,6 @@ namespace csl
 		virtual IfController,
 		virtual SwitchController
 	{
-		using Ptr = std::shared_ptr<MainController>;
-
 		virtual void begin_for() override
 		{
 			check_end_if();
@@ -346,9 +344,7 @@ namespace csl
 
 	struct ShaderController : MainController
 	{
-		using Ptr = std::shared_ptr<ShaderController>;
-
-		MainBlock::Ptr m_scope;
+		std::unique_ptr<Scope> m_scope;
 
 #ifdef NDEBUG
 		using MemoryPool = PolymorphicMemoryPool<OperatorBase>;
@@ -374,7 +370,7 @@ namespace csl
 
 		ShaderController()
 		{
-			m_scope = std::make_unique<MainBlock>();
+			m_scope = std::make_unique<Scope>();
 			current_block = m_scope.get();
 		}
 
@@ -453,16 +449,16 @@ namespace csl
 			m_scope->m_instructions.push_back(current_func);
 		}
 
-		ReturnBlockBase* get_return_block()
+		ReturnScopeBase* get_return_block()
 		{
-			Block* test_block = current_block;
+			Scope* test_block = current_block;
 			while (test_block) {
-				if (dynamic_cast<ReturnBlockBase*>(test_block))
+				if (dynamic_cast<ReturnScopeBase*>(test_block))
 					break;
 				else
 					test_block = test_block->m_parent;
 			}
-			return safe_static_cast<ReturnBlockBase*>(test_block);
+			return safe_static_cast<ReturnScopeBase*>(test_block);
 		}
 
 		template<typename S, typename ... Args>

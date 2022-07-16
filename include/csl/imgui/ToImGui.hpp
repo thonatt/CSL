@@ -251,7 +251,7 @@ namespace csl {
 
 		template<typename T, std::size_t Id>
 		struct Get {
-			static void call(const std::array<OverloadData, NumOverloads>& overloads, ImGuiData& data, const std::string& fname) {
+			static void call(const std::array<FuncOverload, NumOverloads>& overloads, ImGuiData& data, const std::string& fname) {
 
 				data.glsl_data.stream.str("");
 				data.glsl_data << GLSLTypeStr<T>::get() + " " + fname + "(";
@@ -291,11 +291,6 @@ namespace csl {
 			const std::string& name = data.glsl_data.register_var_name(f.m_name, f.m_id);
 			iterate_over_typelist<ReturnTList, OverloadImGui<sizeof...(Fs)>::template Get>(f.m_overloads, data, name);
 		}
-	};
-
-	template<>
-	struct InstructionImGui<StructDeclarationBase> {
-		static void call(const StructDeclarationBase& f, ImGuiData& data) { }
 	};
 
 	template<typename S, typename T, std::size_t Id>

@@ -677,7 +677,7 @@ namespace csl {
 	{
 		template<typename T, std::size_t Id>
 		struct Get {
-			static void call(const std::array<OverloadData, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
+			static void call(const std::array<FuncOverload, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
 				data.endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
 				const auto& args = overloads[Id].args->m_instructions;
 				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
@@ -719,11 +719,6 @@ namespace csl {
 			iterate_over_typelist<ReturnTList, OverloadGLSL<sizeof...(Fs)>::template Get>(f.m_overloads, data, name);
 		}
 	};
-
-	//template<>
-	//struct InstructionGLSL<StructDeclarationBase> {
-	//	static void call(const StructDeclarationBase& f, GLSLData& data) { }
-	//};
 
 	template<typename S, typename T, std::size_t Id>
 	struct StructDeclarationMemberGLSL {

@@ -33,42 +33,35 @@ namespace csl
 
 	/////////////////////////////////////////
 
-	struct Block {
-		using Ptr = std::unique_ptr<Block>;
-
-		Block(Block* parent = nullptr) : m_parent(parent) {}
-
-		virtual ~Block() = default;
+	struct Scope 
+	{
+		Scope(Scope* parent = nullptr) : m_parent(parent) {}
+		virtual ~Scope() = default;
 
 		virtual void push_instruction(const InstructionIndex i) {
 			m_instructions.push_back(i);
 		}
 
 		std::vector<InstructionIndex> m_instructions;
-		Block* m_parent;
+		Scope* m_parent;
 	};
 
-	struct MainBlock : Block {
-		using Ptr = std::unique_ptr<MainBlock>;
-	};
-
-	struct ReturnBlockBase : Block {
-		using Ptr = std::unique_ptr<ReturnBlockBase>;
-		using Block::Block;
-
-		virtual ~ReturnBlockBase() = default;
+	struct ReturnScopeBase : Scope 
+	{
+		using Scope::Scope;
+		virtual ~ReturnScopeBase() = default;
 	};
 
 	template<typename ReturnType>
-	struct ReturnBlock : ReturnBlockBase {
-		using Ptr = std::unique_ptr<ReturnBlock<ReturnType>>;
-
-		ReturnBlock(Block* parent = {}) : ReturnBlockBase(parent) {}
-		virtual ~ReturnBlock() = default;
+	struct ReturnScope : ReturnScopeBase 
+	{
+		ReturnScope(Scope* parent = {}) : ReturnScopeBase(parent) {}
+		virtual ~ReturnScope() = default;
 	};
 
 	template<typename Delayed>
-	struct StatementDelayed : InstructionBase {
+	struct StatementDelayed : InstructionBase 
+	{
 		virtual ~StatementDelayed() = default;
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -83,8 +76,8 @@ namespace csl
 	};
 	using Statement = StatementDelayed<Dummy>;
 
-	struct FunctionArgBlock : Block {
-		using Ptr = std::unique_ptr<FunctionArgBlock>;
+	struct FunctionArgScope : Scope 
+	{
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
 			auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(expr));
@@ -111,7 +104,8 @@ namespace csl
 	using ReturnStatement = ReturnStatementDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct ForArgStatementDelayed final : Statement {
+	struct ForArgStatementDelayed final : Statement
+	{
 		ForArgStatementDelayed(const Expr expr) : Statement(expr) { }
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -124,7 +118,8 @@ namespace csl
 	using ForArgStatement = ForArgStatementDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct ForIterationStatementDelayed final : Statement {
+	struct ForIterationStatementDelayed final : Statement 
+	{
 		ForIterationStatementDelayed(const Expr& expr) : Statement(expr) { }
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -163,15 +158,17 @@ namespace csl
 	template<typename ...Qs>
 	struct OutInstruction {};
 
-	struct OverloadData {
-		OverloadData() {
-			args = std::make_unique<FunctionArgBlock>();
-			body = std::make_unique<Block>();
+	struct FuncOverload
+	{
+		FuncOverload() {
+			args = std::make_unique<FunctionArgScope>();
+			body = std::make_unique<Scope>();
 		}
-		Block::Ptr args, body;
+		std::unique_ptr<Scope> args, body;
 	};
 
-	struct FuncDeclarationBase : InstructionBase {
+	struct FuncDeclarationBase : InstructionBase
+	{
 		virtual ~FuncDeclarationBase() = default;
 
 		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) : m_name(name), m_id(fun_id) {
@@ -180,7 +177,7 @@ namespace csl
 		virtual void print_imgui(ImGuiData& data) const override {}
 		virtual void print_glsl(GLSLData& data) const override {}
 
-		virtual const OverloadData& get_overload(const std::size_t i) const = 0;
+		virtual const FuncOverload& get_overload(const std::size_t i) const = 0;
 		virtual std::size_t overload_count() const = 0;
 
 		std::string m_name;
@@ -188,14 +185,14 @@ namespace csl
 	};
 
 	template<typename ReturnTList, typename ... Fs>
-	struct FuncDeclaration final : FuncDeclarationBase {
-
+	struct FuncDeclaration final : FuncDeclarationBase
+	{
 		static constexpr std::size_t N = sizeof...(Fs);
 
 		FuncDeclaration(const std::string& name, const std::size_t fun_id) : FuncDeclarationBase(name, fun_id) {
 		}
 
-		const OverloadData& get_overload(const std::size_t i) const override {
+		const FuncOverload& get_overload(const std::size_t i) const override {
 			return m_overloads[i];
 		}
 
@@ -210,49 +207,27 @@ namespace csl
 			InstructionGLSL<FuncDeclaration>::call(*this, data);
 		}
 
-		std::array<OverloadData, N> m_overloads;
+		std::array<FuncOverload, N> m_overloads;
 	};
 
-	struct ForArgsBlock : Block {
-		using Ptr = std::unique_ptr<ForArgsBlock>;
-		using Block::Block;
+	struct ForArgsScope : Scope 
+	{
+		using Scope::Scope;
 
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
-
-			//auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(expr));
-			//if (ctor->m_flags && CtorFlags::Declaration) {
-			//	assert(m_instructions.empty());
-			//	m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-			//} else {
-			//	if (m_instructions.size() <= 1) {
-			//		m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-			//	} else {
-			//		m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
-			//	}
-			//}
-
 			m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-
-			//if (ctor->m_flags && CtorFlags::Initialisation) {
-			//	if (m_instructions.size() <= 1) {
-			//		m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-			//	} else {
-			//		m_instructions.push_back(make_instruction<ForIterationStatement>(expr));
-			//	}
-			//} else {
-			//	assert(false);
-			//}
 		}
 
 		Expr m_stacked_condition;
 	};
 
 	template<typename Delayed>
-	struct ForInstructionDelayed final : InstructionBase {
+	struct ForInstructionDelayed final : InstructionBase
+	{
 		ForInstructionDelayed() {
-			args = std::make_unique<ForArgsBlock>();
-			body = std::make_unique<Block>();
+			args = std::make_unique<ForArgsScope>();
+			body = std::make_unique<Scope>();
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -262,8 +237,8 @@ namespace csl
 			InstructionGLSL<ForInstructionDelayed>::call(*this, data);
 		}
 
-		ForArgsBlock::Ptr args;
-		Block::Ptr body;
+		std::unique_ptr<ForArgsScope> args;
+		std::unique_ptr<Scope> body;
 	};
 	using ForInstruction = ForInstructionDelayed<Dummy>;
 
@@ -273,7 +248,7 @@ namespace csl
 		struct IfCase 
 		{
 			Expr condition;
-			std::unique_ptr<Block> body;
+			std::unique_ptr<Scope> body;
 		};
 
 		IfInstructionDelayed(const InstructionIndex parent_if) : m_parent_if(parent_if) {}
@@ -292,11 +267,11 @@ namespace csl
 	using IfInstruction = IfInstructionDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct WhileInstructionDelayed final : InstructionBase {
-
-		WhileInstructionDelayed(const Expr expr, Block* parent_block) {
+	struct WhileInstructionDelayed final : InstructionBase
+	{
+		WhileInstructionDelayed(const Expr expr, Scope* parent_block) {
 			m_condition = expr;
-			m_body = std::make_unique<Block>(parent_block);
+			m_body = std::make_unique<Scope>(parent_block);
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -307,16 +282,16 @@ namespace csl
 		}
 
 		Expr m_condition;
-		Block::Ptr m_body;
+		std::unique_ptr<Scope> m_body;
 	};
 	using WhileInstruction = WhileInstructionDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct SwitchCaseDelayed final : InstructionBase {
-
-		SwitchCaseDelayed(const Expr& expr, Block* parent) {
+	struct SwitchCaseDelayed final : InstructionBase 
+	{
+		SwitchCaseDelayed(const Expr& expr, Scope* parent) {
 			m_label = expr;
-			m_body = std::make_unique<Block>(parent);
+			m_body = std::make_unique<Scope>(parent);
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -327,20 +302,20 @@ namespace csl
 		}
 
 		Expr m_label;
-		Block::Ptr m_body;
+		std::unique_ptr<Scope> m_body;
 	};
 	using SwitchCase = SwitchCaseDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct SwitchInstructionDelayed final : InstructionBase {
-
-		SwitchInstructionDelayed(const Expr expr, Block* parent, const InstructionIndex parent_switch) {
+	struct SwitchInstructionDelayed final : InstructionBase
+	{
+		SwitchInstructionDelayed(const Expr expr, Scope* parent, const InstructionIndex parent_switch) {
 			m_condition = expr;
-			m_body = std::make_unique<Block>(parent);
+			m_body = std::make_unique<Scope>(parent);
 			m_parent_switch = parent_switch;
 		}
 
-		void add_case(const Expr expr, Block*& current_block) {
+		void add_case(const Expr expr, Scope*& current_block) {
 			m_current_case = make_instruction<SwitchCase>(expr, m_body.get());
 			m_body->push_instruction(m_current_case);
 			current_block = safe_static_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body.get();
@@ -354,21 +329,15 @@ namespace csl
 		}
 
 		Expr m_condition;
-		Block::Ptr m_body;
+		std::unique_ptr<Scope> m_body;
 		InstructionIndex m_current_case;
 		InstructionIndex m_parent_switch;
 	};
 	using SwitchInstruction = SwitchInstructionDelayed<Dummy>;
 
-	struct StructDeclarationBase : InstructionBase {
-		virtual ~StructDeclarationBase() = default;
-
-		virtual void print_imgui(ImGuiData& data) const override { }
-		virtual void print_glsl(GLSLData& data) const override { }
-	};
-
 	template<typename Struct>
-	struct StructDeclaration final : StructDeclarationBase {
+	struct StructDeclaration final : InstructionBase
+	{
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<StructDeclaration>::call(*this, data);
 		}
@@ -378,8 +347,8 @@ namespace csl
 	};
 
 	template<typename Interface>
-	struct NamedInterfaceDeclaration final : InstructionBase {
-
+	struct NamedInterfaceDeclaration final : InstructionBase 
+	{
 		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
 
 		virtual void print_imgui(ImGuiData& data) const override {
@@ -407,7 +376,4 @@ namespace csl
 
 		std::array<std::string, 1 + TypeList::Size> m_names;
 	};
-
-
-
 }
