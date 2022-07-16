@@ -81,9 +81,9 @@ namespace csl {
 	};
 
 	template<typename Delayed>
-	struct ControllerImGui<Delayed, ShaderController> 
+	struct ControllerImGui<Delayed, ShaderController>
 	{
-		static void call(const ShaderController& controller, ImGuiData& data) 
+		static void call(const ShaderController& controller, ImGuiData& data)
 		{
 			for (const auto& i : controller.m_scope->m_instructions)
 				retrieve_instruction(i)->print_imgui(data);
@@ -313,24 +313,22 @@ namespace csl {
 		}
 	};
 
-	template<typename Interface>
-	struct InstructionImGui<NamedInterfaceDeclaration<Interface>> {
-		using ArrayDimensions = typename Interface::ArrayDimensions;
-		using Qualifiers = typename Interface::Qualifiers;
-
+	template<typename Interface, typename Dimensions, typename Qualifiers>
+	struct InstructionImGui<NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>>
+	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberImGui<Interface, T, Id>;
 
-		static void call(const NamedInterfaceDeclaration<Interface>& s, ImGuiData& data) {
-
+		static void call(const NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>& s, ImGuiData& data)
+		{
 			std::string interface_name;
-			if constexpr (Qualifiers::Size > 0) {
+			if constexpr (Qualifiers::Size > 0)
 				interface_name += GLSLQualifier<Qualifiers>::get() + " ";
-			}
+
 			interface_name += GLSLTypeStr<Interface>::get() + " " + s.m_name;
-			if constexpr (ArrayDimensions::Size > 0) {
-				interface_name += ArraySizePrinterGLSL<ArrayDimensions>::get();
-			}
+			if constexpr (Dimensions::Size > 0)
+				interface_name += ArraySizePrinterGLSL<Dimensions>::get();
+
 			interface_name += ";";
 			data.node(interface_name, [&] {
 				iterate_over_typelist<typename Interface::MemberTList, StructMemberDeclaration>(data);
@@ -397,7 +395,7 @@ namespace csl {
 	};
 
 	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
-	struct OperatorImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>> 
+	struct OperatorImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
 	{
 		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) {
 

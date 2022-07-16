@@ -744,16 +744,13 @@ namespace csl {
 		}
 	};
 
-	template<typename Interface>
-	struct InstructionGLSL<NamedInterfaceDeclaration<Interface>>
+	template<typename Interface, typename Dimensions, typename Qualifiers>
+	struct InstructionGLSL<NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>>
 	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<Interface, T, Id>;
 
-		using ArrayDimensions = typename Interface::ArrayDimensions;
-		using Qualifiers = typename Interface::Qualifiers;
-
-		static void call(const NamedInterfaceDeclaration<Interface>& s, GLSLData& data) {
+		static void call(const NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>& s, GLSLData& data) {
 			data.endl().trail();
 			if constexpr (Qualifiers::Size > 0) {
 				data << GLSLQualifier<Qualifiers>::get() + " ";
@@ -763,8 +760,8 @@ namespace csl {
 			iterate_over_typelist<typename Interface::MemberTList, StructMemberDeclaration>(data);
 			--data.trailing;
 			data.endl().trail() << "} " << s.m_name;
-			if constexpr (ArrayDimensions::Size > 0) {
-				data << ArraySizePrinterGLSL<ArrayDimensions>::get();
+			if constexpr (Dimensions::Size > 0) {
+				data << ArraySizePrinterGLSL<Dimensions>::get();
 			}
 			data << ";";
 			data.endl();
@@ -775,7 +772,7 @@ namespace csl {
 	struct UnnamedInterfaceDeclarationMemberGLSL
 	{
 		static void call(const Interface& i, GLSLData& data) {
-			data.endl().trail() << GLSLDeclaration<T>::get(i.m_names[1 + Id]) << ";";
+			data.endl().trail() << GLSLDeclaration<T>::get(i.m_names[Id]) << ";";
 		}
 	};
 
@@ -794,7 +791,7 @@ namespace csl {
 			if constexpr (Qualifiers::Size > 0)
 				data << GLSLQualifier<Qualifiers>::get() + " ";
 
-			data << s.m_names[0] << " {";
+			data << s.m_name << " {";
 			++data.trailing;
 			iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);
 			--data.trailing;

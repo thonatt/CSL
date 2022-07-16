@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace csl 
+namespace csl
 {
 	struct InstructionBase
 	{
@@ -33,7 +33,7 @@ namespace csl
 
 	/////////////////////////////////////////
 
-	struct Scope 
+	struct Scope
 	{
 		Scope(Scope* parent = nullptr) : m_parent(parent) {}
 		virtual ~Scope() = default;
@@ -46,21 +46,21 @@ namespace csl
 		Scope* m_parent;
 	};
 
-	struct ReturnScopeBase : Scope 
+	struct ReturnScopeBase : Scope
 	{
 		using Scope::Scope;
 		virtual ~ReturnScopeBase() = default;
 	};
 
 	template<typename ReturnType>
-	struct ReturnScope : ReturnScopeBase 
+	struct ReturnScope : ReturnScopeBase
 	{
 		ReturnScope(Scope* parent = {}) : ReturnScopeBase(parent) {}
 		virtual ~ReturnScope() = default;
 	};
 
 	template<typename Delayed>
-	struct StatementDelayed : InstructionBase 
+	struct StatementDelayed : InstructionBase
 	{
 		virtual ~StatementDelayed() = default;
 
@@ -76,7 +76,7 @@ namespace csl
 	};
 	using Statement = StatementDelayed<Dummy>;
 
-	struct FunctionArgScope : Scope 
+	struct FunctionArgScope : Scope
 	{
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
@@ -118,7 +118,7 @@ namespace csl
 	using ForArgStatement = ForArgStatementDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct ForIterationStatementDelayed final : Statement 
+	struct ForIterationStatementDelayed final : Statement
 	{
 		ForIterationStatementDelayed(const Expr& expr) : Statement(expr) { }
 
@@ -132,7 +132,7 @@ namespace csl
 	using ForIterationStatement = ForIterationStatementDelayed<Dummy>;
 
 	template<typename T>
-	struct SpecialStatement final : InstructionBase 
+	struct SpecialStatement final : InstructionBase
 	{
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<SpecialStatement>::call(*this, data);
@@ -210,7 +210,7 @@ namespace csl
 		std::array<FuncOverload, N> m_overloads;
 	};
 
-	struct ForArgsScope : Scope 
+	struct ForArgsScope : Scope
 	{
 		using Scope::Scope;
 
@@ -243,9 +243,9 @@ namespace csl
 	using ForInstruction = ForInstructionDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct IfInstructionDelayed final : InstructionBase 
+	struct IfInstructionDelayed final : InstructionBase
 	{
-		struct IfCase 
+		struct IfCase
 		{
 			Expr condition;
 			std::unique_ptr<Scope> body;
@@ -287,7 +287,7 @@ namespace csl
 	using WhileInstruction = WhileInstructionDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct SwitchCaseDelayed final : InstructionBase 
+	struct SwitchCaseDelayed final : InstructionBase
 	{
 		SwitchCaseDelayed(const Expr& expr, Scope* parent) {
 			m_label = expr;
@@ -346,8 +346,8 @@ namespace csl
 		}
 	};
 
-	template<typename Interface>
-	struct NamedInterfaceDeclaration final : InstructionBase 
+	template<typename Interface, typename Dimensions, typename Qualifiers>
+	struct NamedInterfaceDeclaration final : InstructionBase
 	{
 		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
 
@@ -358,14 +358,14 @@ namespace csl
 			InstructionGLSL<NamedInterfaceDeclaration>::call(*this, data);
 		}
 
-		std::string m_name;
+		const std::string m_name;
 	};
 
 	template<typename QualifierList, typename TypeList>
 	struct UnnamedInterfaceDeclaration final : InstructionBase
 	{
 		template<typename ...Strings>
-		UnnamedInterfaceDeclaration(Strings&& ...names) : m_names{ names ... } { }
+		UnnamedInterfaceDeclaration(const std::string& name, Strings&& ...names) : m_name{ name }, m_names{ names ... } { }
 
 		virtual void print_imgui(ImGuiData& data) const override {
 			InstructionImGui<UnnamedInterfaceDeclaration>::call(*this, data);
@@ -374,6 +374,7 @@ namespace csl
 			InstructionGLSL<UnnamedInterfaceDeclaration>::call(*this, data);
 		}
 
-		std::array<std::string, 1 + TypeList::Size> m_names;
+		const std::string m_name;
+		const std::array<std::string, TypeList::Size> m_names;
 	};
 }

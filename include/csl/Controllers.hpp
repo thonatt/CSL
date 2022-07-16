@@ -430,16 +430,16 @@ namespace csl
 			m_scope->m_instructions.push_back(make_instruction<StructDeclaration<Struct>>());
 		}
 
-		template<typename Interface>
+		template<typename Interface, typename Dimensions, typename Qualifiers>
 		void add_named_interface_block(const std::string& name)
 		{
-			m_scope->m_instructions.push_back(make_instruction<NamedInterfaceDeclaration<Interface>>(name));
+			m_scope->m_instructions.push_back(make_instruction<NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>>(name));
 		}
 
 		template<typename QualifierList, typename TypeList, typename ...Strings>
-		void add_unnamed_interface_block(Strings&& ... names)
+		void add_unnamed_interface_block(const std::string& name, Strings&& ... names)
 		{
-			m_scope->m_instructions.push_back(make_instruction<UnnamedInterfaceDeclaration<QualifierList, TypeList>>(std::forward<Strings>(names)...));
+			m_scope->m_instructions.push_back(make_instruction<UnnamedInterfaceDeclaration<QualifierList, TypeList>>(name, std::forward<Strings>(names)...));
 		}
 
 		template<typename ReturnTList, typename ... Fs>
