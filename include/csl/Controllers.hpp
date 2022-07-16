@@ -10,6 +10,25 @@
 
 namespace csl
 {
+	struct ShaderController;
+
+	namespace context
+	{
+		inline ShaderController* g_current_shader = nullptr;
+		inline bool g_active = true;
+
+		inline bool active()
+		{
+			return g_current_shader && g_active;
+		}
+
+		inline ShaderController& get()
+		{
+			assert(g_current_shader);
+			return *g_current_shader;
+		}
+	}
+
 	template<typename Delayed, typename T>
 	struct ControllerImGui
 	{
@@ -364,6 +383,8 @@ namespace csl
 			m_memory_pool(std::move(other.m_memory_pool)),
 			m_instruction_pool(std::move(other.m_instruction_pool))
 		{
+			if (context::g_current_shader == &other)
+				context::g_current_shader = this;
 		}
 
 		ShaderController& operator=(ShaderController&& other)
@@ -371,6 +392,9 @@ namespace csl
 			std::swap(m_scope, other.m_scope);
 			std::swap(m_memory_pool, other.m_memory_pool);
 			std::swap(m_instruction_pool, other.m_instruction_pool);
+			if (context::g_current_shader == &other)
+				context::g_current_shader = this;
+
 			return *this;
 		}
 
@@ -442,7 +466,7 @@ namespace csl
 		}
 
 		template<typename S, typename ... Args>
-		void add_statement(Args&& ... args) 
+		void add_statement(Args&& ... args)
 		{
 			push_instruction(make_instruction<S>(std::forward<Args>(args)...));
 		}

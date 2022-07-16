@@ -48,7 +48,8 @@ namespace csl {
 		{
 		}
 
-		void set_as_temp() const {
+		void set_as_temp() const 
+		{
 			if (m_flags & ObjFlags::Constructor) {
 				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr));
 				ctor->set_as_temp();
@@ -109,7 +110,8 @@ namespace csl {
 		Expr get_this_expr()&& { return get_expr_as_temp(); }
 		Expr get_this_expr() const&& { return get_expr_as_temp(); }
 
-		Expr get_plain_expr() const {
+		Expr get_plain_expr() const 
+		{
 			return m_expr;
 		}
 
@@ -149,10 +151,12 @@ namespace csl {
 	};
 
 	template<typename T>
-	class NamedObject : public NamedObjectBase {
+	class NamedObject : public NamedObjectBase 
+	{
 	public:
 
-		NamedObjectInit<T> operator<<(const std::string& name) const&& {
+		NamedObjectInit<T> operator<<(const std::string& name) const&& 
+		{
 			return { get_expr_as_temp(), name };
 		}
 
@@ -174,11 +178,10 @@ namespace csl {
 
 		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags) {
-			if (obj_flags & ObjFlags::StructMember) {
+			if (obj_flags & ObjFlags::StructMember)
 				m_expr = expr;
-			} else if (obj_flags & ObjFlags::Constructor) {
+			else if (obj_flags & ObjFlags::Constructor)
 				m_expr = create_variable_expr<T>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
-			}
 			assert(m_expr);
 		}
 
@@ -208,9 +211,9 @@ namespace csl {
 		TypeInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
 			: T(Dummy{})
 		{
-			if (obj_flags & ObjFlags::Constructor) {
+			if (obj_flags & ObjFlags::Constructor)
 				T::m_expr = create_variable_expr<T, SizeList<>, Qualifiers>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
-			}
+
 			T::set_members();
 		}
 
@@ -219,6 +222,7 @@ namespace csl {
 		{
 			if (obj_flags & ObjFlags::Constructor)
 				T::m_expr = create_variable_expr<T, SizeList<>, Qualifiers>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
+
 			T::set_members();
 		}
 

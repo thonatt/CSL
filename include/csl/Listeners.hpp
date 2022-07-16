@@ -16,23 +16,6 @@
 
 namespace csl
 {
-	namespace context
-	{
-		inline ShaderController* g_current_shader = nullptr;
-		inline bool g_active = true;
-
-		inline bool active()
-		{
-			return g_current_shader && g_active;
-		}
-
-		inline ShaderController& get()
-		{
-			assert(g_current_shader);
-			return *g_current_shader;
-		}
-	}
-
 	inline OperatorBase* retrieve_expr(const Expr index)
 	{
 		if (!index)
@@ -163,12 +146,9 @@ namespace csl
 	}
 
 	inline NamedObjectBase::~NamedObjectBase() {
-		if (m_flags & ObjFlags::Constructor && m_flags & ObjFlags::Tracked && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && !(m_flags & ObjFlags::StructMember)) {
-			// TODO: Why is third case necessary?
-			if (m_expr && context::g_current_shader && !context::get().m_memory_pool.m_objects_offsets.empty()) {
+		if (m_flags & ObjFlags::Constructor && m_flags & ObjFlags::Tracked && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && !(m_flags & ObjFlags::StructMember))
+			if (m_expr && context::active())
 				safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
-			}
-		}
 	}
 
 	template<typename T, typename Dimensions, typename Qualifiers, typename ... Args>

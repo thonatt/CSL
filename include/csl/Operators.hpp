@@ -325,9 +325,8 @@ namespace csl
 		}
 
 		void set_as_unused() {
-			if (bool(m_flags & CtorFlags::Initialisation)) {
+			if (bool(m_flags & CtorFlags::Initialisation))
 				m_flags = CtorFlags::Unused;
-			}
 		}
 
 		void set_as_const() {
