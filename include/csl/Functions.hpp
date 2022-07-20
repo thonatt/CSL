@@ -39,8 +39,8 @@ namespace csl {
 	};
 
 	template<typename ReturnTypeList, typename FList, typename ArgList>
-	struct OverloadResolution {
-
+	struct OverloadResolution 
+	{
 		template<typename F>
 		struct FunMatchingPred {
 			static constexpr bool Value = EqualLists<TypeMatchingPred, GetArgTList<F>, ArgList>;
@@ -55,7 +55,7 @@ namespace csl {
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	// functor minimal number of argument, helpers from https://stackoverflow.com/a/57254989/4953963
+	// Minimal number of argument of a functor, from https://stackoverflow.com/a/57254989/4953963
 
 	template <typename F, typename T, std::size_t ... Is>
 	constexpr auto lambda_min_number_of_args_helper(std::index_sequence<Is...> is, int)

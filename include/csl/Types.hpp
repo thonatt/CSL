@@ -55,8 +55,6 @@ namespace csl
 	template<typename T, typename ...Qs>
 	struct TypeInterface;
 
-	enum class ObjFlags : std::size_t;
-
 	template<typename List>
 	struct GetArrayFromList;
 

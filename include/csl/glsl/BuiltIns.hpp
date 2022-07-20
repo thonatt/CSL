@@ -200,12 +200,10 @@ namespace csl {
 
 	namespace glsl_150 {
 		using namespace glsl_140;
-
 	}
 
 	namespace glsl_330 {
 		using namespace glsl_150;
-
 	}
 
 	namespace glsl_400 {
@@ -214,9 +212,7 @@ namespace csl {
 		CSL_MAKE_OP_3(Infos<A>::IsVec&& SameMat<B CSL_PP_COMMA Int>&& SameMat<C CSL_PP_COMMA Int>,
 			Vector<typename Infos<A>::ScalarType CSL_PP_COMMA Infos<A>::RowCount>,
 			bitfieldExtract,
-			(A, value),
-			(B, offset),
-			(C, bits)
+			(A, value), (B, offset), (C, bits)
 		);
 
 		CSL_MAKE_OP_3(
@@ -235,9 +231,8 @@ namespace csl {
 	namespace glsl_420 {
 		using namespace glsl_410;
 
-		template<typename I, typename P, typename D, typename = std::enable_if_t<true>
-		>
-			void imageStore(I&& image, P&& p, D&& data)
+		template<typename I, typename P, typename D, typename = std::enable_if_t<true>>
+		void imageStore(I&& image, P&& p, D&& data)
 		{
 			context::get().push_expression(make_funcall(Op::imageStore, EXPR(I, image), EXPR(P, p), EXPR(D, data)));
 		}

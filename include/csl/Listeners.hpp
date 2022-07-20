@@ -64,8 +64,8 @@ namespace csl
 		}
 	};
 
-	struct SwitchListener {
-
+	struct SwitchListener
+	{
 		SwitchListener(const bool active_listener) : m_active_listener(active_listener) { }
 
 		~SwitchListener() {
@@ -73,16 +73,15 @@ namespace csl
 		}
 
 		operator std::size_t() {
-			if (!m_active_listener) {
+			if (!m_active_listener)
 				return static_cast<std::size_t>(0);
-			}
 
 			++pass_count;
-			if (pass_count == 1) {
-				context::g_active = false;
-			} else if (pass_count == 2) {
-				context::g_active = true;
-			}
+			if (pass_count == 1)
+				context::g_context_active = false;
+			else if (pass_count == 2)
+				context::g_context_active = true;
+
 			return (pass_count > 2) ? static_cast<std::size_t>(0) : unlikely_case;
 		}
 
@@ -130,13 +129,12 @@ namespace csl
 	template <typename Operator, typename ... Args>
 	Expr make_expr(Args&& ...args)
 	{
-		if (context::active()) {
+		if (context::active() && context::shader_active())
 			return context::get().m_memory_pool.emplace_back<Operator>(std::forward<Args>(args)...);
-		} else {
-			Expr handle = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
-			handle.m_id |= ExpressionHandle::Static;
-			return handle;
-		}
+
+		Expr handle = ShaderController::get_static_memory().emplace_back<Operator>(std::forward<Args>(args)...);
+		handle.m_id |= ExpressionHandle::Static;
+		return handle;
 	}
 
 	template <typename ... Args>
@@ -147,19 +145,20 @@ namespace csl
 
 	inline NamedObjectBase::~NamedObjectBase() {
 		if (m_flags & ObjFlags::Constructor && m_flags & ObjFlags::Tracked && !(m_flags & ObjFlags::UsedAsRef) && !(m_flags & ObjFlags::BuiltIn) && !(m_flags & ObjFlags::StructMember))
-			if (m_expr && context::active())
+			if (m_expr && context::active() && context::shader_active())
 				safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr))->set_as_unused();
 	}
 
 	template<typename T, typename Dimensions, typename Qualifiers, typename ... Args>
 	Expr create_variable_expr(const std::string& name, const ObjFlags obj_flags, CtorFlags ctor_flags, const std::size_t variable_id, Args&& ... args)
 	{
-		if (!bool(obj_flags & ObjFlags::Tracked))
+		if (!(obj_flags & ObjFlags::Tracked))
 			ctor_flags |= CtorFlags::Untracked;
 
 		const Expr expr = make_expr<Constructor<T, sizeof...(Args), Dimensions, Qualifiers>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
-		if (context::active())
+		if (context::shader_active())
 			context::get().push_expression(expr);
+
 		return expr;
 	}
 
@@ -198,7 +197,7 @@ namespace csl
 
 		const Expr expr = make_expr<CustomFunCall<This, RType, sizeof...(Args)>>(This::NamedObjectBase::id, get_expr(std::forward<Args>(args))...);
 
-		// in case return type is void, no variable will be returned, so function call must be explicitely sent to the listener
+		// In case return type is void, no variable will be returned, so function call must be explicitely pushed.
 		if constexpr (std::is_same_v<RType, void>)
 			context::get().push_expression(expr);
 		else
@@ -206,19 +205,19 @@ namespace csl
 	}
 
 #define CSL_IF(condition) \
-	context::get().check_end_if(); context::get().begin_if(get_expr(std::forward<decltype(condition)>(condition))); if(IfListener _csl_begin_if_ = {})
+	context::get().check_end_if(); context::get().begin_if(condition); if(IfListener _csl_begin_if_ = {})
 
 #define CSL_ELSE \
 	else {} context::get().begin_else(); if(ElseListener _csl_begin_else_ = {}) {} else 
 
 #define CSL_ELSE_IF(condition) \
-	else if(false){} context::get().delay_end_if(); context::get().begin_else_if(get_expr(std::forward<decltype(condition)>(condition))); if(false) {} else if(IfListener _csl_begin_else_if_ = {})
+	else if(false){} context::get().delay_end_if(); context::get().begin_else_if(condition); if(false) {} else if(IfListener _csl_begin_else_if_ = {})
 
 #define CSL_WHILE(condition) \
 	context::get().begin_while(get_expr(std::forward<decltype(condition)>(condition))); for(WhileListener _csl_begin_while_; _csl_begin_while_; )
 
 #define CSL_FOR(...) \
-	context::get().begin_for(); context::g_active = false; for( __VA_ARGS__ ){ break; } context::g_active = true;  \
+	context::get().begin_for(); context::g_context_active = false; for( __VA_ARGS__ ){ break; } context::g_context_active = true;  \
 	context::get().begin_for_args(); __VA_ARGS__;  context::get().begin_for_body(); \
 	for(ForListener _csl_begin_for_; _csl_begin_for_; )
 
@@ -231,7 +230,7 @@ namespace csl
 	context::get().add_statement<SpecialStatement<Continue>>();
 
 #define CSL_SWITCH(condition) \
-	context::get().begin_switch(get_expr(std::forward<decltype(condition)>(condition))); switch(SwitchListener _csl_begin_switch_ = {context::g_active })while(_csl_begin_switch_)
+	context::get().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = { context::g_context_active })while(_csl_begin_switch_)
 
 #define CSL_CASE(value) \
 	context::get().add_case(get_expr(std::forward<decltype(value)>(value))); case value 

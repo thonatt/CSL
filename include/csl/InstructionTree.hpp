@@ -153,10 +153,7 @@ namespace csl
 	struct EndPrimitiveI {};
 
 	template<typename ...Qs>
-	struct InInstruction {};
-
-	template<typename ...Qs>
-	struct OutInstruction {};
+	struct ShaderStageOption {};
 
 	struct FuncOverload
 	{

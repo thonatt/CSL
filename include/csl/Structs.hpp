@@ -30,7 +30,7 @@
 
 #define CSL_PP_SET_MEMBER_IT(data, i, elem) \
 	CSL_PP_MEMBER_NAME(elem).m_expr = csl::make_expr<csl::MemberAccessor<data,i>>(Base::m_expr); \
-	CSL_PP_MEMBER_NAME(elem).m_flags = csl::ObjFlags::StructMember | csl::ObjFlags::AlwaysExp;
+	CSL_PP_MEMBER_NAME(elem).m_flags = csl::ObjFlags::StructMember;
 
 #define CSL_PP_EMPTY_INIT_MEMBER_IT(data, i, elem) CSL_PP_COMMA_IF(i) CSL_PP_MEMBER_NAME(elem) ( csl::Dummy{} )
 
@@ -122,7 +122,7 @@
 #define CSL_STRUCT(StructTypename, ...)  \
 	struct StructTypename; \
 	csl::context::get().add_struct<StructTypename>(); \
-	CSL_PP_STRUCT(StructTypename, StructTypename, csl::ObjFlags::StructMember | csl::ObjFlags::AlwaysExp, __VA_ARGS__ )
+	CSL_PP_STRUCT(StructTypename, StructTypename, csl::ObjFlags::StructMember, __VA_ARGS__ )
 
 #define CSL_INTERFACE_BLOCK(Qualifiers, StructTypename, Name, ...) \
 	CSL_PP_INTERFACE_BLOCK(Qualifiers, StructTypename, CSL_PP_CONCAT(StructTypename, __COUNTER__), Name, csl::ObjFlags::Constructor,  __VA_ARGS__ )

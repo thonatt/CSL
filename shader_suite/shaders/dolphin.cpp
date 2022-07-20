@@ -216,7 +216,7 @@ csl::glsl::vert_420::Shader dolphin_ubershader_vertex()
 				mat(w) = cmtrl[chan + 2u](w);
 			}
 
-				CSL_IF(bitfieldExtract(colorreg, 1, 1) != 0u) {
+			CSL_IF(bitfieldExtract(colorreg, 1, 1) != 0u) {
 				CSL_IF(bitfieldExtract(colorreg, 6, 1) != 0u) {
 					CSL_IF((components & (8192u << chan)) != 0u) // VB_HAS_COL0
 						lacc(x, y, z) = ivec3(round(CSL_TERNARY(chan == 0u, rawcolor0(x, y, z), rawcolor1(x, y, z)) * 255.0));
@@ -922,7 +922,7 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		}
 	});
 
-	in<Layout<Early_fragment_tests>>();
+	shader_stage_option<Layout<Early_fragment_tests>, In>();
 
 	shader.main([&] {
 		vec4 rawpos = gl_FragCoord;

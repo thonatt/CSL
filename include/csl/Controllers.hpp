@@ -15,11 +15,16 @@ namespace csl
 	namespace context
 	{
 		inline ShaderController* g_current_shader = nullptr;
-		inline bool g_active = true;
+		inline bool g_context_active = true;
 
 		inline bool active()
 		{
-			return g_current_shader && g_active;
+			return g_context_active;
+		}
+
+		inline bool shader_active()
+		{
+			return g_current_shader;
 		}
 
 		inline ShaderController& get()
@@ -170,8 +175,11 @@ namespace csl
 			return safe_static_cast<IfInstruction&>(*retrieve_instruction(current_if));
 		}
 
-		void begin_if(const Expr& expr)
+		template<typename T>
+		void begin_if(T&& t)
 		{
+			const Expr expr = get_expr(std::forward<T>(t));
+			assert(expr);
 			current_if = make_instruction<IfInstruction>(current_if);
 			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block) };
 			Scope* future_current_block = if_case.body.get();
@@ -188,8 +196,10 @@ namespace csl
 			delay_end_if();
 		}
 
-		void begin_else_if(const Expr& expr)
+		template<typename T>
+		void begin_else_if(T&& t)
 		{
+			const Expr expr = get_expr(std::forward<T>(t));
 			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block->m_parent) };
 			current_block = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
@@ -302,11 +312,12 @@ namespace csl
 			WhileController::end_while();
 		}
 
-		virtual void begin_switch(const Expr& expr) override
+		template<typename T>
+		void begin_switch(T&& t)
 		{
 			check_end_if();
 			check_func_args();
-			SwitchController::begin_switch(expr);
+			SwitchController::begin_switch(get_expr(std::forward<T>(t)));
 		}
 
 		virtual void add_case(const Expr& expr) override

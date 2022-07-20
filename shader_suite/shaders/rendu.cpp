@@ -12,9 +12,9 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 
 	Shader shader;
 
-	Qualify<image2D, Layout<Rgba32f, Binding<0>>, Uniform> output;
+	Qualify<Layout<Rgba32f, Binding<0>>, Uniform, image2D> output;
 
-	in<Layout<Local_size_x<16>, Local_size_y<16>>>();
+	shader_stage_option<Layout<local_size_x<16>, local_size_y<16>>, In>();
 
 	const Float groundRadius = 6371e3;
 	const Float topRadius = 6471e3;
@@ -23,7 +23,7 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 	const Float heightMie = 1200.0;
 	const Float kMie = Float(21e-6) << "kMie";
 
-	auto intersects = define_function<Bool>([&](const vec3 rayOrigin, const vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
+	auto intersects = define_function<Bool>("intersects", [&](const vec3 rayOrigin, const vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
 		const Float a = dot(rayDir, rayDir);
 		const Float b = dot(rayOrigin, rayDir);
 		const Float c = dot(rayOrigin, rayOrigin) - radius * radius;
@@ -96,16 +96,16 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 
 	Shader shader;
 
-	Qualify<vec2, In> uv("uv");
+	Qualify<In, vec2> uv("uv");
 
-	Qualify<mat4, Uniform> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005));
+	Qualify<Uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005));
 
-	Qualify<vec3, Uniform> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
-	Qualify<vec3, Uniform> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
-	Qualify<Float, Uniform> altitude = 1.0; ///< Origin height above the planet surface.
+	Qualify<Uniform, vec3> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
+	Qualify<Uniform, vec3> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
+	Qualify<Uniform, Float> altitude = 1.0; ///< Origin height above the planet surface.
 
-	Qualify<sampler2D, Layout<Binding<0>>, Uniform> precomputedScattering("precomputedScattering"); ///< Secondary scattering lookup table.
-	Qualify<vec4, Layout<Location<0>>, Out> fragColor; ///< Atmosphere color.
+	Qualify<Layout<Binding<0>>, Uniform, sampler2D> precomputedScattering("precomputedScattering"); ///< Secondary scattering lookup table.
+	Qualify<Layout<Location<0>>, Out, vec4> fragColor; ///< Atmosphere color.
 
 	const Float atmosphereGroundRadius = 6371e3; ///< Radius of the planet.
 	const Float atmosphereTopRadius = 6471e3; ///< Radius of the atmosphere.
@@ -131,7 +131,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\return true if there is intersection.
 		\warning The intersection can be in the negative direction along the ray. Check the sign of the roots to know.
 	*/
-	auto intersects = define_function<Bool>([&](vec3 rayOrigin, vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
+	auto intersects = define_function<Bool>("intersects", [&](vec3 rayOrigin, vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
 		Float a = dot(rayDir, rayDir);
 		Float b = dot(rayOrigin, rayDir);
 		Float c = dot(rayOrigin, rayOrigin) - radius * radius;
@@ -150,7 +150,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\param cosAngle Cosine of the angle between the ray and the light directions
 		\return the phase
 	*/
-	auto rayleighPhase = define_function<Float>([&](Float cosAngle) {
+	auto rayleighPhase = define_function<Float>("rayleighPhase", [&](Float cosAngle) {
 		const Float k = 1.0 / (4.0 * M_PI);
 		CSL_RETURN(k * 3.0 / 4.0 * (1.0 + cosAngle * cosAngle));
 	});
@@ -159,7 +159,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\param cosAngle Cosine of the angle between the ray and the light directions
 		\return the phase
 	*/
-	auto miePhase = define_function<Float>([&](Float cosAngle) {
+	auto miePhase = define_function<Float>("miePhase", [&](Float cosAngle) {
 		const Float k = 1.0 / (4.0 * M_PI);
 		Float g2 = gMie * gMie;
 		CSL_RETURN(k * 3.0 * (1.0 - g2) / (2.0 * (2.0 + g2)) * (1.0 + cosAngle * cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, 3.0 / 2.0));
@@ -173,7 +173,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\param scatterTable the precomputed secondary scattering lookup table
 		\return the estimated radiance
 	*/
-	auto computeAtmosphereRadiance = define_function<vec3>([&](vec3 rayOrigin, vec3 rayDir, vec3 sunDir, vec3 sunColor, sampler2D scatterTable) {
+	auto computeAtmosphereRadiance = define_function<vec3>("computeAtmosphereRadiance", [&](vec3 rayOrigin, vec3 rayDir, vec3 sunDir, vec3 sunColor, sampler2D scatterTable) {
 		// Check intersection with atmosphere.
 		vec2 interTop, interGround;
 		Bool didHitTop = intersects(rayOrigin, rayDir, atmosphereTopRadius, interTop);

@@ -81,15 +81,10 @@ namespace csl
 		namespace shader_common
 		{
 			template<typename ...Qs>
-			void in() {
-				context::get().add_statement<SpecialStatement<InInstruction<Qs...>>>();
+			void shader_stage_option()
+			{
+				context::get().add_statement<SpecialStatement<ShaderStageOption<Qs...>>>();
 			}
-
-			template<typename ...Qs>
-			void out() {
-				context::get().add_statement<SpecialStatement<OutInstruction<Qs...>>>();
-			}
-
 		}
 
 		namespace vert_common {

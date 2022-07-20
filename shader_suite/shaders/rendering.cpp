@@ -60,8 +60,8 @@ csl::glsl::geom_420::Shader geometric_normals() {
 
 	Shader shader;
 
-	in<Layout<Triangles>>();
-	out<Layout<Line_strip, Max_vertices<2>>>();
+	shader_stage_option<Layout<Triangles>, In>();
+	shader_stage_option<Layout<Line_strip, Max_vertices<2>>, Out>();
 
 	CSL_INTERFACE_BLOCK((In, Array<0>), VertexData, vertex_in,
 		(vec3, position),
@@ -108,7 +108,7 @@ csl::glsl::tcs_420::Shader tessellation_control_shader_example() {
 	using namespace csl::glsl::tcs_420;
 
 	Shader shader;
-	out<Layout<Vertices<3>>>();
+	shader_stage_option<Layout<Vertices<3>>, Out>();
 
 	CSL_INTERFACE_BLOCK((In, Array<0>), VertexData, tcs_in,
 		(vec3, position),
@@ -166,7 +166,7 @@ csl::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 		(vec2, uv)
 	);
 
-	in<Layout<Triangles, Equal_spacing, Ccw>>();
+	shader_stage_option<Layout<Triangles, Equal_spacing, Ccw>, In>();
 	Qualify<Layout<Binding<0>>, Uniform, sampler2D> displacement_tex("displacement_tex");
 	Qualify<Uniform, mat4> view("view");
 	Qualify<Uniform, mat4> proj("proj");

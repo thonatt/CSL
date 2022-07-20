@@ -233,8 +233,9 @@ namespace csl {
 	template<> inline std::string GLSLQualifierN<glsl::Location>::get() { return "location"; }
 	template<> inline std::string GLSLQualifierN<glsl::tcs_common::Vertices>::get() { return "vertices"; }
 	template<> inline std::string GLSLQualifierN<glsl::geom_common::Max_vertices>::get() { return "max_vertices"; }
-	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_x>::get() { return "local_size_x"; }
-	template<> inline std::string GLSLQualifierN<glsl::compute_common::Local_size_y>::get() { return "local_size_y"; }
+	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_x>::get() { return "local_size_x"; }
+	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_y>::get() { return "local_size_y"; }
+	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_z>::get() { return "local_size_z"; }
 
 #define CSL_QUALIFIER_STR_IT(data, i, elem) \
 	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP_STR(CSL_PP_SECOND(elem)); }
@@ -654,23 +655,11 @@ namespace csl {
 	};
 
 	template<typename ...Qs>
-	struct InstructionGLSL<SpecialStatement<InInstruction<Qs...>>> {
-		static void call(const SpecialStatement<InInstruction<Qs...>>& i, GLSLData& data) {
-			data.endl().trail() << GLSLQualifier<TList<Qs...>>::get() << " in;";
+	struct InstructionGLSL<SpecialStatement<ShaderStageOption<Qs...>>> {
+		static void call(const SpecialStatement<ShaderStageOption<Qs...>>& i, GLSLData& data) {
+			data.endl().trail() << GLSLQualifier<TList<Qs...>>::get() << ";";
 		}
 	};
-
-	template<typename ...Qs>
-	struct InstructionGLSL<SpecialStatement<OutInstruction<Qs...>>> {
-		static void call(const SpecialStatement<OutInstruction<Qs...>>& i, GLSLData& data) {
-			data.endl().trail() << GLSLQualifier<TList<Qs...>>::get() << " out;";
-		}
-	};
-
-	//template<>
-	//struct InstructionGLSL<FuncDeclarationBase> {
-	//	static void call(const FuncDeclarationBase& f, GLSLData& data) { }
-	//};
 
 	template<std::size_t NumOverloads>
 	struct OverloadGLSL

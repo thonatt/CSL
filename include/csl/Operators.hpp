@@ -20,7 +20,7 @@
 
 namespace csl
 {
-	enum class Op : std::size_t 
+	enum class Op : std::size_t
 	{
 		// algebra operators
 		CWiseMul,
@@ -428,7 +428,14 @@ namespace csl
 
 		MemberAccessorBase(const Expr expr) : m_obj(expr) { }
 
-		void set_as_temp();
+		void set_as_temp()
+		{
+			OperatorBase* op_base = retrieve_expr(m_obj);
+			if (auto parent_ctor = dynamic_cast<ConstructorBase*>(op_base))
+				parent_ctor->set_as_temp();
+			else if (auto obj = dynamic_cast<MemberAccessorBase*>(op_base))
+				obj->set_as_temp();
+		}
 
 		Expr m_obj;
 	};
@@ -445,17 +452,6 @@ namespace csl
 			OperatorGLSL<MemberAccessor<S, MemberId>>::call(*this, data, precedence);
 		}
 	};
-
-	inline void MemberAccessorBase::set_as_temp() {
-		OperatorBase* op_base = retrieve_expr(m_obj);
-		if (auto parent_ctor = dynamic_cast<ConstructorBase*>(op_base)) {
-			parent_ctor->set_as_temp();
-		} else {
-			if (auto obj = dynamic_cast<MemberAccessorBase*>(op_base)) {
-				obj->set_as_temp();
-			}
-		}
-	}
 
 	template<typename Delayed>
 	struct UnaryOperatorDelayed final : OperatorBase

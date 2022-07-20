@@ -118,28 +118,28 @@ csl::glsl::frag_420::Shader functions_example()
 	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	// empty function
+	// Empty function.
 	auto fun = define_function<void>([] {});
 
-	// named function with named parameters
+	// Named function with named parameters.
 	auto add = define_function<vec3>("add",
 		[](vec3 a = "a", vec3 b = "b") {
 		CSL_RETURN(a + b);
 	});
 
-	// function with some named parameters
+	// Function with some named parameters.
 	auto addI = define_function<Int>(
 		[](Int a, Int b = "b", Int c = "") {
 		CSL_RETURN(a + b + c);
 	});
 
-	// function calling another function
-	auto sub = define_function<vec3>([&](vec3 a, Qualify<vec3, Inout> b = "b") {
+	// Function calling another function.
+	auto sub = define_function<vec3>([&](vec3 a, Qualify<Inout, vec3> b = "b") {
 		fun();
 		CSL_RETURN(add(a, -b));
 	});
 
-	// named function with several overloads
+	// Named function with several overloads.
 	auto square = define_function<vec3, ivec3, void>("square",
 		[](vec3 a = "a") {
 		CSL_RETURN(a * a);
@@ -158,10 +158,10 @@ csl::glsl::frag_420::Shader control_blocks_example()
 	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	// Empty for
+	// Empty for.
 	CSL_FOR(;;) { CSL_BREAK; }
 
-	// Named function with named parameters
+	// For loop with named iterator.
 	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
 		CSL_IF(i == 3) {
 			++i;
@@ -173,8 +173,8 @@ csl::glsl::frag_420::Shader control_blocks_example()
 				--i;
 		}
 	}
-	// Not possible as i is still in the scope
-	//Int i; 
+	// Not possible as i is still in the scope.
+	// Int i; 
 
 	{
 		CSL_FOR(Int j = Int(0) << "j"; j < 5;) {
@@ -183,8 +183,8 @@ csl::glsl::frag_420::Shader control_blocks_example()
 			}
 		}
 	}
-	//OK since previous for was put in a scope
-	Int j("j");
+	// OK since previous for was put in a scope.
+	Int j = Int(0) << "j";
 
 	CSL_SWITCH(j) {
 		CSL_CASE(0) : { CSL_BREAK; }
@@ -265,14 +265,14 @@ csl::glsl::frag_420::Shader shader_stage_options()
 
 	{
 		//in a fragment shader
-		in<Layout<Early_fragment_tests>>();
+		shader_stage_option<Layout<Early_fragment_tests>, In>();
 	}
 
 	{
 		using namespace csl::glsl::geom_420;
 		//in a geometry shader
-		in<Layout<Triangles>>();
-		out<Layout<Line_strip, Max_vertices<2>>>();
+		shader_stage_option<Layout<Triangles>, In>();
+		shader_stage_option<Layout<Line_strip, Max_vertices<2>>, Out>();
 	}
 
 	return shader;

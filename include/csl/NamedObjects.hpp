@@ -17,10 +17,9 @@ namespace csl {
 		Tracked = 1 << 1,
 		Constructor = 1 << 2,
 		UsedAsRef = 1 << 3,
-		AlwaysExp = 1 << 4,
-		StructMember = 1 << 5,
-		BuiltIn = 1 << 6,
-		Const = 1 << 7,
+		StructMember = 1 << 4,
+		BuiltIn = 1 << 5,
+		Const = 1 << 6,
 		BuiltInConstructor = BuiltIn | UsedAsRef | Constructor,
 		Default = Tracked | Constructor
 	};
@@ -75,7 +74,7 @@ namespace csl {
 		Expr get_expr_as_ref_internal() const
 		{
 			m_flags |= ObjFlags::UsedAsRef;
-			if (m_flags & ObjFlags::AlwaysExp)
+			if (m_flags & ObjFlags::StructMember)
 				return m_expr;
 			return make_expr<Reference>(id);
 		}
@@ -182,7 +181,6 @@ namespace csl {
 				m_expr = expr;
 			else if (obj_flags & ObjFlags::Constructor)
 				m_expr = create_variable_expr<T>("", obj_flags, CtorFlags::Initialisation, NamedObjectBase::id, expr);
-			assert(m_expr);
 		}
 
 		template<typename ArrayDimensions = SizeList<>, typename Qualifiers = TList<>>
@@ -253,7 +251,8 @@ namespace csl {
 
 		static constexpr std::size_t ComponentCount = ArrayDimensions::Front;
 
-		using ArrayComponent = std::conditional_t<(ArrayDimensions::Tail::Size > 0),
+		using ArrayComponent = std::conditional_t<
+			(ArrayDimensions::Tail::Size > 0),
 			Qualify<T, typename GetArrayFromList<typename ArrayDimensions::Tail>::Type, Qualifiers...>,
 			Qualify<T, Qualifiers...>
 		>;
@@ -280,7 +279,10 @@ namespace csl {
 		}
 
 		template<typename U, typename = std::enable_if_t<SameType<ArrayInterface, U>>>
-		ArrayInterface(const NamedObjectInit<U>& init) : Base(init, ArrayDimensions{}, QualifierList{}) {}
+		ArrayInterface(const NamedObjectInit<U>& init) 
+			: Base(init, ArrayDimensions{}, QualifierList{})
+		{
+		}
 
 		template<typename ... Us, typename = std::enable_if_t<
 			(SameType<Us, ArrayComponent>&& ...) && ((ComponentCount == 0 && sizeof...(Us) > 0) || (sizeof...(Us) == ComponentCount))
@@ -302,14 +304,16 @@ namespace csl {
 	};
 
 	template<typename T>
-	struct ExprGetter<T, std::enable_if_t<std::is_fundamental_v<T>>> {
+	struct ExprGetter<T, std::enable_if_t<std::is_fundamental_v<T>>> 
+	{
 		static Expr get_expr(T&& t) {
 			return make_expr<Litteral<T>>(std::forward<T>(t));
 		}
 	};
 
 	template<typename T>
-	struct ExprGetter<T&, std::enable_if_t<std::is_fundamental_v<T>>> {
+	struct ExprGetter<T&, std::enable_if_t<std::is_fundamental_v<T>>> 
+	{
 		static Expr get_expr(const T& t) {
 			return make_expr<Litteral<T>>(t);
 		}
