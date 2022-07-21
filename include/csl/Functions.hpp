@@ -15,8 +15,8 @@ namespace csl {
 	template<typename T> struct FuncPtrInfo;
 
 	template<typename ReturnType, typename Fun, typename... Args>
-	struct FuncPtrInfo<ReturnType(Fun::*)(Args...) const> {
-		using ArgTup = std::tuple<Args...>;
+	struct FuncPtrInfo<ReturnType(Fun::*)(Args...) const> 
+	{
 		using ArgTList = TList<Args...>;
 		using RType = ReturnType;
 	};
@@ -57,28 +57,28 @@ namespace csl {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	// Minimal number of argument of a functor, from https://stackoverflow.com/a/57254989/4953963
 
-	template <typename F, typename T, std::size_t ... Is>
+	template <typename F, typename ArgTList, std::size_t ... Is>
 	constexpr auto lambda_min_number_of_args_helper(std::index_sequence<Is...> is, int)
-		-> decltype((void)std::declval<F>() (std::declval<std::tuple_element_t<Is, T>>()...), std::size_t{})
+		-> decltype((void)std::declval<F>() (std::declval<typename ArgTList::At<Is>>()...), std::size_t{})
 	{
 		return sizeof...(Is);
 	}
 
-	template <typename F, typename T, std::size_t ... Is>
+	template <typename F, typename ArgTList, std::size_t ... Is>
 	constexpr auto lambda_min_number_of_args_helper(std::index_sequence<Is...>, long)
 	{
-		return lambda_min_number_of_args_helper<F, T>(std::make_index_sequence<sizeof...(Is) + 1u>{}, 0);
+		return lambda_min_number_of_args_helper<F, ArgTList>(std::make_index_sequence<sizeof...(Is) + 1u>{}, 0);
 	}
 
-	template <typename F, typename ArgList>
+	template <typename F, typename ArgTList>
 	constexpr std::size_t get_min_number_of_args()
 	{
-		return lambda_min_number_of_args_helper<F, ArgList>(std::index_sequence<>{}, 0);
+		return lambda_min_number_of_args_helper<F, ArgTList>(std::index_sequence<>{}, 0);
 	}
 
 	template<typename F>
 	constexpr size_t min_number_of_args() {
-		return get_min_number_of_args<F, typename LambdaInfos<F>::ArgTup>();
+		return get_min_number_of_args<F, typename LambdaInfos<F>::ArgTList>();
 	}
 
 	template<typename F, typename ...Args>
