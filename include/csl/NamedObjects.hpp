@@ -3,12 +3,11 @@
 #include "Operators.hpp"
 #include "Types.hpp"
 
-#include <cassert>
 #include <type_traits>
 #include <string>
 
-namespace csl {
-
+namespace csl 
+{
 	struct MainListener;
 	MainListener& listen();
 

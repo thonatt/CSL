@@ -41,13 +41,6 @@ namespace csl
 		static void call(const T& t, Data& data) { }
 	};
 
-	template<typename Delayed, typename T>
-	struct ControllerGLSL
-	{
-		template<typename Data>
-		static void call(const T& t, Data& data) { }
-	};
-
 	struct ControllerBase
 	{
 		void queue_expr(const Expr e) {
@@ -425,13 +418,12 @@ namespace csl
 			set_current_shader(previous_current_shader);
 		}
 
-		// template to delay instantiation
-		template<typename Delayed, typename Data>
-		void print_glsl(Data& data)
+		void print_glsl(GLSLData& data)
 		{
 			auto previous_current_shader = get_current_shader();
 			set_current_shader(this);
-			ControllerGLSL<Delayed, ShaderController>::call(*this, data);
+			for (const auto& i : m_scope->m_instructions)
+				retrieve_instruction(i)->print_glsl(data);
 			set_current_shader(previous_current_shader);
 		}
 

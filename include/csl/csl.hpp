@@ -14,17 +14,17 @@
 #undef CSL_IMGUI
 #endif
 
-#include "Listeners.hpp"
-#include "Structs.hpp"
-#include "Samplers.hpp"
+#include <csl/Listeners.hpp>
+#include <csl/Structs.hpp>
+#include <csl/Samplers.hpp>
 
 #ifdef CSL_GLSL
-#include "glsl/Shaders.hpp"
-#include "glsl/BuiltIns.hpp"
-#include "glsl/ToGLSL.hpp"
+#include <csl/glsl/BuiltIns.hpp>
+#include <csl/glsl/Shaders.hpp>
+#include <csl/glsl/ToGLSL.hpp>
 #endif //  CSL_GLSL
 
 #ifdef CSL_IMGUI
-#include "imgui/ToImGui.hpp"
+#include <csl/imgui/ToImGui.hpp>
 #endif // CSL_IMGUI
 

@@ -1,11 +1,13 @@
 #pragma once
 
-#include "../Listeners.hpp"
+#include <csl/Controllers.hpp>
+#include <csl/Listeners.hpp>
+#include <csl/Structs.hpp>
+#include <csl/Types.hpp>
 
-#include "Types.hpp"
-#include "BuiltIns.hpp"
-#include "Qualifiers.hpp"
-#include "../Structs.hpp"
+#include <csl/glsl/BuiltIns.hpp>
+#include <csl/glsl/Qualifiers.hpp>
+#include <csl/glsl/Types.hpp>
 
 namespace csl
 {
@@ -33,7 +35,7 @@ namespace csl
 		struct BuiltInRegisters;
 
 		template<ShaderType type, GLSLversion version>
-		class ShaderGLSL final : protected ShaderController 
+		class ShaderGLSL final : protected ShaderController
 		{
 
 		public:
@@ -54,11 +56,10 @@ namespace csl
 				ShaderController::template print_imgui<csl::Dummy>(data);
 			}
 
-			template<typename Data>
-			void print_glsl(Data& data) {
-				BuiltInRegisters<type, version>::template call(data);
+			void print_glsl(GLSLData& data) {
+				BuiltInRegisters<type, version>::call(data);
 				data << get_header() << "\n";
-				ShaderController::template print_glsl<csl::Dummy>(data);
+				ShaderController::print_glsl(data);
 			}
 
 			template<typename F>
@@ -96,15 +97,14 @@ namespace csl
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			inline const Qualify<Int, In> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<Int, In> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, Int> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, Int> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::Vertex, version> {
-
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::Vertex, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					vert_common::gl_Position,
 					vert_common::gl_PointSize,
@@ -119,9 +119,9 @@ namespace csl
 		namespace tcs_common {
 			using namespace shader_common;
 
-			inline const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
-			inline const Qualify<Int, In> gl_InvocationID("gl_InvocationID");
+			inline const Qualify<In, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<In, Int> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<In, Int> gl_InvocationID("gl_InvocationID");
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
 				(vec4, gl_Position),
@@ -129,8 +129,8 @@ namespace csl
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			inline Qualify<Float, Out, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline Qualify<Float, Out, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline Qualify<Out, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline Qualify<Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
 				(vec4, gl_Position),
@@ -140,9 +140,9 @@ namespace csl
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::TessellationControl, version> {
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::TessellationControl, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					tcs_common::gl_PatchVerticesIn,
 					tcs_common::gl_PrimitiveID,
@@ -158,12 +158,12 @@ namespace csl
 		namespace tev_common {
 			using namespace shader_common;
 
-			inline const Qualify<vec3, In> gl_TessCoord("gl_TessCoord");
-			inline const Qualify<Int, In> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			inline const Qualify<Int, In> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<In, vec3> gl_TessCoord("gl_TessCoord");
+			inline const Qualify<In, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<In, Int> gl_PrimitiveID("gl_PrimitiveID");
 
-			inline const Qualify<Float, In, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline const Qualify<Float, In, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline const Qualify<In, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline const Qualify<In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
 				(vec4, gl_Position),
@@ -179,9 +179,9 @@ namespace csl
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::TessellationEvaluation, version> {
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::TessellationEvaluation, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					tev_common::gl_TessCoord,
 					tev_common::gl_PatchVerticesIn,
@@ -221,10 +221,9 @@ namespace csl
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::Geometry, version> {
-
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::Geometry, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					geom_common::gl_Position,
 					geom_common::gl_PointSize,
@@ -237,11 +236,11 @@ namespace csl
 		namespace frag_common {
 			using namespace shader_common;
 
-			inline const Qualify<vec4, In> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
-			inline const Qualify<Bool, In> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
-			inline const Qualify<vec2, In> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, vec4> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, Bool> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, vec2> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
 
-			static Qualify<Float, Out> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
+			static Qualify<Out, Float> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
 			inline void _csl_only_available_in_discard_context_() {
 				context::get().add_statement<SpecialStatement<Discard>>();
@@ -249,10 +248,9 @@ namespace csl
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::Fragment, version> {
-
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::Fragment, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					frag_common::gl_FragCoord,
 					frag_common::gl_FrontFacing,
@@ -265,18 +263,18 @@ namespace csl
 		namespace compute_common {
 			using namespace shader_common;
 
-			inline const Qualify<uvec3, In> gl_NumWorkGroups("gl_NumWorkGroups", ObjFlags::BuiltInConstructor);
-			inline const Qualify<uvec3, In> gl_WorkGroupID("gl_WorkGroupID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<uvec3, In> gl_LocalInvocationID("gl_LocalInvocationID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<uvec3, In> gl_GlobalInvocationID("gl_GlobalInvocationID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<Uint, In> gl_LocalInvocationIndex("gl_LocalInvocationIndex", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, uvec3> gl_NumWorkGroups("gl_NumWorkGroups", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, uvec3> gl_WorkGroupID("gl_WorkGroupID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, uvec3> gl_LocalInvocationID("gl_LocalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, uvec3> gl_GlobalInvocationID("gl_GlobalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<In, Uint> gl_LocalInvocationIndex("gl_LocalInvocationIndex", ObjFlags::BuiltInConstructor);
 
 		}
 
 		template<GLSLversion version>
-		struct BuiltInRegisters<ShaderType::Compute, version> {
-			template<typename Data>
-			static void call(Data& data) {
+		struct BuiltInRegisters<ShaderType::Compute, version>
+		{
+			static void call(GLSLData& data) {
 				data.register_builtins(
 					compute_common::gl_NumWorkGroups,
 					compute_common::gl_WorkGroupID,

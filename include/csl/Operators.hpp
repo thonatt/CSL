@@ -3,7 +3,6 @@
 #include "SpirvOperators.hpp"
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -207,7 +206,7 @@ namespace csl
 		ExpressionHandle(const std::uint32_t index)
 			: m_id{ index | Defined }
 		{
-			assert(index == get_index());
+			// assert(index == get_index());
 		}
 
 		explicit operator bool() const {
@@ -383,8 +382,8 @@ namespace csl
 	template<typename Delayed>
 	struct ArraySubscriptDelayed final : OperatorBase
 	{
-		ArraySubscriptDelayed(const Expr obj, const Expr index) : m_obj(obj), m_index(index) {
-			//assert(m_obj);
+		ArraySubscriptDelayed(const Expr obj, const Expr index) : m_obj(obj), m_index(index) 
+		{
 		}
 
 		void print_imgui(ImGuiData& data) const override {

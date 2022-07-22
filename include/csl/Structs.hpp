@@ -1,14 +1,13 @@
 #pragma once
 
+#include <csl/Listeners.hpp>
+#include <csl/NamedObjects.hpp>
+#include <csl/Preprocessor.hpp>
+
+//#include "AlgebraTypes.hpp"
+
 #include <array>
 #include <string>
-
-#include "Preprocessor.hpp"
-#include "NamedObjects.hpp"
-
-#include "AlgebraTypes.hpp"
-
-#include "Listeners.hpp"
 
 //helpers for member infos acces
 #define CSL_PP_MEMBER_TYPE(elem) CSL_PP_DEPARENTHESIS(CSL_PP_FIRST(elem))

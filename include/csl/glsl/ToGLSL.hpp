@@ -1,21 +1,22 @@
 #pragma once
 
-#include "../InstructionTree.hpp"
-#include "../Preprocessor.hpp"
-#include "../TemplateHelpers.hpp"
+#include <csl/InstructionTree.hpp>
+#include <csl/Preprocessor.hpp>
+#include <csl/TemplateHelpers.hpp>
 
-#include "Shaders.hpp"
+#include <csl/glsl/Shaders.hpp>
 
 #include <sstream>
 #include <typeinfo>
 #include <type_traits>
 #include <unordered_map>
 
-namespace csl {
-
+namespace csl 
+{
 	const std::string& glsl_op_str(const Op op);
 
-	struct GLSLData {
+	struct GLSLData
+	{
 		std::stringstream stream;
 
 		std::unordered_map<std::size_t, std::size_t> global_to_local;
@@ -63,15 +64,6 @@ namespace csl {
 				assert(ctor);
 				register_var_name(ctor->m_name, ctor->m_variable_id);
 				}(vars), ...);
-		}
-	};
-
-	template<typename Delayed>
-	struct ControllerGLSL<Delayed, ShaderController> {
-		static void call(const ShaderController& controller, GLSLData& data)
-		{
-			for (const auto i : controller.m_scope->m_instructions)
-				retrieve_instruction(i)->print_glsl(data);
 		}
 	};
 

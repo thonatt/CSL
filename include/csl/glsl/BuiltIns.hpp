@@ -1,12 +1,13 @@
 #pragma once
 
-#include "../Preprocessor.hpp"
+#include <csl/NamedObjects.hpp>
+#include <csl/Preprocessor.hpp>
+#include <csl/Types.hpp>
 
-#include "../Types.hpp"
+#include <csl/glsl/Types.hpp>
 
-#include "../NamedObjects.hpp"
-
-namespace csl {
+namespace csl
+{
 
 #define EXPR(type, var) get_expr(std::forward<type>(var))
 #define ARG_TYPE(elem) typename CSL_PP_FIRST(elem)
