@@ -416,7 +416,7 @@ struct Application : public framework::Application
 			{ GL_COMPUTE_SHADER, "Compute"},
 		};
 
-		static ShaderPtr current_shader = {};
+		static ShaderPtr current_shader = m_shader_suite.m_shaders.at(ShaderId::CSLVaporwave);
 
 		glfwGetFramebufferSize(m_main_window.get(), &m_w_screen, &m_h_screen);
 		if (m_previous_rendering.width() != m_w_screen || m_previous_rendering.height() != m_h_screen) {
@@ -435,51 +435,47 @@ struct Application : public framework::Application
 
 		m_time += ImGui::GetIO().DeltaTime;
 
-		if (ImGui::IsKeyPressed(GLFW_KEY_TAB)) {
+		if (current_shader && (ImGui::IsKeyPressed(GLFW_KEY_TAB) || ImGui::IsKeyPressed(GLFW_KEY_LEFT) || ImGui::IsKeyPressed(GLFW_KEY_RIGHT))) {
 			m_current_pipeline = {};
-			if (current_shader) {
-				for (auto shader_it = m_shader_suite.m_shaders.begin(); shader_it != m_shader_suite.m_shaders.end(); ++shader_it) {
-					if (shader_it->second != current_shader)
-						continue;
+			for (auto shader_it = m_shader_suite.m_shaders.begin(); shader_it != m_shader_suite.m_shaders.end(); ++shader_it) {
+				if (shader_it->second != current_shader)
+					continue;
 
-					if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
-						if (shader_it == m_shader_suite.m_shaders.begin()) {
-							auto suite_end_it = m_shader_suite.m_shaders.end();
-							current_shader = (--suite_end_it)->second;
-						} else {
-							current_shader = (--shader_it)->second;
-						}
+				if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyPressed(GLFW_KEY_LEFT)) {
+					if (shader_it == m_shader_suite.m_shaders.begin()) {
+						auto suite_end_it = m_shader_suite.m_shaders.end();
+						current_shader = (--suite_end_it)->second;
 					} else {
-						++shader_it;
-						if (shader_it == m_shader_suite.m_shaders.end())
-							shader_it = m_shader_suite.m_shaders.begin();
-						current_shader = shader_it->second;
+						current_shader = (--shader_it)->second;
 					}
-					for (const auto& [name, pipeline] : m_pipelines) {
-						for (const auto& shader : pipeline->m_shaders) {
-							if (shader.second.m_shader == current_shader) {
-								m_current_pipeline = pipeline;
-								break;
-							}
-						}
-					}
-					break;
+				} else  if (ImGui::IsKeyPressed(GLFW_KEY_TAB) || ImGui::IsKeyPressed(GLFW_KEY_RIGHT)) {
+					++shader_it;
+					if (shader_it == m_shader_suite.m_shaders.end())
+						shader_it = m_shader_suite.m_shaders.begin();
+					current_shader = shader_it->second;
 				}
+				for (const auto& [name, pipeline] : m_pipelines)
+					for (const auto& shader : pipeline->m_shaders)
+						if (shader.second.m_shader == current_shader) {
+							m_current_pipeline = pipeline;
+							break;
+						}
+				break;
 			}
 		}
 
 		// Shader suite window
 		ImGui::SetNextWindowSize(ImVec2(static_cast<float>((m_w_screen - 30) * 2) / 3, static_cast<float>((m_h_screen - 20) * 5) / 5));
 		ImGui::SetNextWindowPos(ImVec2(15 + static_cast<float>(m_w_screen - 30) / 3, 10));
-		if (ImGui::Begin("Shader suite", nullptr, ImGuiWindowFlags_NoMove)) {
-
+		if (ImGui::Begin("Shader suite", nullptr, ImGuiWindowFlags_NoMove))
+		{
 			const float w = ImGui::GetContentRegionAvail().x;
 			const float h = ImGui::GetContentRegionAvail().y;
 
 			ImGui::BeginChild("left pane", ImVec2(w / 4, 0), true);
 			for (const auto& [group_type, group] : m_shader_suite.m_groups)
 			{
-				if (group_type == ShaderGroup::Test) 
+				if (group_type == ShaderGroup::Test)
 					continue;
 
 				ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
@@ -487,28 +483,26 @@ struct Application : public framework::Application
 				{
 					for (const auto& shader : group) {
 						bool selected = false;
-						if (current_shader && shader == current_shader) {
+						if (current_shader && shader == current_shader)
 							selected = true;
-						} else if (m_current_pipeline) {
-							for (const auto& pipeline_shader : m_current_pipeline->m_shaders) {
+						else if (m_current_pipeline)
+							for (const auto& pipeline_shader : m_current_pipeline->m_shaders)
 								if (shader == pipeline_shader.second.m_shader) {
 									selected = true;
 									break;
 								}
-							}
-						}
+
 						if (ImGui::Selectable(shader->m_name.c_str(), selected)) {
 							current_shader = shader;
 
 							bool pipeline_found = false;
-							for (const auto& [name, pipeline] : m_pipelines) {
-								for (const auto& [type, shader] : pipeline->m_shaders) {
+							for (const auto& [name, pipeline] : m_pipelines)
+								for (const auto& [type, shader] : pipeline->m_shaders)
 									if (current_shader->m_name == shader.m_shader->m_name) {
 										m_current_pipeline = pipeline;
 										pipeline_found = true;
 									}
-								}
-							}
+
 							if (!pipeline_found)
 								m_current_pipeline = {};
 						}
@@ -548,8 +542,8 @@ struct Application : public framework::Application
 						ImGui::Text("No associated pipeline");
 						if (ImGui::BeginPopupContextItem("shader right click ## single"))
 						{
-							if (ImGui::Button("print to console")) 
-								std::cout << current_shader->m_glsl_str << std::endl;							
+							if (ImGui::Button("print to console"))
+								std::cout << current_shader->m_glsl_str << std::endl;
 							ImGui::EndPopup();
 						}
 						active_shader_count = 1.0f;
@@ -562,7 +556,7 @@ struct Application : public framework::Application
 				const float shader_code_height = (7.0f * h / 8.0f - 3.0f * ImGui::GetFrameHeightWithSpacing()) / active_shader_count;
 				if (ImGui::BeginChild("bottom right pane", ImVec2(), true)) {
 					if (ImGui::BeginTabBar("mode_bar", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
-						for (const auto& mode : mode_strs) {
+						for (const auto& mode : mode_strs)
 							if (ImGui::BeginTabItem(mode.second.c_str())) {
 								if (m_current_pipeline) {
 									int count = 0;
@@ -580,7 +574,6 @@ struct Application : public framework::Application
 									shader_gui(mode, *current_shader, shader_code_height, *this);
 								ImGui::EndTabItem();
 							}
-						}
 						ImGui::EndTabBar();
 					}
 				}
@@ -712,11 +705,11 @@ struct PipelineNoise final : PipelineBase
 	void additionnal_gui() override
 	{
 		ImGui::SliderInt("frequencies count", &m_frequencies_count, 1, 8);
-		ImGui::SliderFloat("uv scaling", &m_uv_scaling, 4.0, 64.0);
+		ImGui::SliderFloat("uv scaling", &m_uv_scaling, 2.0, 32.0);
 	}
 
-	int m_frequencies_count = 4;
-	float m_uv_scaling = 32.0f;
+	int m_frequencies_count = 3;
+	float m_uv_scaling = 8.0f;
 };
 
 struct PipelinePhong final : PipelineBase

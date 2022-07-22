@@ -13,7 +13,8 @@
 
 #include <imgui.h>
 
-namespace csl {
+namespace csl 
+{
 
 	struct ImGuiData {
 

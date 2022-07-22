@@ -80,6 +80,7 @@ namespace csl
 	{
 		void push_instruction(const InstructionIndex i) override {
 			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
+			assert(expr);
 			auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(expr));
 			ctor->m_flags = CtorFlags::FunctionArgument;
 			m_instructions.push_back(i);
@@ -87,8 +88,8 @@ namespace csl
 	};
 
 	template<typename Delayed>
-	struct ReturnStatementDelayed final : Statement {
-
+	struct ReturnStatementDelayed final : Statement 
+	{
 		ReturnStatementDelayed() : Statement(Expr()) {}
 
 		template<typename T>

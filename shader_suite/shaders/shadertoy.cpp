@@ -33,14 +33,14 @@ csl::glsl::frag_420::Shader shader_80()
 		CSL_RETURN(mix(rand0, rand1, fc));
 	});
 
-	auto hash = define_function<Float>([](vec2 p) {
+	auto hash = define_function<Float>("hash", [](vec2 p) {
 		vec3 p3 = fract(p(x, y, x) * 0.2831);
 		p3 += dot(p3, p3(y, z, x) + 19.19);
 		CSL_RETURN(fract((p3(x) + p3(y)) * p3(z)));
 	});
 
 	/// Background utilities.
-	auto stars = define_function<Float>([&](vec2 localUV = "localUV", Float starsDens = "starsDens", Float starsDist = "starsDist") {
+	auto stars = define_function<Float>("stars", [&](vec2 localUV = "localUV", Float starsDens = "starsDens", Float starsDist = "starsDist") {
 		// Center and scale UVs.
 		vec2 p = (localUV - 0.5) * starsDist;
 		// Use thresholded high-frequency noise.
@@ -50,7 +50,7 @@ csl::glsl::frag_420::Shader shader_80()
 		CSL_RETURN(smoothstep(startsTh, 0.0, length(fract(p) - 0.5)) * brightness);
 	});
 
-	auto segmentDistance = define_function<Float>([](vec2 p, vec2 a, vec2 b) {
+	auto segmentDistance = define_function<Float>("segmentDistance", [](vec2 p, vec2 a, vec2 b) {
 		// Project the point on the segment.
 		vec2 dir = b - a;
 		Float len2 = dot(dir, dir);
@@ -60,7 +60,7 @@ csl::glsl::frag_420::Shader shader_80()
 		CSL_RETURN(distance(p, proj));
 	});
 
-	auto triangleDistance = define_function<Float>([&](vec2 p, vec4 tri, Float width) {
+	auto triangleDistance = define_function<Float>("triangleDistance", [&](vec2 p, vec4 tri, Float width) {
 		// Point at the bottom center, shared by all triangles.
 		vec2 point0 = vec2(0.5, 0.37);
 		// Distance to each segment.
@@ -72,7 +72,7 @@ csl::glsl::frag_420::Shader shader_80()
 	});
 	
 	/// Text utilities.
-	auto getLetter = define_function<Float>([&](Int lid, vec2 uv) {
+	auto getLetter = define_function<Float>("getLetter", [&](Int lid, vec2 uv) {
 		// If outside, return arbitrarily high distance.
 		CSL_IF(uv(x) < 0.0 || uv(y) < 0.0 || uv(x) > 1.0 || uv(y) > 1.0) {
 			CSL_RETURN(1000.0);
@@ -94,7 +94,7 @@ csl::glsl::frag_420::Shader shader_80()
 		CSL_RETURN(accum / 9.0);
 	});
 
-	auto textGradient = define_function<vec3>([](Float interior, Float top, vec2 alphas) {
+	auto textGradient = define_function<vec3>("textGradient", [](Float interior, Float top, vec2 alphas) {
 		// Use squared blend for the interior gradients.
 		vec2 alphas2 = alphas * alphas;
 		// Generate the four possible gradients (interior/edge x upper/lower)
@@ -261,14 +261,14 @@ csl::glsl::frag_420::Shader fractal_noise()
 	Qualify<Int, Uniform> freq_count = Int(5) << "freq_count";
 	Qualify<Float, Uniform> uv_scaling = Float(32.0) << "uv_scaling";
 
-	auto hash = define_function<vec2>([](vec2 p)
+	auto hash = define_function<vec2>("hash", [](vec2 p)
 	{
 		const vec2 k = vec2(0.3183099, 0.3678794);
 		p = p * k + k(y, x);
 		CSL_RETURN(-1.0 + 2.0 * fract(16.0 * k * fract(p(x) * p(y) * (p(x) + p(y)))));
 	});
 
-	auto noise = define_function<Float>([&](vec2 p) {
+	auto noise = define_function<Float>("noise", [&](vec2 p) {
 		vec2 i = floor(p);
 		vec2 f = fract(p);
 		vec2 u = f * f * (3.0 - 2.0 * f);

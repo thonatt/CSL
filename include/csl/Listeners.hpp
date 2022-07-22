@@ -156,7 +156,7 @@ namespace csl
 			ctor_flags |= CtorFlags::Untracked;
 
 		const Expr expr = make_expr<Constructor<T, sizeof...(Args), Dimensions, Qualifiers>>(name, ctor_flags, variable_id, std::forward<Args>(args)...);
-		if (context::shader_active())
+		if (context::active() && context::shader_active())
 			context::get().push_expression(expr);
 
 		return expr;

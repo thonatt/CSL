@@ -171,7 +171,7 @@ namespace csl
 		NoExtraParenthesis = Sequence + 1,
 	};
 
-	inline bool operator<(const Precedence a, const Precedence b) {
+	constexpr bool operator<(const Precedence a, const Precedence b) {
 		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
 	}
 
@@ -189,6 +189,9 @@ namespace csl
 	template<typename T>
 	struct OperatorGLSL;
 
+	template<typename T>
+	void to_glsl(const T& t, GLSLData& data);
+
 	//////////////////////////////////////////////////////////
 
 	struct OperatorBase;
@@ -204,7 +207,7 @@ namespace csl
 		ExpressionHandle(const std::uint32_t index)
 			: m_id{ index | Defined }
 		{
-			assert((index & IndexMask) == index);
+			assert(index == get_index());
 		}
 
 		explicit operator bool() const {
@@ -225,7 +228,8 @@ namespace csl
 
 	OperatorBase* retrieve_expr(const Expr index);
 
-	enum class CtorFlags : std::size_t {
+	enum class CtorFlags : std::size_t 
+	{
 		Declaration = 1 << 0,
 		Initialisation = 1 << 1,
 		Temporary = 1 << 2,
@@ -250,7 +254,8 @@ namespace csl
 		return a;
 	}
 
-	struct OperatorBase {
+	struct OperatorBase
+	{
 		virtual ~OperatorBase() = default;
 
 		virtual void print_spirv() const {}
@@ -555,15 +560,19 @@ namespace csl
 	template<typename Base>
 	struct PolymorphicMemoryPool
 	{
-		PolymorphicMemoryPool() {
+		PolymorphicMemoryPool() 
+		{
 			m_objects_offsets.reserve(124);
 			m_buffer.reserve(10000);
 		}
 
 		PolymorphicMemoryPool(PolymorphicMemoryPool&& other) noexcept
-			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets)) { }
+			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets)) 
+		{ 
+		}
 
-		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept {
+		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept 
+		{
 			m_buffer = std::move(other.m_buffer);
 			m_objects_offsets = std::move(other.m_objects_offsets);
 			return *this;
