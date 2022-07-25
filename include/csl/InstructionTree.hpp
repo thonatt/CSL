@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Operators.hpp"
-#include "TemplateHelpers.hpp"
+#include <csl/Operators.hpp>
+#include <csl/TemplateHelpers.hpp>
+
 #include <array>
 #include <cassert>
 #include <memory>
@@ -68,7 +69,7 @@ namespace csl
 			InstructionImGui<StatementDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<StatementDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		StatementDelayed(const Expr expr) : m_expr(expr) {}
@@ -99,7 +100,7 @@ namespace csl
 			InstructionImGui<ReturnStatementDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<ReturnStatementDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 	};
 	using ReturnStatement = ReturnStatementDelayed<Dummy>;
@@ -113,7 +114,7 @@ namespace csl
 			InstructionImGui<ForArgStatementDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<ForArgStatementDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 	};
 	using ForArgStatement = ForArgStatementDelayed<Dummy>;
@@ -127,7 +128,7 @@ namespace csl
 			InstructionImGui<ForIterationStatementDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<ForIterationStatementDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 	};
 	using ForIterationStatement = ForIterationStatementDelayed<Dummy>;
@@ -139,7 +140,7 @@ namespace csl
 			InstructionImGui<SpecialStatement>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<SpecialStatement>::call(*this, data);
+			to_glsl(*this, data);
 		}
 	};
 
@@ -202,7 +203,7 @@ namespace csl
 			InstructionImGui<FuncDeclaration>::call(*this, data);
 		}
 		void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<FuncDeclaration>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		std::array<FuncOverload, N> m_overloads;
@@ -232,7 +233,7 @@ namespace csl
 			InstructionImGui<ForInstructionDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<ForInstructionDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		std::unique_ptr<ForArgsScope> args;
@@ -255,7 +256,7 @@ namespace csl
 			InstructionImGui<IfInstructionDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<IfInstructionDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		std::vector<IfCase> m_cases;
@@ -276,7 +277,7 @@ namespace csl
 			InstructionImGui<WhileInstructionDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<WhileInstructionDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		Expr m_condition;
@@ -296,7 +297,7 @@ namespace csl
 			InstructionImGui<SwitchCaseDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<SwitchCaseDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		Expr m_label;
@@ -323,7 +324,7 @@ namespace csl
 			InstructionImGui<SwitchInstructionDelayed>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<SwitchInstructionDelayed>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		Expr m_condition;
@@ -340,7 +341,7 @@ namespace csl
 			InstructionImGui<StructDeclaration>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<StructDeclaration>::call(*this, data);
+			to_glsl(*this, data);
 		}
 	};
 
@@ -353,7 +354,7 @@ namespace csl
 			InstructionImGui<NamedInterfaceDeclaration>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<NamedInterfaceDeclaration>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		const std::string m_name;
@@ -369,7 +370,7 @@ namespace csl
 			InstructionImGui<UnnamedInterfaceDeclaration>::call(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
-			InstructionGLSL<UnnamedInterfaceDeclaration>::call(*this, data);
+			to_glsl(*this, data);
 		}
 
 		const std::string m_name;

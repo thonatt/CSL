@@ -36,15 +36,17 @@
 //    for (int i = n; i >= 1; --i)
 //        s << i << ",";
 //    s << ")\n\n";
+//	  s << "#define #define CSL_PP_INC(x) CSL_PP_INC_ ## x\n";
 //    for (int i = 0; i < n; ++i)
 //        s << "#define CSL_PP_INC_" << i << " " << i + 1 << "\n";
 //    s << "\n";
+//	  s << "#define CSL_PP_BOOL(x) CSL_PP_BOOL_ ## x" << "\n";
 //    for (int i = 0; i < n; ++i)
 //        s << "#define CSL_PP_BOOL_" << i << " " << (i ? 1 : 0) << "\n";
-//    std::cout << s.str() << std::endl;
 //    s << "\n";
 //    for (int i = 1; i < n; ++i)
 //        s << "#define CSL_PP_ITERATE_" << i + 1 << "(m, d, i, e, ...) m(d, i, e) CSL_PP_ITERATE_" << i << "(m, d, CSL_PP_INC(i), __VA_ARGS__)" << "\n";
+//    std::cout << s.str() << std::endl;
 //    return 0;
 //}
 
@@ -264,5 +266,6 @@
 
 #define CSL_PP_ITERATE_II(macro, data, count, ...) CSL_PP_ITERATE_ ## count(macro, data, 0, __VA_ARGS__)
 #define CSL_PP_ITERATE_I(macro, data, count, ...) CSL_PP_ITERATE_II(macro, data, count, __VA_ARGS__)
+
 #define CSL_PP_ITERATE_DATA(data, macro, ...) CSL_PP_ITERATE_I(macro, data, CSL_PP_VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)
 #define CSL_PP_ITERATE(macro, ...) CSL_PP_ITERATE_I(macro, , CSL_PP_VARIADIC_SIZE(__VA_ARGS__), __VA_ARGS__)

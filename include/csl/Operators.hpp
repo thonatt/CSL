@@ -125,8 +125,9 @@ namespace csl
 	{
 		Alias = 10,
 
+		FunctionCall = 19,
+
 		ArraySubscript = 20,
-		FunctionCall = 20,
 		MemberAccessor = 20,
 		Swizzle = 20,
 		Postfix = 20,
@@ -259,7 +260,7 @@ namespace csl
 
 		virtual void print_spirv() const {}
 		virtual void print_imgui(ImGuiData& data) const = 0;
-		virtual void print_glsl(GLSLData& data, const Precedence precedence = Precedence::NoExtraParenthesis) const = 0;
+		virtual void print_glsl(GLSLData& data) const = 0;
 
 	};
 
@@ -279,8 +280,8 @@ namespace csl
 			OperatorImGui<ReferenceDelayed>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<ReferenceDelayed>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		const std::size_t m_id;
@@ -307,8 +308,8 @@ namespace csl
 			OperatorImGui<FunCall>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<FunCall>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		const Op m_op;
@@ -374,8 +375,8 @@ namespace csl
 			OperatorImGui<Constructor>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Constructor>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 	};
 
@@ -390,8 +391,8 @@ namespace csl
 			OperatorImGui<ArraySubscriptDelayed>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<ArraySubscriptDelayed>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		Expr m_obj, m_index;
@@ -405,7 +406,7 @@ namespace csl
 		SwizzlingBase(const Expr& expr) : m_obj(expr) { }
 
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
 		Expr m_obj;
 	};
@@ -418,8 +419,8 @@ namespace csl
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<Swizzling<chars...>>::call(*this, data);
 		}
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Swizzling<chars...>>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 	};
 
@@ -428,7 +429,7 @@ namespace csl
 		virtual ~MemberAccessorBase() = default;
 
 		virtual void print_imgui(ImGuiData& data) const {}
-		virtual void print_glsl(GLSLData& data, const Precedence precedence) const {}
+		virtual void print_glsl(GLSLData& data) const {}
 
 		MemberAccessorBase(const Expr expr) : m_obj(expr) { }
 
@@ -452,8 +453,8 @@ namespace csl
 		void print_imgui(ImGuiData& data) const override {
 			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
 		}
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<MemberAccessor<S, MemberId>>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 	};
 
@@ -466,8 +467,8 @@ namespace csl
 			OperatorImGui<UnaryOperatorDelayed>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<UnaryOperatorDelayed>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		Expr m_arg;
@@ -476,7 +477,7 @@ namespace csl
 	using UnaryOperator = UnaryOperatorDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct BinaryOperatorDelayed final : OperatorBase
+	struct BinaryOperatorDelayed final : ArgSeq<2>, OperatorBase
 	{
 		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
@@ -484,8 +485,8 @@ namespace csl
 			OperatorImGui<BinaryOperatorDelayed>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<BinaryOperatorDelayed>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		Expr m_lhs, m_rhs;
@@ -494,7 +495,8 @@ namespace csl
 	using BinaryOperator = BinaryOperatorDelayed<Dummy>;
 
 	template<typename Delayed>
-	struct TernaryOperatorDelayed final : OperatorBase {
+	struct TernaryOperatorDelayed final : OperatorBase 
+	{
 		TernaryOperatorDelayed(const Expr condition, const Expr first, const Expr second)
 			: m_condition(condition), m_first(first), m_second(second) {
 		}
@@ -503,8 +505,8 @@ namespace csl
 			OperatorImGui<TernaryOperatorDelayed>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<TernaryOperatorDelayed>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		Expr m_condition, m_first, m_second;
@@ -520,8 +522,8 @@ namespace csl
 			OperatorImGui<ConvertorOperator>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<ConvertorOperator>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 	};
 
@@ -535,8 +537,8 @@ namespace csl
 			OperatorImGui<CustomFunCall>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<CustomFunCall>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 	};
 
@@ -549,8 +551,8 @@ namespace csl
 			OperatorImGui<Litteral>::call(*this, data);
 		}
 
-		void print_glsl(GLSLData& data, const Precedence precedence) const override {
-			OperatorGLSL<Litteral>::call(*this, data, precedence);
+		void print_glsl(GLSLData& data) const override {
+			to_glsl(*this, data);
 		}
 
 		const T value;

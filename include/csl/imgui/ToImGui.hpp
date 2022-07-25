@@ -159,7 +159,7 @@ namespace csl
 	struct InstructionImGui<ForInstruction> {
 		static void call(const ForInstruction& i, ImGuiData& data) {
 			GLSLData args_glsl;
-			InstructionGLSL<ForInstruction>::header(i, args_glsl);
+			ToGLSL<ForInstruction>::header(i, args_glsl);
 			data.vector_node(args_glsl.stream.str(), i.body->m_instructions);
 		}
 	};
@@ -409,7 +409,7 @@ namespace csl
 			};
 
 			data.glsl_data.stream.str("");
-			ctor.print_glsl(data.glsl_data, csl::Precedence::NoExtraParenthesis);
+			ctor.print_glsl(data.glsl_data);
 			data.glsl_data << ";";
 
 			const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;
@@ -436,7 +436,7 @@ namespace csl
 	struct OperatorImGui<ArraySubscript> {
 		static void call(const ArraySubscript& subscript, ImGuiData& data) {
 			data.glsl_data.stream.str("");
-			OperatorGLSL<ArraySubscript>::call(subscript, data.glsl_data, Precedence::NoExtraParenthesis);
+			ToGLSL<ArraySubscript>::call(subscript, data.glsl_data);
 
 			data.node(data.glsl_data.stream.str(), [&] {
 				data << "from ";
@@ -530,11 +530,12 @@ namespace csl
 	};
 
 	template<typename S, std::size_t Id>
-	struct OperatorImGui<MemberAccessor<S, Id>> {
+	struct OperatorImGui<MemberAccessor<S, Id>> 
+	{
 		static void call(const MemberAccessor<S, Id>& accessor, ImGuiData& data) {
 
 			data.glsl_data.stream.str("");
-			OperatorGLSL<MemberAccessor<S, Id>>::call(accessor, data.glsl_data, Precedence::NoExtraParenthesis);
+			ToGLSL<MemberAccessor<S, Id>>::call(accessor, data.glsl_data);
 			std::string member_str = data.glsl_data.stream.str();
 
 			data.node(member_str, [&] {

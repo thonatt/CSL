@@ -149,11 +149,11 @@ namespace csl
 	};
 
 	template<typename T>
-	class NamedObject : public NamedObjectBase 
+	class NamedObject : public NamedObjectBase
 	{
 	public:
 
-		NamedObjectInit<T> operator<<(const std::string& name) const&& 
+		NamedObjectInit<T> operator<<(const std::string& name) const&&
 		{
 			return { get_expr_as_temp(), name };
 		}
@@ -169,12 +169,12 @@ namespace csl
 		}
 
 		template<typename ArrayDimensions = SizeList<>, typename Qualifiers = TList<>>
-		NamedObject(const std::string& name, const ObjFlags obj_flags, ArrayDimensions, Qualifiers)
+		NamedObject(const std::string& name, const ObjFlags obj_flags = ObjFlags::Default, ArrayDimensions = {}, Qualifiers = {})
 			: NamedObject(name, obj_flags, CtorFlags::Declaration, ArrayDimensions{}, Qualifiers{})
 		{
 		}
 
-		NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
+		explicit NamedObject(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
 			: NamedObjectBase(obj_flags) {
 			if (obj_flags & ObjFlags::StructMember)
 				m_expr = expr;
@@ -183,7 +183,7 @@ namespace csl
 		}
 
 		template<typename ArrayDimensions = SizeList<>, typename Qualifiers = TList<>>
-		NamedObject(const NamedObjectInit<T>& init, ArrayDimensions = {}, Qualifiers = {})
+		explicit NamedObject(const NamedObjectInit<T>& init, ArrayDimensions = {}, Qualifiers = {})
 			: NamedObjectBase(ObjFlags::Default | ObjFlags::UsedAsRef)
 		{
 			m_expr = create_variable_expr<T, ArrayDimensions, Qualifiers>(init.m_name, ObjFlags::Default | ObjFlags::UsedAsRef, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);

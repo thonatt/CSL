@@ -17,8 +17,8 @@ namespace csl
 		using vec4 = Vector<float, 4>;
 
 		using dvec2 = Vector<double, 2>;
-		using dvec3 = Vector<double, 2>;
-		using dvec4 = Vector<double, 2>;
+		using dvec3 = Vector<double, 3>;
+		using dvec4 = Vector<double, 4>;
 
 		using ivec2 = Vector<int, 2>;
 		using ivec3 = Vector<int, 3>;

@@ -57,6 +57,9 @@
 		\
 		StructTypename(csl::Dummy) : Base(), CSL_PP_ITERATE(CSL_PP_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
+		StructTypename(const csl::NamedObjectInit<StructTypename>& init) : Base(init), \
+			CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		\
 		StructTypename(const std::string& name = "", const csl::ObjFlags obj_flags = csl::ObjFlags::Default) \
 			: Base(name, obj_flags, SizeList<>{}, TList<>{}), \
 			CSL_PP_ITERATE_DATA((StructTypename, obj_flags | DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \

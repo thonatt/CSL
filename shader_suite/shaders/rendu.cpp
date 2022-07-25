@@ -36,7 +36,7 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 		const Float dsqrt = sqrt(delta);
 		roots = (-b + vec2(-dsqrt, dsqrt)) / a;
 		CSL_RETURN(true);
-	});
+		});
 
 	shader.main([&] {
 		const ivec2 resolution = imageSize(output);
@@ -84,7 +84,7 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 		// Compute associated attenuation.
 		const vec3 secondaryAttenuation = exp(-(kMie * mieSecondDist + kRayleigh * rayleighSecondDist));
 		imageStore(output, ivec2(j, i), vec4(secondaryAttenuation, 1.0));
-	});
+		});
 
 	return shader;
 }
@@ -98,7 +98,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 
 	Qualify<In, vec2> uv("uv");
 
-	Qualify<Uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005));
+	Qualify<Uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005)) << "clipToWorld";
 
 	Qualify<Uniform, vec3> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
 	Qualify<Uniform, vec3> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
@@ -144,7 +144,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		Float dsqrt = sqrt(delta);
 		roots = (-b + vec2(-dsqrt, dsqrt)) / a;
 		CSL_RETURN(true);
-	});
+		});
 
 	/** Compute the Rayleigh phase.
 		\param cosAngle Cosine of the angle between the ray and the light directions
@@ -153,7 +153,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 	auto rayleighPhase = define_function<Float>("rayleighPhase", [&](Float cosAngle) {
 		const Float k = 1.0 / (4.0 * M_PI);
 		CSL_RETURN(k * 3.0 / 4.0 * (1.0 + cosAngle * cosAngle));
-	});
+		});
 
 	/** Compute the Mie phase.
 		\param cosAngle Cosine of the angle between the ray and the light directions
@@ -163,7 +163,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		const Float k = 1.0 / (4.0 * M_PI);
 		Float g2 = gMie * gMie;
 		CSL_RETURN(k * 3.0 * (1.0 - g2) / (2.0 * (2.0 + g2)) * (1.0 + cosAngle * cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, 3.0 / 2.0));
-	});
+		});
 
 	/** Compute the radiance for a given ray, based on the atmosphere scattering model.
 		\param rayOrigin the ray origin
@@ -245,12 +245,12 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		}
 
 		CSL_RETURN(sunIntensity * (rayleighParticipation + mieParticipation) + transmittance * sunRadiance);
-	});
+		});
 
 	/** Simulate sky color based on an atmospheric scattering approximate model. */
 	shader.main([&] {
 		// Move to -1,1
-		vec4 clipVertex = vec4(-1.0 + 2.0 * uv, 0.0, 1.0);
+		vec4 clipVertex = vec4(-1.0 + 2.0 * uv, 0.0, 1.0) << "clipVertex";
 		// Then to world space.
 		vec3 viewRay = normalize((clipToWorld * clipVertex)(x, y, z));
 		// We then move to the planet model space, where its center is in (0,0,0).
@@ -258,7 +258,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		vec3 atmosphereColor = computeAtmosphereRadiance(planetSpaceViewPos, viewRay, lightDirection, defaultSunColor, precomputedScattering);
 		atmosphereColor = 1.0 - exp(-1.0 * atmosphereColor);
 		fragColor = vec4(pow(atmosphereColor, vec3(1.0 / 2.2)), 1.0);
-	});
+		});
 
 	return shader;
 }
