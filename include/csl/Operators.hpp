@@ -125,9 +125,8 @@ namespace csl
 	{
 		Alias = 10,
 
+		ArraySubscript = 19,
 		FunctionCall = 19,
-
-		ArraySubscript = 20,
 		MemberAccessor = 20,
 		Swizzle = 20,
 		Postfix = 20,
@@ -175,22 +174,19 @@ namespace csl
 		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
 	}
 
-	/////////////////////////////////////////////////////////
-
-	struct ImGuiData;
-
-	template<typename T>
-	struct OperatorImGui;
-
 	//////////////////////////////////////////////////////////
 
 	struct GLSLData;
 
 	template<typename T>
-	struct OperatorGLSL;
+	void to_glsl(const T& t, GLSLData& data);
+
+	/////////////////////////////////////////////////////////
+
+	struct ImGuiData;
 
 	template<typename T>
-	void to_glsl(const T& t, GLSLData& data);
+	void to_imgui(const T& t, ImGuiData& data);
 
 	//////////////////////////////////////////////////////////
 
@@ -277,7 +273,7 @@ namespace csl
 		ReferenceDelayed(const std::size_t id) : m_id(id) {}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<ReferenceDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -305,7 +301,7 @@ namespace csl
 		FunCall(const Op op, Args&& ...args) : ArgSeq<N>(std::forward<Args>(args)...), m_op(op) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<FunCall>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -372,7 +368,7 @@ namespace csl
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Constructor>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -388,7 +384,7 @@ namespace csl
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<ArraySubscriptDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -417,7 +413,7 @@ namespace csl
 		Swizzling(const Expr expr) : SwizzlingBase(expr) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Swizzling<chars...>>::call(*this, data);
+			to_imgui(*this, data);
 		}
 		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
@@ -451,7 +447,7 @@ namespace csl
 		MemberAccessor(const Expr expr) : MemberAccessorBase(expr) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<MemberAccessor<S, MemberId>>::call(*this, data);
+			to_imgui(*this, data);
 		}
 		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
@@ -464,7 +460,7 @@ namespace csl
 		UnaryOperatorDelayed(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<UnaryOperatorDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -482,7 +478,7 @@ namespace csl
 		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<BinaryOperatorDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -502,7 +498,7 @@ namespace csl
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<TernaryOperatorDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -519,7 +515,7 @@ namespace csl
 		ConvertorOperator(const Expr& obj) : ArgSeq<1>(obj) {}
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<ConvertorOperator>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -534,7 +530,7 @@ namespace csl
 		CustomFunCall(const std::size_t fun_id, Args&& ...args) : Reference(fun_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<CustomFunCall>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {
@@ -548,7 +544,7 @@ namespace csl
 		Litteral(const T t) : value(t) { }
 
 		void print_imgui(ImGuiData& data) const override {
-			OperatorImGui<Litteral>::call(*this, data);
+			to_imgui(*this, data);
 		}
 
 		void print_glsl(GLSLData& data) const override {

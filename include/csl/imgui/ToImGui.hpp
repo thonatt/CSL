@@ -13,24 +13,29 @@
 
 #include <imgui.h>
 
-namespace csl 
+namespace csl
 {
 
-	struct ImGuiData {
+	struct ImGuiData
+	{
+		GLSLData glsl_data;
+		std::size_t counter = 0;
 
 		std::string unique(const std::string& s)
 		{
 			return s + "##" + std::to_string(counter++);
 		}
 
-		std::string glsl_from_expr(const csl::Expr expr) {
+		std::string glsl_from_expr(const csl::Expr expr)
+		{
 			glsl_data.stream.str("");
 			retrieve_expr(expr)->print_glsl(glsl_data);
 			return glsl_data.stream.str();
 		}
 
 		template<typename F>
-		ImGuiData& node(const std::string& s, F&& f) {
+		ImGuiData& node(const std::string& s, F&& f)
+		{
 			if (ImGui::TreeNode(unique(s).c_str())) {
 				f();
 				ImGui::TreePop();
@@ -38,7 +43,8 @@ namespace csl
 			return *this;
 		}
 
-		ImGuiData& leaf(const std::string& s) {
+		ImGuiData& leaf(const std::string& s)
+		{
 			ImGui::TreeNodeEx(s.c_str(), ImGuiTreeNodeFlags_Leaf);
 			ImGui::TreePop();
 			return *this;
@@ -49,9 +55,8 @@ namespace csl
 		{
 			if (!vs.empty()) {
 				if (ImGui::TreeNode(unique(name).c_str())) {
-					for (const auto& v : vs) {
-						retrieve_instruction(v)->print_imgui(*this);
-					}
+					for (const auto& v : vs)
+						retrieve_instruction(v)->print_imgui(*this);				
 					ImGui::TreePop();
 				}
 			}
@@ -63,46 +68,49 @@ namespace csl
 		{
 			if constexpr (N > 0) {
 				if (ImGui::TreeNode(unique(name).c_str())) {
-					for (const auto& v : vs) {
+					for (const auto& v : vs)
 						retrieve_expr(v)->print_imgui(*this);
-					}
 					ImGui::TreePop();
 				}
 			}
 			return *this;
 		}
 
-		ImGuiData& operator<<(const std::string& str) {
+		ImGuiData& operator<<(const std::string& str)
+		{
 			ImGui::TextWrapped(str.c_str());
 			return *this;
 		}
 
-		GLSLData glsl_data;
-		std::size_t counter = 0;
-	};
-
-	template<typename Delayed>
-	struct ControllerImGui<Delayed, ShaderController>
-	{
-		static void call(const ShaderController& controller, ImGuiData& data)
+		void print_expr(const Expr& expr)
 		{
-			for (const auto& i : controller.m_scope->m_instructions)
-				retrieve_instruction(i)->print_imgui(data);
+			retrieve_expr(expr)->print_imgui(*this);
+		}
+
+		void print_instruction(const InstructionIndex& index)
+		{
+			retrieve_instruction(index)->print_imgui(*this);
 		}
 	};
+
+	template<typename T>
+	struct ToImGui;
+
+	template<typename T>
+	void to_imgui(const T& t, ImGuiData& data)
+	{
+		ToImGui<T>::call(t, data);
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// qualifiers
 
 	template<typename QList>
-	struct ImGuiQualifier {
-		static void print(ImGuiData& data) {
-			data << "unspecified qualifier";
-		}
-	};
+	struct ImGuiQualifier;
 
 	template<typename Q, typename ...Qs>
-	struct ImGuiQualifier<TList<Q, Qs...>> {
+	struct ImGuiQualifier<TList<Q, Qs...>>
+	{
 		static void print(ImGuiData& data) {
 			data << typeid(Q).name();
 			(((data << ", "), data << typeid(Qs).name()), ...);
@@ -113,7 +121,8 @@ namespace csl
 	struct ArraySizePrinterImGui { };
 
 	template<size_t ...Ns>
-	struct ImGuiQualifier<ArraySizePrinterImGui<SizeList<Ns...>>> {
+	struct ImGuiQualifier<ArraySizePrinterImGui<SizeList<Ns...>>>
+	{
 		static void print_glsl(ImGuiData& data) {
 			std::stringstream s;
 			((s << "[" << Ns << "]"), ...);
@@ -125,135 +134,135 @@ namespace csl
 	// instructions
 
 	template<>
-	struct InstructionImGui<IfInstruction> {
-		static void call(const IfInstruction& i, ImGuiData& data) {
-
+	struct ToImGui<IfInstruction>
+	{
+		static void call(const IfInstruction& i, ImGuiData& data)
+		{
 			std::string case_str;
 			for (std::size_t k = 0; k < i.m_cases.size(); ++k) {
-				if (k == 0) {
+				if (k == 0)
 					case_str = "if(";
-				} else if (k != i.m_cases.size() - 1) {
+				else if (k != i.m_cases.size() - 1)
 					case_str = "else if(";
-				} else {
+				else
 					case_str = "else ";
-				}
 
-				if (k == 0 || k != i.m_cases.size() - 1) {
+				if (k == 0 || k != i.m_cases.size() - 1)
 					case_str += data.glsl_from_expr(i.m_cases[k].condition) + ")";
-				}
+
 				data.vector_node(case_str, i.m_cases[k].body->m_instructions);
 			}
-
 		}
 	};
 
 	template<>
-	struct InstructionImGui<WhileInstruction> {
+	struct ToImGui<WhileInstruction>
+	{
 		static void call(const WhileInstruction& i, ImGuiData& data) {
-			std::string while_str = "while(" + data.glsl_from_expr(i.m_condition) + ")";
+			const std::string while_str = "while(" + data.glsl_from_expr(i.m_condition) + ")";
 			data.vector_node(while_str, i.m_body->m_instructions);
 		}
 	};
 
 	template<>
-	struct InstructionImGui<ForInstruction> {
+	struct ToImGui<ForInstruction>
+	{
 		static void call(const ForInstruction& i, ImGuiData& data) {
-			GLSLData args_glsl;
-			ToGLSL<ForInstruction>::header(i, args_glsl);
-			data.vector_node(args_glsl.stream.str(), i.body->m_instructions);
+			data.glsl_data.stream.str("");
+			ToGLSL<ForInstruction>::header(i, data.glsl_data);
+			data.vector_node(data.glsl_data.stream.str(), i.body->m_instructions);
 		}
 	};
 
 	template<>
-	struct InstructionImGui<ForArgStatement> {
+	struct ToImGui<ForArgStatement> {
 		static void call(const ForArgStatement& i, ImGuiData& data) {
 		}
 	};
 
 	template<>
-	struct InstructionImGui<ForIterationStatement> {
+	struct ToImGui<ForIterationStatement> {
 		static void call(const ForIterationStatement& i, ImGuiData& data) {
 		}
 	};
 
 	template<>
-	struct InstructionImGui<Statement> {
-		static void call(const Statement& i, ImGuiData& data) {
-			if (!i.m_expr) {
-				data << "empty expr";
-				return;
-			}
+	struct ToImGui<Statement>
+	{
+		static void call(const Statement& i, ImGuiData& data)
+		{
+			assert(i.m_expr);
 
 			if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_expr))) {
-				if (bool(ctor->m_flags & CtorFlags::Temporary)) {
+				if (bool(ctor->m_flags & CtorFlags::Temporary))
 					return;
-				}
+
 				if (bool(ctor->m_flags & CtorFlags::Untracked) || bool(ctor->m_flags & CtorFlags::FunctionArgument)) {
 					data.glsl_data.register_var_name(ctor->m_name, ctor->m_variable_id);
 					return;
 				}
 			}
 
-			retrieve_expr(i.m_expr)->print_imgui(data);
+			data.print_expr(i.m_expr);
 		}
 	};
 
 	template<>
-	struct InstructionImGui<SwitchInstruction> {
+	struct ToImGui<SwitchInstruction>
+	{
 		static void call(const SwitchInstruction& i, ImGuiData& data) {
 			data.node("switch", [&] {
 				data.node("condition : " + data.unique(data.glsl_from_expr(i.m_condition)), [&] {
-					retrieve_expr(i.m_condition)->print_imgui(data);
+					data.print_expr(i.m_condition);
 					});
-				for (const auto& c : i.m_body->m_instructions) {
-					retrieve_instruction(c)->print_imgui(data);
-				}
+				for (const auto& c : i.m_body->m_instructions)
+					data.print_instruction(c);
 				});
 		}
 	};
 
 	template<>
-	struct InstructionImGui<SwitchCase> {
-		static void call(const SwitchCase& i, ImGuiData& data) {
-
+	struct ToImGui<SwitchCase>
+	{
+		static void call(const SwitchCase& i, ImGuiData& data)
+		{
 			std::string case_str;
-			if (i.m_label) {
+			if (i.m_label)
 				case_str = "case " + data.glsl_from_expr(i.m_label);
-			} else {
+			else
 				case_str = "default";
-			}
+
 			case_str += " : ";
 			data.vector_node(case_str, i.m_body->m_instructions);
 		}
 	};
 
 	template<typename T>
-	struct InstructionImGui<SpecialStatement<T>> {
-		static void call(const SpecialStatement<T>& i, ImGuiData& data) { }
-	};
-
-	template<>
-	struct InstructionImGui<ReturnStatement> {
-		static void call(const ReturnStatement& i, ImGuiData& data) {
-			std::string return_str = "return " + data.glsl_from_expr(i.m_expr) + ";";
-			data.node(return_str, [&] {
-				retrieve_expr(i.m_expr)->print_imgui(data);
-				});
+	struct ToImGui<SpecialStatement<T>> {
+		static void call(const SpecialStatement<T>& i, ImGuiData& data) {
+			data << typeid(T).name();
 		}
 	};
 
 	template<>
-	struct InstructionImGui<FuncDeclarationBase> {
-		static void call(const FuncDeclarationBase& f, ImGuiData& data) { }
+	struct ToImGui<ReturnStatement>
+	{
+		static void call(const ReturnStatement& i, ImGuiData& data) {
+			std::string return_str = "return " + data.glsl_from_expr(i.m_expr) + ";";
+			data.node(return_str, [&] {
+				data.print_expr(i.m_expr);
+				});
+		}
 	};
 
 	template<std::size_t NumOverloads>
-	struct OverloadImGui {
-
+	struct OverloadImGui
+	{
 		template<typename T, std::size_t Id>
-		struct Get {
-			static void call(const std::array<FuncOverload, NumOverloads>& overloads, ImGuiData& data, const std::string& fname) {
-
+		struct Get
+		{
+			static void call(const std::array<FuncOverload, NumOverloads>& overloads, ImGuiData& data, const std::string& fname)
+			{
 				data.glsl_data.stream.str("");
 				data.glsl_data << GLSLTypeStr<T>::get() + " " + fname + "(";
 				const auto& args = overloads[Id].args->m_instructions;
@@ -277,9 +286,8 @@ namespace csl
 				data.glsl_data << ");";
 
 				data.node(data.glsl_data.stream.str() + "##" + std::to_string(Id), [&] {
-					for (const auto& i : overloads[Id].body->m_instructions) {
+					for (const auto& i : overloads[Id].body->m_instructions)
 						retrieve_instruction(i)->print_imgui(data);
-					}
 					});
 			}
 		};
@@ -287,7 +295,8 @@ namespace csl
 	};
 
 	template<typename ReturnTList, typename ...Fs>
-	struct InstructionImGui<FuncDeclaration<ReturnTList, Fs...>> {
+	struct ToImGui<FuncDeclaration<ReturnTList, Fs...>>
+	{
 		static void call(const FuncDeclaration<ReturnTList, Fs...>& f, ImGuiData& data) {
 			const std::string& name = data.glsl_data.register_var_name(f.m_name, f.m_id);
 			iterate_over_typelist<ReturnTList, OverloadImGui<sizeof...(Fs)>::template Get>(f.m_overloads, data, name);
@@ -295,15 +304,16 @@ namespace csl
 	};
 
 	template<typename S, typename T, std::size_t Id>
-	struct StructDeclarationMemberImGui {
+	struct StructDeclarationMemberImGui
+	{
 		static void call(ImGuiData& data) {
 			data << (GLSLDeclaration<T>::get(S::get_member_name(Id)) + ";");
 		}
 	};
 
 	template<typename S>
-	struct InstructionImGui<StructDeclaration<S>> {
-
+	struct ToImGui<StructDeclaration<S>>
+	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberImGui<S, T, Id>;
 
@@ -315,7 +325,7 @@ namespace csl
 	};
 
 	template<typename Interface, typename Dimensions, typename Qualifiers>
-	struct InstructionImGui<NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>>
+	struct ToImGui<NamedInterfaceDeclaration<Interface, Dimensions, Qualifiers>>
 	{
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberImGui<Interface, T, Id>;
@@ -338,15 +348,16 @@ namespace csl
 	};
 
 	template<typename Interface, typename T, std::size_t Id>
-	struct UnnamedInterfaceDeclarationMemberImGui {
+	struct UnnamedInterfaceDeclarationMemberImGui
+	{
 		static void call(const Interface& i, ImGuiData& data) {
-			data << (GLSLDeclaration<T>::get(i.m_names[1 + Id]) + ";");
+			data << (GLSLDeclaration<T>::get(i.m_names[Id]) + ";");
 		}
 	};
 
 	template<typename ...Qs, typename ...Ts>
-	struct InstructionImGui<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>> {
-
+	struct ToImGui<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>>
+	{
 		using Qualifiers = RemoveArrayFromQualifiers<Qs...>;
 		using Interface = UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>;
 
@@ -355,10 +366,10 @@ namespace csl
 
 		static void call(const UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>& s, ImGuiData& data) {
 			std::string interface_name;
-			if constexpr (Qualifiers::Size > 0) {
+			if constexpr (Qualifiers::Size > 0)
 				interface_name += GLSLQualifier<Qualifiers>::get() + " ";
-			}
-			interface_name += s.m_names[0];
+
+			interface_name += s.m_name;
 			data.node(interface_name, [&] {
 				iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);;
 				});
@@ -369,34 +380,29 @@ namespace csl
 	// operators
 
 	template<std::size_t N>
-	struct OperatorImGui<ArgSeq<N>> {
+	struct ToImGui<ArgSeq<N>>
+	{
 		static void call(const ArgSeq<N>& seq, ImGuiData& data) {
-			if constexpr (N > 0) {
-				retrieve_expr(seq.m_args[0])->print_imgui(data);
-			}
+			if constexpr (N > 0)
+				data.print_expr(seq.m_args[0]);
+
 			for (std::size_t i = 1; i < N; ++i) {
 				data << ", ";
-				retrieve_expr(seq.m_args[i])->print_imgui(data);
+				data.print_expr(seq.m_args[i]);
 			}
 		}
 	};
 
 	template<>
-	struct OperatorImGui<Reference> {
+	struct ToImGui<Reference>
+	{
 		static void call(const Reference& ref, ImGuiData& data) {
 			data << ("$" + std::to_string(ref.m_id));
 		}
 	};
 
-	template<>
-	struct OperatorImGui<ConstructorBase> {
-		static void call(const ConstructorBase& ctor, ImGuiData& data) {
-			data << "Base ctor";
-		}
-	};
-
 	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
-	struct OperatorImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
+	struct ToImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
 	{
 		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) {
 
@@ -424,41 +430,36 @@ namespace csl
 			//using ArrayDimensions = typename T::ArrayDimensions;
 			//using Qualifiers = typename T::Qualifiers;
 
-			if constexpr (N == 0) {
+			if constexpr (N == 0)
 				data.leaf(ctor_str);
-			} else {
+			else
 				data.expr_vector_node(ctor_str, ctor.m_args);
-			}
 		}
 	};
 
 	template<>
-	struct OperatorImGui<ArraySubscript> {
-		static void call(const ArraySubscript& subscript, ImGuiData& data) {
+	struct ToImGui<ArraySubscript>
+	{
+		static void call(const ArraySubscript& subscript, ImGuiData& data)
+		{
 			data.glsl_data.stream.str("");
 			ToGLSL<ArraySubscript>::call(subscript, data.glsl_data);
 
 			data.node(data.glsl_data.stream.str(), [&] {
 				data << "from ";
-				retrieve_expr(subscript.m_obj)->print_imgui(data);
+				data.print_expr(subscript.m_obj);
 				data << "at index ";
-				retrieve_expr(subscript.m_index)->print_imgui(data);
+				data.print_expr(subscript.m_index);
 				});
 		}
 	};
 
-	template<>
-	struct OperatorImGui<SwizzlingBase> {
-		static void call(const SwizzlingBase& swizzle, ImGuiData& data) { }
-	};
-
-
 	template<char ...chars>
-	struct OperatorImGui<Swizzling<chars...>> {
-
+	struct ToImGui<Swizzling<chars...>>
+	{
 		static void call(const Swizzling<chars...>& swizzle, ImGuiData& data) {
 			data.node(data.glsl_from_expr(swizzle.m_obj), [&] {
-				retrieve_expr(swizzle.m_obj)->print_imgui(data);
+				data.print_expr(swizzle.m_obj);
 				});
 
 			std::string swizzle_str = ".";
@@ -468,69 +469,74 @@ namespace csl
 	};
 
 	template<typename T>
-	struct OperatorImGui<Litteral<T>> {
+	struct ToImGui<Litteral<T>> {
 		static void call(const Litteral<T>& litteral, ImGuiData& data) {
 			data.leaf("litteral " + std::string(typeid(typename Infos<T>::ScalarType).name()) + " " + std::to_string(litteral.value));
 		}
 	};
 
 	template<>
-	struct OperatorImGui<BinaryOperator> {
-		static void call(const BinaryOperator& bop, ImGuiData& data) {
+	struct ToImGui<BinaryOperator>
+	{
+		static void call(const BinaryOperator& bop, ImGuiData& data)
+		{
 			data.node(data.glsl_from_expr(bop.m_lhs), [&] {
-				retrieve_expr(bop.m_lhs)->print_imgui(data);
+				data.print_expr(bop.m_lhs);
 				});
 			data << glsl_op_str(bop.m_op);
 			data.node(data.glsl_from_expr(bop.m_rhs), [&] {
-				retrieve_expr(bop.m_rhs)->print_imgui(data);
+				data.print_expr(bop.m_rhs);
 				});
 		}
 	};
 
 	template<>
-	struct OperatorImGui<UnaryOperator> {
+	struct ToImGui<UnaryOperator>
+	{
 		static void call(const UnaryOperator& uop, ImGuiData& data) {
 			data.node(glsl_op_str(uop.m_op), [&] {
-				retrieve_expr(uop.m_arg)->print_imgui(data);
+				data.print_expr(uop.m_arg);
 				});
 		}
 	};
 
 	template<typename From, typename To>
-	struct OperatorImGui<ConvertorOperator< From, To>> {
+	struct ToImGui<ConvertorOperator< From, To>>
+	{
 		static void call(const ConvertorOperator< From, To>& op, ImGuiData& data) {
 			data.node("convertor", [&] {
-				retrieve_expr(op.m_args[0])->print_imgui(data);
+				data.print_expr(op.m_args[0]);
 				});
 		}
 	};
 
 	template<std::size_t N>
-	struct OperatorImGui<FunCall<N>> {
+	struct ToImGui<FunCall<N>>
+	{
 		static void call(const FunCall<N>& fun_call, ImGuiData& data) {
 			data.expr_vector_node(glsl_op_str(fun_call.m_op), fun_call.m_args);
 		}
 	};
 
 	template<typename F, typename ReturnType, std::size_t N>
-	struct OperatorImGui<CustomFunCall< F, ReturnType, N>> {
+	struct ToImGui<CustomFunCall< F, ReturnType, N>>
+	{
 		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, ImGuiData& data) {
 			data.node("custom function call", [&] {
-				OperatorImGui<Reference>::call(fun_call, data);
+				ToImGui<Reference>::call(fun_call, data);
 				data.node("Args", [&] {
-					if constexpr (N == 0) {
+					if constexpr (N == 0)
 						data << "no arguments";
-					}
-					for (std::size_t i = 0; i < N; ++i) {
-						retrieve_expr(fun_call.m_args[i])->print_imgui(data);
-					}
+
+					for (std::size_t i = 0; i < N; ++i)
+						data.print_expr(fun_call.m_args[i]);
 					});
 				});
 		}
 	};
 
 	template<typename S, std::size_t Id>
-	struct OperatorImGui<MemberAccessor<S, Id>> 
+	struct ToImGui<MemberAccessor<S, Id>>
 	{
 		static void call(const MemberAccessor<S, Id>& accessor, ImGuiData& data) {
 
@@ -540,27 +546,27 @@ namespace csl
 
 			data.node(member_str, [&] {
 				if (auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(accessor.m_obj))) {
-					if (bool(ctor->m_flags & CtorFlags::Temporary)) {
+					if (bool(ctor->m_flags & CtorFlags::Temporary))
 						ctor->print_imgui(data);
-					} else {
+					else
 						data << ("$" + std::to_string(ctor->m_variable_id));
-					}
 				} else {
 					auto accessor_wrapper = dynamic_cast<MemberAccessorBase*>(retrieve_expr(accessor.m_obj));
 					accessor_wrapper->print_imgui(data);
 				}
-				data << S::get_member_name(Id);
+				data << "." + S::get_member_name(Id);
 				});
 		}
 	};
 
 	template<>
-	struct OperatorImGui<TernaryOperator> {
+	struct ToImGui<TernaryOperator>
+	{
 		static void call(const TernaryOperator& top, ImGuiData& data) {
 			data.node("ternary", [&] {
-				retrieve_expr(top.m_condition)->print_imgui(data);
-				retrieve_expr(top.m_first)->print_imgui(data);
-				retrieve_expr(top.m_second)->print_imgui(data);
+				data.print_expr(top.m_condition);
+				data.print_expr(top.m_first);
+				data.print_expr(top.m_second);
 				});
 		}
 	};

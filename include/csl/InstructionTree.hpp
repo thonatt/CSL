@@ -66,7 +66,7 @@ namespace csl
 		virtual ~StatementDelayed() = default;
 
 		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<StatementDelayed>::call(*this, data);
+			to_imgui(*this, data);
 		}
 		virtual void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
@@ -96,10 +96,10 @@ namespace csl
 		template<typename T>
 		ReturnStatementDelayed(T&& t) : Statement(get_expr(std::forward<T>(t))) {}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<ReturnStatementDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 	};
@@ -110,10 +110,10 @@ namespace csl
 	{
 		ForArgStatementDelayed(const Expr expr) : Statement(expr) { }
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<ForArgStatementDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 	};
@@ -124,10 +124,10 @@ namespace csl
 	{
 		ForIterationStatementDelayed(const Expr& expr) : Statement(expr) { }
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<ForIterationStatementDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 	};
@@ -136,10 +136,10 @@ namespace csl
 	template<typename T>
 	struct SpecialStatement final : InstructionBase
 	{
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<SpecialStatement>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 	};
@@ -170,7 +170,9 @@ namespace csl
 	{
 		virtual ~FuncDeclarationBase() = default;
 
-		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) : m_name(name), m_id(fun_id) {
+		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) 
+			: m_name(name), m_id(fun_id)
+		{
 		}
 
 		virtual void print_imgui(ImGuiData& data) const override {}
@@ -195,12 +197,12 @@ namespace csl
 			return m_overloads[i];
 		}
 
-		virtual std::size_t overload_count() const override {
+		std::size_t overload_count() const override {
 			return N;
 		}
 
 		void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<FuncDeclaration>::call(*this, data);
+			to_imgui(*this, data);
 		}
 		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
@@ -229,10 +231,10 @@ namespace csl
 			body = std::make_unique<Scope>();
 		}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<ForInstructionDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -252,10 +254,10 @@ namespace csl
 
 		IfInstructionDelayed(const InstructionIndex parent_if) : m_parent_if(parent_if) {}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<IfInstructionDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -273,10 +275,10 @@ namespace csl
 			m_body = std::make_unique<Scope>(parent_block);
 		}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<WhileInstructionDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -293,10 +295,10 @@ namespace csl
 			m_body = std::make_unique<Scope>(parent);
 		}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<SwitchCaseDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -320,10 +322,10 @@ namespace csl
 			current_block = safe_static_cast<SwitchCase*>(retrieve_instruction(m_current_case))->m_body.get();
 		}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<SwitchInstructionDelayed>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -337,10 +339,10 @@ namespace csl
 	template<typename Struct>
 	struct StructDeclaration final : InstructionBase
 	{
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<StructDeclaration>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 	};
@@ -350,10 +352,10 @@ namespace csl
 	{
 		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<NamedInterfaceDeclaration>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 
@@ -366,10 +368,10 @@ namespace csl
 		template<typename ...Strings>
 		UnnamedInterfaceDeclaration(const std::string& name, Strings&& ...names) : m_name{ name }, m_names{ names ... } { }
 
-		virtual void print_imgui(ImGuiData& data) const override {
-			InstructionImGui<UnnamedInterfaceDeclaration>::call(*this, data);
+		void print_imgui(ImGuiData& data) const override {
+			to_imgui(*this, data);
 		}
-		virtual void print_glsl(GLSLData& data) const override {
+		void print_glsl(GLSLData& data) const override {
 			to_glsl(*this, data);
 		}
 

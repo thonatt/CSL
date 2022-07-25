@@ -35,7 +35,7 @@ namespace csl
 		struct BuiltInRegisters;
 
 		template<ShaderType type, GLSLversion version>
-		class ShaderGLSL final : protected ShaderController
+		class ShaderGLSL final : public ShaderController
 		{
 
 		public:
@@ -50,13 +50,14 @@ namespace csl
 
 			~ShaderGLSL();
 
-			template<typename Data>
-			void print_imgui(Data& data) {
-				BuiltInRegisters<type, version>::template call(data.glsl_data);
-				ShaderController::template print_imgui<csl::Dummy>(data);
+			void print_imgui(ImGuiData& data) override
+			{
+				BuiltInRegisters<type, version>::call(data.glsl_data);
+				ShaderController::print_imgui(data);
 			}
 
-			void print_glsl(GLSLData& data) {
+			void print_glsl(GLSLData& data) override
+			{
 				BuiltInRegisters<type, version>::call(data);
 				data << get_header() << "\n";
 				ShaderController::print_glsl(data);

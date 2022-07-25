@@ -39,21 +39,19 @@ struct ShaderExample
 	ShaderExample(ShaderCreation&& f)
 	{
 		auto start = Clock::now();
-		auto shader = f();
+		m_shader = std::make_unique<decltype(f())>(f());
 		m_generation_timing = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 
 		m_glsl_timing = get_timing([&]
 			{
 				csl::GLSLData glsl_data;
-				shader.print_glsl(glsl_data);
+				m_shader->print_glsl(glsl_data);
 				m_glsl_str = glsl_data.stream.str();
 			});
-
-		std::swap(m_controller, shader.get_base());
 	}
 
 	std::string m_glsl_str;
-	csl::ShaderController m_controller;
+	std::unique_ptr<csl::ShaderController> m_shader;
 	std::string m_name;
 	double m_generation_timing, m_glsl_timing;
 };
@@ -274,7 +272,7 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 	case Mode::ImGui:
 	{
 		csl::ImGuiData data;
-		shader.m_controller.template print_imgui<csl::Dummy>(data);
+		shader.m_shader->print_imgui(data);
 		break;
 	}
 	case Mode::GLSL:
@@ -286,8 +284,8 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 	{
 		std::stringstream s;
 		s << "Shader traversal : " << shader.m_generation_timing << " ms\n";
-		const auto& mem = shader.m_controller.m_memory_pool;
-		const auto& ins = shader.m_controller.m_instruction_pool;
+		const auto& mem = shader.m_shader->m_memory_pool;
+		const auto& ins = shader.m_shader->m_instruction_pool;
 		s << "\t Shader size : " << shader.m_glsl_str.size() << " characters\n";
 		s << "\t Expressions, count : " << mem.m_objects_offsets.size() << ", total size : " << mem.get_data_size() << "\n";
 		s << "\t Instructions, count : " << ins.m_objects_offsets.size() << ", total size : " << ins.get_data_size() << "\n";
@@ -381,9 +379,9 @@ struct Application : public framework::Application
 		for (const auto& [typen, shader] : m_shader_suite.m_shaders) {
 			m_global_metrics.m_time_total += shader->m_glsl_timing + shader->m_generation_timing;
 			m_global_metrics.m_characters_count += shader->m_glsl_str.size();
-			m_global_metrics.m_expressions_count += shader->m_controller.m_memory_pool.m_objects_offsets.size();
-			m_global_metrics.m_instructions_count += shader->m_controller.m_instruction_pool.m_objects_offsets.size();
-			m_global_metrics.m_memory += shader->m_controller.m_memory_pool.get_data_size() + shader->m_controller.m_instruction_pool.get_data_size();
+			m_global_metrics.m_expressions_count += shader->m_shader->m_memory_pool.m_objects_offsets.size();
+			m_global_metrics.m_instructions_count += shader->m_shader->m_instruction_pool.m_objects_offsets.size();
+			m_global_metrics.m_memory += shader->m_shader->m_memory_pool.get_data_size() + shader->m_shader->m_instruction_pool.get_data_size();
 		}
 
 		m_pipelines = get_all_pipelines(*this);

@@ -34,13 +34,6 @@ namespace csl
 		}
 	}
 
-	template<typename Delayed, typename T>
-	struct ControllerImGui
-	{
-		template<typename Data>
-		static void call(const T& t, Data& data) { }
-	};
-
 	struct ControllerBase
 	{
 		void queue_expr(const Expr e) {
@@ -378,6 +371,8 @@ namespace csl
 			current_block = m_scope.get();
 		}
 
+		virtual ~ShaderController() = default;
+
 		ShaderController(ShaderController&& other) :
 			m_scope(std::move(other.m_scope)),
 			m_memory_pool(std::move(other.m_memory_pool)),
@@ -408,17 +403,16 @@ namespace csl
 			(void)define_function<void>("main", f);
 		}
 
-		// template to delay instantiation
-		template<typename Delayed, typename Data>
-		void print_imgui(Data& data)
+		virtual void print_imgui(ImGuiData& data)
 		{
 			auto previous_current_shader = get_current_shader();
 			set_current_shader(this);
-			ControllerImGui<Delayed, ShaderController>::call(*this, data);
+			for (const auto& i : m_scope->m_instructions)
+				retrieve_instruction(i)->print_imgui(data);
 			set_current_shader(previous_current_shader);
 		}
 
-		void print_glsl(GLSLData& data)
+		virtual void print_glsl(GLSLData& data)
 		{
 			auto previous_current_shader = get_current_shader();
 			set_current_shader(this);
