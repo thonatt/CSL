@@ -265,12 +265,11 @@ namespace csl
 	template <typename Operator, typename ... Args>
 	Expr make_expr(Args&& ...args);
 
-	template<typename Delayed>
-	struct ReferenceDelayed : OperatorBase
+	struct Reference : OperatorBase
 	{
-		virtual ~ReferenceDelayed() = default;
+		virtual ~Reference() = default;
 
-		ReferenceDelayed(const std::size_t id) : m_id(id) {}
+		Reference(const std::size_t id) : m_id(id) {}
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);
@@ -282,7 +281,6 @@ namespace csl
 
 		const std::size_t m_id;
 	};
-	using Reference = ReferenceDelayed<Dummy>;
 
 	template<std::size_t N>
 	struct ArgSeq
@@ -292,7 +290,6 @@ namespace csl
 
 		const std::array<Expr, N> m_args;
 	};
-
 
 	template<std::size_t N>
 	struct FunCall final : OperatorBase, ArgSeq<N>
@@ -376,10 +373,9 @@ namespace csl
 		}
 	};
 
-	template<typename Delayed>
-	struct ArraySubscriptDelayed final : OperatorBase
+	struct ArraySubscript final : OperatorBase
 	{
-		ArraySubscriptDelayed(const Expr obj, const Expr index) : m_obj(obj), m_index(index) 
+		ArraySubscript(const Expr obj, const Expr index) : m_obj(obj), m_index(index)
 		{
 		}
 
@@ -393,7 +389,6 @@ namespace csl
 
 		Expr m_obj, m_index;
 	};
-	using ArraySubscript = ArraySubscriptDelayed<Dummy>;
 
 	struct SwizzlingBase : OperatorBase
 	{
@@ -454,10 +449,9 @@ namespace csl
 		}
 	};
 
-	template<typename Delayed>
-	struct UnaryOperatorDelayed final : OperatorBase
+	struct UnaryOperator final : OperatorBase
 	{
-		UnaryOperatorDelayed(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
+		UnaryOperator(const Op op, const Expr& arg) : m_arg(arg), m_op(op) { }
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);
@@ -470,12 +464,10 @@ namespace csl
 		Expr m_arg;
 		Op m_op;
 	};
-	using UnaryOperator = UnaryOperatorDelayed<Dummy>;
 
-	template<typename Delayed>
-	struct BinaryOperatorDelayed final : ArgSeq<2>, OperatorBase
+	struct BinaryOperator final : ArgSeq<2>, OperatorBase
 	{
-		BinaryOperatorDelayed(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
+		BinaryOperator(const Op op, const Expr& lhs, const Expr& rhs) : m_lhs(lhs), m_rhs(rhs), m_op(op) { }
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);
@@ -488,12 +480,10 @@ namespace csl
 		Expr m_lhs, m_rhs;
 		Op m_op;
 	};
-	using BinaryOperator = BinaryOperatorDelayed<Dummy>;
 
-	template<typename Delayed>
-	struct TernaryOperatorDelayed final : OperatorBase 
+	struct TernaryOperator final : OperatorBase
 	{
-		TernaryOperatorDelayed(const Expr condition, const Expr first, const Expr second)
+		TernaryOperator(const Expr condition, const Expr first, const Expr second)
 			: m_condition(condition), m_first(first), m_second(second) {
 		}
 
@@ -507,7 +497,6 @@ namespace csl
 
 		Expr m_condition, m_first, m_second;
 	};
-	using TernaryOperator = TernaryOperatorDelayed<Dummy>;
 
 	template<typename From, typename To>
 	struct ConvertorOperator final : OperatorBase, ArgSeq<1>
