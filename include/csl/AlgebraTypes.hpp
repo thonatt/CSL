@@ -40,7 +40,7 @@ namespace csl
 			return false;
 		}
 
-		Matrix(csl::Dummy) : Base() {}
+		Matrix(NoInit) : Base() {}
 
 		Matrix() : Base("", ObjFlags::Default, {}, {}) {}
 

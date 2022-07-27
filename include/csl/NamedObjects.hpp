@@ -206,7 +206,7 @@ namespace csl
 
 		template<std::size_t N>
 		TypeInterface(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
-			: T(Dummy{})
+			: T(NoInit{})
 		{
 			if (obj_flags & ObjFlags::Constructor)
 				T::m_expr = create_variable_expr<T, SizeList<>, Qualifiers>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
@@ -215,7 +215,7 @@ namespace csl
 		}
 
 		TypeInterface(const std::string& name = "", const ObjFlags obj_flags = ObjFlags::Default)
-			: T(Dummy{})
+			: T(NoInit{})
 		{
 			if (obj_flags & ObjFlags::Constructor)
 				T::m_expr = create_variable_expr<T, SizeList<>, Qualifiers>(name, obj_flags, CtorFlags::Declaration, NamedObjectBase::id);
@@ -224,7 +224,7 @@ namespace csl
 		}
 
 		TypeInterface(const Expr expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: T(Dummy{})
+			: T(NoInit{})
 		{
 			if (obj_flags & ObjFlags::StructMember)
 				T::m_expr = expr;
@@ -235,7 +235,7 @@ namespace csl
 		}
 
 		TypeInterface(const NamedObjectInit<T>& init)
-			: T(Dummy{})
+			: T(NoInit{})
 		{
 			T::m_expr = create_variable_expr<T, SizeList<>, Qualifiers>(init.m_name, ObjFlags::Default, CtorFlags::Initialisation, NamedObjectBase::id, init.m_expr);
 			T::set_members();
@@ -258,7 +258,7 @@ namespace csl
 
 		static constexpr bool IsArray = true;
 
-		ArrayInterface(csl::Dummy) : Base()
+		ArrayInterface(NoInit) : Base()
 		{
 		}
 

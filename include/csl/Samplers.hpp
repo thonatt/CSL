@@ -3,15 +3,15 @@
 #include "Types.hpp"
 #include "NamedObjects.hpp"
 
-namespace csl {
-
+namespace csl 
+{
 	template<typename T, std::size_t N, SamplerFlags Flags>
 	class Sampler : public NamedObject<Sampler<T, N, Flags>> 
 	{
 	public:
 		using Base = NamedObject<Sampler>;
 
-		Sampler(Dummy) : Base() {}
+		Sampler(NoInit) : Base() {}
 
 		Sampler() : Sampler("") {}
 

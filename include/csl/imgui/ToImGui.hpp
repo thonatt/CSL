@@ -267,17 +267,15 @@ namespace csl
 				data.glsl_data << GLSLTypeStr<T>::get() + " " + fname + "(";
 				const auto& args = overloads[Id].args->m_instructions;
 				if (get_arg_evaluation_order() == ArgEvaluationOrder::LeftToRight) {
-					if (!args.empty()) {
+					if (!args.empty())
 						retrieve_instruction(args.front())->print_glsl(data.glsl_data);
-					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data.glsl_data << ", ";
 						retrieve_instruction(args[i])->print_glsl(data.glsl_data);
 					}
 				} else {
-					if (!args.empty()) {
+					if (!args.empty())
 						retrieve_instruction(args.back())->print_glsl(data.glsl_data);
-					}
 					for (std::size_t i = 1; i < args.size(); ++i) {
 						data.glsl_data << ", ";
 						retrieve_instruction(args[args.size() - i - 1])->print_glsl(data.glsl_data);
@@ -404,8 +402,8 @@ namespace csl
 	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
 	struct ToImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
 	{
-		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) {
-
+		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) 
+		{
 			static const std::unordered_map<CtorFlags, std::string> flag_strs = {
 				{ CtorFlags::Declaration, "Declaration" },
 				{ CtorFlags::Initialisation, "Initialisation" },

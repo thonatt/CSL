@@ -174,24 +174,6 @@ namespace csl
 		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
 	}
 
-	//////////////////////////////////////////////////////////
-
-	struct GLSLData;
-
-	template<typename T>
-	void to_glsl(const T& t, GLSLData& data);
-
-	/////////////////////////////////////////////////////////
-
-	struct ImGuiData;
-
-	template<typename T>
-	void to_imgui(const T& t, ImGuiData& data);
-
-	//////////////////////////////////////////////////////////
-
-	struct OperatorBase;
-
 	struct ExpressionHandle
 	{
 		static constexpr std::uint32_t Defined = 1 << 31;
@@ -222,6 +204,7 @@ namespace csl
 	};
 	using Expr = ExpressionHandle;
 
+	struct OperatorBase;
 	OperatorBase* retrieve_expr(const Expr index);
 
 	enum class CtorFlags : std::size_t 
@@ -250,6 +233,22 @@ namespace csl
 		return a;
 	}
 
+	//////////////////////////////////////////////////////////
+
+	struct GLSLData;
+
+	template<typename T>
+	void to_glsl(const T& t, GLSLData& data);
+
+	/////////////////////////////////////////////////////////
+
+	struct ImGuiData;
+
+	template<typename T>
+	void to_imgui(const T& t, ImGuiData& data);
+
+	//////////////////////////////////////////////////////////
+
 	struct OperatorBase
 	{
 		virtual ~OperatorBase() = default;
@@ -259,8 +258,6 @@ namespace csl
 		virtual void print_glsl(GLSLData& data) const = 0;
 
 	};
-
-	struct Dummy { };
 
 	template <typename Operator, typename ... Args>
 	Expr make_expr(Args&& ...args);

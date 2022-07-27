@@ -30,7 +30,7 @@
 	CSL_PP_MEMBER_NAME(elem).m_expr = csl::make_expr<csl::MemberAccessor<data,i>>(Base::m_expr); \
 	CSL_PP_MEMBER_NAME(elem).m_flags = csl::ObjFlags::StructMember;
 
-#define CSL_PP_EMPTY_INIT_MEMBER_IT(data, i, elem) CSL_PP_COMMA_IF(i) CSL_PP_MEMBER_NAME(elem) ( csl::Dummy{} )
+#define CSL_PP_EMPTY_INIT_MEMBER_IT(data, i, elem) CSL_PP_COMMA_IF(i) CSL_PP_MEMBER_NAME(elem) (csl::NoInit{})
 
 #define CSL_PP_DECLARE_UNNAMED_INTERFACE_MEMBER_IT(data, i, elem) \
 	CSL_PP_MEMBER_TYPE(elem) CSL_PP_MEMBER_NAME(elem) { CSL_PP_MEMBER_STR(elem), csl::ObjFlags::Constructor };
@@ -55,7 +55,7 @@
 		StructTypename(StructTypename && other) : Base(other), \
 			CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
-		StructTypename(csl::Dummy) : Base(), CSL_PP_ITERATE(CSL_PP_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
+		StructTypename(csl::NoInit) : Base(), CSL_PP_ITERATE(CSL_PP_EMPTY_INIT_MEMBER_IT, __VA_ARGS__) { } \
 		\
 		StructTypename(const csl::NamedObjectInit<StructTypename>& init) : Base(init), \
 			CSL_PP_ITERATE_DATA((StructTypename, DefaultObjFlags), CSL_PP_INIT_MEMBER_IT, __VA_ARGS__) { } \

@@ -810,7 +810,6 @@ namespace csl
 	template<typename ...Qs, typename ...Ts>
 	struct ToGLSL<UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>>
 	{
-		using ArrayDimensions = typename ArrayInfos<Qs...>::Dimensions;
 		using Qualifiers = RemoveArrayFromQualifiers<Qs...>;
 		using Interface = UnnamedInterfaceDeclaration<TList<Qs...>, TList<Ts...>>;
 

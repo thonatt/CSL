@@ -47,6 +47,8 @@ namespace csl
 	template<typename T, std::size_t N, SamplerFlags Flags = SamplerFlags::Default>
 	class Sampler;
 
+	struct NoInit {};
+
 	///
 
 	template<typename T, typename Ds, typename ... Qs>
