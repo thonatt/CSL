@@ -7,46 +7,46 @@ namespace csl
 	namespace glsl 
 	{
 		template<typename ...Ts>
-		struct Layout {};
+		struct layout {};
 
-		struct Uniform {};
+		struct uniform {};
 
-		struct In {};
-		struct Out {};
-		struct Inout {};
-
-		template<std::size_t N>
-		struct Binding {};
+		struct in {};
+		struct out {};
+		struct inout {};
 
 		template<std::size_t N>
-		struct Location {};
+		struct binding {};
 
-		struct Triangles {};
-		struct Equal_spacing {};
-		struct Ccw {};
+		template<std::size_t N>
+		struct location {};
 
-		struct Std140 {};
-		struct Rgba32f {};
+		struct triangles {};
+		struct equal_spacing {};
+		struct ccw {};
+
+		struct std140 {};
+		struct rgba32f {};
 
 		namespace tcs_common 
 		{
-			struct Patch {};
+			struct patch {};
 
 			template<std::size_t N>
-			struct Vertices {};
+			struct vertices {};
 		}
 
 		namespace geom_common 
 		{
-			struct Line_strip {};
+			struct mine_strip {};
 
 			template<std::size_t N>
-			struct Max_vertices {};
+			struct max_vertices {};
 		}
 
 		namespace frag_common 
 		{
-			struct Early_fragment_tests {};
+			struct early_fragment_tests {};
 		}
 
 		namespace compute_common 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "SpirvOperators.hpp"
+#include <csl/TemplateHelpers.hpp>
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -207,7 +208,7 @@ namespace csl
 	struct OperatorBase;
 	OperatorBase* retrieve_expr(const Expr index);
 
-	enum class CtorFlags : std::size_t 
+	enum class CtorFlags : std::size_t
 	{
 		Declaration = 1 << 0,
 		Initialisation = 1 << 1,
@@ -424,10 +425,11 @@ namespace csl
 		void set_as_temp()
 		{
 			OperatorBase* op_base = retrieve_expr(m_obj);
+
 			if (auto parent_ctor = dynamic_cast<ConstructorBase*>(op_base))
 				parent_ctor->set_as_temp();
-			else if (auto obj = dynamic_cast<MemberAccessorBase*>(op_base))
-				obj->set_as_temp();
+			else
+				safe_static_cast<MemberAccessorBase*>(op_base)->set_as_temp();
 		}
 
 		Expr m_obj;
@@ -543,18 +545,18 @@ namespace csl
 	template<typename Base>
 	struct PolymorphicMemoryPool
 	{
-		PolymorphicMemoryPool() 
+		PolymorphicMemoryPool()
 		{
 			m_objects_offsets.reserve(124);
 			m_buffer.reserve(10000);
 		}
 
 		PolymorphicMemoryPool(PolymorphicMemoryPool&& other) noexcept
-			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets)) 
-		{ 
+			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets))
+		{
 		}
 
-		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept 
+		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept
 		{
 			m_buffer = std::move(other.m_buffer);
 			m_objects_offsets = std::move(other.m_objects_offsets);

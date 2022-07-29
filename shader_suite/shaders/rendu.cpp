@@ -12,9 +12,9 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 
 	Shader shader;
 
-	Qualify<Layout<Rgba32f, Binding<0>>, Uniform, image2D> output;
+	Qualify<layout<rgba32f, binding<0>>, uniform, image2D> output;
 
-	shader_stage_option<Layout<local_size_x<16>, local_size_y<16>>, In>();
+	shader_stage_option<layout<local_size_x<16>, local_size_y<16>>, in>();
 
 	const Float groundRadius = 6371e3;
 	const Float topRadius = 6471e3;
@@ -23,7 +23,7 @@ csl::glsl::compute_430::Shader scattering_lookup_table()
 	const Float heightMie = 1200.0;
 	const Float kMie = Float(21e-6) << "kMie";
 
-	auto intersects = define_function<Bool>("intersects", [&](const vec3 rayOrigin, const vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
+	auto intersects = define_function<Bool>("intersects", [&](const vec3 rayOrigin, const vec3 rayDir, Float radius, Qualify<vec2, out> roots) {
 		const Float a = dot(rayDir, rayDir);
 		const Float b = dot(rayOrigin, rayDir);
 		const Float c = dot(rayOrigin, rayOrigin) - radius * radius;
@@ -96,16 +96,16 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 
 	Shader shader;
 
-	Qualify<In, vec2> uv("uv");
+	Qualify<in, vec2> uv("uv");
 
-	Qualify<Uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005)) << "clipToWorld";
+	Qualify<uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005)) << "clipToWorld";
 
-	Qualify<Uniform, vec3> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
-	Qualify<Uniform, vec3> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
-	Qualify<Uniform, Float> altitude = 1.0; ///< Origin height above the planet surface.
+	Qualify<uniform, vec3> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
+	Qualify<uniform, vec3> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
+	Qualify<uniform, Float> altitude = 1.0; ///< Origin height above the planet surface.
 
-	Qualify<Layout<Binding<0>>, Uniform, sampler2D> precomputedScattering("precomputedScattering"); ///< Secondary scattering lookup table.
-	Qualify<Layout<Location<0>>, Out, vec4> fragColor; ///< Atmosphere color.
+	Qualify<layout<binding<0>>, uniform, sampler2D> precomputedScattering("precomputedScattering"); ///< Secondary scattering lookup table.
+	Qualify<layout<location<0>>, out, vec4> fragColor; ///< Atmosphere color.
 
 	const Float atmosphereGroundRadius = 6371e3; ///< Radius of the planet.
 	const Float atmosphereTopRadius = 6471e3; ///< Radius of the atmosphere.
@@ -131,7 +131,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\return true if there is intersection.
 		\warning The intersection can be in the negative direction along the ray. Check the sign of the roots to know.
 	*/
-	auto intersects = define_function<Bool>("intersects", [&](vec3 rayOrigin, vec3 rayDir, Float radius, Qualify<vec2, Out> roots) {
+	auto intersects = define_function<Bool>("intersects", [&](vec3 rayOrigin, vec3 rayDir, Float radius, Qualify<vec2, out> roots) {
 		Float a = dot(rayDir, rayDir);
 		Float b = dot(rayOrigin, rayDir);
 		Float c = dot(rayOrigin, rayOrigin) - radius * radius;

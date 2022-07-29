@@ -222,7 +222,7 @@ namespace csl
 	};
 
 	template<typename Q, typename ...Qs>
-	struct GLSLQualifier<glsl::Layout<Q, Qs...>> 
+	struct GLSLQualifier<glsl::layout<Q, Qs...>> 
 	{
 		static std::string get() {
 			std::string s = "layout(";
@@ -241,10 +241,10 @@ namespace csl
 		}
 	};
 
-	template<> inline std::string GLSLQualifierN<glsl::Binding>::get() { return "binding"; }
-	template<> inline std::string GLSLQualifierN<glsl::Location>::get() { return "location"; }
-	template<> inline std::string GLSLQualifierN<glsl::tcs_common::Vertices>::get() { return "vertices"; }
-	template<> inline std::string GLSLQualifierN<glsl::geom_common::Max_vertices>::get() { return "max_vertices"; }
+	template<> inline std::string GLSLQualifierN<glsl::binding>::get() { return "binding"; }
+	template<> inline std::string GLSLQualifierN<glsl::location>::get() { return "location"; }
+	template<> inline std::string GLSLQualifierN<glsl::tcs_common::vertices>::get() { return "vertices"; }
+	template<> inline std::string GLSLQualifierN<glsl::geom_common::max_vertices>::get() { return "max_vertices"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_x>::get() { return "local_size_x"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_y>::get() { return "local_size_y"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_z>::get() { return "local_size_z"; }
@@ -253,18 +253,18 @@ namespace csl
 	template<> inline std::string GLSLQualifier<CSL_PP_FIRST(elem)>::get() { return CSL_PP_STR(CSL_PP_SECOND(elem)); }
 
 	CSL_PP_ITERATE(CSL_QUALIFIER_STR_IT,
-		(glsl::Uniform, uniform),
-		(glsl::In, in),
-		(glsl::Out, out),
-		(glsl::Inout, inout),
-		(glsl::Triangles, triangles),
-		(glsl::Equal_spacing, equal_spacing),
-		(glsl::frag_common::Early_fragment_tests, early_fragment_tests),
-		(glsl::Ccw, ccw),
-		(glsl::Std140, std140),
-		(glsl::Rgba32f, rgba32f),
-		(glsl::tcs_common::Patch, patch),
-		(glsl::geom_common::Line_strip, line_strip)
+		(glsl::uniform, uniform),
+		(glsl::in, in),
+		(glsl::out, out),
+		(glsl::inout, inout),
+		(glsl::triangles, triangles),
+		(glsl::equal_spacing, equal_spacing),
+		(glsl::frag_common::early_fragment_tests, early_fragment_tests),
+		(glsl::ccw, ccw),
+		(glsl::std140, std140),
+		(glsl::rgba32f, rgba32f),
+		(glsl::tcs_common::patch, patch),
+		(glsl::geom_common::mine_strip, line_strip)
 	);
 
 	template<typename T>

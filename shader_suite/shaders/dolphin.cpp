@@ -23,7 +23,7 @@ csl::glsl::vert_420::Shader dolphin_ubershader_vertex()
 	);
 
 	CSL_UNNAMED_INTERFACE_BLOCK(
-		(Layout<Binding<2>, Std140>, Uniform),
+		(layout<binding<2>, std140>, uniform),
 		VSBLock,
 		(Uint, components),
 		(Uint, xfmem_dualTexInfo),
@@ -126,13 +126,13 @@ csl::glsl::vert_420::Shader dolphin_ubershader_vertex()
 
 	});
 
-	Qualify<vec4, In> rawpos("rawpos");
-	Qualify<uvec4, In> posmtx("posmtx");
-	Qualify<vec3, In> rawnorm0("rawnorm0"), rawnorm1("rawnorm1"), rawnorm2("rawnorm2");
-	Qualify<vec4, In> rawcolor0("rawcolor0"), rawcolor1("rawcolor1");
-	Qualify<vec3, In> rawtex0("rawtex0"), rawtex1("rawtex1"), rawtex2("rawtex2"), rawtex3("rawtex3"), rawtex4("rawtex4"), rawtex5("rawtex5"), rawtex6("rawtex6"), rawtex7("rawtex7");
+	Qualify<vec4, in> rawpos("rawpos");
+	Qualify<uvec4, in> posmtx("posmtx");
+	Qualify<vec3, in> rawnorm0("rawnorm0"), rawnorm1("rawnorm1"), rawnorm2("rawnorm2");
+	Qualify<vec4, in> rawcolor0("rawcolor0"), rawcolor1("rawcolor1");
+	Qualify<vec3, in> rawtex0("rawtex0"), rawtex1("rawtex1"), rawtex2("rawtex2"), rawtex3("rawtex3"), rawtex4("rawtex4"), rawtex5("rawtex5"), rawtex6("rawtex6"), rawtex7("rawtex7");
 
-	CSL_INTERFACE_BLOCK(Out, VertexData, vs,
+	CSL_INTERFACE_BLOCK(out, VertexData, vs,
 		(vec4, pos),
 		(vec4, colors_0),
 		(vec4, colors_1),
@@ -480,10 +480,10 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		CSL_RETURN(ivec4(round(x)));
 	});
 
-	Qualify<sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samp("samp");
+	Qualify<sampler2DArray, layout<binding<0>>, uniform, Array<8>> samp("samp");
 
 	CSL_UNNAMED_INTERFACE_BLOCK(
-		(Layout<Std140, Binding<1>>, Uniform),
+		(layout<std140, binding<1>>, uniform),
 		PSBlock,
 		((Qualify<ivec4, Array<4>>), color),
 		((Qualify<ivec4, Array<4>>), k),
@@ -524,11 +524,11 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 	);
 
 
-	Qualify<vec4, Out> ocol0("ocol0"), ocol1("ocol1");
+	Qualify<vec4, out> ocol0("ocol0"), ocol1("ocol1");
 
 
 	CSL_UNNAMED_INTERFACE_BLOCK(
-		In,
+		in,
 		VertexData,
 		(vec4, pos),
 		(vec4, colors_0),
@@ -922,7 +922,7 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		}
 	});
 
-	shader_stage_option<Layout<Early_fragment_tests>, In>();
+	shader_stage_option<layout<early_fragment_tests>, in>();
 
 	shader.main([&] {
 		vec4 rawpos = gl_FragCoord;

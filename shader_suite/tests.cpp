@@ -37,9 +37,9 @@
 //
 //	using T = vec3;
 //
-//	Array<Uniform<vec3>, 5> b;
+//	Array<uniform<vec3>, 5> b;
 //
-//	Uniform<sampler2D> s;
+//	uniform<sampler2D> s;
 //
 //	auto m = declareFunc<void>("main", [&]
 //	{
@@ -153,13 +153,13 @@
 //	);
 //
 //	using MyArray = Array<InnerBlock, 12>;
-//	CSL_INTERFACE_BLOCK(Out<>, BasicBlock, basic, 7,
+//	CSL_INTERFACE_BLOCK(out<>, BasicBlock, basic, 7,
 //		(vec3) myVec3,
 //		(MyArray) myInnerBlocks,
 //		(Array<uvec4>::Size<8>) uintsArray
 //	);
 //
-//	Array<Uniform<uvec4>, 8> myArray("myArray");
+//	Array<uniform<uvec4>, 8> myArray("myArray");
 //	shader.main([&] {
 //		Uint chan = Uint(0u) << "chan";
 //		Uint uu = myArray[3][z];
@@ -270,7 +270,7 @@
 //	Shader shader;
 //
 //	declareFunc<void>([](
-//		In<vec3> in = "in", Out<vec3> out = "out" ) {
+//		in<vec3> in = "in", out<vec3> out = "out" ) {
 //	});
 //
 //	std::cout << shader.str() << std::endl;

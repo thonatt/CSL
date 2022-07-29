@@ -416,14 +416,14 @@ namespace csl
 			ctor.print_glsl(data.glsl_data);
 			data.glsl_data << ";";
 
-			const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;
+			// const CtorFlags switch_flag = ctor.m_flags & CtorFlags::SwitchMask;
 
 			//std::string ctor_str = flag_strs.at(switch_flag) + " " + std::string(typeid(T).name());
 			//if (!ctor.m_name.empty()) {
 			//	ctor_str += " " + ctor.m_name + " ";
 			//}
 			//ctor_str += std::string(" $") + std::to_string(ctor.m_variable_id);
-			std::string ctor_str = data.glsl_data.stream.str();
+			const std::string ctor_str = data.glsl_data.stream.str();
 
 			//using ArrayDimensions = typename T::ArrayDimensions;
 			//using Qualifiers = typename T::Qualifiers;

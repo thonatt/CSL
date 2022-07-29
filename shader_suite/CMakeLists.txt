@@ -42,7 +42,7 @@ include(FetchContent)
 FetchContent_Declare(
 	picogl
 	GIT_REPOSITORY "https://github.com/thonatt/picogl"
-	GIT_TAG "0c6dd1436b651159f9c188b8d28539ad511c392a"
+	GIT_TAG "4ff4a1b62b132839a10aa5cf423a563cabce804c"
 )
 FetchContent_MakeAvailable(picogl)
 

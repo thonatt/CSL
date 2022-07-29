@@ -59,7 +59,7 @@ namespace csl {
 
 	template <typename F, typename ArgTList, std::size_t ... Is>
 	constexpr auto lambda_min_number_of_args_helper(std::index_sequence<Is...> is, int)
-		-> decltype((void)std::declval<F>() (std::declval<typename ArgTList::At<Is>>()...), std::size_t{})
+		-> decltype((void)std::declval<F>() (std::declval<typename ArgTList::template At<Is>>()...), std::size_t{})
 	{
 		return sizeof...(Is);
 	}

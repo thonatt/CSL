@@ -92,14 +92,14 @@ namespace csl
 		namespace vert_common {
 			using namespace shader_common;
 
-			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexVert, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(out, gl_PerVertex, gl_PerVertexVert, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			inline const Qualify<In, Int> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, Int> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, Int> gl_VertexID("gl_VertexID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, Int> gl_InstanceID("gl_InstanceID", ObjFlags::BuiltInConstructor);
 		}
 
 		template<GLSLversion version>
@@ -120,20 +120,20 @@ namespace csl
 		namespace tcs_common {
 			using namespace shader_common;
 
-			inline const Qualify<In, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			inline const Qualify<In, Int> gl_PrimitiveID("gl_PrimitiveID");
-			inline const Qualify<In, Int> gl_InvocationID("gl_InvocationID");
+			inline const Qualify<in, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<in, Int> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<in, Int> gl_InvocationID("gl_InvocationID");
 
-			CSL_PP_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((in, Array<0>), gl_PerVertex, gl_PerVertexTCSin, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			inline Qualify<Out, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline Qualify<Out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline Qualify<out, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline Qualify<out, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
-			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((out, Array<0>), gl_PerVertex, gl_PerVertexTCSout, gl_out,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -159,20 +159,20 @@ namespace csl
 		namespace tev_common {
 			using namespace shader_common;
 
-			inline const Qualify<In, vec3> gl_TessCoord("gl_TessCoord");
-			inline const Qualify<In, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
-			inline const Qualify<In, Int> gl_PrimitiveID("gl_PrimitiveID");
+			inline const Qualify<in, vec3> gl_TessCoord("gl_TessCoord");
+			inline const Qualify<in, Int> gl_PatchVerticesIn("gl_PatchVerticesIn");
+			inline const Qualify<in, Int> gl_PrimitiveID("gl_PrimitiveID");
 
-			inline const Qualify<In, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
-			inline const Qualify<In, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
+			inline const Qualify<in, Float, Array<4>> gl_TessLevelOuter("gl_TessLevelOuter");
+			inline const Qualify<in, Float, Array<2>> gl_TessLevelInner("gl_TessLevelInner");
 
-			CSL_PP_BUILTIN_INTERFACE_BLOCK((Out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((out, Array<0>), gl_PerVertex, gl_PerVertexTEVin, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
 			);
 
-			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexTEVout, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(out, gl_PerVertex, gl_PerVertexTEVout, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<Float, Array<0>>), gl_ClipDistance)
@@ -200,13 +200,13 @@ namespace csl
 		namespace geom_common {
 			using namespace shader_common;
 
-			CSL_PP_BUILTIN_INTERFACE_BLOCK((In, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
+			CSL_PP_BUILTIN_INTERFACE_BLOCK((in, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<vec4, Array<0>>), gl_ClipDistance)
 			);
 
-			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Out, gl_PerVertex, gl_PerVertexGeom, ObjFlags::BuiltInConstructor,
+			CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(out, gl_PerVertex, gl_PerVertexGeom, ObjFlags::BuiltInConstructor,
 				(vec4, gl_Position),
 				(Float, gl_PointSize),
 				((Qualify<vec4, Array<0>>), gl_ClipDistance)
@@ -237,11 +237,11 @@ namespace csl
 		namespace frag_common {
 			using namespace shader_common;
 
-			inline const Qualify<In, vec4> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, Bool> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, vec2> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, vec4> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, Bool> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, vec2> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
 
-			static Qualify<Out, Float> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
+			static Qualify<out, Float> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
 
 			inline void _csl_only_available_in_discard_context_() {
 				context::get().add_statement<SpecialStatement<Discard>>();
@@ -264,11 +264,11 @@ namespace csl
 		namespace compute_common {
 			using namespace shader_common;
 
-			inline const Qualify<In, uvec3> gl_NumWorkGroups("gl_NumWorkGroups", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, uvec3> gl_WorkGroupID("gl_WorkGroupID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, uvec3> gl_LocalInvocationID("gl_LocalInvocationID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, uvec3> gl_GlobalInvocationID("gl_GlobalInvocationID", ObjFlags::BuiltInConstructor);
-			inline const Qualify<In, Uint> gl_LocalInvocationIndex("gl_LocalInvocationIndex", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, uvec3> gl_NumWorkGroups("gl_NumWorkGroups", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, uvec3> gl_WorkGroupID("gl_WorkGroupID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, uvec3> gl_LocalInvocationID("gl_LocalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, uvec3> gl_GlobalInvocationID("gl_GlobalInvocationID", ObjFlags::BuiltInConstructor);
+			inline const Qualify<in, Uint> gl_LocalInvocationIndex("gl_LocalInvocationIndex", ObjFlags::BuiltInConstructor);
 
 		}
 
@@ -345,7 +345,6 @@ namespace csl
 		template<ShaderType type, GLSLversion version>
 		inline ShaderGLSL<type, version>::ShaderGLSL()
 		{
-			auto& s = context::g_current_shader;
 			context::g_current_shader = this;
 		}
 

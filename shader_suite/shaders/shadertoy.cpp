@@ -10,11 +10,11 @@ csl::glsl::frag_420::Shader shader_80()
 	using namespace csl::swizzles::all;
 	Shader shader;
 
-	Qualify<Layout<Binding<0>>, Uniform, sampler2D> iChannel0("iChannel0");
-	Qualify<Uniform, vec2> iResolution("iResolution");
+	Qualify<layout<binding<0>>, uniform, sampler2D> iChannel0("iChannel0");
+	Qualify<uniform, vec2> iResolution("iResolution");
 
-	Qualify<Uniform, Float> iTime("iTime");
-	Qualify<Out, vec4> fragColor("fragColor");
+	Qualify<uniform, Float> iTime("iTime");
+	Qualify<out, vec4> fragColor("fragColor");
 
 	/// Noise helpers.	
 	auto noise = define_function<Float, vec4>("noise",
@@ -162,8 +162,8 @@ csl::glsl::frag_420::Shader shader_80()
 		finalColor += 1.00 * stars(ratioUVs, 0.01 * baseDens,  30.0 - deltaDens);
 		}
 
-			/// Triangles.
-			// Triangles upper points.
+			/// triangles.
+			// triangles upper points.
 		vec4 points1 = vec4(0.30, 0.85, 0.70, 0.85);
 		vec4 points2 = vec4(0.33, 0.83, 0.73, 0.88);
 		vec4 points3 = vec4(0.35, 0.80, 0.66, 0.82);
@@ -181,7 +181,7 @@ csl::glsl::frag_420::Shader shader_80()
 		Float tri4 = triangleDistance(uv, points4, 0.005);
 		Float tri5 = triangleDistance(uv, points5, 0.003);
 		Float intensityTri = 0.9 * tri1 + 0.5 * tri2 + 0.2 * tri3 + 0.6 * tri4 + 0.5 * tri5;
-		// Triangles color gradient, from left to right.
+		// triangles color gradient, from left to right.
 		Float alphaTriangles = clamp((uv(x) - 0.3) / 0.4, 0.0, 1.0);
 		vec3 baseTriColor = mix(vec3(0.957, 0.440, 0.883), vec3(0.473, 0.548, 0.919), alphaTriangles);
 		// Additive blending.
@@ -256,10 +256,10 @@ csl::glsl::frag_420::Shader fractal_noise()
 
 	Shader shader;
 
-	Qualify<vec2, Layout<Location<0>>, In> uv("uv");
-	Qualify<vec4, Layout<Location<0>>, Out> color("color");
-	Qualify<Int, Uniform> freq_count = Int(5) << "freq_count";
-	Qualify<Float, Uniform> uv_scaling = Float(32.0) << "uv_scaling";
+	Qualify<vec2, layout<location<0>>, in> uv("uv");
+	Qualify<vec4, layout<location<0>>, out> color("color");
+	Qualify<Int, uniform> freq_count = Int(5) << "freq_count";
+	Qualify<Float, uniform> uv_scaling = Float(32.0) << "uv_scaling";
 
 	auto hash = define_function<vec2>("hash", [](vec2 p)
 	{

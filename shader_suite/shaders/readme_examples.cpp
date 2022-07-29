@@ -21,10 +21,10 @@ csl::glsl::frag_420::Shader manual_naming_example()
 	Shader shader;
 
 	// Naming during variable declaration.
-	Qualify<Uniform, vec3> eye("eye");
-	Qualify<In, vec3> normal("normal");
-	Qualify<In, vec3> position("position");
-	Qualify<Out, Float> result("result");
+	Qualify<uniform, vec3> eye("eye");
+	Qualify<in, vec3> normal("normal");
+	Qualify<in, vec3> position("position");
+	Qualify<out, Float> result("result");
 
 	shader.main([&] {
 		// Naming during variable initialisation.
@@ -43,10 +43,10 @@ csl::glsl::frag_420::Shader auto_naming_example()
 	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	Qualify<Uniform, vec3> eye;
-	Qualify<In, vec3> normal;
-	Qualify<In, vec3> position;
-	Qualify<Out, Float> result;
+	Qualify<uniform, vec3> eye;
+	Qualify<in, vec3> normal;
+	Qualify<in, vec3> position;
+	Qualify<out, Float> result;
 
 	shader.main([&] {
 		Float alpha = 1.2;
@@ -81,9 +81,9 @@ csl::glsl::frag_420::Shader qualifier_example()
 	using namespace csl::glsl::frag_420;
 	Shader shader;
 
-	Qualify<Out, vec4> color("color");
-	Qualify<Layout<Location<4>>, In, vec3> position("position");
-	Qualify<Layout<Binding<0>>, Uniform, sampler2DArray, Array<8>> samplers("samplers");
+	Qualify<out, vec4> color("color");
+	Qualify<layout<location<4>>, in, vec3> position("position");
+	Qualify<layout<binding<0>>, uniform, sampler2DArray, Array<8>> samplers("samplers");
 
 	return shader;
 }
@@ -132,7 +132,7 @@ csl::glsl::frag_420::Shader functions_example()
 		});
 
 	// Function calling another function.
-	auto sub = define_function<vec3>([&](vec3 a, Qualify<Inout, vec3> b = "b") {
+	auto sub = define_function<vec3>([&](vec3 a, Qualify<inout, vec3> b = "b") {
 		fun();
 		CSL_RETURN(add(a, -b));
 		});
@@ -211,11 +211,15 @@ csl::glsl::frag_420::Shader structs_examples()
 		(vec4, center)
 	);
 
-	// Usage.
+	// Variables declaration and naming.
 	BigBlock big_block("big_block");
 	Block block = Block(mat4(1), vec4(0)) << "block";
 
+	// Usage.
 	block.center = big_block.inner_block.mvp * big_block.center;
+
+	// Nested temporaries test.
+	block.center = BigBlock(Block(mat4(1), vec4(0)), vec4(0)).inner_block.mvp * block.center;
 
 	return shader;
 }
@@ -226,12 +230,12 @@ csl::glsl::frag_420::Shader interface_examples()
 	Shader shader;
 
 	// Unnamed interface block.
-	CSL_UNNAMED_INTERFACE_BLOCK(In, SimpleInterface,
+	CSL_UNNAMED_INTERFACE_BLOCK(in, SimpleInterface,
 		(Float, delta_time)
 	);
 
 	// Named array interface with multiple qualifiers.
-	CSL_INTERFACE_BLOCK((Layout<Binding<0>>, Out, Array<3>), Output, out,
+	CSL_INTERFACE_BLOCK((layout<binding<0>>, out, Array<3>), Output, out,
 		(vec3, position),
 		(vec3, velocity)
 	);
@@ -248,7 +252,7 @@ csl::glsl::frag_420::Shader struct_interface_comma_examples()
 
 	using vec4x16 = Qualify<vec4, Array<16>>;
 	CSL_INTERFACE_BLOCK(
-		(Layout<Binding<0>, Std140>, Uniform, Array<2>), // Extra parenthesis. 
+		(layout<binding<0>, std140>, uniform, Array<2>), // Extra parenthesis. 
 		MyInterface, vars,
 		(vec4x16, vecs),								 // Typename alias.
 		((Qualify<mat4, Array<4>>), myMats)				 // Extra parenthesis.
@@ -263,15 +267,15 @@ csl::glsl::frag_420::Shader shader_stage_options()
 	Shader shader;
 
 	{
-		// In a fragment shader:
-		shader_stage_option<Layout<Early_fragment_tests>, In>();
+		// in a fragment shader:
+		shader_stage_option<layout<early_fragment_tests>, in>();
 	}
 
 	{
 		using namespace csl::glsl::geom_420;
-		// In a geometry shader:
-		shader_stage_option<Layout<Triangles>, In>();
-		shader_stage_option<Layout<Line_strip, Max_vertices<2>>, Out>();
+		// in a geometry shader:
+		shader_stage_option<layout<triangles>, in>();
+		shader_stage_option<layout<mine_strip, max_vertices<2>>, out>();
 	}
 
 	return shader;
@@ -284,9 +288,9 @@ auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma
 	using namespace csl::swizzles::rgba;
 	Shader shader;
 
-	Qualify<sampler2D, Uniform> samplerA("samplerA"), samplerB("samplerB");
-	Qualify<vec2, In> uvs("uvs");
-	Qualify<vec4, Out> color("color");
+	Qualify<sampler2D, uniform> samplerA("samplerA"), samplerB("samplerB");
+	Qualify<vec2, in> uvs("uvs");
+	Qualify<vec4, out> color("color");
 
 	shader.main([&] {
 		vec2 sampling_dir = vec2(direction[0], direction[1]) << "sampling_dir";
