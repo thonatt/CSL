@@ -255,7 +255,7 @@ csl::glsl::frag_420::Shader struct_interface_comma_examples()
 		(layout<binding<0>, std140>, uniform, Array<2>), // Extra parenthesis. 
 		MyInterface, vars,
 		(vec4x16, vecs),								 // Typename alias.
-		((Qualify<mat4, Array<4>>), myMats)				 // Extra parenthesis.
+		((Qualify<mat4, Array<4>>), mats)				 // Extra parenthesis.
 	);
 
 	return shader;
@@ -267,15 +267,15 @@ csl::glsl::frag_420::Shader shader_stage_options()
 	Shader shader;
 
 	{
-		// in a fragment shader:
+		// In a fragment shader:
 		shader_stage_option<layout<early_fragment_tests>, in>();
 	}
 
 	{
 		using namespace csl::glsl::geom_420;
-		// in a geometry shader:
+		// In a geometry shader:
 		shader_stage_option<layout<triangles>, in>();
-		shader_stage_option<layout<mine_strip, max_vertices<2>>, out>();
+		shader_stage_option<layout<line_strip, max_vertices<2>>, out>();
 	}
 
 	return shader;
@@ -300,15 +300,13 @@ auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma
 
 		CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
 			cols[N + i] = vec4(0);
-			for (auto& sampler : { samplerA, samplerB }) {
+			for (auto& sampler : { samplerA, samplerB })
 				cols[N + i] += texture(sampler, uvs + Float(i) * sampling_dir);
-			}
 			color += cols[N + i] / Float(2 * N + 1);
 		}
 
-		if (gamma_correction) {
+		if (gamma_correction)
 			color(r, g, b) = pow(color(r, g, b), vec3(2.2));
-		}
 		});
 
 	return shader;

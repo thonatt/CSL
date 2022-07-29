@@ -38,7 +38,7 @@ namespace csl
 
 		namespace geom_common 
 		{
-			struct mine_strip {};
+			struct line_strip {};
 
 			template<std::size_t N>
 			struct max_vertices {};

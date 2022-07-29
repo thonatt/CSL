@@ -61,7 +61,7 @@ csl::glsl::geom_420::Shader geometric_normals() {
 	Shader shader;
 
 	shader_stage_option<layout<triangles>, in>();
-	shader_stage_option<layout<mine_strip, max_vertices<2>>, out>();
+	shader_stage_option<layout<line_strip, max_vertices<2>>, out>();
 
 	CSL_INTERFACE_BLOCK((in, Array<0>), VertexData, vertex_in,
 		(vec3, position),

@@ -264,7 +264,7 @@ namespace csl
 		(glsl::std140, std140),
 		(glsl::rgba32f, rgba32f),
 		(glsl::tcs_common::patch, patch),
-		(glsl::geom_common::mine_strip, line_strip)
+		(glsl::geom_common::line_strip, line_strip)
 	);
 
 	template<typename T>
