@@ -32,11 +32,27 @@ namespace csl
 		static constexpr bool IsScalar = (R == 1 && C == 1);
 		static constexpr bool IsBool = std::is_same_v<T, bool>;
 		static constexpr bool IsVec = (C == 1);
+
 	public:
 
 		//TODO move me
-		operator bool() {
-			static_assert(IsBool, "possible wrong conversion");
+		explicit operator bool()&
+		{
+			static_assert(IsBool, "Wrong conversion");
+
+			if (context::shader_active())
+				context::get().stacking_for_condition(Base::get_expr_as_ref());
+
+			return false;
+		}
+
+		explicit operator bool()&&
+		{
+			static_assert(IsBool, "Wrong conversion");
+
+			if (context::shader_active())
+				context::get().stacking_for_condition(Base::get_expr_as_temp());
+
 			return false;
 		}
 
@@ -45,13 +61,11 @@ namespace csl
 		Matrix() : Base("", ObjFlags::Default, {}, {}) {}
 
 		template<std::size_t N>
-		Matrix(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default) : Base(name, obj_flags, {}, {}) {}
+		Matrix(const char(&name)[N], const ObjFlags obj_flags = ObjFlags::Default)
+			: Base(name, obj_flags, {}, {}) {}
 
-		//Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
-		//Matrix(Expr && expr, const ObjFlags obj_flags = ObjFlags::Default) : Base(expr, obj_flags) { }
-		//Matrix(Expr expr) : Base(expr, ObjFlags::Default) { }
 		Matrix(const Expr& expr, const ObjFlags obj_flags = ObjFlags::Default)
-			: /*NamedObjectBase(obj_flags),*/ Base(expr, obj_flags) { }
+			: Base(expr, obj_flags) {}
 
 		//TODO add is_convertible_to
 		template<typename U, typename V, typename ...Vs,
@@ -85,12 +99,12 @@ namespace csl
 
 		// swizzling
 		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
-		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) & {
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles)& {
 			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_ref()) };
 		}
 
 		template<char ...cs, typename = std::enable_if_t<C == 1 && R != 1 && (swizzling::SwizzleInfo<cs...>::HighestComponent <= R)> >
-		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles) && {
+		std::conditional_t<swizzling::SwizzleInfo<cs...>::NoRepetition, SubCol<sizeof...(cs)>, const SubCol<sizeof...(cs)>> operator()(Swizzle<cs> ... swizzles)&& {
 			return { make_expr<Swizzling<cs...>>(NamedObjectBase::get_expr_as_temp()) };
 		}
 
@@ -105,7 +119,7 @@ namespace csl
 		}
 
 		// col access
-		template<typename Index, typename = std::enable_if_t<!IsScalar && Infos<Index>::IsInteger > >
+		template<typename Index, typename = std::enable_if_t<!IsScalar && IsInteger<Index> > >
 		std::conditional_t<C == 1, Scalar, Col> operator[](Index&& index) const&
 		{
 			return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
@@ -211,6 +225,7 @@ namespace csl
 			return { make_expr<UnaryOperator>(Op::PostfixDecrement, NamedObjectBase::get_expr_as_temp()) };
 		}
 
+		// !
 		template<bool b = IsBool, typename = std::enable_if_t<b> >
 		Matrix operator!()& {
 			return { make_expr<UnaryOperator>(Op::UnaryNegation, NamedObjectBase::get_expr_as_ref()) };
@@ -308,143 +323,23 @@ namespace csl
 	}
 
 	// operator |
-	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec&& Infos<A>::IsInteger&& SameMat<A, B> >>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec&& IsInteger<A>&& SameMat<A, B> >>
 	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator|(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::BitwiseOr, EXPR(A,a), EXPR(B,b)) };
 
 	}
 
 	// operator <<
-	template<typename A, typename B, typename = std::enable_if_t<Infos<A>::IsVec&& Infos<A>::IsInteger&& SameScalarType<A, B> && (SameSize<A, B> || Infos<B>::IsScalar) >>
+	template<typename A, typename B, typename = std::enable_if_t<Infos<A>::IsVec&& IsInteger<A>&& SameScalarType<A, B> && (SameSize<A, B> || Infos<B>::IsScalar) >>
 	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator<<(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::BitwiseLeftShift, EXPR(A,a), EXPR(B,b)) };
 	}
 
 	// operator >>
-	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec&& Infos<A>::IsInteger&& SameScalarType<A, B> && (SameSize<A, B> || Infos<B>::IsScalar)>>
+	template<typename A, typename B, typename = std::enable_if_t< Infos<A>::IsVec&& IsInteger<A>&& SameScalarType<A, B> && (SameSize<A, B> || Infos<B>::IsScalar)>>
 	Vector<typename Infos<A>::ScalarType, Infos<A>::RowCount> operator>>(A&& a, B&& b) {
 		return { make_expr<BinaryOperator>(Op::BitwiseRightShift, EXPR(A,a), EXPR(B,b)) };
 	}
-
-	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ... Qs>
-	//class MatrixArray : public NamedObject<MatrixArray<T, Ds, R, C, Qs...>> {
-	//public:
-
-	//	using Qualifiers = TList<Qs...>;
-	//	using Base = NamedObject<MatrixArray<T, Ds, R, C, Qs...>>;
-
-	//	using ArrayComponent = MatrixInterface<T, R, C, typename GetArrayFromList<typename Ds::Tail>::Type, Qs...>;
-	//	static constexpr bool IsArray = true;
-
-	//	using ArrayDimensions = Ds;
-	//	static constexpr std::size_t ComponentCount = Ds::Front;
-
-	//	MatrixArray() : Base() {}
-
-	//	template<std::size_t N>
-	//	explicit MatrixArray(const char(&name)[N]) : Base(name) {}
-
-	//	MatrixArray(const Expr& expr) : Base(expr) { }
-
-	//	template<typename U, typename V, typename ... Us, typename = std::enable_if_t<
-	//		!(std::is_same_v<Expr, Us> || ...) && (SameType<Us, ArrayComponent> && ...) && (ComponentCount == 0 || 2 + sizeof...(Us) == ComponentCount)
-	//		>>
-	//		explicit MatrixArray(U&& u, V&& v, Us&& ... us) : Base("", ObjFlags::Default, CtorFlags::Initialisation, EXPR(Us, us)...)
-	//	{
-	//	}
-
-	//	template<typename Index>
-	//	ArrayComponent operator [](Index&& index) const& {
-	//		return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_ref(), EXPR(Index, index)) };
-	//	}
-
-	//	template<typename Index>
-	//	ArrayComponent operator [](Index&& index) const&& {
-	//		return { make_expr<ArraySubscript>(NamedObjectBase::get_expr_as_temp(), EXPR(Index, index)) };
-	//	}
-
-	//};
-
-	//template< typename T, std::size_t R, std::size_t C, typename ...Qs>
-	//struct MatrixIndirection<T, R, C, TList<Qs...>> {
-	//	using Type = Matrix<T, R, C, Qs...>;
-	//};
-
-	//template< typename T, typename Ds, std::size_t R, std::size_t C, typename ...Qs>
-	//struct MatrixArrayIndirection<T, Ds, R, C, TList<Qs...>> {
-	//	using Type = MatrixArray<T, Ds, R, C, Qs...>;
-	//};
-
-	//template<typename T, std::size_t R, std::size_t C, typename ... Qs>
-	//struct QualifiedIndirection<Matrix<T, R, C>, Qs... > {
-	//	using Type = MatrixInterface<T, R, C, Qs...>;
-	//};
-
-	//template<typename T, std::size_t R, typename ... Qs>
-	//using VectorInterface = MatrixInterface<T, R, 1, Qs...>;
-
-	//template<typename T, typename ... Qs>
-	//using ScalarInterface = VectorInterface<T, 1, Qs...>;
-
-	//template<typename ... Qs>
-	//class mat3 : public MatrixInterface<float, 3, 3, Qs...> {
-	//public:
-	//	using Base = MatrixInterface<float, 3, 3, Qs...>;
-	//	using Base::Base;
-	//};
-
-	//mat3()->mat3<>;
-
-	//template<typename U, typename V, typename ...Vs>
-	//mat3(U&&, V&&, Vs&&...)->mat3<>;
-
-	//template<typename ... Qs> struct Infos<mat3<Qs...>> : Infos<MatrixInterface<float, 3, 3, Qs...>> {};
-
-	//template<typename ... Qs>
-	//class vec3 : public VectorInterface<float, 3, Qs...> {
-	//public:
-	//	using Base = VectorInterface<float, 3, Qs...>;
-	//	using Base::Base;
-	//	using Base::operator=;
-	//};
-	//vec3()->vec3<>;
-
-	//template<typename U, typename V, typename ...Vs>
-	//vec3(U&&, V&&, Vs&&...)->vec3<>;
-
-	//template<typename ... Qs> struct Infos<vec3<Qs...>> : Infos<MatrixInterface<float, 3, 1, Qs...>> {};
-
-	//template<std::size_t N>
-	//vec3(const char(&)[N])->vec3<>;
-
-
-	//template<typename ... Qs>
-	//class Float : public ScalarInterface<float, Qs...> {
-	//public:
-	//	using Base = ScalarInterface<float, Qs...>;
-	//	using Base::Base;
-	//};
-
-	//Float()->Float<>;
-
-	//template<std::size_t N>
-	//Float(const char(&)[N])->Float<>;
-
-	//template<typename ... Qs> struct Infos<Float<Qs...>> : Infos<MatrixInterface<float, 1, 1, Qs...>> {};
-
-	//template<typename ... Qs>
-	//class Int : public ScalarInterface<int, Qs...> {
-	//public:
-	//	using Base = ScalarInterface<int, Qs...>;
-	//	using Base::Base;
-	//};
-
-	//Int()->Int<>;
-
-	//template<std::size_t N>
-	//Int(const char(&)[N])->Int<>;
-
-	//template<typename ... Qs> struct Infos<Int<Qs...>> : Infos<MatrixInterface<int, 1, 1, Qs...>> {};
 
 } //namespace csl
 

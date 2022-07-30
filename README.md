@@ -519,7 +519,7 @@ void square()
 Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with syntax `CSL_KEYWORD`, namely `CSL_FOR`, `CSL_CONTINUE`, `CSL_BREAK`, `CSL_WHILE`, `CSL_IF`, `CSL_ELSE`, `CSL_ELSE_IF`, `CSL_SWITCH`, `CSL_CASE`, and `CSL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and a few limitations:
 + A `CSL_SWITCH` **must** contain a `CSL_DEFAULT` case, even if it happens to be empty.
 + CSL syntax for `case value :` is `CSL_CASE(value) :`.
-+ Init, condition and loop in `CSL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. Any of these expressions can also be empty.
++ `for` loops are declared using `CSL_FOR( init-expression; condition-expression; loop-expression)`, where at most one `init-expression` and one `condition-expression` are supported. Any of those expressions can be empty.
 + Variables declared in `CSL_FOR` args expressions outlive the scope of the `for` body. It is possible to prevent that by putting explicitly the whole for loop in a scope.
 + Statements can be nested.
 
@@ -534,48 +534,50 @@ Selection, iteration and jump statements are available in CSL. As C++ and GLSL s
     <td>
         
 ```cpp
-// Empty for.
-CSL_FOR(;;) { CSL_BREAK; }
+	// Empty for.
+	CSL_FOR(;;) { CSL_BREAK; }
 
-// For loop with named iterator.
-CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
-  CSL_IF(i == 3) {
-    ++i;
-    CSL_CONTINUE;
-  } CSL_ELSE_IF(i < 3) {
-    i += 3;
-  } CSL_ELSE{
-    CSL_FOR(; i > 1;)
-      --i;
-  }
-}
-// Not possible as i is still in the scope.
-// Int i; 
+	// For loop with named iterator.
+	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i, i+=2) {
+		CSL_IF(i == 3) {
+			++i;
+			CSL_CONTINUE;
+		} CSL_ELSE_IF(i < 3) {
+			i += 3;
+		} CSL_ELSE{
+			CSL_FOR(; i > 1;)
+				--i;
+		}
+	}
 
-{
-  CSL_FOR(Int j = Int(0) << "j"; j < 5;) {
-    CSL_WHILE(j != 3) {
-      ++j;
-    }
-  }
-}
+	// Not possible as i is still in the scope.
+	// Int i; 
 
-// OK since previous for was put in a scope.
-Int j("j");
-CSL_SWITCH(j) {
-  CSL_CASE(0) : { CSL_BREAK; }
-  CSL_CASE(2) : { j = 3; }
-  CSL_DEFAULT: { j = 2; }
-}
+	{
+		Bool b;
+		CSL_FOR(Int j = Int(0) << "j"; b;) {
+			CSL_WHILE(j != 3)
+				++j;
+			b = j < 5;
+		}
+	}
+	// OK since previous for was put in a scope.
+	Int j = Int(0) << "j";
+
+	CSL_SWITCH(j) {
+		CSL_CASE(0) : { CSL_BREAK; }
+		CSL_CASE(2) : { j = 3; }
+		CSL_DEFAULT: { j = 2; }
+	}
 ```
 </td>
     <td>
   
 ```cpp
-for(;;) {
+for( ; ; ) {
     break;
 }
-for(int i = 0; i < 5; ++i) {
+for(int i = 0; i < 5; ++i, i += 2) {
     if (i == 3)
     {
         ++i;
@@ -587,17 +589,19 @@ for(int i = 0; i < 5; ++i) {
     }
     else
     {
-        for(;;) {
+        for( ; i > 1; ) {
             --i;
         }
     }
 }
-for(int j = 0; j < 5; ) {
+bool x5;
+for(int j = 0; x5; ) {
     while(j != 3) {
         ++j;
     }
+    x5 = j < 5;
 }
-int j;
+int j = 0;
 switch(j) {
     case 0 : {
         break;

@@ -147,7 +147,7 @@ namespace csl
 		void stacking_for_condition(const Expr& expr)
 		{
 			if (current_for)
-				get().args->m_stacked_condition = expr;
+				get().m_stacked_condition = expr;
 		}
 
 		InstructionIndex current_for;

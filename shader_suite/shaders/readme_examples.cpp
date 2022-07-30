@@ -160,7 +160,7 @@ csl::glsl::frag_420::Shader control_blocks_example()
 	CSL_FOR(;;) { CSL_BREAK; }
 
 	// For loop with named iterator.
-	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
+	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i, i+=2) {
 		CSL_IF(i == 3) {
 			++i;
 			CSL_CONTINUE;
@@ -176,10 +176,11 @@ csl::glsl::frag_420::Shader control_blocks_example()
 	// Int i; 
 
 	{
-		CSL_FOR(Int j = Int(0) << "j"; j < 5;) {
-			CSL_WHILE(j != 3) {
+		Bool b;
+		CSL_FOR(Int j = Int(0) << "j"; b;) {
+			CSL_WHILE(j != 3)
 				++j;
-			}
+			b = j < 5;
 		}
 	}
 	// OK since previous for was put in a scope.
@@ -188,7 +189,7 @@ csl::glsl::frag_420::Shader control_blocks_example()
 	CSL_SWITCH(j) {
 		CSL_CASE(0) : { CSL_BREAK; }
 		CSL_CASE(2) : { j = 3; }
-	CSL_DEFAULT: { j = 2; }
+		CSL_DEFAULT: { j = 2; }
 	}
 
 	return shader;

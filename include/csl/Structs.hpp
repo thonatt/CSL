@@ -4,8 +4,6 @@
 #include <csl/NamedObjects.hpp>
 #include <csl/Preprocessor.hpp>
 
-//#include "AlgebraTypes.hpp"
-
 #include <array>
 #include <string>
 

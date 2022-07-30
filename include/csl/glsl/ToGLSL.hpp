@@ -84,7 +84,7 @@ namespace csl
 		}
 	};
 
-	struct OpInfos 
+	struct OpInfos
 	{
 		const Precedence m_precendence;
 		const std::string m_str;
@@ -222,7 +222,7 @@ namespace csl
 	};
 
 	template<typename Q, typename ...Qs>
-	struct GLSLQualifier<glsl::layout<Q, Qs...>> 
+	struct GLSLQualifier<glsl::layout<Q, Qs...>>
 	{
 		static std::string get() {
 			std::string s = "layout(";
@@ -234,7 +234,7 @@ namespace csl
 	};
 
 	template<template<std::size_t N> class T, std::size_t M>
-	struct GLSLQualifier<T<M>> 
+	struct GLSLQualifier<T<M>>
 	{
 		static std::string get() {
 			return GLSLQualifierN<T>::get() + " = " + std::to_string(M);
@@ -294,7 +294,7 @@ namespace csl
 	struct ArraySizePrinterGLSL;
 
 	template<size_t ...Ns>
-	struct ArraySizePrinterGLSL<SizeList<Ns...>> 
+	struct ArraySizePrinterGLSL<SizeList<Ns...>>
 	{
 		static const std::string& get() {
 			static const std::string str = [] {
@@ -317,7 +317,7 @@ namespace csl
 	template<> inline std::string TypePrefixStr<double>::get() { return "d"; }
 
 	template<typename T>
-	struct GLSLTypeStr 
+	struct GLSLTypeStr
 	{
 		static const std::string& get() {
 			return T::get_type_str();
@@ -344,7 +344,7 @@ namespace csl
 	}
 
 	template<typename T>
-	struct GLSLTypeStr<Scalar<T>> 
+	struct GLSLTypeStr<Scalar<T>>
 	{
 		static const std::string& get() {
 			return GLSLTypeStr<T>::get();
@@ -352,7 +352,7 @@ namespace csl
 	};
 
 	template<typename T, std::size_t R>
-	struct GLSLTypeStr<Vector<T, R>> 
+	struct GLSLTypeStr<Vector<T, R>>
 	{
 		static const std::string& get() {
 			static const std::string type_str = [] {
@@ -436,7 +436,7 @@ namespace csl
 	};
 
 	template<typename T, typename ...Qualifiers>
-	struct GLSLTypeDeclaration 
+	struct GLSLTypeDeclaration
 	{
 		static const std::string& get()
 		{
@@ -484,7 +484,7 @@ namespace csl
 	// instructions
 
 	template<>
-	struct ToGLSL<IfInstruction> 
+	struct ToGLSL<IfInstruction>
 	{
 		static void call(const IfInstruction& i, GLSLData& data) {
 			assert(!i.m_cases.empty());
@@ -530,36 +530,58 @@ namespace csl
 	template<>
 	struct ToGLSL<ForInstruction>
 	{
-		enum class Status { InitExpr, Condition, LoopExpr };
-
 		static void header(const ForInstruction& i, GLSLData& data)
 		{
 			data << "for(";
-			Status status = Status::InitExpr;
-			for (const auto j : i.args->m_instructions) {
-				const InstructionBase* arg_instruction = retrieve_instruction(j);
-				const Expr arg_expr = safe_static_cast<const Statement*>(arg_instruction)->m_expr;
+
+			const auto& args = i.args->m_instructions;
+			auto arg_iterator = args.begin();
+			const auto end = args.end();
+			ConstructorBase* init = {};
+			while (arg_iterator != end) {
+				const InstructionBase* init_instruction = retrieve_instruction(*arg_iterator);
+				const Expr arg_expr = safe_static_cast<const Statement*>(init_instruction)->m_expr;
 				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(arg_expr));
-				if (status == Status::InitExpr && bool(ctor->m_flags & CtorFlags::Initialisation)) {
-					arg_instruction->print_glsl(data);
-					status = Status::Condition;
-					continue;
+				if (bool(ctor->m_flags & CtorFlags::Initialisation)) {
+					init = ctor;
+					break;
 				}
-				if (status == Status::Condition) {
-					arg_instruction->print_glsl(data);
-					status = Status::LoopExpr;
-					continue;
-				}
-				if (status == Status::LoopExpr) {
-					ForIterationStatement(arg_expr).print_glsl(data);
-				}
+				++arg_iterator;
 			}
 
-			if (status == Status::InitExpr) {
-				data << ";;";
-			} else if (status == Status::Condition) {
-				data << ";";
+			if (init)
+			{
+				init->print_glsl(data);
+				++arg_iterator;
+			} else {
+				data << " ";
+				arg_iterator = args.begin();
 			}
+
+			data << "; ";
+
+			if (i.m_stacked_condition) {
+				auto ctor = dynamic_cast<ConstructorBase*>(retrieve_expr(i.m_stacked_condition));
+				if (arg_iterator != end && (!ctor || bool(ctor->m_flags & CtorFlags::Temporary))) {
+					const InstructionBase* condition_instruction = retrieve_instruction(*arg_iterator);
+					data.print_expr(safe_static_cast<const Statement*>(condition_instruction)->m_expr);
+					++arg_iterator;
+				} else
+					data.print_expr(i.m_stacked_condition);
+			}
+
+			data << "; ";
+
+			while (arg_iterator != end)
+			{
+				const InstructionBase* loop_instruction = retrieve_instruction(*arg_iterator);
+				const Expr loop_expr = safe_static_cast<const Statement*>(loop_instruction)->m_expr;
+				ForIterationStatement(loop_expr).print_glsl(data);
+				++arg_iterator;
+				if (arg_iterator != end)
+					data << ", ";
+			}
+
 			data << ")";
 		}
 
@@ -605,12 +627,12 @@ namespace csl
 	};
 
 	template<>
-	struct ToGLSL<ForArgStatement> 
+	struct ToGLSL<ForArgStatement>
 	{
 		static void call(const ForArgStatement& i, GLSLData& data) {
 			assert(i.m_expr);
 			data.print_expr(i.m_expr);
-			data << "; "; 
+			data << "; ";
 		}
 	};
 
@@ -729,7 +751,7 @@ namespace csl
 				++data.trailing;
 				for (const auto& i : overloads[Id].body->m_instructions)
 					data.print_instruction(i);
-				
+
 				--data.trailing;
 				data.endl().trail() << "}";
 				data.endl();
@@ -968,7 +990,7 @@ namespace csl
 	};
 
 	template<>
-	struct ToGLSL<UnaryOperator> 
+	struct ToGLSL<UnaryOperator>
 	{
 		static void call(const UnaryOperator& uop, GLSLData& data) {
 			data.print(Precedence::Unary, [&] {
@@ -1018,7 +1040,7 @@ namespace csl
 	};
 
 	template<std::size_t N>
-	struct ToGLSL<FunCall<N>> 
+	struct ToGLSL<FunCall<N>>
 	{
 		static void call(const FunCall<N>& fun_call, GLSLData& data) {
 			data.print(Precedence::FunctionCall, [&]
@@ -1030,7 +1052,7 @@ namespace csl
 	};
 
 	template<typename F, typename ReturnType, std::size_t N >
-	struct ToGLSL<CustomFunCall<F, ReturnType, N>> 
+	struct ToGLSL<CustomFunCall<F, ReturnType, N>>
 	{
 		static void call(const CustomFunCall< F, ReturnType, N>& fun_call, GLSLData& data) {
 			data.print(Precedence::FunctionCall, [&]

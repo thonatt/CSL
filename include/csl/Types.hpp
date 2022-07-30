@@ -102,7 +102,7 @@ namespace csl
 		static constexpr bool Value = false;
 	};
 
-	template<typename T>
+	template<typename T, typename Enable = void>
 	struct Infos {
 		static constexpr bool IsValid = false;
 		static constexpr bool IsArray = false;
@@ -126,7 +126,8 @@ namespace csl
 	struct Infos<const T&> : Infos<T> { };
 
 	template<typename T, std::size_t R, std::size_t C>
-	struct Infos<Matrix<T, R, C>> {
+	struct Infos<Matrix<T, R, C>> 
+	{
 		static constexpr bool IsConst = false;
 		static constexpr bool IsConstant = false;
 		static constexpr bool IsScalar = (R == 1 && C == 1);
@@ -225,9 +226,6 @@ namespace csl
 	template<typename ...Ts>
 	constexpr bool SameSize = (Infos<Ts>::RowCount == ...) && (Infos<Ts>::ColCount == ...);
 
-	template<typename A, typename B>
-	constexpr bool HasMoreElementsThan = Infos<A>::NumElements >= Infos<B>::NumElements;
-
 	template<typename ...Ts>
 	constexpr bool SameScalarType = true;
 
@@ -256,7 +254,7 @@ namespace csl
 	constexpr bool IsFloat = SameMat<T, float>;
 
 	template<>
-	struct Infos<double> : Infos<Matrix<float, 1, 1>> {
+	struct Infos<bool> : Infos<Matrix<bool, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
@@ -268,20 +266,10 @@ namespace csl
 	};
 
 	template<>
+	struct Infos<double> : Infos<float> { };
+
+	template<>
 	struct Infos<int> : Infos<Matrix<int, 1, 1>> {
-		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
-	};
-
-
-	template<>
-	struct Infos<unsigned long long> : Infos<Matrix<unsigned int, 1, 1>> {
-		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
-	};
-
-	template<>
-	struct Infos<unsigned long> : Infos<Matrix<unsigned int, 1, 1>> {
 		static constexpr bool IsConstant = true;
 		static constexpr bool IsValid = true;
 	};
@@ -293,17 +281,14 @@ namespace csl
 	};
 
 	template<>
-	struct Infos<bool> : Infos<Matrix<bool, 1, 1>> {
-		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
-	};
+	struct Infos<unsigned long> : Infos<unsigned int> { };
 
-	//template<>
-	//struct Infos<void> : Infos<Matrix<void, 0, 0>> {
-	//};
+	template<>
+	struct Infos<unsigned long long> : Infos<unsigned int> { };
 
 	template<typename A, typename B>
-	struct AlgebraMulInfos {
+	struct AlgebraMulInfos 
+	{
 		static_assert(SameScalarType<A, B>);
 
 		using ScalarType = typename Infos<A>::ScalarType;

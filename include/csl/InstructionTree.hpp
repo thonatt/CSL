@@ -203,22 +203,10 @@ namespace csl
 		std::array<FuncOverload, N> m_overloads;
 	};
 
-	struct ForArgsScope : Scope
-	{
-		using Scope::Scope;
-
-		void push_instruction(const InstructionIndex i) override {
-			const Expr expr = safe_static_cast<Statement*>(retrieve_instruction(i))->m_expr;
-			m_instructions.push_back(make_instruction<ForArgStatement>(expr));
-		}
-
-		Expr m_stacked_condition;
-	};
-
 	struct ForInstruction final : InstructionBase
 	{
 		ForInstruction() {
-			args = std::make_unique<ForArgsScope>();
+			args = std::make_unique<Scope>();
 			body = std::make_unique<Scope>();
 		}
 
@@ -229,8 +217,9 @@ namespace csl
 			to_glsl(*this, data);
 		}
 
-		std::unique_ptr<ForArgsScope> args;
+		std::unique_ptr<Scope> args;
 		std::unique_ptr<Scope> body;
+		Expr m_stacked_condition;
 	};
 
 	struct IfInstruction final : InstructionBase
