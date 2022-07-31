@@ -35,7 +35,8 @@ namespace csl
 
 	// special listeners
 
-	struct WhileListener {
+	struct WhileListener
+	{
 		operator bool() const {
 			if (first) {
 				first = false;
@@ -45,19 +46,24 @@ namespace csl
 		}
 		mutable bool first = true;
 
-		~WhileListener() {
-			context::get().end_while();
+		~WhileListener()
+		{
+			if (context::active())
+				context::get().end_while();
 		}
 	};
 
-	struct IfListener {
+	struct IfListener
+	{
 		operator bool() const { return true; }
 		~IfListener() {
-			context::get().end_if_sub_block();
+			if (context::active())
+				context::get().end_if_sub_block();
 		}
 	};
 
-	struct ElseListener {
+	struct ElseListener
+	{
 		operator bool() const { return false; }
 		~ElseListener() {
 			context::get().end_if();
@@ -69,7 +75,8 @@ namespace csl
 		SwitchListener(const bool active_listener) : m_active_listener(active_listener) { }
 
 		~SwitchListener() {
-			context::get().end_switch();
+			if (context::active())
+				context::get().end_switch();
 		}
 
 		operator std::size_t() {
@@ -106,13 +113,19 @@ namespace csl
 		bool first = true;
 	};
 
-	struct ReturnKeyword {
-		ReturnKeyword() {
-			context::get().add_statement<ReturnStatement>();
+	struct ReturnKeyword
+	{
+		ReturnKeyword()
+		{
+			if (context::active())
+				context::get().add_statement<ReturnStatement>();
 		}
+
 		template<typename T>
-		ReturnKeyword(T&& t) {
-			context::get().add_statement<ReturnStatement>(std::forward<T>(t));
+		ReturnKeyword(T&& t)
+		{
+			if (context::active())
+				context::get().add_statement<ReturnStatement>(std::forward<T>(t));
 		}
 	};
 
@@ -214,7 +227,7 @@ namespace csl
 	else if(false){} context::get().delay_end_if(); context::get().begin_else_if(condition); if(false) {} else if(IfListener _csl_begin_else_if_ = {})
 
 #define CSL_WHILE(condition) \
-	context::get().begin_while(get_expr(std::forward<decltype(condition)>(condition))); for(WhileListener _csl_begin_while_; _csl_begin_while_; )
+	context::get().begin_while(condition); for(WhileListener _csl_begin_while_; _csl_begin_while_; )
 
 #define CSL_FOR(...) \
 	context::get().begin_for(); context::g_context_active = false; for( __VA_ARGS__ ){ break; } context::g_context_active = true;  \
@@ -233,10 +246,10 @@ namespace csl
 	context::get().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = { context::g_context_active })while(_csl_begin_switch_)
 
 #define CSL_CASE(value) \
-	context::get().add_case(get_expr(std::forward<decltype(value)>(value))); case value 
+	context::get().add_case(value); case value 
 
 #define CSL_DEFAULT \
-	context::get().add_case({}); default
+	context::get().add_case(); default
 
 #define CSL_DISCARD \
 	_csl_only_available_in_discard_context_();

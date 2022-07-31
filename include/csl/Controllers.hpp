@@ -99,7 +99,7 @@ namespace csl
 			}
 		}
 
-		virtual void end_func()
+		void end_func()
 		{
 			current_block = current_func_parent;
 			current_func_parent = {};
@@ -122,25 +122,33 @@ namespace csl
 			return safe_static_cast<ForInstruction&>(*retrieve_instruction(current_for));
 		}
 
-		virtual void begin_for()
+		void begin_for()
 		{
+			if (!context::active())
+				return;
 			current_for = make_instruction<ForInstruction>();
 			push_instruction(current_for);
 		}
 
 		void begin_for_args()
 		{
+			if (!context::active())
+				return;
 			get().body->m_parent = current_block;
 			current_block = get().args.get();
 		}
 
 		void begin_for_body()
 		{
+			if (!context::active())
+				return;
 			current_block = get().body.get();
 		}
 
-		virtual void end_for()
+		void end_for()
 		{
+			if (!context::active())
+				return;
 			current_block = current_block->m_parent;
 		}
 
@@ -161,11 +169,8 @@ namespace csl
 			return safe_static_cast<IfInstruction&>(*retrieve_instruction(current_if));
 		}
 
-		template<typename T>
-		void begin_if(T&& t)
+		void begin_if(const Expr& expr)
 		{
-			const Expr expr = get_expr(std::forward<T>(t));
-			assert(expr);
 			current_if = make_instruction<IfInstruction>(current_if);
 			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block) };
 			Scope* future_current_block = if_case.body.get();
@@ -176,16 +181,14 @@ namespace csl
 
 		void begin_else()
 		{
-			IfInstruction::IfCase if_case{ {}, std::make_unique<Scope>(current_block->m_parent) };
-			current_block = if_case.body.get();
-			get_current_if().m_cases.push_back(std::move(if_case));
+			begin_else_if({});
 			delay_end_if();
 		}
 
-		template<typename T>
-		void begin_else_if(T&& t)
+		void begin_else_if(const Expr& expr)
 		{
-			const Expr expr = get_expr(std::forward<T>(t));
+			if (!context::active())
+				return;
 			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block->m_parent) };
 			current_block = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
@@ -193,6 +196,8 @@ namespace csl
 
 		void end_if_sub_block()
 		{
+			if (!context::active())
+				return;
 			if (get_current_if().waiting_for_else) {
 				end_if();
 				end_if_sub_block();
@@ -201,17 +206,23 @@ namespace csl
 		}
 		void end_if()
 		{
+			if (!context::active())
+				return;
 			current_if = get_current_if().m_parent_if;
 			current_block = current_block->m_parent;
 		}
 
 		void delay_end_if()
 		{
+			if (!context::active())
+				return;
 			if (current_if)
 				get_current_if().waiting_for_else = false;
 		}
 
 		void check_end_if() {
+			if (!context::active())
+				return;
 			if (current_if && get_current_if().waiting_for_else)
 				end_if();
 		}
@@ -221,13 +232,15 @@ namespace csl
 
 	struct WhileController : virtual ControllerBase
 	{
-		virtual void begin_while(const Expr& expr) {
+		void begin_while(const Expr& expr) {
 			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
 			push_instruction(current_while);
 			current_block = safe_static_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
 		}
 
-		virtual void end_while() {
+		void end_while() {
+			if (!context::active())
+				return;
 			current_block = current_block->m_parent;
 		}
 	};
@@ -239,21 +252,23 @@ namespace csl
 			return safe_static_cast<SwitchInstruction&>(*retrieve_instruction(current_switch));
 		}
 
-		virtual void begin_switch(const Expr& expr)
+		void begin_switch(const Expr& expr)
 		{
 			current_switch = make_instruction<SwitchInstruction>(expr, current_block, current_switch);
 			push_instruction(current_switch);
 			current_block = get().m_body.get();
 		}
 
-		virtual void add_case(const Expr& expr)
+		void add_case(const Expr& expr)
 		{
 			if (current_switch)
 				get().add_case(expr, current_block);
 		}
 
-		virtual void end_switch()
+		void end_switch()
 		{
+			if (!context::active())
+				return;
 			if (current_switch) {
 				if (get().m_current_case)
 					current_block = current_block->m_parent;
@@ -273,27 +288,52 @@ namespace csl
 		virtual IfController,
 		virtual SwitchController
 	{
-		virtual void begin_for() override
+		void begin_for()
 		{
+			if (!context::active())
+				return;
 			check_end_if();
 			check_func_args();
 			ForController::begin_for();
 		}
 
-		virtual void end_for() override
+		void end_for()
 		{
+			if (!context::active())
+				return;
 			check_end_if();
 			ForController::end_for();
 		}
 
-		virtual void begin_while(const Expr& expr) override
+		template<typename T>
+		void begin_if(T&& t)
 		{
-			check_func_args();
-			WhileController::begin_while(expr);
+			if (!context::active())
+				return;
+			IfController::begin_if(get_expr(std::forward<T>(t)));
 		}
 
-		virtual void end_while() override
+		template<typename T>
+		void begin_else_if(T&& t)
 		{
+			if (!context::active())
+				return;
+			IfController::begin_else_if(get_expr(std::forward<T>(t)));
+		}
+
+		template<typename T>
+		void begin_while(T&& t)
+		{
+			if (!context::active())
+				return;
+			check_func_args();
+			WhileController::begin_while(get_expr(std::forward<T>(t)));
+		}
+
+		void end_while()
+		{
+			if (!context::active())
+				return;
 			check_end_if();
 			WhileController::end_while();
 		}
@@ -301,24 +341,39 @@ namespace csl
 		template<typename T>
 		void begin_switch(T&& t)
 		{
+			if (!context::active())
+				return;
 			check_end_if();
 			check_func_args();
 			SwitchController::begin_switch(get_expr(std::forward<T>(t)));
 		}
 
-		virtual void add_case(const Expr& expr) override
+		template<typename T>
+		void add_case(T&& t)
 		{
+			if (!context::active())
+				return;
 			check_end_if();
-			SwitchController::add_case(expr);
+			SwitchController::add_case(get_expr(std::forward<T>(t)));
 		}
 
-		virtual void end_switch() override
+		void add_case()
 		{
+			if (!context::active())
+				return;
+			check_end_if();
+			SwitchController::add_case({});
+		}
+
+		void end_switch()
+		{
+			if (!context::active())
+				return;
 			check_end_if();
 			SwitchController::end_switch();
 		}
 
-		virtual void end_func() override
+		void end_func()
 		{
 			check_end_if();
 			FunctionController::end_func();
@@ -461,7 +516,8 @@ namespace csl
 		template<typename S, typename ... Args>
 		void add_statement(Args&& ... args)
 		{
-			push_instruction(make_instruction<S>(std::forward<Args>(args)...));
+			if (context::active())
+				push_instruction(make_instruction<S>(std::forward<Args>(args)...));
 		}
 	};
 }

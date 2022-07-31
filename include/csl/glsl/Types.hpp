@@ -4,8 +4,8 @@
 
 namespace csl
 {
-	namespace glsl {
-
+	namespace glsl 
+	{
 		using Double = Scalar<double>;
 		using Float = Scalar<float>;
 		using Uint = Scalar<unsigned int>;

@@ -417,6 +417,9 @@ struct Application : public framework::Application
 		static ShaderPtr current_shader = m_shader_suite.m_shaders.at(ShaderId::CSLVaporwave);
 
 		glfwGetFramebufferSize(m_main_window.get(), &m_w_screen, &m_h_screen);
+		if (m_w_screen == 0 || m_h_screen == 0)
+			return;
+
 		if (m_previous_rendering.width() != m_w_screen || m_previous_rendering.height() != m_h_screen) {
 			m_previous_rendering = picogl::Framebuffer::make(m_w_screen, m_h_screen);
 			m_previous_rendering.add_color_attachment(GL_RGBA8, GL_TEXTURE_2D, picogl::Texture::Options::AllocateMipmap);
