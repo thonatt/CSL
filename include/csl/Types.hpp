@@ -303,7 +303,8 @@ namespace csl
 	};
 
 	template<typename A, typename B>
-	struct AlgebraInfos {
+	struct AlgebraInfos 
+	{
 		static_assert(SameScalarType<A, B>);
 		using ReturnType = typename Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::Type;
 

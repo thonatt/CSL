@@ -197,8 +197,13 @@ namespace csl
 			}
 		};
 
-		namespace geom_common {
+		namespace geom_common 
+		{
 			using namespace shader_common;
+
+			struct EmitVertexI {};
+
+			struct EndPrimitiveI {};
 
 			CSL_PP_BUILTIN_INTERFACE_BLOCK((in, Array<0>), gl_PerVertex, gl_PerVertexGeomIn, gl_in,
 				(vec4, gl_Position),
@@ -213,11 +218,11 @@ namespace csl
 			);
 
 			inline void EmitVertex() {
-				context::get().add_statement<SpecialStatement<csl::EmitVertexI>>();
+				context::get().add_statement<SpecialStatement<EmitVertexI>>();
 			}
 
 			inline void EndPrimitive() {
-				context::get().add_statement<SpecialStatement<csl::EndPrimitiveI>>();
+				context::get().add_statement<SpecialStatement<EndPrimitiveI>>();
 			}
 		}
 
@@ -234,18 +239,17 @@ namespace csl
 			}
 		};
 
-		namespace frag_common {
+		namespace frag_common 
+		{
 			using namespace shader_common;
+
+			struct Discard {};
 
 			inline const Qualify<in, vec4> gl_FragCoord("gl_FragCoord", ObjFlags::BuiltInConstructor);
 			inline const Qualify<in, Bool> gl_FrontFacing("gl_FrontFacing", ObjFlags::BuiltInConstructor);
 			inline const Qualify<in, vec2> gl_PointCoord("gl_PointCoord", ObjFlags::BuiltInConstructor);
 
 			static Qualify<out, Float> gl_FragDepth("gl_FragDepth", ObjFlags::BuiltInConstructor);
-
-			inline void _csl_only_available_in_discard_context_() {
-				context::get().add_statement<SpecialStatement<Discard>>();
-			}
 		}
 
 		template<GLSLversion version>

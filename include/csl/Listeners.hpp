@@ -130,7 +130,7 @@ namespace csl
 	};
 
 	template<typename A, typename B, typename C>
-	typename Infos<B>::Type _csl_ternary(A&& condition, B&& lhs, C&& rhs) {
+	typename Infos<B>::Type ternary(A&& condition, B&& lhs, C&& rhs) {
 		//static_assert(SameMat<B, C>, "ternary error");
 		//static_assert(SameMat<A, Bool>, "ternary error"); TODO
 		return { make_expr<TernaryOperator>(get_expr(std::forward<A>(condition)), get_expr(std::forward<B>(lhs)), get_expr(std::forward<C>(rhs))) };
@@ -252,9 +252,9 @@ namespace csl
 	context::get().add_case(); default
 
 #define CSL_DISCARD \
-	_csl_only_available_in_discard_context_();
+	context::get().add_statement<SpecialStatement<Discard>>();
 
-#define CSL_TERNARY(...) _csl_ternary( __VA_ARGS__ )
+#define CSL_TERNARY(...) csl::ternary( __VA_ARGS__ )
 
 #define CSL_RETURN ReturnKeyword _csl_return_statement_
 

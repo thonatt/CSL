@@ -1228,7 +1228,7 @@ csl::glsl::frag_420::Shader dolphin_ubershader_fragment()
 		}
 
 		// Fog
-		Uint fog_function = bitfieldExtract(bpmem_fogParam3, 21, 3);
+		Uint fog_function = bitfieldExtract(bpmem_fogParam3, 21, 3) << "fog_function";
 		CSL_IF(fog_function != 0u) {
 			// TODO: This all needs to be converted from float to fixed point
 			Float ze;

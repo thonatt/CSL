@@ -515,10 +515,12 @@ namespace csl
 	template<>
 	struct ToGLSL<WhileInstruction>
 	{
-		static void call(const WhileInstruction& i, GLSLData& data) {
+		static void call(const WhileInstruction& i, GLSLData& data)
+		{
 			data.endl().trail() << "while(";
 			data.print_expr(i.m_condition);
-			data << ") {";
+			data << ")";
+			data.endl().trail() << "{";
 			++data.trailing;
 			for (const auto& i : i.m_body->m_instructions)
 				data.print_instruction(i);
@@ -588,7 +590,7 @@ namespace csl
 		static void call(const ForInstruction& i, GLSLData& data) {
 			data.endl().trail();
 			header(i, data);
-			data << " {";
+			data.endl().trail() << "{";
 			++data.trailing;
 			for (const auto j : i.body->m_instructions)
 				data.print_instruction(j);
@@ -651,7 +653,8 @@ namespace csl
 		static void call(const SwitchInstruction& i, GLSLData& data) {
 			data.endl().trail() << "switch(";
 			data.print_expr(i.m_condition);
-			data << ") {";
+			data << ")";
+			data.endl().trail() << "{";
 			++data.trailing;
 			for (const auto& c : i.m_body->m_instructions)
 				data.print_instruction(c);
@@ -698,11 +701,11 @@ namespace csl
 	template<typename T>
 	std::string SpecialStatementStr();
 
-	template<> inline std::string SpecialStatementStr<Discard>() { return "discard"; }
 	template<> inline std::string SpecialStatementStr<Break>() { return "break"; }
 	template<> inline std::string SpecialStatementStr<Continue>() { return "continue"; }
-	template<> inline std::string SpecialStatementStr<EmitVertexI>() { return "EmitVertex()"; }
-	template<> inline std::string SpecialStatementStr<EndPrimitiveI>() { return "EndPrimitive()"; }
+	template<> inline std::string SpecialStatementStr<glsl::frag_common::Discard>() { return "discard"; }
+	template<> inline std::string SpecialStatementStr<glsl::geom_common::EmitVertexI>() { return "EmitVertex()"; }
+	template<> inline std::string SpecialStatementStr<glsl::geom_common::EndPrimitiveI>() { return "EndPrimitive()"; }
 
 	template<typename T>
 	struct ToGLSL<SpecialStatement<T>>
@@ -783,7 +786,8 @@ namespace csl
 		template<typename T, std::size_t Id>
 		using StructMemberDeclaration = StructDeclarationMemberGLSL<S, T, Id>;
 
-		static void call(const StructDeclaration<S>& s, GLSLData& data) {
+		static void call(const StructDeclaration<S>& s, GLSLData& data)
+		{
 			data.endl().trail() << "struct " << GLSLTypeStr<S>::get();
 			data.endl().trail() << "{";
 			++data.trailing;
@@ -807,7 +811,8 @@ namespace csl
 			if constexpr (Qualifiers::Size > 0)
 				data << GLSLQualifier<Qualifiers>::get() + " ";
 
-			data << GLSLTypeStr<Interface>::get() << " {";
+			data << GLSLTypeStr<Interface>::get();
+			data.endl().trail() << "{";
 			++data.trailing;
 			iterate_over_typelist<typename Interface::MemberTList, StructMemberDeclaration>(data);
 			--data.trailing;
@@ -838,12 +843,14 @@ namespace csl
 		template<typename T, std::size_t Id>
 		using MemberDeclaration = UnnamedInterfaceDeclarationMemberGLSL<Interface, T, Id>;
 
-		static void call(const Interface& s, GLSLData& data) {
+		static void call(const Interface& s, GLSLData& data)
+		{
 			data.endl().trail();
 			if constexpr (Qualifiers::Size > 0)
 				data << GLSLQualifier<Qualifiers>::get() + " ";
 
-			data << s.m_name << " {";
+			data << s.m_name;
+			data.endl().trail() << "{";
 			++data.trailing;
 			iterate_over_typelist<TList<Ts...>, MemberDeclaration>(s, data);
 			--data.trailing;

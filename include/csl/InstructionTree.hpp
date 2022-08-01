@@ -138,13 +138,7 @@ namespace csl
 
 	struct Continue {};
 
-	struct Discard {};
-
 	struct Break {};
-
-	struct EmitVertexI {};
-
-	struct EndPrimitiveI {};
 
 	template<typename ...Qs>
 	struct ShaderStageOption {};
