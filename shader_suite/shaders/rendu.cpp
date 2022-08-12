@@ -99,7 +99,6 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 	Qualify<in, vec2> uv("uv");
 
 	Qualify<uniform, mat4> clipToWorld = mat4(vec4(1.056, vec3(0.0)), vec4(0.0, 0.792, 0.0, 0.0), vec4(vec3(0.0), -4.995), vec4(0.0, 0.0, -1.0, 5.005)) << "clipToWorld";
-
 	Qualify<uniform, vec3> viewPos = vec3(0.0, 0.0, 0.0); ///< The position in view space.
 	Qualify<uniform, vec3> lightDirection = vec3(0.437, 0.082, -0.896) << "sun_direction"; ///< The light direction in world space.
 	Qualify<uniform, Float> altitude = 1.0; ///< Origin height above the planet surface.

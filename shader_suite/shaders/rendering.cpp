@@ -19,7 +19,7 @@ csl::glsl::frag_420::Shader textured_mesh_frag()
 
 	shader.main([&] {
 		color = texture(tex, frag_in.uv);
-	});
+		});
 	return shader;
 }
 
@@ -50,7 +50,7 @@ csl::glsl::frag_420::Shader multiple_outputs_frag()
 		out_uv = frag_in.uv;
 		out_tex = texture(tex, frag_in.uv)(x, y, z);
 		out_depth = gl_FragCoord(z);
-	});
+		});
 
 	return shader;
 }
@@ -81,12 +81,12 @@ csl::glsl::geom_420::Shader geometric_normals() {
 		vec3 tri_normal = normalize(cross(b - a, c - b));
 		vec3 tri_center = (a + b + c) / 3.0;
 
-		gl_Position = proj * view * vec4(tri_center, 1.0);
+		gl_Position = proj * (view * vec4(tri_center, 1.0));
 		EmitVertex();
-		gl_Position = proj * view * vec4(tri_center + 0.05 * tri_normal, 1.0);
+		gl_Position = proj * (view * vec4(tri_center + 0.05 * tri_normal, 1.0));
 		EmitVertex();
 		EndPrimitive();
-	});
+		});
 
 	return shader;
 }
@@ -99,7 +99,7 @@ csl::glsl::frag_420::Shader single_color_frag() {
 
 	shader.main([&] {
 		color = vec4(1.0, 0.0, 1.0, 1.0);
-	});
+		});
 
 	return shader;
 }
@@ -140,7 +140,7 @@ csl::glsl::tcs_420::Shader tessellation_control_shader_example() {
 		tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
 		tcs_out[gl_InvocationID].uv = tcs_in[gl_InvocationID].uv;
 		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
-	});
+		});
 
 	return shader;
 }
@@ -181,7 +181,7 @@ csl::glsl::tev_420::Shader tessellation_evaluation_shader_example()
 		vec4 delta_pos = 2.0 * vec4(displacement * tev_out.normal, 0.0);
 		tev_out.position = pos + displacement * delta_pos(x, y, z);
 		gl_Position = proj * view * vec4(tev_out.position, 1.0);
-	});
+		});
 
 	return shader;
 }
@@ -232,7 +232,7 @@ csl::glsl::frag_420::Shader phong_shading_frag() {
 		}
 
 		out_color = vec4(col, 1.0);
-	});
+		});
 
 	return shader;
 }
@@ -264,7 +264,7 @@ csl::glsl::vert_420::Shader interface_vertex_shader()
 		vertex_out.uv = in_uv;
 		gl_Position = proj * (view * vec4(in_position, 1.0));
 
-	});
+		});
 	return shader;
 }
 
@@ -279,10 +279,10 @@ csl::glsl::vert_420::Shader screen_quad_vertex_shader()
 	Qualify<out, vec2> uv("uv");
 
 	shader.main([&]
-	{
-		gl_Position = vec4(2.0 * pos - 1.0, 1.0);
-		uv = in_uv;
-	});
+		{
+			gl_Position = vec4(2.0 * pos - 1.0, 1.0);
+			uv = in_uv;
+		});
 
 	return shader;
 }

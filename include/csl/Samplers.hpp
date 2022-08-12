@@ -25,6 +25,6 @@ namespace csl
 		{
 		}
 
-		static constexpr bool IsValid() { return true; }
+		static constexpr bool IsCSLType() { return true; }
 	};
 }

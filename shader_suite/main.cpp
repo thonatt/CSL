@@ -56,8 +56,6 @@ struct ShaderExample
 	double m_generation_timing, m_glsl_timing;
 };
 
-using ShaderPtr = std::shared_ptr<ShaderExample>;
-
 enum class ShaderGroup
 {
 	Test,
@@ -148,8 +146,8 @@ struct ShaderSuite
 		m_groups[group].emplace_back(shader_example);
 	}
 
-	std::map<ShaderId, ShaderPtr> m_shaders;
-	std::unordered_map<ShaderGroup, std::vector<ShaderPtr>> m_groups;
+	std::map<ShaderId, std::shared_ptr<ShaderExample>> m_shaders;
+	std::unordered_map<ShaderGroup, std::vector<std::shared_ptr<ShaderExample>>> m_groups;
 };
 
 struct Application;
@@ -158,11 +156,11 @@ struct PipelineBase
 {
 	struct ShaderActive
 	{
-		ShaderPtr m_shader;
+		std::shared_ptr<ShaderExample> m_shader;
 		bool m_active = true;
 	};
 
-	void add_shader(const GLenum type, const std::pair<ShaderId, ShaderPtr>& shader)
+	void add_shader(const GLenum type, const std::pair<ShaderId, std::shared_ptr<ShaderExample>>& shader)
 	{
 		m_shaders[type] = { shader.second };
 	}
@@ -173,8 +171,7 @@ struct PipelineBase
 		int shader_count = 0;
 		for (const auto& [type, shader] : m_shaders)
 			shaders[shader_count++] = picogl::Shader::make(type, shader.m_shader->m_glsl_str);
-		std::vector<std::reference_wrapper<const picogl::Shader>> shaders_refs(shaders.begin(), shaders.end());
-		m_program = picogl::Program::make(shaders_refs);
+		m_program = picogl::Program::make({ shaders.begin(), shaders.end() });
 	}
 
 	virtual void additionnal_gui() {};
@@ -198,7 +195,7 @@ ShaderSuite get_all_suite()
 {
 	ShaderSuite suite;
 
-	// Readme examples
+	// Readme examples.
 	suite.add_shader(ShaderGroup::Readme, ShaderId::TypeAndOperatorsExample, types_operators_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderId::ManualNamingExample, manual_naming_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderId::AutoNamingExample, auto_naming_example);
@@ -216,7 +213,7 @@ ShaderSuite get_all_suite()
 
 	suite.add_shader(ShaderGroup::Test, ShaderId::ScreenQuadVertex, screen_quad_vertex_shader);
 
-	// Rendering examples 
+	// Rendering examples.
 	suite.add_shader(ShaderGroup::Examples, ShaderId::InterfaceVertex, interface_vertex_shader);
 	suite.add_shader(ShaderGroup::Examples, ShaderId::TexturedMeshFrag, textured_mesh_frag);
 
@@ -231,14 +228,14 @@ ShaderSuite get_all_suite()
 	suite.add_shader(ShaderGroup::Examples, ShaderId::TessControl, tessellation_control_shader_example);
 	suite.add_shader(ShaderGroup::Examples, ShaderId::TessEval, tessellation_evaluation_shader_example);
 
-	// Rendu examples
+	// Rendu examples.
 	suite.add_shader(ShaderGroup::Rendu, ShaderId::AtmosphereScatteringLUT, scattering_lookup_table);
 	suite.add_shader(ShaderGroup::Rendu, ShaderId::AtmosphereRendering, atmosphere_rendering);
 
-	// Shadertoy examples
+	// Shadertoy examples.
 	suite.add_shader(ShaderGroup::Shadertoy, ShaderId::CSLVaporwave, shader_80);
 
-	// Extra
+	// Extra.
 	suite.add_shader(ShaderGroup::Extra, ShaderId::DolphinUbershaderVert, dolphin_ubershader_vertex);
 	suite.add_shader(ShaderGroup::Extra, ShaderId::DolphinUbershaderFrag, dolphin_ubershader_fragment);
 
@@ -386,6 +383,7 @@ struct Application : public framework::Application
 
 		m_pipelines = get_all_pipelines(*this);
 		m_current_pipeline = m_pipelines.find("csl_vaporwave")->second;
+		m_current_shader = m_shader_suite.m_shaders.at(ShaderId::CSLVaporwave);
 	}
 
 	void update() override {
@@ -414,8 +412,6 @@ struct Application : public framework::Application
 			{ GL_COMPUTE_SHADER, "Compute"},
 		};
 
-		static ShaderPtr current_shader = m_shader_suite.m_shaders.at(ShaderId::CSLVaporwave);
-
 		glfwGetFramebufferSize(m_main_window.get(), &m_w_screen, &m_h_screen);
 		if (m_w_screen == 0 || m_h_screen == 0)
 			return;
@@ -436,28 +432,28 @@ struct Application : public framework::Application
 
 		m_time += ImGui::GetIO().DeltaTime;
 
-		if (current_shader && (ImGui::IsKeyPressed(GLFW_KEY_TAB) || ImGui::IsKeyPressed(GLFW_KEY_LEFT) || ImGui::IsKeyPressed(GLFW_KEY_RIGHT))) {
+		if (m_current_shader && (ImGui::IsKeyPressed(GLFW_KEY_TAB) || ImGui::IsKeyPressed(GLFW_KEY_LEFT) || ImGui::IsKeyPressed(GLFW_KEY_RIGHT))) {
 			m_current_pipeline = {};
 			for (auto shader_it = m_shader_suite.m_shaders.begin(); shader_it != m_shader_suite.m_shaders.end(); ++shader_it) {
-				if (shader_it->second != current_shader)
+				if (shader_it->second != m_current_shader)
 					continue;
 
 				if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyPressed(GLFW_KEY_LEFT)) {
 					if (shader_it == m_shader_suite.m_shaders.begin()) {
 						auto suite_end_it = m_shader_suite.m_shaders.end();
-						current_shader = (--suite_end_it)->second;
+						m_current_shader = (--suite_end_it)->second;
 					} else {
-						current_shader = (--shader_it)->second;
+						m_current_shader = (--shader_it)->second;
 					}
 				} else  if (ImGui::IsKeyPressed(GLFW_KEY_TAB) || ImGui::IsKeyPressed(GLFW_KEY_RIGHT)) {
 					++shader_it;
 					if (shader_it == m_shader_suite.m_shaders.end())
 						shader_it = m_shader_suite.m_shaders.begin();
-					current_shader = shader_it->second;
+					m_current_shader = shader_it->second;
 				}
 				for (const auto& [name, pipeline] : m_pipelines)
 					for (const auto& shader : pipeline->m_shaders)
-						if (shader.second.m_shader == current_shader) {
+						if (shader.second.m_shader == m_current_shader) {
 							m_current_pipeline = pipeline;
 							break;
 						}
@@ -484,7 +480,7 @@ struct Application : public framework::Application
 				{
 					for (const auto& shader : group) {
 						bool selected = false;
-						if (current_shader && shader == current_shader)
+						if (m_current_shader && shader == m_current_shader)
 							selected = true;
 						else if (m_current_pipeline)
 							for (const auto& pipeline_shader : m_current_pipeline->m_shaders)
@@ -494,15 +490,16 @@ struct Application : public framework::Application
 								}
 
 						if (ImGui::Selectable(shader->m_name.c_str(), selected)) {
-							current_shader = shader;
+							m_current_shader = shader;
 
 							bool pipeline_found = false;
-							for (const auto& [name, pipeline] : m_pipelines)
+							for (const auto& [name, pipeline] : m_pipelines) {
 								for (const auto& [type, shader] : pipeline->m_shaders)
-									if (current_shader->m_name == shader.m_shader->m_name) {
+									if (m_current_shader->m_name == shader.m_shader->m_name) {
 										m_current_pipeline = pipeline;
 										pipeline_found = true;
 									}
+							}
 
 							if (!pipeline_found)
 								m_current_pipeline = {};
@@ -520,8 +517,19 @@ struct Application : public framework::Application
 
 				if (ImGui::BeginChild("top right pane", ImVec2(0.0f, h / 8.0f), true))
 				{
+					int count = 0;
+					auto print_shader = [&](const ShaderExample& shader)
+					{
+						if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
+						{
+							if (ImGui::Button("print to console"))
+								std::cout << shader.m_glsl_str << std::endl;
+							ImGui::EndPopup();
+						}
+					};
+
 					if (m_current_pipeline) {
-						int count = 0;
+
 						for (auto& [type, shader] : m_current_pipeline->m_shaders) {
 							if (count > 0) {
 								ImGui::SameLine();
@@ -529,24 +537,14 @@ struct Application : public framework::Application
 								ImGui::SameLine();
 							}
 							ImGui::Checkbox((shader_type_strs.find(type)->second + "##").c_str(), &shader.m_active);
-							if (ImGui::BeginPopupContextItem(("shader right click ##" + std::to_string(count)).c_str()))
-							{
-								if (ImGui::Button("print to console"))
-									std::cout << shader.m_shader->m_glsl_str << std::endl;
-								ImGui::EndPopup();
-							}
+							print_shader(*shader.m_shader);
 							if (shader.m_active)
 								++active_shader_count;
 							++count;
 						}
-					} else if (current_shader) {
-						ImGui::Text("No associated pipeline");
-						if (ImGui::BeginPopupContextItem("shader right click ## single"))
-						{
-							if (ImGui::Button("print to console"))
-								std::cout << current_shader->m_glsl_str << std::endl;
-							ImGui::EndPopup();
-						}
+					} else if (m_current_shader) {
+						ImGui::Text("No associated pipeline.");
+						print_shader(*m_current_shader);
 						active_shader_count = 1.0f;
 					}
 					if (m_current_pipeline)
@@ -571,8 +569,8 @@ struct Application : public framework::Application
 											break;
 										++count;
 									}
-								} else if (current_shader)
-									shader_gui(mode, *current_shader, shader_code_height, *this);
+								} else if (m_current_shader)
+									shader_gui(mode, *m_current_shader, shader_code_height, *this);
 								ImGui::EndTabItem();
 							}
 						ImGui::EndTabBar();
@@ -584,7 +582,7 @@ struct Application : public framework::Application
 		}
 		ImGui::End();
 
-		// OpenGL visualisation if selected shader has an associated pipeline
+		// OpenGL visualisation if selected shader has an associated pipeline.
 		if (m_current_pipeline) {
 			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(m_w_screen - 30) / 3, static_cast<float>((m_h_screen - 20) * 5) / 5));
 			ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -644,6 +642,7 @@ struct Application : public framework::Application
 	ShaderSuite m_shader_suite;
 	std::unordered_map<std::string, std::shared_ptr<PipelineBase>> m_pipelines;
 	std::shared_ptr<PipelineBase> m_current_pipeline = {};
+	std::shared_ptr<ShaderExample> m_current_shader = {};
 	picogl::Texture m_tex_letters;
 	picogl::Framebuffer m_framebuffer, m_previous_rendering, m_fractal_noise, m_scattering_LUT;
 	picogl::Mesh m_isosphere, m_quad, m_screen_quad, m_triangle;

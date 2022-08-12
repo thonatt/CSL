@@ -104,7 +104,7 @@ namespace csl
 
 	template<typename T, typename Enable = void>
 	struct Infos {
-		static constexpr bool IsValid = false;
+		static constexpr bool IsCSLType = false;
 		static constexpr bool IsArray = false;
 		static constexpr bool IsInteger = false;
 		static constexpr std::size_t RowCount = 0;
@@ -143,7 +143,7 @@ namespace csl
 		static constexpr bool IsFloating = std::is_same_v<T, float> || std::is_same_v<T, double>;
 		static constexpr bool IsInteger = std::is_same_v<T, int> || std::is_same_v<T, unsigned int>;
 
-		static constexpr bool IsValid = true;
+		static constexpr bool IsCSLType = true;
 
 		using ArrayDimensions = SizeList<>;
 
@@ -174,23 +174,24 @@ namespace csl
 		static constexpr std::size_t ColCount = 0;
 	};
 
-	namespace detail {
+	namespace detail 
+	{
 		template<class>
 		struct sfinae_true : std::true_type {};
 
 		template<class T>
-		static auto test_is_valid(int)->sfinae_true<decltype(T::IsValid())>;
+		static auto test_is_csl_type(int)->sfinae_true<decltype(T::IsCSLType())>;
 		template<class>
-		static auto test_is_valid(long)->std::false_type;
+		static auto test_is_csl_type(long)->std::false_type;
 	} // detail::
 
 	template<class T>
 	constexpr bool IsCSLType()
 	{
-		if constexpr (decltype(detail::test_is_valid<T>(0)){})
+		if constexpr (decltype(detail::test_is_csl_type<T>(0)){})
 			return true;
 		else
-			return Infos<T>::IsValid;
+			return Infos<T>::IsCSLType;
 	};
 
 	template<typename ...Ts>
@@ -256,13 +257,13 @@ namespace csl
 	template<>
 	struct Infos<bool> : Infos<Matrix<bool, 1, 1>> {
 		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
+		static constexpr bool IsCSLType = true;
 	};
 
 	template<>
 	struct Infos<float> : Infos<Matrix<float, 1, 1>> {
 		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
+		static constexpr bool IsCSLType = true;
 	};
 
 	template<>
@@ -271,13 +272,13 @@ namespace csl
 	template<>
 	struct Infos<int> : Infos<Matrix<int, 1, 1>> {
 		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
+		static constexpr bool IsCSLType = true;
 	};
 
 	template<>
 	struct Infos<unsigned int> : Infos<Matrix<unsigned int, 1, 1>> {
 		static constexpr bool IsConstant = true;
-		static constexpr bool IsValid = true;
+		static constexpr bool IsCSLType = true;
 	};
 
 	template<>

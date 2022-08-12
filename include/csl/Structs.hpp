@@ -22,10 +22,10 @@
 #define CSL_PP_MEMBERWISE_ARG_IT(data, i, elem) CSL_PP_COMMA_IF(i) csl::get_expr(std::forward<CSL_PP_MEMBER_TYPE(elem)>( CSL_PP_MEMBER_NAME(elem) ) )
 
 #define CSL_PP_INIT_MEMBER_IT(data, i, elem) CSL_PP_COMMA_IF(i) CSL_PP_MEMBER_NAME(elem)( \
-	 csl::make_expr<csl::MemberAccessor<CSL_PP_FIRST(data) ,i>>(Base::m_expr), CSL_PP_SECOND(data) )
+	 csl::make_expr<csl::MemberAccessor<CSL_PP_FIRST(data), i>>(Base::m_expr), CSL_PP_SECOND(data) )
 
 #define CSL_PP_SET_MEMBER_IT(data, i, elem) \
-	CSL_PP_MEMBER_NAME(elem).m_expr = csl::make_expr<csl::MemberAccessor<data,i>>(Base::m_expr); \
+	CSL_PP_MEMBER_NAME(elem).m_expr = csl::make_expr<csl::MemberAccessor<data, i>>(Base::m_expr); \
 	CSL_PP_MEMBER_NAME(elem).m_flags = csl::ObjFlags::StructMember;
 
 #define CSL_PP_EMPTY_INIT_MEMBER_IT(data, i, elem) CSL_PP_COMMA_IF(i) CSL_PP_MEMBER_NAME(elem) (csl::NoInit{})
@@ -95,7 +95,7 @@
 			return type_str; \
 		} \
 		\
-		static constexpr bool IsValid() { return true; } \
+		static constexpr bool IsCSLType() { return true; } \
 	}
 
 #define CSL_PP_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, Name, DefaultObjFlags, ...) \
@@ -111,8 +111,8 @@
 
 #define CSL_PP_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \
 	csl::context::get().add_unnamed_interface_block< \
-		csl::TList< CSL_PP_DEPARENTHESIS(Qualifiers) >, csl::TList< CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) > > ( \
-			CSL_PP_STR(Typename), CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
+	csl::TList<CSL_PP_DEPARENTHESIS(Qualifiers) >, csl::TList< CSL_PP_ITERATE(CSL_PP_MEMBER_TYPE_IT, __VA_ARGS__) > > \
+		(CSL_PP_STR(Typename), CSL_PP_ITERATE(CSL_PP_MEMBER_STR_IT, __VA_ARGS__) ); \
 	CSL_PP_ITERATE(CSL_PP_DECLARE_UNNAMED_INTERFACE_MEMBER_IT, __VA_ARGS__ );
 
 #define CSL_PP_BUILTIN_UNNAMED_INTERFACE_BLOCK(Qualifiers, Typename, UniqueTypename, DefaultObjFlags,  ...) \

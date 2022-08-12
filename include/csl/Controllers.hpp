@@ -310,6 +310,7 @@ namespace csl
 		{
 			if (!context::active())
 				return;
+			context::get().check_end_if();
 			IfController::begin_if(get_expr(std::forward<T>(t)));
 		}
 

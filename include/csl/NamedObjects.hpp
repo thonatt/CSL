@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <string>
 
-namespace csl 
+namespace csl
 {
 	struct MainListener;
 	MainListener& listen();
@@ -46,7 +46,7 @@ namespace csl
 		{
 		}
 
-		void set_as_temp() const 
+		void set_as_temp() const
 		{
 			if (m_flags & ObjFlags::Constructor) {
 				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(m_expr));
@@ -108,7 +108,7 @@ namespace csl
 		Expr get_this_expr()&& { return get_expr_as_temp(); }
 		Expr get_this_expr() const&& { return get_expr_as_temp(); }
 
-		Expr get_plain_expr() const 
+		Expr get_plain_expr() const
 		{
 			return m_expr;
 		}
@@ -278,7 +278,7 @@ namespace csl
 		}
 
 		template<typename U, typename = std::enable_if_t<SameType<ArrayInterface, U>>>
-		ArrayInterface(const NamedObjectInit<U>& init) 
+		ArrayInterface(const NamedObjectInit<U>& init)
 			: Base(init, ArrayDimensions{}, QualifierList{})
 		{
 		}
@@ -303,7 +303,7 @@ namespace csl
 	};
 
 	template<typename T>
-	struct ExprGetter<T, std::enable_if_t<std::is_fundamental_v<T>>> 
+	struct ExprGetter<T, std::enable_if_t<std::is_fundamental_v<T>>>
 	{
 		static Expr get_expr(T&& t) {
 			return make_expr<Litteral<T>>(std::forward<T>(t));
@@ -311,7 +311,7 @@ namespace csl
 	};
 
 	template<typename T>
-	struct ExprGetter<T&, std::enable_if_t<std::is_fundamental_v<T>>> 
+	struct ExprGetter<T&, std::enable_if_t<std::is_fundamental_v<T>>>
 	{
 		static Expr get_expr(const T& t) {
 			return make_expr<Litteral<T>>(t);

@@ -21,6 +21,9 @@ namespace csl
 		template<std::size_t N>
 		struct location {};
 
+		template<std::size_t N>
+		struct set {};
+
 		struct triangles {};
 		struct equal_spacing {};
 		struct ccw {};

@@ -243,6 +243,7 @@ namespace csl
 
 	template<> inline std::string GLSLQualifierN<glsl::binding>::get() { return "binding"; }
 	template<> inline std::string GLSLQualifierN<glsl::location>::get() { return "location"; }
+	template<> inline std::string GLSLQualifierN<glsl::set>::get() { return "set"; }
 	template<> inline std::string GLSLQualifierN<glsl::tcs_common::vertices>::get() { return "vertices"; }
 	template<> inline std::string GLSLQualifierN<glsl::geom_common::max_vertices>::get() { return "max_vertices"; }
 	template<> inline std::string GLSLQualifierN<glsl::compute_common::local_size_x>::get() { return "local_size_x"; }

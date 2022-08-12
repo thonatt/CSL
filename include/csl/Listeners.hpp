@@ -37,6 +37,12 @@ namespace csl
 
 	struct WhileListener
 	{
+		template<typename T>
+		WhileListener(T&& condition)
+		{
+			context::get().begin_while(std::forward<T>(condition));
+		}
+
 		operator bool() const {
 			if (first) {
 				first = false;
@@ -55,8 +61,16 @@ namespace csl
 
 	struct IfListener
 	{
+		template<typename T>
+		IfListener(T&& condition)
+		{
+			context::get().begin_if(std::forward<T>(condition));
+		}
+
 		operator bool() const { return true; }
-		~IfListener() {
+
+		~IfListener()
+		{
 			if (context::active())
 				context::get().end_if_sub_block();
 		}
@@ -64,22 +78,51 @@ namespace csl
 
 	struct ElseListener
 	{
+		ElseListener()
+		{
+			context::get().begin_else();
+		}
+
 		operator bool() const { return false; }
+
 		~ElseListener() {
 			context::get().end_if();
 		}
 	};
 
+	struct ElseIf
+	{
+		template<typename T>
+		ElseIf(T&& condition)
+		{
+			context::get().begin_else_if(std::forward<T>(condition));
+		}
+
+		operator bool() const { return true; }
+
+		~ElseIf()
+		{
+			if (context::active())
+				context::get().end_if_sub_block();
+		}
+	};
+
 	struct SwitchListener
 	{
-		SwitchListener(const bool active_listener) : m_active_listener(active_listener) { }
+		template<typename T>
+		SwitchListener(T&& condition) : m_active_listener{ context::active() } 
+		{
+			context::get().begin_switch(std::forward<T>(condition));
+		}
 
-		~SwitchListener() {
+		~SwitchListener() 
+		{
 			if (context::active())
 				context::get().end_switch();
 		}
 
-		operator std::size_t() {
+		operator std::size_t() 
+		{
 			if (!m_active_listener)
 				return static_cast<std::size_t>(0);
 
@@ -97,12 +140,20 @@ namespace csl
 		static constexpr std::size_t unlikely_case = 13;
 	};
 
-	struct ForListener {
-		~ForListener() {
+	struct ForListener
+	{
+		ForListener()
+		{
+			context::get().begin_for_body();
+		}
+
+		~ForListener() 
+		{
 			context::get().end_for();
 		}
 
-		explicit operator bool() {
+		explicit operator bool() 
+		{
 			if (first) {
 				first = false;
 				return true;
@@ -218,44 +269,49 @@ namespace csl
 	}
 
 #define CSL_IF(condition) \
-	context::get().check_end_if(); context::get().begin_if(condition); if(IfListener _csl_begin_if_ = {})
+	if(csl::IfListener _csl_begin_if_{ condition })
 
 #define CSL_ELSE \
-	else {} context::get().begin_else(); if(ElseListener _csl_begin_else_ = {}) {} else 
+	else {} if(csl::ElseListener _csl_begin_else_{}) {} else 
 
 #define CSL_ELSE_IF(condition) \
-	else if(false){} context::get().delay_end_if(); context::get().begin_else_if(condition); if(false) {} else if(IfListener _csl_begin_else_if_ = {})
+	else if(false){} csl::context::get().delay_end_if(); \
+	if(false){} else if(csl::ElseIf _csl_begin_else_if_{ condition })
 
 #define CSL_WHILE(condition) \
-	context::get().begin_while(condition); for(WhileListener _csl_begin_while_; _csl_begin_while_; )
+	for(csl::WhileListener _csl_begin_while_{ condition }; _csl_begin_while_; )
 
 #define CSL_FOR(...) \
-	context::get().begin_for(); context::g_context_active = false; for( __VA_ARGS__ ){ break; } context::g_context_active = true;  \
-	context::get().begin_for_args(); __VA_ARGS__;  context::get().begin_for_body(); \
+	context::get().begin_for();			\
+	context::g_context_active = false;	\
+	for( __VA_ARGS__ ){ break; }		\
+	context::g_context_active = true;	\
+	context::get().begin_for_args();	\
+	__VA_ARGS__;						\
 	for(ForListener _csl_begin_for_; _csl_begin_for_; )
 
 #define CSL_BREAK \
 	if(false){ break; } \
-	context::get().add_statement<SpecialStatement<Break>>();
+	csl::context::get().add_statement<SpecialStatement<Break>>();
 
 #define CSL_CONTINUE \
 	if(false){ continue; } \
-	context::get().add_statement<SpecialStatement<Continue>>();
+	csl::context::get().add_statement<SpecialStatement<Continue>>();
 
 #define CSL_SWITCH(condition) \
-	context::get().begin_switch(condition); switch(SwitchListener _csl_begin_switch_ = { context::g_context_active })while(_csl_begin_switch_)
+	switch(csl::SwitchListener _csl_begin_switch_{ condition })while(_csl_begin_switch_)
 
 #define CSL_CASE(value) \
-	context::get().add_case(value); case value 
+	csl::context::get().add_case(value); case value 
 
 #define CSL_DEFAULT \
-	context::get().add_case(); default
+	csl::context::get().add_case(); default
 
 #define CSL_DISCARD \
-	context::get().add_statement<SpecialStatement<Discard>>();
+	csl::context::get().add_statement<csl::SpecialStatement<Discard>>();
 
-#define CSL_TERNARY(...) csl::ternary( __VA_ARGS__ )
+#define CSL_TERNARY(condition, left, right) csl::ternary((condition), (left), (right))
 
-#define CSL_RETURN ReturnKeyword _csl_return_statement_
+#define CSL_RETURN csl::ReturnKeyword _csl_return_statement_
 
 }
