@@ -1,6 +1,7 @@
 #pragma once
 
 #include <csl/Operators.hpp>
+#include <csl/NamedObjects.hpp>
 #include <csl/TemplateHelpers.hpp>
 
 #include <array>

@@ -4,7 +4,7 @@
 #include <csl/InstructionTree.hpp>
 #include <csl/Swizzles.hpp>
 
-#include <csl/glsl/ToGLSL.hpp>
+#include <csl/glsl/Shaders.hpp>
 
 #include <sstream>
 #include <typeinfo>
@@ -15,7 +15,6 @@
 
 namespace csl
 {
-
 	struct ImGuiData
 	{
 		GLSLData glsl_data;
@@ -56,7 +55,7 @@ namespace csl
 			if (!vs.empty()) {
 				if (ImGui::TreeNode(unique(name).c_str())) {
 					for (const auto& v : vs)
-						retrieve_instruction(v)->print_imgui(*this);				
+						retrieve_instruction(v)->print_imgui(*this);
 					ImGui::TreePop();
 				}
 			}
@@ -92,6 +91,11 @@ namespace csl
 			retrieve_instruction(index)->print_imgui(*this);
 		}
 	};
+
+	inline GLSLData& get_glsl_data(ImGuiData& data)
+	{
+		return data.glsl_data;
+	}
 
 	template<typename T>
 	struct ToImGui;

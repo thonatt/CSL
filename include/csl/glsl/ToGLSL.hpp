@@ -6,8 +6,6 @@
 
 #include <csl/glsl/Shaders.hpp>
 
-#include <sstream>
-#include <stack>
 #include <typeinfo>
 #include <type_traits>
 #include <unordered_map>
@@ -15,74 +13,6 @@
 namespace csl
 {
 	const std::string& glsl_op_str(const Op op);
-
-	struct GLSLData
-	{
-		std::stringstream stream;
-
-		std::unordered_map<std::size_t, std::string> var_names;
-		std::stack<Precedence> m_precedences;
-		int trailing = 0;
-
-		GLSLData()
-		{
-			m_precedences.push(Precedence::NoExtraParenthesis);
-		}
-
-		GLSLData& trail() {
-			for (int t = 0; t < trailing; ++t)
-				stream << "    ";
-			return *this;
-		}
-
-		GLSLData& endl() {
-			stream << "\n";
-			return *this;
-		}
-
-		template<typename T>
-		GLSLData& operator<<(T&& t) {
-			stream << std::forward<T>(t);
-			return *this;
-		}
-
-		void print_expr(const Expr& expr)
-		{
-			retrieve_expr(expr)->print_glsl(*this);
-		}
-
-		void print_instruction(const InstructionIndex& index)
-		{
-			retrieve_instruction(index)->print_glsl(*this);
-		}
-
-		template<typename F>
-		void print(const Precedence current, F&& f)
-		{
-			const Precedence parent = m_precedences.top();
-			const bool inversion = (parent != Precedence::FunctionCall) && (parent < current);
-			m_precedences.push(current);
-			if (inversion)
-				stream << "(";
-			f();
-			if (inversion)
-				stream << ")";
-			m_precedences.pop();
-		}
-
-		const std::string& register_var_name(const std::string& name, const std::size_t id)
-		{
-			return var_names.emplace(id, name.empty() ? "x" + std::to_string(var_names.size()) : name).first->second;
-		}
-
-		template<typename ...Ts>
-		void register_builtins(const Ts&... vars) {
-			([this](const auto& var) {
-				auto ctor = safe_static_cast<ConstructorBase*>(retrieve_expr(var.get_plain_expr()));
-				register_var_name(ctor->m_name, ctor->m_variable_id);
-				}(vars), ...);
-		}
-	};
 
 	struct OpInfos
 	{
@@ -450,7 +380,7 @@ namespace csl
 				if constexpr (QualifierList::Size > 0)
 					s += GLSLQualifier<QualifierList>::get() + " ";
 				s += GLSLTypeStr<T>::get();
-				if ()
+				if constexpr (ArrayDimensions::Size > 0)
 					s += ArraySizePrinterGLSL<ArrayDimensions>::get();
 				return s;
 			}();

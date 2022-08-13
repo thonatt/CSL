@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 
@@ -125,12 +126,12 @@ namespace csl
 		using Next = std::conditional_t<Current::template Contains<T>, Current, typename Current::template PushBack<T>>;
 		using Type = typename RemoveDuplicatesImpl<Next, TList<Us...>>::Type;
 	};
-	
+
 	template<typename TList, template<typename, std::size_t> typename F>
 	struct IterateOverListImpl
 	{
 		template<std::size_t ...Ns, typename ...Args>
-		static void call(std::index_sequence<Ns...>, Args&& ... args) 
+		static void call(std::index_sequence<Ns...>, Args&& ... args)
 		{
 			(F<typename TList::template At<Ns>, Ns>::call(std::forward<Args>(args)...), ...);
 		}
@@ -138,7 +139,7 @@ namespace csl
 
 	// Iterate over type list using functor taking type and index as template argument.
 	template<typename TList, template<typename, std::size_t> typename F, typename ...Args>
-	void iterate_over_typelist(Args&& ...args) 
+	void iterate_over_typelist(Args&& ...args)
 	{
 		IterateOverListImpl<TList, F>::call(std::make_index_sequence<TList::Size>{}, std::forward<Args>(args)...);
 	}
@@ -151,13 +152,13 @@ namespace csl
 	using Subset = typename SubsetImpl<List, First, std::make_index_sequence<Last - First>>::Type;
 
 	template<std::size_t First, std::size_t ... Is, typename ... Ts>
-	struct SubsetImpl<TList<Ts...>, First, std::index_sequence<Is...>> 
+	struct SubsetImpl<TList<Ts...>, First, std::index_sequence<Is...>>
 	{
 		using Type = TList<typename TList<Ts...>::template At<First + Is>...>;
 	};
 
 	template<template <typename> typename Pred, typename List, std::size_t Index>
-	class MatchingImpl 
+	class MatchingImpl
 	{
 	public:
 		using Values = TList<>;
@@ -182,7 +183,7 @@ namespace csl
 	};
 
 	template<typename IndexList, typename TypeList, std::size_t Index>
-	struct RemoveAtImpl 
+	struct RemoveAtImpl
 	{
 		using Type = TypeList;
 	};

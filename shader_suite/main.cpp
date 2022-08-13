@@ -261,7 +261,7 @@ enum class Mode : std::size_t
 };
 
 template<typename ModeIterator>
-void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float vertical_size, const Application& data)
+void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float vertical_size, const GlobalMetrics& metrics)
 {
 	ImGui::BeginChild(("text" + shader.m_name).c_str(), ImVec2(0, vertical_size));
 	switch (mode.first)
@@ -292,7 +292,6 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 	}
 	case Mode::GlobalMetrics:
 	{
-		const GlobalMetrics& metrics = data.m_global_metrics;
 		std::stringstream s;
 		s << "Shader suite statistics \n";
 		s << "\t Total generation time " << metrics.m_time_total << " ms\n";
@@ -564,13 +563,13 @@ struct Application : public framework::Application
 											continue;
 										if (count)
 											ImGui::Separator();
-										shader_gui(mode, *shader.m_shader, shader_code_height, *this);
+										shader_gui(mode, *shader.m_shader, shader_code_height, m_global_metrics);
 										if (mode.first == Mode::GlobalMetrics)
 											break;
 										++count;
 									}
 								} else if (m_current_shader)
-									shader_gui(mode, *m_current_shader, shader_code_height, *this);
+									shader_gui(mode, *m_current_shader, shader_code_height, m_global_metrics);
 								ImGui::EndTabItem();
 							}
 						ImGui::EndTabBar();

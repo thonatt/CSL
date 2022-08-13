@@ -248,6 +248,8 @@ namespace csl
 	template<typename T>
 	void to_imgui(const T& t, ImGuiData& data);
 
+	inline GLSLData& get_glsl_data(ImGuiData& data);
+
 	//////////////////////////////////////////////////////////
 
 	struct OperatorBase

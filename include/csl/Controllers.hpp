@@ -6,8 +6,6 @@
 
 #include <cassert>
 
-#include <map>
-
 namespace csl
 {
 	struct ShaderController;
@@ -27,20 +25,16 @@ namespace csl
 			return g_current_shader;
 		}
 
-		inline ShaderController& get()
-		{
-			assert(g_current_shader);
-			return *g_current_shader;
-		}
+		inline ShaderController& get();
 	}
 
 	struct ControllerBase
 	{
 		void queue_expr(const Expr e) {
-			current_block->push_instruction(make_instruction<Statement>(e));
+			current_scope->push_instruction(make_instruction<Statement>(e));
 		}
 
-		Scope* current_block;
+		Scope* current_scope;
 
 		virtual void push_instruction(const InstructionIndex i) {}
 
@@ -59,7 +53,7 @@ namespace csl
 		{
 			current_func = make_instruction<FuncDeclaration<ReturnTList, Fs...>>(name, fun_id);
 			current_func_overloads_num_args = { GetArgTList<Fs>::Size ... };
-			current_func_parent = current_block;
+			current_func_parent = current_scope;
 			current_overload = 0;
 			first_overload = true;
 			next_overload();
@@ -68,7 +62,7 @@ namespace csl
 		void check_num_args()
 		{
 			if (current_func && current_overload_arg_counter == current_func_overloads_num_args[current_overload]) {
-				current_block = get_current_func().get_overload(current_overload).body.get();
+				current_scope = get_current_func().get_overload(current_overload).body.get();
 				feeding_args = false;
 			}
 		}
@@ -94,14 +88,14 @@ namespace csl
 			current_overload_arg_counter = 0;
 			feeding_args = true;
 			if (current_overload < get_current_func().overload_count()) {
-				current_block = get_current_func().get_overload(current_overload).args.get();
+				current_scope = get_current_func().get_overload(current_overload).args.get();
 				check_num_args();
 			}
 		}
 
 		void end_func()
 		{
-			current_block = current_func_parent;
+			current_scope = current_func_parent;
 			current_func_parent = {};
 			current_func = {};
 		}
@@ -115,8 +109,8 @@ namespace csl
 		bool first_overload = true;
 	};
 
-	struct ForController : virtual ControllerBase {
-
+	struct ForController : virtual ControllerBase 
+	{
 		ForInstruction& get()
 		{
 			return safe_static_cast<ForInstruction&>(*retrieve_instruction(current_for));
@@ -134,22 +128,22 @@ namespace csl
 		{
 			if (!context::active())
 				return;
-			get().body->m_parent = current_block;
-			current_block = get().args.get();
+			get().body->m_parent = current_scope;
+			current_scope = get().args.get();
 		}
 
 		void begin_for_body()
 		{
 			if (!context::active())
 				return;
-			current_block = get().body.get();
+			current_scope = get().body.get();
 		}
 
 		void end_for()
 		{
 			if (!context::active())
 				return;
-			current_block = current_block->m_parent;
+			current_scope = current_scope->m_parent;
 		}
 
 		void stacking_for_condition(const Expr& expr)
@@ -172,11 +166,11 @@ namespace csl
 		void begin_if(const Expr& expr)
 		{
 			current_if = make_instruction<IfInstruction>(current_if);
-			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block) };
-			Scope* future_current_block = if_case.body.get();
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_scope) };
+			Scope* future_current_scope = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
 			push_instruction(current_if);
-			current_block = future_current_block;
+			current_scope = future_current_scope;
 		}
 
 		void begin_else()
@@ -189,8 +183,8 @@ namespace csl
 		{
 			if (!context::active())
 				return;
-			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_block->m_parent) };
-			current_block = if_case.body.get();
+			IfInstruction::IfCase if_case{ expr, std::make_unique<Scope>(current_scope->m_parent) };
+			current_scope = if_case.body.get();
 			get_current_if().m_cases.push_back(std::move(if_case));
 		}
 
@@ -209,7 +203,7 @@ namespace csl
 			if (!context::active())
 				return;
 			current_if = get_current_if().m_parent_if;
-			current_block = current_block->m_parent;
+			current_scope = current_scope->m_parent;
 		}
 
 		void delay_end_if()
@@ -233,15 +227,15 @@ namespace csl
 	struct WhileController : virtual ControllerBase
 	{
 		void begin_while(const Expr& expr) {
-			auto current_while = make_instruction<WhileInstruction>(expr, current_block);
+			auto current_while = make_instruction<WhileInstruction>(expr, current_scope);
 			push_instruction(current_while);
-			current_block = safe_static_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
+			current_scope = safe_static_cast<WhileInstruction*>(retrieve_instruction(current_while))->m_body.get();
 		}
 
 		void end_while() {
 			if (!context::active())
 				return;
-			current_block = current_block->m_parent;
+			current_scope = current_scope->m_parent;
 		}
 	};
 
@@ -254,15 +248,15 @@ namespace csl
 
 		void begin_switch(const Expr& expr)
 		{
-			current_switch = make_instruction<SwitchInstruction>(expr, current_block, current_switch);
+			current_switch = make_instruction<SwitchInstruction>(expr, current_scope, current_switch);
 			push_instruction(current_switch);
-			current_block = get().m_body.get();
+			current_scope = get().m_body.get();
 		}
 
 		void add_case(const Expr& expr)
 		{
 			if (current_switch)
-				get().add_case(expr, current_block);
+				get().add_case(expr, current_scope);
 		}
 
 		void end_switch()
@@ -271,9 +265,9 @@ namespace csl
 				return;
 			if (current_switch) {
 				if (get().m_current_case)
-					current_block = current_block->m_parent;
+					current_scope = current_scope->m_parent;
 
-				current_block = current_block->m_parent;
+				current_scope = current_scope->m_parent;
 				current_switch = get().m_parent_switch;
 			}
 		}
@@ -288,6 +282,17 @@ namespace csl
 		virtual IfController,
 		virtual SwitchController
 	{
+		MainController() = default;
+		MainController(MainController&& other)
+		{
+			*this = std::move(other);
+		}
+
+		MainController& operator=(MainController&& other)
+		{
+			return *this;
+		}
+
 		void begin_for()
 		{
 			if (!context::active())
@@ -310,7 +315,7 @@ namespace csl
 		{
 			if (!context::active())
 				return;
-			context::get().check_end_if();
+			check_end_if();
 			IfController::begin_if(get_expr(std::forward<T>(t)));
 		}
 
@@ -391,7 +396,7 @@ namespace csl
 		{
 			check_end_if();
 			check_func_args();
-			current_block->push_instruction(i);
+			current_scope->push_instruction(i);
 		}
 	};
 
@@ -424,7 +429,7 @@ namespace csl
 		ShaderController()
 		{
 			m_scope = std::make_unique<Scope>();
-			current_block = m_scope.get();
+			current_scope = m_scope.get();
 		}
 
 		virtual ~ShaderController() = default;
@@ -504,7 +509,7 @@ namespace csl
 
 		ReturnScopeBase* get_return_block()
 		{
-			Scope* test_block = current_block;
+			Scope* test_block = current_scope;
 			while (test_block) {
 				if (dynamic_cast<ReturnScopeBase*>(test_block))
 					break;
@@ -521,4 +526,14 @@ namespace csl
 				push_instruction(make_instruction<S>(std::forward<Args>(args)...));
 		}
 	};
+
+	namespace context
+	{
+		inline ShaderController& get()
+		{
+			assert(g_current_shader);
+			return *g_current_shader;
+		}
+	}
+
 }
