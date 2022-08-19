@@ -259,7 +259,6 @@ namespace csl
 		virtual void print_spirv() const {}
 		virtual void print_imgui(ImGuiData& data) const = 0;
 		virtual void print_glsl(GLSLData& data) const = 0;
-
 	};
 
 	template <typename Operator, typename ... Args>
@@ -334,6 +333,7 @@ namespace csl
 		virtual Expr first_arg() const {
 			return {};
 		}
+
 		virtual std::size_t arg_count() const {
 			return 0;
 		}
@@ -346,18 +346,15 @@ namespace csl
 	template<typename T, std::size_t N, typename Dimensions, typename Qualifiers>
 	struct Constructor final : ConstructorBase, ArgSeq<N>
 	{
-		using ArgSeq<N>::m_args;
-
 		template<typename ...Args>
 		Constructor(const std::string& name, const CtorFlags flags, const std::size_t variable_id, Args&& ...args)
 			: ConstructorBase(name, flags, variable_id), ArgSeq<N>(std::forward<Args>(args)...) { }
 
 		Expr first_arg() const override {
-			if constexpr (N == 0) {
+			if constexpr (N == 0)
 				return {};
-			} else {
+			else
 				return ArgSeq<N>::m_args[0];
-			}
 		}
 
 		std::size_t arg_count() const override {
@@ -375,9 +372,8 @@ namespace csl
 
 	struct ArraySubscript final : OperatorBase
 	{
-		ArraySubscript(const Expr obj, const Expr index) : m_obj(obj), m_index(index)
-		{
-		}
+		ArraySubscript(const Expr obj, const Expr index) 
+			: m_obj(obj), m_index(index) {}
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);

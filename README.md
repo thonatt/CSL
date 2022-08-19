@@ -40,9 +40,10 @@ int main() {
       Shader shader;
 
       Qualify<layout<location<0>>, in, vec3> position;
+      Qualify<uniform, mat4> mvp;
 
       shader.main([&]{
-            gl_Position = vec4(position, 1.0);
+            gl_Position = mvp * vec4(position, 1.0);
       });
 
       GLSLData data;
@@ -57,10 +58,11 @@ int main() {
    #version 420
 
    layout(location = 0) in vec3 position;
+   uniform mat4 mvp;
 
    void main()
    {
-      gl_Position = vec4(position, 1.0);
+      gl_Position = mvp * vec4(position, 1.0);
    }
 ```
    </td> 
@@ -77,27 +79,28 @@ The CSL shader suite is an application showcasing a collection of shaders writte
 
 ## Building
 
+Python must be installed as [glad](https://github.com/Dav1dde/glad) relies on it generate and download its files.
+
 First clone the repo:
 
 ```
-git clone --recursive https://github.com/thonatt/CSL.git
+git clone https://github.com/thonatt/CSL.git
 ```
 
 The shader suite can then be built using [CMake](https://cmake.org/):
 
 ```
-cd src\shader_suite\
+cd CSL
 mkdir build
 cd build
-cmake --help ## optional, for checking available generators
-cmake .. -G "Your picked generator" ## e.g "Visual Studio 16 2019"  
+cmake .. -G "Visual Studio 17 2022" ## Or any available generator.
 ```
 
 Finally compile and run the application:
 
 ```
 cmake --build . --config Release
-.\bin\Release\CSL_ShaderSuite.exe
+.\bin\Release\CSL_ShaderSuite.exe ## Other generators might create it elsewhere.
 ```
 
 # Credits
@@ -130,7 +133,7 @@ CSL assumes instructions are called sequentially and is **not** thread-safe.
 
 ## Basic and Sampler types
 
-CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `void`, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
+CSL defines the various types used in GLSL. Most CSL types have the exact same type name as their GLSL counterpart. For example, `void`, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
 
 Constructors and declarations are identical to GLSL. CSL and C++ basic types can also be mixed.
 

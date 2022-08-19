@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(CSL_ShaderSuite)
 
-#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 #message("Your C++ compiler supports these C++ features:")
 #foreach(i ${CMAKE_CXX_COMPILE_FEATURES})
 #  message("${i}")
