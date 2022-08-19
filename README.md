@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.com/thonatt/CSL.svg?token=8pN7VnVet8U5vh7SPZhs&branch=master)](https://travis-ci.com/thonatt/CSL)
+
+
+![Build Status](https://github.com/thonatt/CSL/actions/workflows/cmake.yml/badge.svg)
 [![GitHub license](https://img.shields.io/github/license/thonatt/CSL)](https://github.com/thonatt/CSL/blob/master/LICENSE)
 [![GitHub repo size](https://img.shields.io/github/repo-size/thonatt/CSL)](https://github.com/thonatt/CSL)
 
@@ -11,7 +13,7 @@ CSL is a C++ header-only library, self-transpiling into GLSL. It allows to write
 + Checking GLSL specification compliance at C++ compile-time as much as possible.
 + The possibility to use C++ as meta language for generic shader generation.
 
-CSL requires a C++17 compliant compiler and does not require any external dependency. It built successfully using Visual Studio (Windows), Clang (Windows, Linux, Apple), and GCC (Linux, Apple).
+CSL requires a C++17 compliant compiler and does not require any external dependency. It built successfully using Visual Studio 2022 (Windows), Clang (Windows, Linux, Apple), and GCC (Windows, Linux, Apple).
 
 This repo contains the [CSL source files](https://github.com/thonatt/CSL/tree/master/src/include) and a [shader suite application](#shader-suite), which shows and runs several CSL shaders, from didactic examples to more complex shaders.
 
@@ -21,7 +23,7 @@ CSL is a template-heavy library and compilation is currently noticeably slow. Th
 
 # Setup
 
-As CSL is a header-only library, the header files in the `CSL/src/include` are needed, and simple include of the file `<csl.hpp>` is enough to use it. Here is a small program, showing a vertex shader example and its corresponding output. CSL syntax is described in more detail in the [syntax section](#csl-syntax).
+As CSL is a header-only library, only the header files in the `CSL/include/csl/` are needed, and simply include of the file `<csl.hpp>` is enough to use it. Here is a small program, showing a vertex shader example and its corresponding output. CSL syntax is described in more detail in the [syntax section](#csl-syntax).
 
 <table>
   <tr>
@@ -32,7 +34,7 @@ As CSL is a header-only library, the header files in the `CSL/src/include` are n
     <td>
         
   ```cpp
-#include <CSL/src/include/csl.hpp>
+#include <CSL/include/csl/csl.hpp>
 #include <iostream>
 
 int main() {
