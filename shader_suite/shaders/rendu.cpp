@@ -119,7 +119,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 	const Float sunAngularRadiusCos = 0.998; ///< Cosine of the sun angular radius.
 
 	constexpr int SAMPLES_COUNT_ATMO = 16;
-	constexpr double M_PI = 3.1415926536;
+	constexpr double PI = 3.1415926536;
 
 	/** Check if a sphere of a given radius is intersected by a ray defined by an
 		origin wrt to the sphere center and a normalized direction.
@@ -150,7 +150,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\return the phase
 	*/
 	auto rayleighPhase = define_function<Float>("rayleighPhase", [&](Float cosAngle) {
-		const Float k = 1.0 / (4.0 * M_PI);
+		const Float k = 1.0 / (4.0 * PI);
 		CSL_RETURN(k * 3.0 / 4.0 * (1.0 + cosAngle * cosAngle));
 		});
 
@@ -159,7 +159,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		\return the phase
 	*/
 	auto miePhase = define_function<Float>("miePhase", [&](Float cosAngle) {
-		const Float k = 1.0 / (4.0 * M_PI);
+		const Float k = 1.0 / (4.0 * PI);
 		Float g2 = gMie * gMie;
 		CSL_RETURN(k * 3.0 * (1.0 - g2) / (2.0 * (2.0 + g2)) * (1.0 + cosAngle * cosAngle) / pow(1.0 + g2 - 2.0 * gMie * cosAngle, 3.0 / 2.0));
 		});
@@ -240,7 +240,7 @@ csl::glsl::frag_420::Shader atmosphere_rendering()
 		vec3 sunRadiance = vec3(0.0);
 		Bool didHitGroundForward = didHitGround && interGround(y) > 0.0;
 		CSL_IF(!didHitGroundForward && dot(rayDir, sunDir) > sunAngularRadiusCos) {
-			sunRadiance = sunColor / (M_PI * sunAngularRadius * sunAngularRadius);
+			sunRadiance = sunColor / (PI * sunAngularRadius * sunAngularRadius);
 		}
 
 		CSL_RETURN(sunIntensity * (rayleighParticipation + mieParticipation) + transmittance * sunRadiance);
