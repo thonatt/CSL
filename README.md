@@ -39,10 +39,11 @@ int main() {
       using namespace csl::glsl::vert_420;  
       Shader shader;
 
-      Qualify<vec3, Layout<Location<0>>, In> position;
+      Qualify<layout<location<0>>, in, vec3> position;
+      Qualify<uniform, mat4> mvp;
 
       shader.main([&]{
-            gl_Position = vec4(position, 1.0);
+            gl_Position = mvp * vec4(position, 1.0);
       });
 
       GLSLData data;
@@ -54,13 +55,14 @@ int main() {
     <td>
   
 ```cpp
-   #version 330
+   #version 420
 
    layout(location = 0) in vec3 position;
+   uniform mat4 mvp;
 
    void main()
    {
-      gl_Position = vec4(position, 1.0);
+      gl_Position = mvp * vec4(position, 1.0);
    }
 ```
    </td> 
@@ -77,29 +79,28 @@ The CSL shader suite is an application showcasing a collection of shaders writte
 
 ## Building
 
-First clone the repo and its dependencies:
+Python must be installed as [glad](https://github.com/Dav1dde/glad) relies on it generate and download its files.
+
+First clone the repo:
 
 ```
-git clone --recursive https://github.com/thonatt/CSL.git
-cd CSL
-git submodule update --init
+git clone https://github.com/thonatt/CSL.git
 ```
 
 The shader suite can then be built using [CMake](https://cmake.org/):
 
 ```
-cd src\shader_suite\
+cd CSL
 mkdir build
 cd build
-cmake --help ## optional - for checking available generators
-cmake .. -G "Your picked generator" ## e.g "Visual Studio 16 2019"  
+cmake .. -G "Visual Studio 17 2022" ## Or any available generator.
 ```
 
 Finally compile and run the application:
 
 ```
 cmake --build . --config Release
-.\bin\Release\CSL_ShaderSuite.exe
+.\bin\Release\CSL_ShaderSuite.exe ## Other generators might create it elsewhere.
 ```
 
 # Credits
@@ -126,13 +127,13 @@ As GLSL and C++ share a common C base language, their syntax are quite similar. 
 
 Shader type and GLSL version are setup using a specific namespace. For example, `using namespace csl::glsl::vert_420` gives access to the built-in functions and built-in variables for a vertex shader with GLSL 4.20. Vertex, fragment, geometry, compute,and tesselation shaders are currently supported.
 
-Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main function using a lambda function with no argument that returns nothing. The second one is `Shader::print_glsl`, which ca, be used to retrieve the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
+Starting a new shader requires to create a variable of type `Shader`. This type contains two important member functions. The first one is `Shader::main` which allows to setup the main function using a lambda function with no argument that returns nothing. The second one is `Shader::print_glsl`, which can be used to retrieve the `std::string` associated to the shader that can later be sent to the GPU. See the [previous section](#setup) for an example.
 
 CSL assumes instructions are called sequentially and is **not** thread-safe.
 
 ## Basic and Sampler types
 
-CSL defines the types used in GLSL. Most CSL types have the exact same typename as their GLSL counterpart. For example, `void`, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
+CSL defines the various types used in GLSL. Most CSL types have the exact same type name as their GLSL counterpart. For example, `void`, `vec3`, `ivec2`, `dmat4`, `mat4x3`, `sampler2DArray`, `uimageCube` are all valid types that can be used as is. The only exceptions are `double`, `float`, `int` and `bool` as they would conflict with C++ keywords. Valid associated CSL typenames are `Double`, `Float`, `Int`, `Bool` - and `Uint` to keep the consistency.
 
 Constructors and declarations are identical to GLSL. CSL and C++ basic types can also be mixed.
 
@@ -181,9 +182,9 @@ Because C++ objects do not have names at runtime, it is not possible to directly
   <td>
         
   ```cpp
-  Qualify<vec3, In> normal;
-  Qualify<vec3, In> position;
-  Qualify<vec3, Uniform> eye;
+  Qualify<in, vec3> normal;
+  Qualify<in, vec3> position;
+  Qualify<uniform, vec3> eye;
 
   shader.main([&] {
     Float alpha = 1.2;
@@ -276,11 +277,11 @@ void main()
 As C++ and GLSL share a common C base syntax, most of the operators keywords are identical and can be used as is. This includes for example:
 + `+`, `-`, `*`, `/` and their assignment operator counterparts,
 + `==`, `<`, `>` , `&&` and other binary relational or bitwise operators,
-+ `[]` for component or row access, and for swizzling.
++ `[]` for component or row access.
 
 One exception is the ternary operator ` ? : `. Even if the synthax is similar between C++ and GLSL, it cannot be overloaded. Therefore it is replaced by a macro `CSL_TERNARY` with the 3 arguments.
 
-Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x`, `y`, `z`, or `w`. The syntax for swizzle accessing is for example `myVec[x,z,x]`. To prevent namespace pollution, all those swizzle variables belong to a specific namespace corresponding to their swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq`, and `csl::swizzles::all` which includes the previous three.
+Swizzles are GLSL-specific operators for verstatile vector components acces. In order to preserve all the swizzling possibilities while keeping the code simple, CSL uses global variables such as `x`, `y`, `z`, or `w`. The syntax for swizzle accessing is for example `my_var(x, z, x)` instead of `my_var.xzx`. To prevent namespace pollution, all those swizzle variables belong to a specific namespace corresponding to their swizzle set. Available namespaces are `csl::swizzles::xyzw`, `csl::swizzles::rgba`, `csl::swizzles::stpq`, and `csl::swizzles::all` which includes the previous three.
 
 <details>
     <summary>Swizzle and operators examples</summary>
@@ -294,24 +295,22 @@ Swizzles are GLSL-specific operators for verstatile vector components acces. In 
         
   ```cpp
 using namespace csl::swizzles::rgba;
-mat4 cols("cols");
 vec4 col("col");
 vec4 out("out");
 
-cols[0] = CSL_TERNARY(col[a] > 0, col, 1.0 - col);
+col = CSL_TERNARY(col(a) > 0, col, 1.0 - col);
 
-//can you guess what is actually assigned ?
-out[a] = col[b, a, r][b, g][r];
+// Can you guess what is actually assigned?
+out(a) = col(b, a, r)(y, z)(s);
 ```
 </td>
     <td>
   
 ```cpp
-mat4 cols;
 vec4 col;
 vec4 out;
-cols[0] = col.a > 0 ? col : 1.0 - col;
-out.a = col.bar.bg.r;
+col = col.a > 0 ? col : 1.0 - col;
+out.a = col.bar.yz.s;
 ```
 </td> 
   </tr>
@@ -320,7 +319,7 @@ out.a = col.bar.bg.r;
 
 ## Qualifiers and shader stage options
 
-Qualifiers can be added to a type in CSL by using the template class `Qualify`. Qualifiers are classes, and may be templated if they require values. For example, `Uniform` is a simple class, while `Layout` is a template class, with layout qualifiers types specified as template parameters. `Binding` is a template class, with binding value specified as an unsigned int parameter. CSL qualifiers names are identical to GLSL, except for beginning with an uppercase.
+Qualifiers can be added to a type in CSL by using the template class `Qualify`. Qualifiers are classes, and may be templated if they require values. For example, `uniform` is a class, while `layout` is a template class, with layout qualifiers specified as template class parameters. `binding` is a template class, with binding values specified as unsigned int parameters. CSL qualifiers names are identical to GLSL, with spaces replaced by underscores.
 
 <details>
     <summary>Qualifiers examples</summary>
@@ -333,9 +332,9 @@ Qualifiers can be added to a type in CSL by using the template class `Qualify`. 
     <td>
         
 ```cpp
-	Qualify<vec4, Out> color;
-	Qualify<vec3, Layout<Location<4>>, In> position;
-	Qualify<sampler2DArray, Layout<Binding<0>>, Uniform, Array<8>> samplers;
+	Qualify<out, vec4> color;
+	Qualify<layout<location<4>>, in, vec3> position;
+	Qualify<layout<binding<0>>, uniform, sampler2DArray, Array<8>> samplers;
 ```
 </td>
     <td>
@@ -350,7 +349,7 @@ layout(binding = 0) uniform sampler2DArray samplers[8];
 </table>
 </details>
 
-Shader stage options can be specified with the templated `in()` and `out()` built-in functions, using the template parameters as layout qualifiers.
+Shader stage options can be specified with the templated function `shader_stage_option`, using the template parameters as layout qualifiers.
 
 <details>
     <summary>Shader stage option examples</summary>
@@ -363,12 +362,12 @@ Shader stage options can be specified with the templated `in()` and `out()` buil
     <td>
         
 ```cpp
-  //in a fragment shader
-  in<Layout<Early_fragment_tests>>();
+  // In a fragment shader:
+  shader_stage_option<layout<early_fragment_tests>, in>();
 
-  //in a geometry shader
-  in<Layout<Triangles>>();
-  out<Layout<Line_strip, Max_vertices<2>>>();
+  // In a geometry shader:
+  shader_stage_option<layout<triangles>, in>();
+  shader_stage_option<layout<line_strip, max_vertices<2>>, out>();
 ```
 </td>
     <td>
@@ -387,7 +386,7 @@ layout(line_strip, max_vertices = 2) out;
 
 ## Arrays and Functions
 
-Arrays in CSL are declared as qualifiers using the `Array` class, with size as parameter. A size of zero is used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multiple sizes can be provided as template parameters to define multidimensional arrays. 
+Arrays in CSL are declared as qualifiers using the `Array` class, with size as parameter. A size of zero is used for implicitely sized GLSL arrays. Indexing is done with the usual `[]` operator. Multiple sizes can be provided to define multidimensional arrays. 
 
 <details>
     <summary>Array examples</summary>
@@ -400,18 +399,18 @@ Arrays in CSL are declared as qualifiers using the `Array` class, with size as p
     <td>
         
   ```cpp
-// array declaration
+// Array declaration.
 Qualify<vec3, Array<5>> vec3x5;
 
-// array initialization
+// Array initialization.
 Qualify<Float, Array<0>> floatX = Qualify<Float, Array<0>>(0.0, 1.0, 2.0);
 
-// multi dimensionnal arrays
+// Multi dimensionnal arrays.
 Qualify<mat3, Array<2, 2>> mat3x2x2 = Qualify<mat3, Array<2, 2>>(
   Qualify<mat3, Array<2>>(mat3(0), mat3(1)),
   Qualify<mat3, Array<2>>(mat3(2), mat3(3)));
 
-// usage
+// Usage.
 vec3x5[0] = floatX[1] * mat3x2x2[0][0] * vvec3x5[1];
 ```
 </td>
@@ -429,7 +428,7 @@ vec3x5[0] = floatX[1]*mat3x2x2[0][0]*vec3x5[1];
 </table>
 </details>
 
-Functions in CSL are objects that can be created using the `define_function` template function with a C++ lambda as parameter. The return type must be explicitely specified as template parameter. Returns are declared using the `CSL_RETURN;` or `CSL_RETURN(expression);` syntax. Parameters can be named using default argument values. The function can be called later in the code using the usual `()` operator with valid arguments. Function overloading is possible in CSL by providing multiple return types and lambdas.
+Functions in CSL are objects that can be created using the `define_function` function with a C++ lambda as parameter. **The return type must be explicitely specified as template parameter**. Returns are declared using the `CSL_RETURN;` or `CSL_RETURN(expression);` syntax. Parameters can be named using default argument values. The function can be called later in the code using the usual `()` operator with valid arguments. Function overloading is possible in CSL by providing multiple return types and multiple lambdas.
 
 <details>
     <summary>Function examples</summary>
@@ -442,28 +441,28 @@ Functions in CSL are objects that can be created using the `define_function` tem
     <td>
         
 ```cpp
-// empty function
+// Empty function.
 auto fun = define_function<void>([] {});
 
-// named function with named parameters
+// Named function with named parameters.
 auto add = define_function<vec3>("add",
   [](vec3 a = "a", vec3 b = "b") {
   CSL_RETURN(a + b);
 });
 
-// function with some named parameters
+// Function with some named parameters.
 auto addI = define_function<Int>(
   [](Int a, Int b = "b", Int c = "") {
   CSL_RETURN(a + b + c);
 });
 
-// function calling another function
-auto sub = define_function<vec3>([&](vec3 a, Qualify<vec3, Inout> b = "b") {
+// Function calling another function.
+auto sub = define_function<vec3>([&](vec3 a, Qualify<inout, vec3> b = "b") {
   fun();
   CSL_RETURN(add(a, -b));
 });
 
-// named function with several overloads
+// Named function with several overloads.
 auto square = define_function<vec3, ivec3, void>("square",
   [](vec3 a = "a") {
   CSL_RETURN(a * a);
@@ -520,12 +519,12 @@ void square()
 
 ## Building blocks
 
-Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with the syntax `CSL_KEYWORD`, namely `CSL_FOR`, `CSL_CONTINUE`, `CSL_BREAK`, `CSL_WHILE`, `CSL_IF`, `CSL_ELSE`, `CSL_ELSE_IF`, `CSL_SWITCH`, `CSL_CASE`, and `CSL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and a few limitations:
+Selection, iteration and jump statements are available in CSL. As C++ and GLSL share the same keywords, CSL redefines them using macros with syntax `CSL_KEYWORD`, namely `CSL_FOR`, `CSL_CONTINUE`, `CSL_BREAK`, `CSL_WHILE`, `CSL_IF`, `CSL_ELSE`, `CSL_ELSE_IF`, `CSL_SWITCH`, `CSL_CASE`, and `CSL_DEFAULT`. Their behavior is mostly identical to C++ and GLSL. Here are some comments and a few limitations:
 + A `CSL_SWITCH` **must** contain a `CSL_DEFAULT` case, even if it happens to be empty.
 + CSL syntax for `case value :` is `CSL_CASE(value) :`.
-+ Init, condition and loop in `CSL_FOR( init-expression; condition-expression; loop-expression)` must not contain more than one statement each. Any of these expressions can also be empty.
++ `for` loops are declared using `CSL_FOR( init-expression; condition-expression; loop-expression)`, where at most one `init-expression` and one `condition-expression` are supported. Any of those expressions can be empty.
 + Variables declared in `CSL_FOR` args expressions outlive the scope of the `for` body. It is possible to prevent that by putting explicitly the whole for loop in a scope.
-+ Statements can be nested
++ Statements can be nested.
 
 <details>
     <summary>Building blocks examples</summary>
@@ -538,48 +537,50 @@ Selection, iteration and jump statements are available in CSL. As C++ and GLSL s
     <td>
         
 ```cpp
-// Empty for
-CSL_FOR(;;) { CSL_BREAK; }
+	// Empty for.
+	CSL_FOR(;;) { CSL_BREAK; }
 
-// Named function with named parameters
-CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i) {
-  CSL_IF(i == 3) {
-    ++i;
-    CSL_CONTINUE;
-  } CSL_ELSE_IF(i < 3) {
-    i += 3;
-  } CSL_ELSE{
-    CSL_FOR(; i > 1;)
-      --i;
-  }
-}
-// Not possible as i is still in the scope
-//Int i; 
+	// For loop with named iterator.
+	CSL_FOR(Int i = Int(0) << "i"; i < 5; ++i, i+=2) {
+		CSL_IF(i == 3) {
+			++i;
+			CSL_CONTINUE;
+		} CSL_ELSE_IF(i < 3) {
+			i += 3;
+		} CSL_ELSE{
+			CSL_FOR(; i > 1;)
+				--i;
+		}
+	}
 
-{
-  CSL_FOR(Int j = Int(0) << "j"; j < 5;) {
-    CSL_WHILE(j != 3) {
-      ++j;
-    }
-  }
-}
-//OK since previous for was put in a scope
-Int j("j");
+	// Not possible as i is still in the scope.
+	// Int i; 
 
-CSL_SWITCH(j) {
-  CSL_CASE(0) : { CSL_BREAK; }
-  CSL_CASE(2) : { j = 3; }
-  CSL_DEFAULT: { j = 2; }
-}
+	{
+		Bool b;
+		CSL_FOR(Int j = Int(0) << "j"; b;) {
+			CSL_WHILE(j != 3)
+				++j;
+			b = j < 5;
+		}
+	}
+	// OK since previous for was put in a scope.
+	Int j = Int(0) << "j";
+
+	CSL_SWITCH(j) {
+		CSL_CASE(0) : { CSL_BREAK; }
+		CSL_CASE(2) : { j = 3; }
+		CSL_DEFAULT: { j = 2; }
+	}
 ```
 </td>
     <td>
   
 ```cpp
-for(;;) {
+for( ; ; ) {
     break;
 }
-for(int i = 0; i < 5; ++i) {
+for(int i = 0; i < 5; ++i, i += 2) {
     if (i == 3)
     {
         ++i;
@@ -591,17 +592,19 @@ for(int i = 0; i < 5; ++i) {
     }
     else
     {
-        for(;;) {
+        for( ; i > 1; ) {
             --i;
         }
     }
 }
-for(int j = 0; j < 5; ) {
+bool x5;
+for(int j = 0; x5; ) {
     while(j != 3) {
         ++j;
     }
+    x5 = j < 5;
 }
-int j;
+int j = 0;
 switch(j) {
     case 0 : {
         break;
@@ -621,7 +624,7 @@ switch(j) {
 
 ## Structs and Interface blocks
 
-CSL structs are declared using the syntax `CSL_STRUCT(StructTypename, member-list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to use some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, `member-list` has to be declared using extra parenthesis such as: `(Type1, member1), (Type2, member2), ...`
+CSL structs are declared using the syntax `CSL_STRUCT(StructTypename, member-list ...);`. As members in C++ have no way to know if they belong to a struct, CSL has to perform some form of reflection, based on C++ preprocessor magic. So to help the preprocessor looping over the members, `member-list` has to be declared using extra parenthesis such as: `(Type1, member1), (Type2, member2), ...`
 
 <details>
     <summary>Struct examples</summary>
@@ -634,22 +637,23 @@ CSL structs are declared using the syntax `CSL_STRUCT(StructTypename, member-lis
     <td>
         
 ```cpp
-// struct declaration
+// Struct declaration.
 CSL_STRUCT(Block,
   (mat4, mvp),
   (vec4, center)
 );
 
-// nested struct
+// Nested struct.
 CSL_STRUCT(BigBlock,
   (Block, inner_block),
   (vec4, center)
 );
 
-// usage
+// Variables declaration and naming.
 BigBlock big_block("big_block");
-Block block = Block(mat4(1), vec4(0));
+Block block = Block(mat4(1), vec4(0)) << "block";
 
+// Usage.
 block.center = big_block.inner_block.mvp * big_block.center;
 ```
 </td>
@@ -669,8 +673,8 @@ struct BigBlock
 };
 
 BigBlock big_block;
-Block x5 = Block(mat4(1), vec4(0));
-x5.center = big_block.inner_block.mvp*big_block.center;
+Block block = Block(mat4(1), vec4(0));
+block.center = big_block.inner_block.mvp*big_block.center;
 ```
 </td> 
   </tr>
@@ -693,13 +697,13 @@ In that case, block members belong directly to the current scope.
     <td>
         
 ```cpp
-// Unnamed interface
-CSL_UNNAMED_INTERFACE_BLOCK(In, SimpleInterface,
+// Unnamed interface block.
+CSL_UNNAMED_INTERFACE_BLOCK(in, SimpleInterface,
   (Float, delta_time)
 );
 
-// Named array interface with multiple qualifiers
-CSL_INTERFACE_BLOCK((Layout<Binding<0>>, Out, Array<3>), Output, out,
+// Named array interface with multiple qualifiers.
+CSL_INTERFACE_BLOCK((layout<binding<0>>, out, Array<3>), Output, out,
   (vec3, position),
   (vec3, velocity)
 );
@@ -710,14 +714,14 @@ out[0].position += delta_time * out[0].velocity;
     <td>
   
 ```cpp
+in SimpleInterface {
+    float delta_time;
+};
+
 layout(binding = 0) out Output {
     vec3 position;
     vec3 velocity;
 } out[3];
-
-in SimpleInterface {
-    float delta_time;
-};
 
 out[0].position += delta_time*out[0].velocity;
 ```
@@ -741,10 +745,10 @@ Since the `qualifiers-list` and `member-list` are parsed by the preprocessor, **
 ```cpp
 using vec4x16 = Qualify<vec4, Array<16>>;
 CSL_INTERFACE_BLOCK(
-  (Layout<Binding<0>, Std140>, Uniform, Array<2>), // extra parenthesis 
+  (layout<binding<0>, std140>, uniform, Array<2>),  // Extra parenthesis. 
   MyInterface, vars,
-  (vec4x16, vecs),								 // typename alias
-  ((Qualify<mat4, Array<4>>), myMats)				 // extra parenthesis 
+  (vec4x16, vecs),                                  // Typename alias.
+  ((Qualify<mat4, Array<4>>), mats)                 // Extra parenthesis.
 );
 ```
 </td>
@@ -753,7 +757,7 @@ CSL_INTERFACE_BLOCK(
 ```cpp
 layout(binding = 0, std140) uniform MyInterface {
     vec4 vecs[16];
-    mat4 myMats[4];
+    mat4 mats[4];
 } vars[2];
 ```
 </td> 
@@ -765,7 +769,7 @@ Since CSL must rely on a macro for structs and interface blocks, members names a
 
 ## Generic shader generation
 
-Regular C++ workflow can be used to help the generation of CSL shaders, such as changing values, manual unrolling or conditionnal expressions. The helper `std::integral_constant` can be used to pass `constexpr` parameters, which are useful for example to specify the size of an array. 
+Regular C++ workflow can be used to help  generation of CSL shaders, such as changing values, manual unrolling or conditionnal expressions. The helper `std::integral_constant` can be used to pass `constexpr` parameters, which are useful for example to specify the size of an array. 
 
 The use of C++ as a meta-languages for CSL has limitations. For example, CSL scopes are still C++ scopes under the hood, so CSL declarations do not outlive C++ scopes.
 
@@ -787,9 +791,9 @@ auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma
 	using namespace csl::swizzles::rgba;
 	Shader shader;
 
-	Qualify<sampler2D, Uniform> samplerA("samplerA"), samplerB("samplerB");
-	Qualify<vec2, In> uvs("uvs");
-	Qualify<vec4, Out> color("color");
+	Qualify<sampler2D, uniform> samplerA("samplerA"), samplerB("samplerB");
+	Qualify<vec2, in> uvs("uvs");
+	Qualify<vec4, out> color("color");
 
 	shader.main([&] {
 		vec2 sampling_dir = vec2(direction[0], direction[1]) << "sampling_dir";
@@ -799,16 +803,14 @@ auto shader_variation(T&& parameter, std::array<double, 2> direction, bool gamma
 
 		CSL_FOR(Int i = Int(-N) << "i"; i <= N; ++i) {
 			cols[N + i] = vec4(0);
-			for (auto& sampler : { samplerA, samplerB }) {
+			for (auto& sampler : { samplerA, samplerB })
 				cols[N + i] += texture(sampler, uvs + Float(i) * sampling_dir);
-			}
 			color += cols[N + i] / Float(2 * N + 1);
 		}
 
-		if (gamma_correction) {
-			color[r, g, b] = pow(color[r, g, b], vec3(2.2));
-		}
-	});
+		if (gamma_correction)
+			color(r, g, b) = pow(color(r, g, b), vec3(2.2));
+		});
 
 	return shader;
 };
