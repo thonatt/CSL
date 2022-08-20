@@ -110,18 +110,18 @@ namespace csl
 	struct SwitchListener
 	{
 		template<typename T>
-		SwitchListener(T&& condition) : m_active_listener{ context::active() } 
+		SwitchListener(T&& condition) : m_active_listener{ context::active() }
 		{
 			context::get().begin_switch(std::forward<T>(condition));
 		}
 
-		~SwitchListener() 
+		~SwitchListener()
 		{
 			if (context::active())
 				context::get().end_switch();
 		}
 
-		operator std::size_t() 
+		operator std::size_t()
 		{
 			if (!m_active_listener)
 				return static_cast<std::size_t>(0);
@@ -147,12 +147,12 @@ namespace csl
 			context::get().begin_for_body();
 		}
 
-		~ForListener() 
+		~ForListener()
 		{
 			context::get().end_for();
 		}
 
-		explicit operator bool() 
+		explicit operator bool()
 		{
 			if (first) {
 				first = false;
@@ -281,13 +281,26 @@ namespace csl
 #define CSL_WHILE(condition) \
 	for(csl::WhileListener _csl_begin_while_{ condition }; _csl_begin_while_; )
 
+#ifdef __clang__
+#define CSL_FOR_ARGS(...) \
+	_Pragma("clang diagnostic push")							\
+	_Pragma("clang diagnostic ignored \"-Wunused-comparison\"") \
+	_Pragma("clang diagnostic ignored \"-Wunused-value\"")		\
+	__VA_ARGS__;												\
+	_Pragma("clang diagnostic pop")
+#else
+#define CSL_FOR_ARGS(...) \
+	__VA_ARGS__;
+#endif 
+
 #define CSL_FOR(...) \
 	context::get().begin_for();			\
 	context::g_context_active = false;	\
 	for( __VA_ARGS__ ){ break; }		\
 	context::g_context_active = true;	\
 	context::get().begin_for_args();	\
-	__VA_ARGS__;						\
+	CSL_FOR_ARGS(__VA_ARGS__);			\
+	context::get().begin_for_args();	\
 	for(ForListener _csl_begin_for_; _csl_begin_for_; )
 
 #define CSL_BREAK \

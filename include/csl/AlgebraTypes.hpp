@@ -70,7 +70,7 @@ namespace csl
 		//TODO add is_convertible_to
 		template<typename U, typename V, typename ...Vs,
 			typename = std::enable_if_t< (NumElements<U, V, Vs...> == R * C) && SameScalarType<U, V, Vs...> > >
-			explicit Matrix(U&& u, V&& v, Vs&&...vs)
+		explicit Matrix(U&& u, V&& v, Vs&&...vs)
 			: Base("", ObjFlags::Default, CtorFlags::Initialisation, SizeList<>{}, TList<>{}, EXPR(U, u), EXPR(V, v), EXPR(Vs, vs)...)
 		{
 		}
