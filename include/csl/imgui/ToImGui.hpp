@@ -77,7 +77,7 @@ namespace csl
 
 		ImGuiData& operator<<(const std::string& str)
 		{
-			ImGui::TextWrapped(str.c_str());
+			ImGui::TextWrapped("%s", str.c_str());
 			return *this;
 		}
 
@@ -406,7 +406,7 @@ namespace csl
 	template<typename T, std::size_t N, std::size_t...Ds, typename ...Qualifiers>
 	struct ToImGui<Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>>
 	{
-		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data) 
+		static void call(const Constructor<T, N, SizeList<Ds...>, TList<Qualifiers...>>& ctor, ImGuiData& data)
 		{
 			static const std::unordered_map<CtorFlags, std::string> flag_strs = {
 				{ CtorFlags::Declaration, "Declaration" },

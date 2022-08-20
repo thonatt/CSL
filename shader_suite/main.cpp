@@ -247,7 +247,7 @@ std::unordered_map<std::string, std::shared_ptr<PipelineBase>> get_all_pipelines
 void shader_code_gui(const std::string& code)
 {
 	if (code.size() < 2000)
-		ImGui::TextWrapped(code.c_str());
+		ImGui::TextWrapped("%s", code.c_str());
 	else
 		ImGui::TextUnformatted(code.data(), code.data() + code.size());
 }
@@ -287,7 +287,7 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 		s << "\t Expressions, count : " << mem.m_objects_offsets.size() << ", total size : " << mem.get_data_size() << "\n";
 		s << "\t Instructions, count : " << ins.m_objects_offsets.size() << ", total size : " << ins.get_data_size() << "\n";
 		s << "GLSL generation : " << shader.m_glsl_timing << " ms\n";
-		ImGui::TextWrapped(s.str().c_str());
+		ImGui::TextWrapped("%s", s.str().c_str());
 		break;
 	}
 	case Mode::GlobalMetrics:
@@ -299,7 +299,7 @@ void shader_gui(const ModeIterator& mode, ShaderExample& shader, const float ver
 		s << "\t Memory consumption " << metrics.m_memory << " bytes\n";
 		s << "\t Total expressions count " << metrics.m_expressions_count << "\n";
 		s << "\t Total instructions count " << metrics.m_instructions_count << "\n";
-		ImGui::TextWrapped(s.str().c_str());
+		ImGui::TextWrapped("%s", s.str().c_str());
 		break;
 	}
 	default:
