@@ -157,7 +157,7 @@ namespace csl
 	{
 		virtual ~FuncDeclarationBase() = default;
 
-		FuncDeclarationBase(const std::string& name, const std::size_t fun_id) 
+		FuncDeclarationBase(const std::string& name, const std::size_t fun_id)
 			: m_name(name), m_id(fun_id)
 		{
 		}
@@ -316,7 +316,10 @@ namespace csl
 	template<typename Interface, typename Dimensions, typename Qualifiers>
 	struct NamedInterfaceDeclaration final : InstructionBase
 	{
-		NamedInterfaceDeclaration(const std::string& name) : m_name(name) {}
+		NamedInterfaceDeclaration(const std::string& name) 
+			: m_name(name) 
+		{
+		}
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);
@@ -332,7 +335,10 @@ namespace csl
 	struct UnnamedInterfaceDeclaration final : InstructionBase
 	{
 		template<typename ...Strings>
-		UnnamedInterfaceDeclaration(const std::string& name, Strings&& ...names) : m_name{ name }, m_names{ names ... } { }
+		UnnamedInterfaceDeclaration(const std::string& name, Strings&& ...names)
+			: m_name{ name }, m_names{ names ... } 
+		{ 
+		}
 
 		void print_imgui(ImGuiData& data) const override {
 			to_imgui(*this, data);

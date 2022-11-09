@@ -177,20 +177,20 @@ namespace csl
 
 	struct ExpressionHandle
 	{
-		static constexpr std::uint32_t Defined = 1 << 31;
+		static constexpr std::uint32_t Undefined = 1 << 31;
 		static constexpr std::uint32_t Static = 1 << 30;
-		static constexpr std::uint32_t IndexMask = ~(Defined | Static);
+		static constexpr std::uint32_t IndexMask = ~(Undefined | Static);
 
 		ExpressionHandle() = default;
 
 		ExpressionHandle(const std::uint32_t index)
-			: m_id{ index | Defined }
+			: m_id{ index }
 		{
 			// assert(index == get_index());
 		}
 
 		explicit operator bool() const {
-			return m_id & Defined;
+			return !(m_id & Undefined);
 		}
 
 		std::uint32_t get_index() const {
@@ -201,7 +201,7 @@ namespace csl
 			return m_id & Static;
 		}
 
-		std::uint32_t m_id = 0;
+		std::uint32_t m_id = Undefined;
 	};
 	using Expr = ExpressionHandle;
 
@@ -372,7 +372,7 @@ namespace csl
 
 	struct ArraySubscript final : OperatorBase
 	{
-		ArraySubscript(const Expr obj, const Expr index) 
+		ArraySubscript(const Expr obj, const Expr index)
 			: m_obj(obj), m_index(index) {}
 
 		void print_imgui(ImGuiData& data) const override {

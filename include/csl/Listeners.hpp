@@ -300,7 +300,6 @@ namespace csl
 	context::g_context_active = true;	\
 	context::get().begin_for_args();	\
 	CSL_FOR_ARGS(__VA_ARGS__);			\
-	context::get().begin_for_args();	\
 	for(ForListener _csl_begin_for_; _csl_begin_for_; )
 
 #define CSL_BREAK \
