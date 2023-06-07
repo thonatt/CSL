@@ -157,7 +157,7 @@ namespace csl
 		using Type = TList<typename TList<Ts...>::template At<First + Is>...>;
 	};
 
-	template<template <typename> typename Pred, typename List, std::size_t Index>
+	template<template <typename> typename Pred, typename List, std::size_t Index = 0>
 	class MatchingImpl
 	{
 	public:
@@ -168,7 +168,7 @@ namespace csl
 	// Match a type over a type list using a predicate (must implement a constexpr bool ::Value).
 	// Return a list of matched types (::Values) and their indexes (::Indexes) from the input type list.
 	template<template <typename> typename Pred, typename List>
-	using Matching = MatchingImpl<Pred, List, 0>;
+	using Matching = MatchingImpl<Pred, List>;
 
 	template<template <typename> typename Pred, typename T, std::size_t Index, typename ...Ts>
 	class MatchingImpl<Pred, TList<T, Ts...>, Index>
@@ -182,7 +182,7 @@ namespace csl
 		using Indexes = std::conditional_t<Pred<T>::Value, typename NextIndexes::template PushFront<Index>, NextIndexes>;
 	};
 
-	template<typename IndexList, typename TypeList, std::size_t Index>
+	template<typename IndexList, typename TypeList, std::size_t Index = 0>
 	struct RemoveAtImpl
 	{
 		using Type = TypeList;
@@ -190,7 +190,7 @@ namespace csl
 
 	// Remove type from type list given index.
 	template<typename IndexList, typename TypeList>
-	using RemoveAt = typename RemoveAtImpl<IndexList, TypeList, 0>::Type;
+	using RemoveAt = typename RemoveAtImpl<IndexList, TypeList>::Type;
 
 	template<std::size_t Index, std::size_t ...Indexes, typename T, typename ...Ts, std::size_t CurrentIndex>
 	struct RemoveAtImpl<SizeList<Index, Indexes...>, TList<T, Ts...>, CurrentIndex>

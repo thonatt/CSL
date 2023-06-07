@@ -15,19 +15,19 @@ namespace csl
 #define ARG_EXPR(elem) EXPR(CSL_PP_FIRST(elem), CSL_PP_SECOND(elem))
 
 #define CSL_MAKE_OP_1(condition, return_type, name, var) \
-	template<ARG_TYPE(var), typename = std::enable_if_t<condition>> \
+	template<ARG_TYPE(var), std::enable_if_t<condition, int> = 0> \
 	return_type name (ARG(var)) { \
 		return { make_funcall( Op :: name , ARG_EXPR(var)) };  \
 	}
 
 #define CSL_MAKE_OP_2(condition, return_type, name, varA, varB) \
-	template<ARG_TYPE(varA), ARG_TYPE(varB), typename = std::enable_if_t<condition>> \
+	template<ARG_TYPE(varA), ARG_TYPE(varB), std::enable_if_t<condition, int> = 0> \
 	return_type name (ARG(varA), ARG(varB)) { \
 		return { make_funcall( Op :: name, ARG_EXPR(varA), ARG_EXPR(varB)) };  \
 	}
 
 #define CSL_MAKE_OP_3(condition, return_type, name, varA, varB, varC) \
-	template<ARG_TYPE(varA), ARG_TYPE(varB), ARG_TYPE(varC), typename = std::enable_if_t<condition>> \
+	template<ARG_TYPE(varA), ARG_TYPE(varB), ARG_TYPE(varC), std::enable_if_t<condition, int> = 0> \
 	return_type name (ARG(varA), ARG(varB), ARG(varC)) { \
 		return { make_funcall( Op :: name , ARG_EXPR(varA), ARG_EXPR(varB), ARG_EXPR(varC)) };  \
 	}
@@ -232,7 +232,12 @@ namespace csl
 	namespace glsl_420 {
 		using namespace glsl_410;
 
-		template<typename I, typename P, typename D, typename = std::enable_if_t<true>>
+		template<typename I, typename P, typename D, std::enable_if_t<
+			bool(Infos<I>::Flags& SamplerFlags::Image) &&
+			bool(Infos<I>::Flags& SamplerFlags::Basic) &&
+			!bool(Infos<I>::Flags& SamplerFlags::Shadow) &&
+			IsVecI<P> && IsVecF<D>&& Infos<D>::RowCount == 4 &&
+			Infos<P>::RowCount == (Infos<I>::DimensionCount + (bool(Infos<I>::Flags & SamplerFlags::Array) ? 1 : 0)), int> = 0>
 		void imageStore(I&& image, P&& p, D&& data)
 		{
 			context::get().push_expression(make_funcall(Op::imageStore, EXPR(I, image), EXPR(P, p), EXPR(D, data)));

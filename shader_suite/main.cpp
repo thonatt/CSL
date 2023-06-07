@@ -3,8 +3,10 @@
 #include <iostream>
 #include <chrono>
 #include <filesystem>
+#include <list>
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "picogl/framework/application.h"
 #include "picogl/framework/asset_io.h"
@@ -45,8 +47,8 @@ struct ShaderExample
 		m_glsl_timing = get_timing([&]
 			{
 				csl::GLSLData glsl_data;
-				m_shader->print_glsl(glsl_data);
-				m_glsl_str = glsl_data.stream.str();
+		m_shader->print_glsl(glsl_data);
+		m_glsl_str = glsl_data.stream.str();
 			});
 	}
 
@@ -162,7 +164,7 @@ struct PipelineBase
 
 	void add_shader(const GLenum type, const std::pair<ShaderId, std::shared_ptr<ShaderExample>>& shader)
 	{
-		m_shaders[type] = { shader.second };
+		m_shaders.emplace_back(type, ShaderActive{ shader.second });
 	}
 
 	void compile()
@@ -179,7 +181,7 @@ struct PipelineBase
 	virtual ~PipelineBase() = default;
 
 	picogl::Program m_program;
-	std::unordered_map<GLenum, ShaderActive> m_shaders;
+	std::list<std::pair<GLenum, ShaderActive>> m_shaders;
 };
 
 struct GlobalMetrics

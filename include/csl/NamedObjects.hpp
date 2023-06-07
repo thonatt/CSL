@@ -11,7 +11,8 @@ namespace csl
 	struct MainListener;
 	MainListener& listen();
 
-	enum class ObjFlags : std::size_t {
+	enum class ObjFlags : std::uint8_t
+	{
 		None = 0,
 		Tracked = 1 << 1,
 		Constructor = 1 << 2,
@@ -24,13 +25,13 @@ namespace csl
 	};
 
 	constexpr ObjFlags operator|(const ObjFlags a, const ObjFlags b) {
-		return static_cast<ObjFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+		return static_cast<ObjFlags>(static_cast<std::underlying_type_t<ObjFlags>>(a) | static_cast<std::underlying_type_t<ObjFlags>>(b));
 	}
 	constexpr bool operator&(const ObjFlags a, const ObjFlags b) {
-		return static_cast<bool>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
+		return static_cast<bool>(static_cast<std::underlying_type_t<ObjFlags>>(a) & static_cast<std::underlying_type_t<ObjFlags>>(b));
 	}
 	constexpr ObjFlags operator~(const ObjFlags a) {
-		return static_cast<ObjFlags>(~static_cast<std::size_t>(a));
+		return static_cast<ObjFlags>(~static_cast<std::underlying_type_t<ObjFlags>>(a));
 	}
 	constexpr ObjFlags& operator|=(ObjFlags& a, const ObjFlags b) {
 		a = a | b;

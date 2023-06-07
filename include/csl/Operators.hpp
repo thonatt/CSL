@@ -20,7 +20,7 @@
 
 namespace csl
 {
-	enum class Op : std::size_t
+	enum class Op : std::uint8_t
 	{
 		// algebra operators
 		CWiseMul,
@@ -122,7 +122,7 @@ namespace csl
 		imageSize,
 	};
 
-	enum class Precedence : std::size_t
+	enum class Precedence : std::uint8_t
 	{
 		Alias = 10,
 
@@ -172,7 +172,7 @@ namespace csl
 	};
 
 	constexpr bool operator<(const Precedence a, const Precedence b) {
-		return static_cast<std::size_t>(a) < static_cast<std::size_t>(b);
+		return static_cast<std::underlying_type_t<Precedence>>(a) < static_cast<std::underlying_type_t<Precedence>>(b);
 	}
 
 	struct ExpressionHandle
@@ -208,7 +208,7 @@ namespace csl
 	struct OperatorBase;
 	OperatorBase* retrieve_expr(const Expr index);
 
-	enum class CtorFlags : std::size_t
+	enum class CtorFlags : std::uint8_t
 	{
 		Declaration = 1 << 0,
 		Initialisation = 1 << 1,
@@ -221,13 +221,13 @@ namespace csl
 	};
 
 	constexpr CtorFlags operator&(const CtorFlags a, const CtorFlags b) {
-		return static_cast<CtorFlags>(static_cast<std::size_t>(a) & static_cast<std::size_t>(b));
+		return static_cast<CtorFlags>(static_cast<std::underlying_type_t<CtorFlags>>(a) & static_cast<std::underlying_type_t<CtorFlags>>(b));
 	}
 	constexpr CtorFlags operator|(const CtorFlags a, const CtorFlags b) {
-		return static_cast<CtorFlags>(static_cast<std::size_t>(a) | static_cast<std::size_t>(b));
+		return static_cast<CtorFlags>(static_cast<std::underlying_type_t<CtorFlags>>(a) | static_cast<std::underlying_type_t<CtorFlags>>(b));
 	}
 	constexpr CtorFlags operator~(const CtorFlags a) {
-		return static_cast<CtorFlags>(~static_cast<std::size_t>(a));
+		return static_cast<CtorFlags>(~static_cast<std::underlying_type_t<CtorFlags>>(a));
 	}
 	constexpr CtorFlags& operator|=(CtorFlags& a, const CtorFlags b) {
 		a = a | b;

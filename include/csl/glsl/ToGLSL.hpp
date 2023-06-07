@@ -304,25 +304,38 @@ namespace csl
 		}
 	};
 
-	inline const std::unordered_map<SamplerFlags, std::string>& get_sampler_access_strs()
+	inline const std::string& get_sampler_access_str(const SamplerFlags access)
 	{
 		static const std::unordered_map<SamplerFlags, std::string> sampler_access_strs = {
 				{ SamplerFlags::Sampler, "sampler" },
 				{ SamplerFlags::Image, "image"}
 		};
-		return sampler_access_strs;
+		return sampler_access_strs.find(access)->second;
 	}
 
-	inline const std::unordered_map<SamplerFlags, std::string>& get_sampler_type_strs()
+	inline const std::string& get_sampler_type_str(const SamplerFlags type)
 	{
 		static const std::unordered_map<SamplerFlags, std::string> sampler_type_strs = {
 			{ SamplerFlags::Basic, ""},
 			{ SamplerFlags::Cube, "Cube"},
 			{ SamplerFlags::Rectangle , "Rect"},
-			{ SamplerFlags::Multisample, "MS"},
 			{ SamplerFlags::Buffer, "Buffer"},
 		};
-		return sampler_type_strs;
+		return sampler_type_strs.find(type)->second;
+	}
+
+	inline std::string get_sampler_attributes_str(const SamplerFlags attributes)
+	{
+		static const std::unordered_map<SamplerFlags, std::string> sampler_attributes_strs = {
+			{ SamplerFlags::Multisample, "MS"},
+			{ SamplerFlags::Array, "Array"},
+			{ SamplerFlags::Shadow, "Shadow"},
+		};
+		std::string s;
+		for (const auto& [attribute, str] : sampler_attributes_strs)
+			if (bool(attributes & attribute))
+				s += str;
+		return s;
 	}
 
 	template<typename T, std::size_t N, SamplerFlags Flags>
@@ -331,11 +344,10 @@ namespace csl
 		static const std::string& get() {
 			static const std::string type_str = [] {
 				return TypePrefixStr<T>::get() +
-					get_sampler_access_strs().find(Flags & SamplerFlags::MaskAccessType)->second +
+					get_sampler_access_str(Flags & SamplerFlags::MaskAccess) +
 					(N != 0 ? std::to_string(N) + 'D' : "") +
-					get_sampler_type_strs().find(Flags & SamplerFlags::MaskSamplerType)->second +
-					(bool(Flags & SamplerFlags::Array) ? "Array" : "") +
-					(bool(Flags & SamplerFlags::Shadow) ? "Shadow" : "");
+					get_sampler_type_str(Flags & SamplerFlags::MaskType) +
+					get_sampler_attributes_str(Flags & SamplerFlags::MaskAttribute);
 			}();
 			return type_str;
 		}
@@ -658,7 +670,8 @@ namespace csl
 	struct OverloadGLSL
 	{
 		template<typename T, std::size_t Id>
-		struct Get {
+		struct Get 
+		{
 			static void call(const std::array<FuncOverload, NumOverloads>& overloads, GLSLData& data, const std::string& fname) {
 				data.endl().trail() << GLSLTypeStr<T>::get() << " " << fname << "(";
 				const auto& args = overloads[Id].args->m_instructions;

@@ -162,7 +162,7 @@ namespace csl {
 		return { name, std::forward<Fs>(fs)... };
 	}
 
-	template<typename ... ReturnTypes, typename F, typename ... Fs, typename = std::enable_if_t<!std::is_convertible_v<F, std::string> > >
+	template<typename ... ReturnTypes, typename F, typename ... Fs, std::enable_if_t<!std::is_convertible_v<F, std::string>, int> = 0>
 	Function<TList<ReturnTypes...>, F, Fs... > define_function(F&& f, Fs&& ... fs)
 	{
 		return { "", std::forward<F>(f), std::forward<Fs>(fs)... };

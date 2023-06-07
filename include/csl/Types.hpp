@@ -26,16 +26,18 @@ namespace csl
 		Basic = 1 << 2,
 		Cube = 1 << 3,
 		Rectangle = 1 << 4,
-		Multisample = 1 << 5,
 		Buffer = 1 << 5,
 		Atomic = 1 << 6,
 
-		Array = 1 << 7,
-		Shadow = 1 << 8,
+		Multisample = 1 << 7,
+		Array = 1 << 8,
+		Shadow = 1 << 9,
+
+		MaskAccess = Sampler | Image,
+		MaskType = Basic | Cube | Rectangle | Buffer | Atomic,
+		MaskAttribute = Multisample | Array | Shadow,
 
 		Default = Sampler | Basic,
-		MaskAccessType = Sampler | Image,
-		MaskSamplerType = Basic | Cube | Rectangle | Multisample | Buffer | Atomic,
 	};
 	constexpr SamplerFlags operator|(const SamplerFlags a, const SamplerFlags b) {
 		return static_cast<SamplerFlags>(static_cast<std::underlying_type_t<SamplerFlags>>(a) | static_cast<std::underlying_type_t<SamplerFlags>>(b));
@@ -126,7 +128,7 @@ namespace csl
 	struct Infos<const T&> : Infos<T> { };
 
 	template<typename T, std::size_t R, std::size_t C>
-	struct Infos<Matrix<T, R, C>> 
+	struct Infos<Matrix<T, R, C>>
 	{
 		static constexpr bool IsConst = false;
 		static constexpr bool IsConstant = false;
@@ -174,25 +176,26 @@ namespace csl
 		static constexpr std::size_t ColCount = 0;
 	};
 
-	namespace detail 
+	namespace detail
 	{
-		template<class>
+		template<typename>
 		struct sfinae_true : std::true_type {};
 
-		template<class T>
-		static auto test_is_csl_type(int)->sfinae_true<decltype(T::IsCSLType())>;
-		template<class>
-		static auto test_is_csl_type(long)->std::false_type;
-	} // detail::
+		template<typename T>
+		static auto is_csl_type(int) -> sfinae_true<decltype(T::IsCSLType())>;
 
-	template<class T>
-	constexpr bool IsCSLType()
-	{
-		if constexpr (decltype(detail::test_is_csl_type<T>(0)){})
-			return true;
-		else
-			return Infos<T>::IsCSLType;
-	};
+		template<typename>
+		static auto is_csl_type(long) -> std::false_type;
+
+		template<typename T>
+		constexpr bool IsCSLType()
+		{
+			if constexpr (decltype(is_csl_type<T>(0)){})
+				return true;
+			else
+				return Infos<T>::IsCSLType;
+		};
+	}
 
 	template<typename ...Ts>
 	struct TypeInfos
@@ -201,7 +204,7 @@ namespace csl
 
 		template<typename T>
 		struct TypePred {
-			static bool constexpr Value = IsCSLType<T>();
+			static bool constexpr Value = detail::IsCSLType<T>();
 		};
 
 		using Matches = Matching<TypePred, List>;
@@ -252,6 +255,9 @@ namespace csl
 	constexpr bool IsVecF = IsVec<T, float>;
 
 	template<typename T>
+	constexpr bool IsVecI = IsVec<T, int>;
+
+	template<typename T>
 	constexpr bool IsFloat = SameMat<T, float>;
 
 	template<>
@@ -288,7 +294,7 @@ namespace csl
 	struct Infos<unsigned long long> : Infos<unsigned int> { };
 
 	template<typename A, typename B>
-	struct AlgebraMulInfos 
+	struct AlgebraMulInfos
 	{
 		static_assert(SameScalarType<A, B>);
 
@@ -304,7 +310,7 @@ namespace csl
 	};
 
 	template<typename A, typename B>
-	struct AlgebraInfos 
+	struct AlgebraInfos
 	{
 		static_assert(SameScalarType<A, B>);
 		using ReturnType = typename Infos<std::conditional_t<Infos<A>::IsScalar, B, A>>::Type;
