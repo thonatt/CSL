@@ -549,18 +549,6 @@ namespace csl
 			m_buffer.reserve(10000);
 		}
 
-		PolymorphicMemoryPool(PolymorphicMemoryPool&& other) noexcept
-			: m_buffer(std::move(other.m_buffer)), m_objects_offsets(std::move(other.m_objects_offsets))
-		{
-		}
-
-		PolymorphicMemoryPool& operator=(PolymorphicMemoryPool&& other) noexcept
-		{
-			m_buffer = std::move(other.m_buffer);
-			m_objects_offsets = std::move(other.m_objects_offsets);
-			return *this;
-		}
-
 		template<typename Derived, typename ... Args>
 		Expr emplace_back(Args&& ...args)
 		{

@@ -40,16 +40,15 @@ struct ShaderExample
 	template<typename ShaderCreation>
 	ShaderExample(ShaderCreation&& f)
 	{
-		auto start = Clock::now();
+		const auto start = Clock::now();
 		m_shader = std::make_unique<decltype(f())>(f());
 		m_generation_timing = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start).count() / 1000.0;
 
-		m_glsl_timing = get_timing([&]
-			{
-				csl::GLSLData glsl_data;
-		m_shader->print_glsl(glsl_data);
-		m_glsl_str = glsl_data.stream.str();
-			});
+		m_glsl_timing = get_timing([&] {
+			csl::GLSLData glsl_data;
+			m_shader->print_glsl(glsl_data);
+			m_glsl_str = glsl_data.stream.str();
+		});
 	}
 
 	std::string m_glsl_str;
@@ -198,7 +197,7 @@ ShaderSuite get_all_suite()
 	ShaderSuite suite;
 
 	// Readme examples.
-	suite.add_shader(ShaderGroup::Readme, ShaderId::TypeAndOperatorsExample, types_operators_example);
+	suite.add_shader(ShaderGroup::Readme, ShaderId::TypeAndOperatorsExample, types_operators_example);	
 	suite.add_shader(ShaderGroup::Readme, ShaderId::ManualNamingExample, manual_naming_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderId::AutoNamingExample, auto_naming_example);
 	suite.add_shader(ShaderGroup::Readme, ShaderId::SwizzlingExample, swizzling_example);

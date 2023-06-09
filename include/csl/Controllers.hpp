@@ -109,7 +109,7 @@ namespace csl
 		bool first_overload = true;
 	};
 
-	struct ForController : virtual ControllerBase 
+	struct ForController : virtual ControllerBase
 	{
 		ForInstruction& get()
 		{
@@ -282,17 +282,6 @@ namespace csl
 		virtual IfController,
 		virtual SwitchController
 	{
-		MainController() = default;
-		MainController(MainController&& other)
-		{
-			*this = std::move(other);
-		}
-
-		MainController& operator=(MainController&& other)
-		{
-			return *this;
-		}
-
 		void begin_for()
 		{
 			if (!context::active())
@@ -434,13 +423,9 @@ namespace csl
 
 		virtual ~ShaderController() = default;
 
-		ShaderController(ShaderController&& other) :
-			m_scope(std::move(other.m_scope)),
-			m_memory_pool(std::move(other.m_memory_pool)),
-			m_instruction_pool(std::move(other.m_instruction_pool))
+		ShaderController(ShaderController&& other)
 		{
-			if (context::g_current_shader == &other)
-				context::g_current_shader = this;
+			*this = std::move(other);
 		}
 
 		ShaderController& operator=(ShaderController&& other)
@@ -460,7 +445,7 @@ namespace csl
 		template<typename F>
 		void main(F&& f)
 		{
-			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>, "main function must returns void");
+			static_assert(std::is_same_v<typename LambdaInfos<F>::RType, void>, "main functions must return void");
 			(void)define_function<void>("main", f);
 		}
 

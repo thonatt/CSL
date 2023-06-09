@@ -112,14 +112,8 @@ namespace csl
 
 		public:
 			ShaderGLSL();
-			ShaderGLSL(ShaderGLSL&& other) noexcept : ShaderController(std::move(other)) {
-				//std::cout << "ShaderGLSL(ShaderGLSL&&)" << std::endl;
-			}
-			ShaderGLSL& operator=(ShaderGLSL&& other) noexcept {
-				static_cast<ShaderController&>(*this) = std::move(other);
-				return *this;
-			}
-
+			ShaderGLSL(ShaderGLSL&& other) = default;
+			ShaderGLSL& operator=(ShaderGLSL&& other) = default;
 			~ShaderGLSL();
 
 			void print_imgui(ImGuiData& data) override
